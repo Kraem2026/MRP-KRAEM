@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Calendario de Máquinas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f8;
+  padding:15px
+}
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:6px;
+  max-width:1400px;
+  margin:auto
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  font-size:14px;
+  text-align:center
+}
+th{background:#f0f0f0}
+.ok{background:#d4edda}
+.warn{background:#fff3cd}
+.bad{background:#f8d7da}
+.back{background:#6c757d;color:#fff;border:none;padding:6px 12px}
+</style>
+</head>
+
+<body>
+
+<button class="back" onclick="location.href='Planeacion.html'">
+⬅ Regresar
+</button>
+
+<div class="card">
+  <h2>🗓️ Calendario de carga por máquina</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Máquina</th>
+        <th>Fecha</th>
+        <th>Horas disponibles</th>
+        <th>Horas planeadas</th>
+        <th>Disponible</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script>
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+async function loadCalendar(){
+
+  const { data: capacity } = await client
+    .from('machine_capacity')
+    .select(`
+      machine_id,
+      date,
+      available_hour,
+      machines ( machine_name )
+    `)
+    .order('date');
+
+  const { data: plans } = await client
+    .from('production_plan')
+    .select('machine_id, production_date, estimated_hours')
+    .eq('status','planned');
+
+  rows.innerHTML='';
+
+  capacity.forEach(c=>{
+    const used = plans
+      .filter(p =>
+        p.machine_id === c.machine_id &&
+        p.production_date === c.date
+      )
+      .reduce((s,p)=>s + Number(p.estimated_hours),0);
+
+    const free = (c.available_hour - used).toFixed(2);
+
+    let cls = 'ok';
+    let status = 'OK';
+
+    if(free <= 0){
+      cls = 'bad';
+      status = 'SATURADA';
+    }else if(free < 2){
+      cls = 'warn';
+      status = 'CRÍTICA';
+    }
+
+    rows.innerHTML += `
+      <tr class="${cls}">
+        <td>${c.machines.machine_name}</td>
+        <td>${c.date}</td>
+        <td>${c.available_hour}</td>
+        <td>${used.toFixed(2)}</td>
+        <td>${free}</td>
+        <td>${status}</td>
+      </tr>
+    `;
+  });
+}
+
+loadCalendar();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Planeación Maestra - WO & Carritos</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body{font-family:'Segoe UI',Arial; background:#f0f2f5; padding:20px}
+  .card{background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-bottom:20px}
+  h2{margin-top:0; color:#1a73e8; border-bottom:2px solid #e8f0fe; padding-bottom:10px}
+  table{width:100%; border-collapse:collapse; margin-top:15px}
+  th,td{padding:12px; border-bottom:1px solid #eee; text-align:left; font-size:13px}
+  th{background:#f8f9fa; color:#5f6368; text-transform:uppercase; letter-spacing:1px}
+  .btn-save{background:#28a745; color:#fff; border:none; border-radius:5px; cursor:pointer; padding:10px 20px; font-weight:bold}
+  .btn-plan{background:#1a73e8; color:#fff; border:none; border-radius:5px; cursor:pointer; padding:6px 12px}
+  .badge-carrito{display:inline-block; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold}
+  .full{background:#fde8e8; color:#c81e1e}
+  .ok{background:#def7ec; color:#03543f}
+  input, select{padding:10px; border:1px solid #ddd; border-radius:5px; margin-right:10px}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>📞 Captura de Requerimiento (Demanda)</h2>
+  <div style="display:flex; flex-wrap:wrap; gap:10px">
+    <select id="select_part" style="flex:2"></select>
+    <input type="number" id="req_qty" placeholder="Cantidad piezas" style="flex:1">
+    <input type="date" id="req_date" style="flex:1">
+    <button class="btn-save" onclick="guardarRequerimiento()">REGISTRAR DEMANDA</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📋 Pendientes por Programar (Planeación)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Parte</th>
+        <th>Demanda</th>
+        <th>Stock Real</th>
+        <th>Carritos KIA (Uso/Máx)</th>
+        <th>Fecha Límite</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla_body">
+      <tr><td colspan="6">Cargando requerimientos activos...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+async function iniciar() {
+  const {data: partes} = await client.from('parts').select('id, part_number').eq('obsolete', false).order('part_number');
+  const select = document.getElementById('select_part');
+  select.innerHTML = '<option value="">Selecciona Número de Parte...</option>';
+  partes.forEach(p => select.innerHTML += `<option value="${p.id}">${p.part_number}</option>`);
+  cargarTabla();
+}
+
+async function guardarRequerimiento() {
+  const p_id = document.getElementById('select_part').value;
+  const qty = document.getElementById('req_qty').value;
+  const date = document.getElementById('req_date').value;
+
+  if(!p_id || !qty || !date) return alert("Error: Llena todos los campos de ventas.");
+
+  const {error} = await client.from('requerimientos').insert({
+    part_id: p_id,
+    quantity: qty,
+    due_date: date,
+    status: 'ABIERTO'
+  });
+
+  if(!error) { 
+    alert("Demanda registrada correctamente."); 
+    cargarTabla(); 
+  }
+}
+
+async function cargarTabla() {
+  // Solo traemos los que están 'ABIERTO' (No planeados aún)
+  const {data, error} = await client.from('v_planeacion_maestra').select('*').eq('status', 'ABIERTO');
+  const body = document.getElementById('tabla_body');
+  
+  if(error) return body.innerHTML = '<tr><td colspan="6">Error de conexión.</td></tr>';
+  body.innerHTML = data.length === 0 ? '<tr><td colspan="6">No hay requerimientos pendientes.</td></tr>' : '';
+
+  data.forEach(r => {
+    let carritosHtml = "N/A";
+    if(r.pcs_per_trolley > 0) {
+      const isFull = r.carritos_actuales >= r.max_trolleys_inventory;
+      carritosHtml = `<span class="badge-carrito ${isFull ? 'full' : 'ok'}">${r.carritos_actuales} / ${r.max_trolleys_inventory}</span>`;
+    }
+
+    body.innerHTML += `
+      <tr>
+        <td><b>${r.part_number}</b><br><small>${r.part_name || ''}</small></td>
+        <td>${Number(r.demanda_ventas).toLocaleString()}</td>
+        <td>${Number(r.stock_actual).toLocaleString()}</td>
+        <td>${carritosHtml}</td>
+        <td>${r.fecha_entrega}</td>
+        <td>
+          <button class="btn-plan" onclick="generarWO(${r.requerimiento_id}, ${r.part_id}, ${r.demanda_ventas})">
+            Crear WO
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+async function generarWO(reqId, partId, qty) {
+  const machine = prompt("Asigna el ID de la Máquina:");
+  if(!machine) return;
+
+  const target = prompt("Cantidad final a producir (Lote sugerido):", qty);
+  if(!target) return;
+
+  // 1. Insertamos la WO
+  const { data: wo, error: errWO } = await client.from('production_orders').insert({
+    requerimiento_id: reqId,
+    part_id: partId,
+    machine_id: machine,
+    target_qty: target,
+    status: 'PROGRAMADA'
+  }).select();
+
+  if(!errWO) {
+    // 2. Actualizamos el requerimiento para que ya no aparezca en la lista de pendientes
+    await client.from('requerimientos').update({ status: 'PLANEADO' }).eq('id', reqId);
+    alert("ORDEN GENERADA: " + wo[0].wo_number);
+    cargarTabla();
+  } else {
+    alert("Error: " + errWO.message);
+  }
+}
+
+iniciar();
+</script>
+</body>
+</html>

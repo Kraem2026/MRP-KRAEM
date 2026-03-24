@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Administración – Números de Parte</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:15px}
+.card{background:#fff;padding:20px;border-radius:6px;max-width:1400px;margin:auto;margin-bottom:15px}
+input,select{width:100%;padding:8px;margin-bottom:10px}
+.list{border:1px solid #ccc;max-height:200px;overflow:auto}
+.item{padding:8px;border-bottom:1px solid #eee;cursor:pointer}
+.item:hover{background:#f0f0f0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px}
+.kpi{font-size:20px;font-weight:bold}
+button{padding:6px 10px;cursor:pointer}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4)}
+.modal-content{background:#fff;padding:20px;max-width:500px;margin:8% auto;border-radius:6px}
+</style>
+</head>
+
+<body>
+
+<button onclick="location.href='Admin.html'">⬅ Regresar</button>
+
+<div class="card">
+  <h2>📦 Administración – Números de Parte</h2>
+  <input id="search" placeholder="Buscar número de parte">
+  <div id="results" class="list"></div>
+</div>
+
+<div id="ficha" class="card" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h3 id="pn"></h3>
+    <button onclick="openModal()">✏ Editar</button>
+  </div>
+
+  <div class="grid">
+    <div><b>ABC</b><div id="abc"></div></div>
+    <div><b>Proyecto</b><div id="project"></div></div>
+
+    <div><b>Cavidades</b><div id="cavities"></div></div>
+    <div><b>Tiempo de ciclo (s)</b><div id="cycle"></div></div>
+    <div><b>Tipo de resina</b><div id="resin"></div></div>
+
+    <div><b>Peso pieza (g)</b><div id="weight"></div></div>
+    <div><b>Tolerancia (± g)</b><div id="tolerance"></div></div>
+
+    <div><b>Inventario actual</b><div id="inventory"></div></div>
+    <div><b>Demanda mensual</b><div id="demand"></div></div>
+    <div><b>Días de cobertura</b><div id="coverage"></div></div>
+
+    <div><b>Última salida</b><div id="last_out"></div></div>
+    <div><b>Rotación 30 días</b><div id="kpi30" class="kpi"></div></div>
+    <div><b>Rotación 90 días</b><div id="kpi90" class="kpi"></div></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <h3>✏ Editar ficha técnica</h3>
+
+    <label>Cavidades</label>
+    <input id="m_cavities" type="number">
+
+    <label>Tiempo de ciclo (s)</label>
+    <input id="m_cycle" type="number">
+
+    <label>Resina</label>
+    <select id="m_resin"></select>
+
+    <label>Peso pieza (g)</label>
+    <input id="m_weight" type="number" step="0.01">
+
+    <label>Tolerancia (± g)</label>
+    <input id="m_tolerance" type="number" step="0.01">
+
+    <div style="margin-top:10px;text-align:right">
+      <button onclick="saveSpecs()">💾 Guardar</button>
+      <button onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+let current = null;
+
+const RESINS = [
+  'PP','PP GF30','ABS','ABS PC','PA6','PA6 GF30',
+  'PA66','PA66 GF35','POM','TPE','TPU','Otro'
+];
+
+search.onkeyup = async ()=>{
+  results.innerHTML='';
+  if(search.value.length<2) return;
+
+  const {data} = await client
+    .from('parts')
+    .select('id,part_number')
+    .ilike('part_number', `%${search.value}%`)
+    .limit(10);
+
+  data.forEach(p=>{
+    results.innerHTML+=`
+      <div class="item" onclick="loadPart(${p.id})">${p.part_number}</div>
+    `;
+  });
+};
+
+async function loadPart(id){
+  const {data:p} = await client.from('parts').select('*').eq('id',id).single();
+  const {data:spec} = await client.from('part_specs').select('*').eq('part_id',id).maybeSingle();
+  const {data:s} = await client.from('inventory_part_summary').select('*').eq('part_id',id).maybeSingle();
+  const {data:k} = await client.from('inventory_kpi_parts').select('*').eq('part_number',p.part_number).maybeSingle();
+
+  current = {p,spec};
+
+  ficha.style.display='block';
+  pn.innerText = `${p.part_number} – ${p.part_name||''}`;
+
+  abc.innerText = p.abc_class || '-';
+  project.innerText = p.project || '-';
+
+  cavities.innerText = spec?.cavities ?? '-';
+  cycle.innerText = spec?.cycle_time_sec ?? '-';
+  resin.innerText = spec?.material_resin || p.resin_type || '-';
+
+  weight.innerText = spec?.part_weight_g ?? '-';
+  tolerance.innerText = spec?.weight_tolerance_g ?? '-';
+
+  inventory.innerText = s?.current_inventory ?? 0;
+  demand.innerText = s?.avg_monthly_demand ?? 0;
+  coverage.innerText = s?.coverage_days ? s.coverage_days+' días':'-';
+
+  last_out.innerText = k?.last_out ? new Date(k.last_out).toLocaleDateString():'-';
+  kpi30.innerText = k?.rotation_30 ?? 0;
+  kpi90.innerText = k?.rotation_90_monthly ?? 0;
+}
+
+function openModal(){
+  if(!current) return;
+
+  m_resin.innerHTML='<option value="">Seleccionar…</option>';
+  RESINS.forEach(r=>m_resin.innerHTML+=`<option>${r}</option>`);
+
+  m_cavities.value = current.spec?.cavities ?? '';
+  m_cycle.value = current.spec?.cycle_time_sec ?? '';
+  m_resin.value = current.spec?.material_resin ?? '';
+  m_weight.value = current.spec?.part_weight_g ?? '';
+  m_tolerance.value = current.spec?.weight_tolerance_g ?? '';
+
+  modal.style.display='block';
+}
+
+function closeModal(){ modal.style.display='none'; }
+
+async function saveSpecs(){
+  const payload = {
+    part_id: current.p.id,
+    cavities: m_cavities.value || null,
+    cycle_time_sec: m_cycle.value || null,
+    material_resin: m_resin.value || null,
+    part_weight_g: m_weight.value || null,
+    weight_tolerance_g: m_tolerance.value || null
+  };
+
+  await client.from('part_specs').upsert(payload,{onConflict:'part_id'});
+  closeModal();
+  loadPart(current.p.id);
+}
+</script>
+
+</body>
+</html>

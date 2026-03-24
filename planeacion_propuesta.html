@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Propuesta de Planeación</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f8;
+  padding:15px
+}
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:6px;
+  max-width:1400px;
+  margin:auto
+}
+h2{margin-top:0}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  font-size:14px
+}
+th{background:#f0f0f0}
+.ok{background:#d4edda}
+.bad{background:#f8d7da}
+button{
+  padding:6px 10px;
+  cursor:pointer
+}
+.accept{background:#28a745;color:#fff;border:none}
+.reject{background:#dc3545;color:#fff;border:none}
+.back{background:#6c757d;color:#fff;border:none}
+</style>
+</head>
+
+<body>
+
+<button class="back" onclick="location.href='planeacion_requerimientos.html'">
+⬅ Regresar
+</button>
+
+<div class="card">
+  <h2>📊 Propuesta automática de planeación</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Req</th>
+        <th>Parte</th>
+        <th>Máquina</th>
+        <th>Molde</th>
+        <th>Fecha</th>
+        <th>Horas</th>
+        <th>Status</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script>
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+/* ================= MOTOR DE PLANEACIÓN ================= */
+async function runPlanningEngine(){
+
+  const { data: reqs } = await client
+    .from('v_open_requerimientos')
+    .select('*')
+    .order('due_date');
+
+  let results = [];
+
+  for(const r of reqs){
+
+    const { data: molds } = await client
+      .from('part_molds')
+      .select(`
+        mold_id,
+        cycle_time_sec,
+        molds ( mold_name, cavities, compatible_machine )
+      `)
+      .eq('part_id', r.part_id)
+      .eq('active', true);
+
+    let planned = false;
+
+    for(const pm of molds || []){
+
+      const cav = pm.molds.cavities || 1;
+      const cycle = pm.cycle_time_sec;
+
+      const qtyReal = Math.ceil(r.qty_with_buffer * 1.05);
+      let hours = ((qtyReal / cav) * cycle) / 3600;
+      hours = hours * 1.15;
+
+      const { data: capacity } = await client
+        .from('machine_capacity')
+        .select('*')
+        .eq('machine_id', pm.molds.compatible_machine)
+        .gte('date', new Date().toISOString().slice(0,10))
+        .order('date');
+
+      for(const d of capacity || []){
+        if(d.available_hour >= hours){
+          results.push({
+            ...r,
+            machine_id: pm.molds.compatible_machine,
+            mold_id: pm.mold_id,
+            mold_name: pm.molds.mold_name,
+            production_date: d.date,
+            hours: hours.toFixed(2),
+            status: 'OK'
+          });
+          d.available_hour -= hours;
+          planned = true;
+          break;
+        }
+      }
+
+      if(planned) break;
+    }
+
+    if(!planned){
+      results.push({
+        ...r,
+        status: 'SATURATED'
+      });
+    }
+  }
+
+  render(results);
+}
+
+/* ================= RENDER ================= */
+function render(data){
+  rows.innerHTML = '';
+
+  data.forEach(r=>{
+    const cls = r.status === 'OK' ? 'ok' : 'bad';
+
+    rows.innerHTML += `
+      <tr class="${cls}">
+        <td>${r.requerimiento_id}</td>
+        <td>${r.part_number}</td>
+        <td>${r.machine_id || '-'}</td>
+        <td>${r.mold_name || '-'}</td>
+        <td>${r.production_date || '-'}</td>
+        <td>${r.hours || '-'}</td>
+        <td>${r.status}</td>
+        <td>
+          ${r.status === 'OK'
+            ? `<button class="accept" onclick='accept(${JSON.stringify(r)})'>✔ Aceptar</button>`
+            : `<button class="reject">No factible</button>`
+          }
+        </td>
+      </tr>
+    `;
+  });
+}
+
+/* ================= ACEPTAR ================= */
+async function accept(r){
+
+  await client.from('production_plan').insert({
+    requerimiento_id: r.requerimiento_id,
+    part_id: r.part_id,
+    machine_id: r.machine_id,
+    mold_id: r.mold_id,
+    quantity: r.qty_with_buffer,
+    production_date: r.production_date,
+    estimated_hours: r.hours,
+    status: 'planned'
+  });
+
+  await client.from('requerimientos')
+    .update({status:'planned'})
+    .eq('id', r.requerimiento_id);
+
+  alert('Planeación confirmada');
+  runPlanningEngine();
+}
+
+runPlanningEngine();
+</script>
+
+</body>
+</html>

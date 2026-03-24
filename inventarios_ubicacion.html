@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventario por Ubicación</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { 
+            --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
+            --border: #e2e8f0; --tag-bg: #eeeeee; --tag-text: #333333;
+        }
+        [data-theme="dark"] { 
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
+            --border: #334155; --tag-bg: #334155; --tag-text: #f8fafc;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding:20px; margin:0; color: var(--text); transition: 0.3s; }
+        header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background: var(--card); padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .back { background:#6c757d; color:#fff; border:none; padding:10px 20px; cursor:pointer; border-radius:8px; font-weight: bold; }
+        
+        .controls { display: flex; gap: 8px; align-items: center; }
+        .lang-btn { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
+        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+        .btn-ctrl { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+        .btn-excel { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
+
+        .filter-panel { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 5px; }
+        input { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); width: 100%; box-sizing: border-box; }
+
+        .table-container { background: var(--card); border-radius: 12px; overflow-x: auto; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        th { background: #2d3436; color: white; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
+
+        .tag-project { background: #e0f2f1; color: #00796b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        [data-theme="dark"] .tag-project { background: #004d40; color: #e0f2f1; }
+        .qty-badge { background: #2ecc71; color: white; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+    </style>
+</head>
+<body data-theme="light">
+
+<header>
+    <button class="back" onclick="location.href='dashboard.html'">⬅ Dashboard</button>
+    <h2 id="txtTitle">📍 Inventario por Ubicación</h2>
+    <div class="controls">
+        <button class="btn-excel" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+        <button class="btn-ctrl" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+</header>
+
+<div class="filter-panel">
+    <div class="filter-grid">
+        <div class="filter-group"><label id="lPart">N° Parte</label><input type="text" id="fPart" placeholder="Filtrar parte..." oninput="applyFilters()"></div>
+        <div class="filter-group"><label id="lDesc">Descripción</label><input type="text" id="fDesc" placeholder="Filtrar descripción..." oninput="applyFilters()"></div>
+        <div class="filter-group"><label id="lProj">Proyecto</label><input type="text" id="fProj" placeholder="Filtrar proyecto..." oninput="applyFilters()"></div>
+        <div class="filter-group"><label id="lArea">Área</label><input type="text" id="fArea" placeholder="Filtrar área..." oninput="applyFilters()"></div>
+        <div class="filter-group"><label id="lLoc">Ubicación</label><input type="text" id="fLoc" placeholder="Filtrar ubicación..." oninput="applyFilters()"></div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th id="thParte">N° Parte</th>
+                <th id="thDesc">Descripción</th>
+                <th id="thProj">Proyecto</th>
+                <th id="thArea">Área</th>
+                <th id="thLoc">Ubicación</th>
+                <th id="thCant">Cantidad</th>
+            </tr>
+        </thead>
+        <tbody id="inventarioBody"></tbody>
+    </table>
+</div>
+
+<script>
+const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+let dataAll = [];
+const i18n = {
+    es: { title: "Inventario por Ubicación", thParte: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thArea: "Área", thLoc: "Ubicación", thCant: "Cantidad", lPart: "N° Parte", lDesc: "Descripción", lProj: "Proyecto", lArea: "Área", lLoc: "Ubicación" },
+    ko: { title: "위치별 재고 현황", thParte: "부품 번호", thDesc: "설명", thProj: "프로젝트", thArea: "구역", thLoc: "위치", thCant: "수량", lPart: "부품 번호", lDesc: "설명", lProj: "프로젝트", lArea: "구역", lLoc: "위치" }
+};
+
+async function loadData() {
+    const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
+    if (error) {
+        console.error(error);
+        return;
+    }
+    dataAll = data || [];
+    render(dataAll);
+}
+
+function render(list) {
+    const body = document.getElementById('inventarioBody');
+    body.innerHTML = list.map(r => `
+        <tr>
+            <td><b>${r.part_number}</b></td>
+            <td style="color:var(--text-secondary)">${r.part_name || ''}</td>
+            <td><span class="tag-project">${r.project || '-'}</span></td>
+            <td>${r.area || ''}</td>
+            <td style="color:#3498db; font-weight:bold;">${r.location}</td>
+            <td><span class="qty-badge">${r.quantity}</span></td>
+        </tr>
+    `).join('');
+}
+
+function applyFilters() {
+    const p = document.getElementById('fPart').value.toLowerCase();
+    const d = document.getElementById('fDesc').value.toLowerCase();
+    const pr = document.getElementById('fProj').value.toLowerCase();
+    const a = document.getElementById('fArea').value.toLowerCase();
+    const l = document.getElementById('fLoc').value.toLowerCase();
+
+    const filtered = dataAll.filter(r => 
+        (r.part_number?.toLowerCase().includes(p)) &&
+        (r.part_name?.toLowerCase().includes(d)) &&
+        (r.project?.toLowerCase().includes(pr)) &&
+        (r.area?.toLowerCase().includes(a)) &&
+        (r.location?.toLowerCase().includes(l))
+    );
+    render(filtered);
+}
+
+function exportExcel() {
+    if (!dataAll.length) return;
+    
+    // Obtener datos filtrados actualmente
+    const p = document.getElementById('fPart').value.toLowerCase();
+    const d = document.getElementById('fDesc').value.toLowerCase();
+    const pr = document.getElementById('fProj').value.toLowerCase();
+    const a = document.getElementById('fArea').value.toLowerCase();
+    const l = document.getElementById('fLoc').value.toLowerCase();
+
+    const filtered = dataAll.filter(r => 
+        (r.part_number?.toLowerCase().includes(p)) &&
+        (r.part_name?.toLowerCase().includes(d)) &&
+        (r.project?.toLowerCase().includes(pr)) &&
+        (r.area?.toLowerCase().includes(a)) &&
+        (r.location?.toLowerCase().includes(l))
+    );
+
+    let csvContent = "\uFEFFN° Parte,Descripción,Proyecto,Área,Ubicación,Cantidad\n";
+    filtered.forEach(r => {
+        csvContent += `"${r.part_number}","${r.part_name || ''}","${r.project || ''}","${r.area || ''}","${r.location}",${r.quantity}\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Inventario_Ubicacion_${new Date().toLocaleDateString()}.csv`;
+    link.click();
+}
+
+function toggleTheme() {
+    const b = document.body;
+    const isDark = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function setLang(lang) {
+    const t = i18n[lang];
+    document.getElementById('txtTitle').innerText = t.title;
+    document.getElementById('thParte').innerText = t.thParte;
+    document.getElementById('thDesc').innerText = t.thDesc;
+    document.getElementById('thProj').innerText = t.thProj;
+    document.getElementById('thArea').innerText = t.thArea;
+    document.getElementById('thLoc').innerText = t.thLoc;
+    document.getElementById('thCant').innerText = t.thCant;
+    document.getElementById('lPart').innerText = t.lPart;
+    document.getElementById('lDesc').innerText = t.lDesc;
+    document.getElementById('lProj').innerText = t.lProj;
+    document.getElementById('lArea').innerText = t.lArea;
+    document.getElementById('lLoc').innerText = t.lLoc;
+}
+
+loadData();
+</script>
+</body>
+</html>

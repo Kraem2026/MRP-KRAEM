@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Planeación – Forecast</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:20px}
+.container{max-width:1400px;margin:auto}
+.card{background:#fff;padding:20px;border-radius:8px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #ddd;font-size:14px}
+th{background:#f0f0f0}
+.badge-ok{color:#155724;background:#d4edda;padding:4px 8px;border-radius:4px}
+.badge-risk{color:#721c24;background:#f8d7da;padding:4px 8px;border-radius:4px}
+.back{background:#6c757d;color:#fff;border:none;padding:8px 12px;margin-bottom:10px}
+</style>
+</head>
+
+<body>
+
+<button class="back" onclick="location.href='Admin.html'">⬅ Dashboard</button>
+<button class="back" onclick="location.href='Planeacion.html'">⬅ Planeación</button>
+
+<div class="container">
+<div class="card">
+<h2>📈 Forecast – Análisis de Demanda</h2>
+
+<table>
+<thead>
+<tr>
+  <th>Parte</th>
+  <th>Inventario</th>
+  <th>Consumo promedio</th>
+  <th>Días cobertura</th>
+  <th>Estado</th>
+</tr>
+</thead>
+<tbody id="body"></tbody>
+</table>
+</div>
+</div>
+
+<script>
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+async function loadForecast(){
+
+  const {data,error} = await client
+    .from('inventory_kpi_parts')
+    .select('*')
+    .order('coverage_days',{ascending:true});
+
+  body.innerHTML='';
+
+  if(error || !data || data.length === 0){
+    body.innerHTML =
+      '<tr><td colspan="5">Sin información disponible</td></tr>';
+    return;
+  }
+
+  data.forEach(f=>{
+    const risk = f.coverage_days !== null && f.coverage_days < 15;
+
+    body.innerHTML+=`
+      <tr>
+        <td>${f.part_number}</td>
+        <td>${f.current_inventory}</td>
+        <td>${f.avg_monthly_consumption}</td>
+        <td>${f.coverage_days ?? '-'}</td>
+        <td>
+          <span class="${risk?'badge-risk':'badge-ok'}">
+            ${risk?'RIESGO':'OK'}
+          </span>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+loadForecast();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Captura Inventario - Sistema Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    :root { 
+        --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
+        --border: #e2e8f0; --primary: #007bff; --success: #27ae60; --danger: #dc3545;
+    }
+    [data-theme="dark"] { 
+        --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
+        --border: #334155; 
+    }
+
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding:15px; margin:0; color: var(--text); transition: 0.3s; }
+    
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background: var(--card); padding: 12px 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+    .btn-nav { background:#6c757d; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:8px; font-weight:bold; font-size:12px; }
+    .btn-login { background:var(--danger); display: none; }
+    .btn-login.online { background:var(--success); }
+
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .lang-btn { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
+    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+    .btn-ctrl { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+
+    .container { max-width:450px; margin:auto; background:var(--card); padding:25px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+    h2 { text-align:center; margin-top:0; margin-bottom:5px; font-size: 22px; }
+    .user-badge { text-align: center; font-size: 11px; color: var(--text-secondary); margin-bottom: 20px; font-weight: bold; background: var(--bg); padding: 8px; border-radius: 8px; border: 1px solid var(--border); }
+    
+    label { font-weight:800; display:block; margin-top:15px; font-size:11px; color: var(--text-secondary); text-transform: uppercase; }
+    input, select { width:100%; padding:12px; margin-top:5px; border-radius:8px; border:1px solid var(--border); font-size:15px; box-sizing:border-box; background: var(--bg); color: var(--text); }
+    
+    .tabs { display:flex; gap:5px; margin-bottom:20px; background: var(--bg); padding: 5px; border-radius: 10px; }
+    .tabs button { flex:1; background: transparent; border:none; padding:10px; cursor:pointer; font-size:10px; font-weight:bold; border-radius:8px; color: var(--text-secondary); transition: 0.2s; }
+    .tabs button.active { background:var(--primary); color:white; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+
+    .autobox { background:var(--card); border:1px solid var(--border); position:absolute; width:100%; z-index:1000; max-height:200px; overflow-y:auto; display:none; border-radius:0 0 8px 8px; box-shadow:0 10px 20px rgba(0,0,0,0.1); }
+    .autobox div { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); font-size:14px; }
+    .autobox div:hover { background: var(--bg); color: var(--primary); }
+
+    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(4px); }
+    .modal-content { background:var(--card); padding:25px; border-radius:15px; width:90%; max-width:400px; color: var(--text); border: 1px solid var(--border); }
+    
+    .btn-confirm { background:var(--primary); color:white; font-weight:bold; margin-top:25px; border:none; height:50px; cursor:pointer; border-radius:12px; font-size:16px; transition: 0.3s; }
+    .btn-confirm:hover { filter: brightness(1.1); transform: translateY(-2px); }
+</style>
+</head>
+<body data-theme="light">
+
+<header>
+    <button class="btn-nav" onclick="location.href='dashboard.html'">⬅ <span id="txtBack">Volver</span></button>
+    <div class="controls">
+        <button id="btnLoginStatus" class="btn-nav btn-login" onclick="location.href='login.html'">🔑 Login</button>
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+        <button class="btn-ctrl" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+</header>
+
+<div class="container">
+    <div id="userDisplay" class="user-badge">Verificando sesión...</div>
+    <h2 id="txtTitle">Captura de Inventario</h2>
+    
+    <div class="tabs">
+        <button id="btnENTRADA" class="active" onclick="setMode('ENTRADA')">ENTRADA</button>
+        <button id="btnSALIDA" onclick="setMode('SALIDA')">SALIDA</button>
+        <button id="btnTRANSFERENCIA" onclick="setMode('TRANSFERENCIA')">TRANSF</button>
+        <button id="btnAJUSTE" onclick="setMode('AJUSTE')">AJUSTE</button>
+    </div>
+
+    <div style="position:relative;">
+        <label id="lPart">Número de Parte</label>
+        <input id="partSearch" placeholder="..." autocomplete="off">
+        <div id="partResults" class="autobox"></div>
+    </div>
+
+    <label id="lAreaOrig">Área Origen</label>
+    <select id="areaSelect" onchange="resetSelection()"></select>
+
+    <div id="divAreaDest" style="display:none;"><label id="lAreaDest">Área Destino</label><select id="areaDestSelect" onchange="resetSelection()"></select></div>
+    <div id="divAjusteTipo" style="display:none;"><label id="lType">Tipo Ajuste</label><select id="ajusteTipo" onchange="toggleInputs()"><option value="POS">(+) Positivo</option><option value="NEG">(-) Negativo</option></select></div>
+    
+    <div id="divOrigen" style="display:none;"><label id="lLocOrig">📍 Ubicación ORIGEN</label><input id="originInput" readonly onclick="abrirModalStock()" placeholder="..." style="background:rgba(255,253,231,0.1); cursor:pointer;"></div>
+    
+    <div id="divDestino" style="position:relative;"><label id="lLocDest">📍 Ubicación DESTINO</label><input id="destInput" placeholder="..." autocomplete="off"><div id="destBox" class="autobox"></div></div>
+
+    <label id="lQty">Cantidad</label><input type="number" id="qty" placeholder="0">
+    <label id="lComm">Comentario</label><input id="comment" placeholder="...">
+
+    <button id="btnConfirm" onclick="guardar()" class="btn-confirm">CONFIRMAR MOVIMIENTO</button>
+</div>
+
+<div id="modalStock" class="modal" onclick="if(event.target==this)cerrarModal()"><div class="modal-content"><h3 id="txtStockTitle" style="margin-top:0">Stock en esta ubicación</h3><div id="modalList"></div><button id="btnCloseModal" onclick="cerrarModal()" style="margin-top:15px; width:100%; background:var(--bg); border:1px solid var(--border); padding:10px; cursor:pointer; color: var(--text); border-radius:8px;">Cerrar</button></div></div>
+
+<script>
+const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+let parts=[], locations=[], areas=[], mode='ENTRADA', selPartId=null, selOrigId=null, selDestId=null;
+
+const i18n = {
+    es: { back: "Volver", title: "Captura de Inventario", lPart: "Número de Parte", lAreaOrig: "Área Origen", lAreaDest: "Área Destino", lType: "Tipo Ajuste", lLocOrig: "📍 Ubicación ORIGEN", lLocDest: "📍 Ubicación DESTINO", lQty: "Cantidad", lComm: "Comentario", btnConfirm: "CONFIRMAR MOVIMIENTO", stockTitle: "Stock disponible", close: "Cerrar" },
+    ko: { back: "뒤로 가기", title: "재고 입력", lPart: "부품 번호", lAreaOrig: "원래 구역", lAreaDest: "대상 구역", lType: "조정 유형", lLocOrig: "📍 원래 위치", lLocDest: "📍 대상 위치", lQty: "수량", lComm: "비고", btnConfirm: "이동 확인", stockTitle: "가용 재고", close: "닫기" }
+};
+
+async function init() {
+    const { data: { session } } = await _client.auth.getSession();
+    const loginBtn = document.getElementById('btnLoginStatus');
+    
+    if (session) {
+        const userShort = session.user.email.split('@')[0].toUpperCase();
+        userDisplay.innerHTML = "👤 OPERADOR: " + userShort;
+        loginBtn.innerHTML = "✅ " + userShort;
+        loginBtn.classList.add('online');
+    } else {
+        userDisplay.innerHTML = "⚠️ DEBES INICIAR SESIÓN";
+        loginBtn.innerHTML = "🔑 Login";
+    }
+    loginBtn.style.display = "block";
+
+    const {data:a} = await _client.from('areas').select('*');
+    if(a) a.forEach(r => { areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; });
+    const {data:p} = await _client.from('parts').select('id, part_number').limit(2000);
+    if(p) parts = p;
+    const {data:l} = await _client.from('locations').select('id, location_code, area_id');
+    if(l) locations = l;
+}
+init();
+
+function setMode(m) { 
+    mode=m; 
+    document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active')); 
+    document.getElementById('btn'+m).classList.add('active'); 
+    divAreaDest.style.display=(m==='TRANSFERENCIA')?'block':'none'; 
+    divAjusteTipo.style.display=(m==='AJUSTE')?'block':'none'; 
+    toggleInputs(); 
+}
+
+function toggleInputs() { 
+    const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG'); 
+    divOrigen.style.display = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg) ? 'block' : 'none'; 
+    divDestino.style.display = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg)) ? 'block' : 'none'; 
+    resetSelection(); 
+}
+
+function resetSelection() { selOrigId=null; selDestId=null; originInput.value=''; destInput.value=''; }
+
+function toggleTheme() {
+    const b = document.body;
+    const isD = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isD ? 'light' : 'dark');
+    document.getElementById('themeIcon').className = isD ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function setLang(lang) {
+    const t = i18n[lang];
+    document.getElementById('txtBack').innerText = t.back;
+    document.getElementById('txtTitle').innerText = t.title;
+    document.getElementById('lPart').innerText = t.lPart;
+    document.getElementById('lAreaOrig').innerText = t.lAreaOrig;
+    document.getElementById('lAreaDest').innerText = t.lAreaDest;
+    document.getElementById('lType').innerText = t.lType;
+    document.getElementById('lLocOrig').innerText = t.lLocOrig;
+    document.getElementById('lLocDest').innerText = t.lLocDest;
+    document.getElementById('lQty').innerText = t.lQty;
+    document.getElementById('lComm').innerText = t.lComm;
+    document.getElementById('btnConfirm').innerText = t.btnConfirm;
+    document.getElementById('txtStockTitle').innerText = t.stockTitle;
+    document.getElementById('btnCloseModal').innerText = t.close;
+}
+
+async function guardar() {
+    const { data: { session } } = await _client.auth.getSession();
+    if (!session) return alert("Inicia sesión primero.");
+    const q = parseInt(qty.value);
+    const comm = comment.value;
+    if(!selPartId || !q || !comm) return alert("Completa los campos.");
+    const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+    const base = { part_id: selPartId, area: areaText, comment: comm, user_id: session.user.id };
+    let rows = [];
+    if(mode==='ENTRADA'||(mode==='AJUSTE'&&ajusteTipo.value==='POS')) rows.push({...base, quantity:q, to_location_id:selDestId, movement_type:mode});
+    else if(mode==='SALIDA'||(mode==='AJUSTE'&&ajusteTipo.value==='NEG')) rows.push({...base, quantity:-q, from_location_id:selOrigId, movement_type:mode});
+    else if(mode==='TRANSFERENCIA') {
+        rows.push({...base, quantity:-q, from_location_id:selOrigId, movement_type:'TRANSFERENCIA'});
+        rows.push({...base, quantity:q, to_location_id:selDestId, movement_type:'TRANSFERENCIA', area:areaDestSelect.options[areaDestSelect.selectedIndex].text});
+    }
+    const {error} = await _client.from('inventory_movements').insert(rows);
+    if(error) alert(error.message); else { alert("Movimiento guardado con éxito"); location.reload(); }
+}
+
+partSearch.oninput = () => {
+    const v = partSearch.value.toUpperCase();
+    partResults.innerHTML = '';
+    const m = parts.filter(p=>p.part_number.includes(v)).slice(0,10);
+    m.forEach(p=>{ const d=document.createElement('div'); d.textContent=p.part_number; d.onclick=()=>{partSearch.value=p.part_number; selPartId=p.id; partResults.style.display='none';}; partResults.appendChild(d); });
+    partResults.style.display = m.length?'block':'none';
+};
+
+destInput.oninput = () => {
+    const v = destInput.value.toUpperCase();
+    const aId = (mode==='TRANSFERENCIA')?areaDestSelect.value:areaSelect.value;
+    destBox.innerHTML = '';
+    const m = locations.filter(l=>l.area_id==aId && l.location_code.includes(v)).slice(0,10);
+    m.forEach(l=>{ const d=document.createElement('div'); d.textContent=l.location_code; d.onclick=()=>{destInput.value=l.location_code; selDestId=l.id; destBox.style.display='none';}; destBox.appendChild(d); });
+    destBox.style.display = m.length?'block':'none';
+};
+
+async function abrirModalStock() {
+    modalStock.style.display='flex';
+    const {data} = await _client.from('v_inventory_by_location').select('*').eq('part_id', selPartId).eq('area', areaSelect.options[areaSelect.selectedIndex].text);
+    modalList.innerHTML = data?.length ? '' : '<p style="text-align:center; color:var(--text-secondary)">Sin stock disponible</p>';
+    data?.forEach(i=>{ const d=document.createElement('div'); d.style.padding='12px'; d.style.borderBottom='1px solid var(--border)'; d.style.cursor='pointer'; d.innerHTML=`${i.location} - <b style="color:var(--success)">${i.quantity}</b>`; d.onclick=()=>{originInput.value=i.location; selOrigId=i.location_id; cerrarModal();}; modalList.appendChild(d); });
+}
+function cerrarModal(){ modalStock.style.display='none'; }
+</script>
+</body>
+</html>

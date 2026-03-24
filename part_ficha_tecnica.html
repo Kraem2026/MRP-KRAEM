@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ficha Técnica - Control de Carritos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:15px}
+.card{background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:15px}
+h2{margin-top:0;color:#333}
+input{padding:10px;width:100%;max-width:400px;margin-bottom:20px;border:1px solid #ccc;border-radius:5px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.label{font-size:12px;color:#666;font-weight:bold}
+.value{font-size:16px;margin-bottom:10px}
+
+/* Estilos de la Barra Kanban */
+.kanban-container{background:#f9f9f9;padding:15px;border-radius:8px;border:1px solid #ddd;margin-top:20px}
+.progress-bar{background:#e0e0e0;width:100%;height:25px;border-radius:15px;overflow:hidden;margin:10px 0}
+.progress-fill{height:100%;transition:width 0.5s ease-in-out}
+.status-text{font-weight:bold;text-align:center;padding:5px;border-radius:5px}
+
+.back{background:#6c757d;color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;margin-bottom:15px}
+</style>
+</head>
+
+<body>
+
+<button class="back" onclick="location.href='dashboard.html'">⬅ Volver al Dashboard</button>
+<h2>📘 Ficha Técnica e Inventario de Carritos</h2>
+
+<input id="search" placeholder="Escribe el Número de Parte y presiona Enter..." onchange="buscar()">
+
+<div id="info_part" style="display:none">
+  <div class="card">
+    <div class="grid">
+      <div><div class="label">NÚMERO DE PARTE</div><div class="value" id="p_number"></div></div>
+      <div><div class="label">PROYECTO</div><div class="value" id="p_project"></div></div>
+      <div><div class="label">RESINA</div><div class="value" id="p_resin"></div></div>
+      <div><div class="label">CAVIDADES</div><div class="value" id="p_cavities"></div></div>
+    </div>
+
+    <div class="kanban-container">
+      <h3>📦 Control de Carritos (KIA)</h3>
+      <div class="grid">
+        <div><div class="label">Piezas por Carrito</div><div class="value" id="k_pcs"></div></div>
+        <div><div class="label">Máximo de Carritos Permitidos</div><div class="value" id="k_max"></div></div>
+      </div>
+      
+      <p>Ocupación actual: <b id="k_occupied">0</b> carritos llenos</p>
+      <div class="progress-bar">
+        <div id="bar_fill" class="progress-fill" style="width: 0%"></div>
+      </div>
+      <div id="k_status" class="status-text">Cargando estado...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Configuración de tu Supabase
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+async function buscar() {
+  const num = document.getElementById('search').value;
+  
+  // 1. Buscamos datos básicos de la parte
+  const {data: p, error} = await client.from('parts').select('*').eq('part_number', num).single();
+  
+  if(error || !p) {
+    alert("Número de parte no encontrado");
+    return;
+  }
+
+  // Mostrar la tarjeta
+  document.getElementById('info_part').style.display = 'block';
+  document.getElementById('p_number').innerText = p.part_number;
+  document.getElementById('p_project').innerText = p.project || 'N/A';
+  document.getElementById('p_resin').innerText = p.resin || 'N/A';
+  document.getElementById('p_cavities').innerText = p.cavities || '0';
+
+  // 2. Buscamos el estado de los carritos en la vista que creamos
+  const {data: k} = await client.from('v_kanban_status').select('*').eq('part_id', p.id).single();
+
+  if(k) {
+    document.getElementById('k_pcs').innerText = k.pcs_per_trolley || 'No definido';
+    document.getElementById('k_max').innerText = k.limite_carritos || 'No definido';
+    document.getElementById('k_occupied').innerText = k.carritos_ocupados;
+    
+    const perc = k.porcentaje_uso > 100 ? 100 : k.porcentaje_uso;
+    const fill = document.getElementById('bar_fill');
+    const status = document.getElementById('k_status');
+
+    fill.style.width = perc + '%';
+
+    // Lógica de colores según el espacio
+    if(perc >= 90) {
+      fill.style.background = '#dc3545'; // Rojo (Sin espacio)
+      status.innerText = "🚨 ALTO: SIN ESPACIO PARA MÁS CARRITOS";
+      status.style.background = '#f8d7da';
+      status.style.color = '#721c24';
+    } else if (perc <= 30) {
+      fill.style.background = '#28a745'; // Verde (Inyectar)
+      status.innerText = "✅ GO: POCO STOCK, PUEDES INYECTAR";
+      status.style.background = '#d4edda';
+      status.style.color = '#155724';
+    } else {
+      fill.style.background = '#ffc107'; // Amarillo (Normal)
+      status.innerText = "🟡 ESTADO NORMAL";
+      status.style.background = '#fff3cd';
+      status.style.color = '#856404';
+    }
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Inventarios</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .login-box { background: white; padding: 30px; width: 100%; max-width: 350px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    h2 { text-align: center; margin-bottom: 20px; color: #333; }
+    label { font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
+    input { width: 100%; padding: 12px; margin-bottom: 15px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0056b3; }
+    
+    .status { text-align: center; margin-top: 15px; font-size: 14px; min-height: 20px; }
+    .error { color: #dc3545; }
+    .success { color: #28a745; }
+  </style>
+</head>
+
+<body>
+
+<div class="login-box">
+  <h2>Acceso Almacén</h2>
+  
+  <label>Usuario</label>
+  <input type="text" id="userInput" placeholder="Tu nombre de usuario">
+
+  <label>Contraseña</label>
+  <input type="password" id="password" placeholder="••••••••">
+
+  <button onclick="login()">Entrar al Sistema</button>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://telntsrrschcdxczlape.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw';
+
+  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function login() {
+    const user = document.getElementById('userInput').value.trim();
+    const pass = document.getElementById('password').value;
+    const statusDiv = document.getElementById('status');
+
+    if (!user || !pass) {
+      statusDiv.textContent = 'Escribe tu usuario y clave';
+      statusDiv.className = 'status error';
+      return;
+    }
+
+    statusDiv.textContent = 'Validando...';
+    statusDiv.className = 'status';
+
+    // 🔥 FORZAR LOGOUT (evita sesión corrupta)
+    await client.auth.signOut();
+
+    // Convertimos usuario a email
+    const fakeEmail = user.toLowerCase() + "@kraem.com";
+
+    const { data, error } = await client.auth.signInWithPassword({
+      email: fakeEmail,
+      password: pass,
+    });
+
+    // 🔥 DEBUG REAL
+    console.log("DATA:", data);
+    console.log("ERROR:", error);
+
+    if (error) {
+      statusDiv.textContent = error.message; // 👈 AQUI ves el error real
+      statusDiv.className = 'status error';
+    } else {
+      statusDiv.textContent = '¡Bienvenido!';
+      statusDiv.className = 'status success';
+
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 800);
+    }
+  }
+</script>
+
+</body>
+</html>

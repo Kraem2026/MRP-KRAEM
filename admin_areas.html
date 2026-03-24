@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Administración de Áreas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:15px}
+h2{margin-bottom:10px}
+button{padding:8px 12px;margin-top:5px;cursor:pointer}
+input,select{width:100%;padding:8px;margin:5px 0}
+table{width:100%;border-collapse:collapse;background:#fff;margin-top:15px}
+th,td{padding:10px;border-bottom:1px solid #ddd}
+th{background:#343a40;color:#fff}
+.active{color:green;font-weight:bold}
+.inactive{color:red;font-weight:bold}
+.back{background:#6c757d;color:#fff;border:none}
+</style>
+</head>
+
+<body>
+
+<button class="back" onclick="location.href='admin.html'">⬅ Volver</button>
+<h2>🏭 Áreas</h2>
+
+<label>Código de Área</label>
+<input id="area_code" placeholder="Ej. PROD_NIS">
+
+<label>Nombre de Área</label>
+<input id="area_name" placeholder="Producción Nissei">
+
+<button onclick="crearArea()">➕ Crear Área</button>
+
+<table>
+<thead>
+<tr>
+  <th>Código</th>
+  <th>Nombre</th>
+  <th>Estatus</th>
+  <th>Acción</th>
+</tr>
+</thead>
+<tbody id="body"></tbody>
+</table>
+
+<script>
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+async function load(){
+  const {data}=await client.from('areas').select('*').order('area_code');
+  body.innerHTML='';
+  data.forEach(a=>{
+    body.innerHTML+=`
+    <tr>
+      <td>${a.area_code}</td>
+      <td>${a.area_name}</td>
+      <td class="${a.active?'active':'inactive'}">
+        ${a.active?'Activa':'Inactiva'}
+      </td>
+      <td>
+        <button onclick="toggle(${a.id},${a.active})">
+          ${a.active?'Desactivar':'Activar'}
+        </button>
+      </td>
+    </tr>`;
+  });
+}
+
+async function crearArea(){
+  if(!area_code.value || !area_name.value)
+    return alert('Completa los campos');
+
+  const {error}=await client.from('areas').insert({
+    area_code:area_code.value.toUpperCase(),
+    area_name:area_name.value,
+    active:true
+  });
+
+  if(error) return alert(error.message);
+  area_code.value='';
+  area_name.value='';
+  load();
+}
+
+async function toggle(id,state){
+  await client.from('areas')
+    .update({active:!state})
+    .eq('id',id);
+  load();
+}
+
+load();
+</script>
+
+</body>
+</html>

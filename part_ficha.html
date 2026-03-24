@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ficha Técnica</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:15px}
+.card{background:#fff;padding:20px;border-radius:6px;max-width:900px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px}
+.label{font-size:12px;color:#666}
+.value{font-weight:bold;margin-bottom:8px}
+.back{background:#6c757d;color:#fff;border:none;padding:8px 12px}
+.active{color:green}
+.obs{color:red}
+</style>
+</head>
+
+<body>
+
+<button class="back" onclick="history.back()">⬅ Volver</button>
+
+<div class="card">
+<h2 id="title"></h2>
+
+<div class="grid">
+
+<div>
+  <div class="label">Número de Parte</div>
+  <div class="value" id="part_number"></div>
+
+  <div class="label">Descripción</div>
+  <div class="value" id="part_name"></div>
+
+  <div class="label">Proyecto</div>
+  <div class="value" id="project"></div>
+
+  <div class="label">Clasificación ABC</div>
+  <div class="value" id="abc"></div>
+</div>
+
+<div>
+  <div class="label">Tiempo de Ciclo (s)</div>
+  <div class="value" id="cycle_time"></div>
+
+  <div class="label">Cavidades</div>
+  <div class="value" id="cavities"></div>
+
+  <div class="label">Tipo de Resina</div>
+  <div class="value" id="resin"></div>
+
+  <div class="label">Estatus</div>
+  <div class="value" id="status"></div>
+</div>
+
+<div>
+  <div class="label">Última Inyección</div>
+  <div class="value" id="last_move"></div>
+
+  <div class="label">Demanda Promedio Mensual</div>
+  <div class="value" id="avg_month"></div>
+</div>
+
+</div>
+</div>
+
+<script>
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+const id = new URLSearchParams(window.location.search).get('id');
+
+async function load(){
+  /* DATOS MAESTROS */
+  const {data:p} = await client
+    .from('parts')
+    .select('*')
+    .eq('id',id)
+    .single();
+
+  title.innerText = `📄 Ficha Técnica – ${p.part_number}`;
+  part_number.innerText = p.part_number;
+  part_name.innerText = p.part_name || '-';
+  project.innerText = p.project || '-';
+  abc.innerText = p.abc || 'N/D';
+  cycle_time.innerText = p.cycle_time || '-';
+  cavities.innerText = p.cavities || '-';
+  resin.innerText = p.resin || '-';
+  status.innerText = p.obsolete?'OBSOLETO':'ACTIVO';
+  status.className = p.obsolete?'obs':'active';
+
+  /* HISTORIAL */
+  const {data:moves} = await client
+    .from('inventory_movements')
+    .select('quantity,created_at')
+    .eq('part_id',id)
+    .order('created_at',{ascending:false});
+
+  if(moves.length){
+    last_move.innerText = new Date(moves[0].created_at).toLocaleDateString();
+
+    const now = new Date();
+    const monthly = {};
+    moves.forEach(m=>{
+      const d = new Date(m.created_at);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      monthly[key]=(monthly[key]||0)+Math.abs(m.quantity);
+    });
+
+    const months = Object.keys(monthly).length;
+    const total = Object.values(monthly).reduce((a,b)=>a+b,0);
+    avg_month.innerText = months ? Math.round(total/months) : 0;
+  }else{
+    last_move.innerText='-';
+    avg_month.innerText='0';
+  }
+}
+
+load();
+</script>
+
+</body>
+</html>

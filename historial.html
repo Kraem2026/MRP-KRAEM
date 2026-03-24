@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Historial Maestro de Movimientos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    :root { 
+        --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
+        --border: #e2e8f0; --tag-bg: #eeeeee; --tag-text: #333333;
+    }
+    [data-theme="dark"] { 
+        --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
+        --border: #334155; --tag-bg: #334155; --tag-text: #f8fafc;
+    }
+
+    body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg); padding:20px; margin:0; color: var(--text); transition: 0.3s; }
+    
+    header { 
+        display:flex; justify-content:space-between; align-items:center; 
+        margin-bottom:20px; background: var(--card); padding: 15px 25px; 
+        border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+    }
+    
+    .back { background:#6c757d; color:#fff; border:none; padding:10px 20px; cursor:pointer; border-radius:8px; font-weight: bold; transition: 0.3s; }
+
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .btn-ctrl { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .lang-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer; overflow: hidden; padding: 0; }
+    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+    .btn-excel-top { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+
+    .filter-panel { 
+        background: var(--card); padding: 20px; border-radius: 12px; 
+        margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border);
+    }
+    
+    .filter-group { display: flex; flex-direction: column !important; align-items: flex-start; }
+    .filter-group label { 
+        display: block; width: 100%; font-size: 11px; font-weight: 800; 
+        color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; 
+    }
+
+    input, select { 
+        width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; 
+        font-size: 13px; outline: none; background: var(--bg); color: var(--text); box-sizing: border-box;
+    }
+    
+    .table-container { 
+        background: var(--card); border-radius: 12px; overflow-x: auto; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; border: 1px solid var(--border);
+    }
+    
+    table { width: 100%; border-collapse: collapse; min-width: 1350px; }
+    th { background: #2d3436; color: white; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; border-right: 1px solid #444; }
+    td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); white-space: nowrap; }
+
+    .tag-area { background: var(--tag-bg); color: var(--tag-text); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .tag-project { background: #e0f2f1; color: #00796b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    [data-theme="dark"] .tag-project { background: #004d40; color: #e0f2f1; }
+
+    .pos { color: #2ecc71; font-weight: bold; }
+    .neg { color: #e74c3c; font-weight: bold; }
+    
+    .tag { padding: 5px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; display: inline-block; }
+    .ENTRADA { background: #27ae60; }
+    .SALIDA { background: #e67e22; }
+    .TRANSFERENCIA { background: #3498db; }
+    .AJUSTE { background: #9b59b6; }
+
+    .col-comm { white-space: normal; min-width: 150px; max-width: 250px; font-style: italic; color: var(--text-secondary); font-size: 12px; }
+    .col-desc { white-space: normal; min-width: 150px; max-width: 200px; font-size: 12px; color: var(--text-secondary); }
+
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+
+    @media (max-width: 600px) {
+        header { flex-direction: column; gap: 15px; }
+        .filter-grid { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+</head>
+<body data-theme="light">
+
+<header>
+    <button class="back" onclick="location.href='dashboard.html'">⬅ Dashboard</button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 24px;">📜</span>
+        <h2 id="txtTitle" style="margin:0; color: var(--text);">Historial Maestro de Movimientos</h2>
+    </div>
+    <div class="controls">
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+        <button class="btn-ctrl" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+        <button class="btn-excel-top" onclick="exportCSV()"><i class="fas fa-file-excel"></i> CSV</button>
+    </div>
+</header>
+
+<div class="filter-panel">
+    <div class="filter-grid">
+        <div class="filter-group"><label id="lDesde">Desde</label><input type="date" id="fDesde"></div>
+        <div class="filter-group"><label id="lHasta">Hasta</label><input type="date" id="fHasta"></div>
+        <div class="filter-group"><label id="lPart">N° Parte</label><input type="text" id="fPart" placeholder="Parte o Desc..."></div>
+        <div class="filter-group"><label id="lProj">Proyecto</label><input type="text" id="fProj" placeholder="Filtrar proyecto..."></div>
+        <div class="filter-group"><label id="lLoc">Ubicación</label><input type="text" id="fLoc" placeholder="Origen o Destino..."></div>
+        <div class="filter-group"><label id="lTipo">Tipo</label><select id="fType"><option value="">TODOS</option><option value="ENTRADA">ENTRADA</option><option value="SALIDA">SALIDA</option><option value="TRANSFERENCIA">TRANSFERENCIA</option><option value="AJUSTE">AJUSTE</option></select></div>
+        <div class="filter-group"><label id="lArea">Área</label><input type="text" id="fArea" placeholder="Filtrar área..."></div>
+        <div class="filter-group"><label id="lUser">Usuario</label><input type="text" id="fUser" placeholder="Usuario..."></div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th id="thFecha">Fecha y Hora</th>
+                <th id="thParte">N° Parte</th>
+                <th id="thDescHead">Descripción</th>
+                <th id="thProjHead">Proyecto</th>
+                <th id="thOri">Origen</th>
+                <th id="thDes">Destino</th>
+                <th id="thCant" style="text-align:center;">Cant.</th>
+                <th id="thTipoHead">Tipo</th>
+                <th id="thAreaHead">Área</th>
+                <th id="thCom">Comentario</th>
+                <th id="thUser">Usuario</th>
+            </tr>
+        </thead>
+        <tbody id="historialBody"></tbody>
+    </table>
+</div>
+
+<script>
+// USAR LA VISTA CREADA EN SQL
+const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+let datosOriginales = [];
+
+const i18n = {
+    es: { title: "Historial de Movimientos", thFecha: "Fecha y Hora", thParte: "N° Parte", thDescHead: "Descripción", thProjHead: "Proyecto", thOri: "Origen", thDes: "Destino", thCant: "Cant.", thTipoHead: "Tipo", thAreaHead: "Área", thCom: "Comentario", thUser: "Usuario", lDesde:"Desde", lHasta:"Hasta", lPart:"N° Parte", lProj:"Proyecto", lLoc:"Ubicación", lTipo:"Tipo", lArea:"Área", lUser:"Usuario" },
+    ko: { title: "이동 이력", thFecha: "날짜 및 시간", thParte: "부품 번호", thDescHead: "설명", thProjHead: "프로젝트", thOri: "출발지", thDes: "목적지", thCant: "수량", thTipoHead: "유형", thAreaHead: "구역", thCom: "비고", thUser: "사용자", lDesde:"시작일", lHasta:"종료일", lPart:"부품 번호", lProj:"프로젝트", lLoc:"위치", lTipo:"유형", lArea:"구역", lUser:"사용자" }
+};
+
+async function cargarDatos() {
+    // Consultamos la VISTA v_history_master en lugar de la tabla directamente
+    const { data, error } = await client
+        .from('v_history_master')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+    datosOriginales = data || [];
+    aplicarFiltros();
+}
+
+function renderizar(lista) {
+    const body = document.getElementById('historialBody');
+    body.innerHTML = '';
+    
+    lista.forEach(r => {
+        let userDisplay = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'S/U';
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="color:var(--text-secondary); font-size:11px;">${new Date(r.created_at).toLocaleString()}</td>
+            <td><b style="color:var(--text);">${r.part_number || 'N/A'}</b></td>
+            <td class="col-desc">${r.description || '-'}</td>
+            <td><span class="tag-project">${r.project || '-'}</span></td>
+            <td>${r.from_location || '-'}</td>
+            <td>${r.to_location || '-'}</td>
+            <td style="text-align:center;"><span class="${r.quantity > 0 ? 'pos' : 'neg'}">${r.quantity > 0 ? '+' + r.quantity : r.quantity}</span></td>
+            <td><span class="tag ${r.movement_type}">${r.movement_type}</span></td>
+            <td><span class="tag-area">${r.area || ''}</span></td>
+            <td class="col-comm">${r.comment || ''}</td>
+            <td style="font-weight:bold;">👤 ${userDisplay}</td>
+        `;
+        body.appendChild(row);
+    });
+}
+
+function aplicarFiltros() {
+    const fDesde = document.getElementById('fDesde').value;
+    const fHasta = document.getElementById('fHasta').value;
+    const fPart = document.getElementById('fPart').value.toLowerCase();
+    const fProj = document.getElementById('fProj').value.toLowerCase();
+    const fLoc = document.getElementById('fLoc').value.toLowerCase();
+    const fType = document.getElementById('fType').value;
+    const fArea = document.getElementById('fArea').value.toLowerCase();
+    const fUser = document.getElementById('fUser').value.toLowerCase();
+
+    const filtrados = datosOriginales.filter(r => {
+        const fechaMov = new Date(r.created_at).toISOString().split('T')[0];
+        const userClean = (r.user_email || '').toLowerCase();
+        const desc = (r.description || '').toLowerCase();
+        const proj = (r.project || '').toLowerCase();
+        
+        return (!fDesde || fechaMov >= fDesde) && (!fHasta || fechaMov <= fHasta) && 
+               (!fPart || r.part_number?.toLowerCase().includes(fPart) || desc.includes(fPart)) && 
+               (!fProj || proj.includes(fProj)) &&
+               (!fLoc || (r.from_location?.toLowerCase().includes(fLoc) || r.to_location?.toLowerCase().includes(fLoc))) &&
+               (!fType || r.movement_type === fType) && (!fArea || r.area?.toLowerCase().includes(fArea)) &&
+               (!fUser || userClean.includes(fUser));
+    });
+    renderizar(filtrados);
+}
+
+document.querySelectorAll('.filter-panel input, .filter-panel select').forEach(el => {
+    el.addEventListener('input', aplicarFiltros);
+});
+
+function toggleTheme() {
+    const b = document.body;
+    const isDark = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function setLang(l) {
+    const t = i18n[l];
+    document.getElementById('txtTitle').innerText = t.title;
+    document.getElementById('thFecha').innerText = t.thFecha;
+    document.getElementById('thParte').innerText = t.thParte;
+    document.getElementById('thDescHead').innerText = t.thDescHead;
+    document.getElementById('thProjHead').innerText = t.thProjHead;
+    document.getElementById('thOri').innerText = t.thOri;
+    document.getElementById('thDes').innerText = t.thDes;
+    document.getElementById('thCant').innerText = t.thCant;
+    document.getElementById('thTipoHead').innerText = t.thTipoHead;
+    document.getElementById('thAreaHead').innerText = t.thAreaHead;
+    document.getElementById('thCom').innerText = t.thCom;
+    document.getElementById('thUser').innerText = t.thUser;
+    
+    document.getElementById('lDesde').innerText = t.lDesde;
+    document.getElementById('lHasta').innerText = t.lHasta;
+    document.getElementById('lPart').innerText = t.lPart;
+    document.getElementById('lProj').innerText = t.lProj;
+    document.getElementById('lLoc').innerText = t.lLoc;
+    document.getElementById('lTipo').innerText = t.lTipo;
+    document.getElementById('lArea').innerText = t.lArea;
+    document.getElementById('lUser').innerText = t.lUser;
+}
+
+function exportCSV() {
+    let csv = '\uFEFFFecha,Parte,Descripcion,Proyecto,Origen,Destino,Cantidad,Tipo,Area,Comentario,Usuario\n';
+    datosOriginales.forEach(r => {
+        const userClean = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'S/U';
+        csv += `"${new Date(r.created_at).toLocaleString()}","${r.part_number}","${r.description}","${r.project}","${r.from_location}","${r.to_location}",${r.quantity},"${r.movement_type}","${r.area}","${r.comment}","${userClean}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Historial_Inventario.csv`;
+    link.click();
+}
+
+cargarDatos();
+</script>
+</body>
+</html>

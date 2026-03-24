@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Planeación de Producción</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f8;
+  padding:15px
+}
+.card{
+  background:#fff;
+  padding:20px;
+  border-radius:6px;
+  max-width:900px;
+  margin:auto;
+  margin-bottom:15px
+}
+h2{margin-top:0}
+label{font-size:14px}
+input,select{
+  padding:6px;
+  width:100%;
+  margin-bottom:10px
+}
+button{
+  padding:8px 14px;
+  cursor:pointer
+}
+.flex{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap
+}
+.back{
+  background:#6c757d;
+  color:#fff;
+  border:none
+}
+.save{
+  background:#28a745;
+  color:#fff;
+  border:none
+}
+.info{
+  background:#e9ecef;
+  padding:10px;
+  border-radius:4px;
+  font-size:14px
+}
+</style>
+</head>
+
+<body>
+
+<button class="back" onclick="location.href='planeacion_requerimientos.html'">
+⬅ Regresar
+</button>
+
+<div class="card">
+  <h2>🏭 Planeación de Producción</h2>
+
+  <div class="info" id="reqInfo">
+    Cargando requerimiento...
+  </div>
+
+  <div class="flex">
+    <div style="flex:1">
+      <label>Máquina</label>
+      <select id="machine"></select>
+    </div>
+
+    <div style="flex:1">
+      <label>Molde</label>
+      <select id="mold"></select>
+    </div>
+  </div>
+
+  <div class="flex">
+    <div style="flex:1">
+      <label>Cantidad a producir</label>
+      <input type="number" id="qty">
+    </div>
+
+    <div style="flex:1">
+      <label>Fecha producción</label>
+      <input type="date" id="prodDate">
+    </div>
+  </div>
+
+  <div class="flex">
+    <div style="flex:1">
+      <label>Horas estimadas</label>
+      <input id="hours" disabled>
+    </div>
+  </div>
+
+  <button class="save" onclick="savePlan()">💾 Guardar planeación</button>
+</div>
+
+<script>
+const client = supabase.createClient(
+  'https://telntsrrschcdxczlape.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
+);
+
+let requerimiento = null;
+let cycleTime = 0;
+let cavities = 1;
+
+/* ================== CARGAR DATOS ================== */
+async function loadData(){
+  const reqId = localStorage.getItem('requerimiento_id');
+  if(!reqId){
+    alert('No hay requerimiento seleccionado');
+    location.href='planeacion_requerimientos.html';
+    return;
+  }
+
+  const {data} = await client
+    .from('v_requerimientos_detalle')
+    .select('*')
+    .eq('requerimiento_id', reqId)
+    .single();
+
+  requerimiento = data;
+
+  reqInfo.innerHTML = `
+    <b>Parte:</b> ${data.part_number}<br>
+    <b>Requerido:</b> ${data.required_qty}<br>
+    <b>Inventario actual:</b> ${data.current_inventory}
+  `;
+
+  qty.value = data.required_qty;
+
+  loadMachines();
+  loadMolds(data.part_id);
+}
+
+/* ================== MÁQUINAS ================== */
+async function loadMachines(){
+  const {data} = await client
+    .from('machines')
+    .select('id,machine_name')
+    .order('machine_name');
+
+  machine.innerHTML =
+    '<option value="">Selecciona...</option>' +
+    data.map(m =>
+      `<option value="${m.id}">${m.machine_name}</option>`
+    ).join('');
+}
+
+/* ================== MOLDES POR PARTE ================== */
+async function loadMolds(partId){
+  const {data} = await client
+    .from('part_molds')
+    .select(`
+      mold_id,
+      cycle_time_sec,
+      molds ( mold_name, cavities )
+    `)
+    .eq('part_id', partId)
+    .eq('active', true);
+
+  mold.innerHTML =
+    '<option value="">Selecciona...</option>' +
+    data.map(pm => `
+      <option
+        value="${pm.mold_id}"
+        data-cycle="${pm.cycle_time_sec}"
+        data-cav="${pm.molds.cavities}">
+        ${pm.molds.mold_name}
+      </option>
+    `).join('');
+}
+
+/* ================== CALCULAR HORAS ================== */
+mold.onchange = ()=>{
+  const opt = mold.selectedOptions[0];
+  if(!opt) return;
+
+  cycleTime = Number(opt.dataset.cycle);
+  cavities = Number(opt.dataset.cav);
+  calcHours();
+};
+
+qty.oninput = calcHours;
+
+function calcHours(){
+  if(!cycleTime || !qty.value) return;
+  const shots = qty.value / cavities;
+  const seconds = shots * cycleTime;
+  const hoursCalc = (seconds / 3600).toFixed(2);
+  hours.value = hoursCalc;
+}
+
+/* ================== GUARDAR PLANEACIÓN ================== */
+async function savePlan(){
+  if(!machine.value || !mold.value || !prodDate.value){
+    alert('Completa todos los campos');
+    return;
+  }
+
+  await client.from('production_plan').insert({
+    requerimiento_id: requerimiento.requerimiento_id,
+    part_id: requerimiento.part_id,
+    machine_id: machine.value,
+    mold_id: mold.value,
+    quantity: qty.value,
+    production_date: prodDate.value,
+    estimated_hours: hours.value,
+    status: 'planned'
+  });
+
+  await client.from('requerimientos')
+    .update({status:'planned'})
+    .eq('id', requerimiento.requerimiento_id);
+
+  localStorage.removeItem('requerimiento_id');
+
+  alert('Planeación guardada');
+  location.href='planeacion_requerimientos.html';
+}
+
+loadData();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Inventario General - Control Total</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    :root { 
+        --dark: #2c3e50; --primary: #007bff; --success: #198754; 
+        --bg: #f4f6f8; --card: #ffffff; --text: #333; --border: #ddd; --label: #666;
+    }
+    
+    [data-theme="dark"] {
+        --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; --label: #cbd5e1;
+        --dark: #020617;
+    }
+
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin:0; padding:15px; padding-bottom: 70px; color: var(--text); transition: 0.3s; }
+    
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+    .back-btn { background:#6c757d; color:white; border:none; padding:10px 15px; border-radius:5px; cursor:pointer; font-weight:bold; }
+
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .lang-btn { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
+    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+    .theme-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 5px; cursor: pointer; }
+
+    .filter-panel { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    .filter-group { display: flex; flex-direction: column; }
+    .filter-group label { font-size: 11px; font-weight: bold; color: var(--label); margin-bottom: 4px; text-transform: uppercase; }
+    input { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background: var(--bg); color: var(--text); }
+    .exclude-input { border-left: 4px solid #dc3545; }
+
+    .table-container { background: var(--card); border-radius: 8px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    th { background: var(--dark); color: white; padding: 12px; text-align: left; font-size: 13px; position: sticky; top: 0; }
+    td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    
+    .qty-cell { font-weight: bold; color: var(--primary); text-align: right; }
+    .area-badge { background: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    [data-theme="dark"] .area-badge { background: #334155; color: #f8fafc; }
+    .tag-project { background: #e0f2f1; color: #00796b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+
+    .footer-total {
+        position: fixed; bottom: 0; left: 0; width: 100%; background: var(--dark);
+        color: white; padding: 15px 25px; display: flex; justify-content: space-between;
+        align-items: center; box-sizing: border-box; z-index: 1000;
+    }
+    .total-num { font-size: 20px; color: #ffc107; font-weight: bold; }
+</style>
+</head>
+<body data-theme="light">
+
+<header>
+    <button class="back-btn" onclick="location.href='dashboard.html'">⬅ <span id="txtMenu">Menú</span></button>
+    <h2 id="txtTitle" style="margin:0;">📦 Inventario por Áreas</h2>
+    <div class="controls">
+        <button onclick="exportCSV()" style="background:var(--success); color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:bold;">📥 Excel</button>
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+        <button class="theme-btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+</header>
+
+<div class="filter-panel">
+    <div class="filter-grid">
+        <div class="filter-group"><label id="lSearch">🔍 Buscar Parte / Desc.</label><input type="text" id="fSearch" placeholder="..."></div>
+        <div class="filter-group"><label id="lProj">📁 Proyecto</label><input type="text" id="fProj" placeholder="..."></div>
+        <div class="filter-group"><label id="lArea">📍 Filtrar Área</label><input type="text" id="fArea" placeholder="..."></div>
+        <div class="filter-group"><label id="lExclude">🚫 EXCLUIR</label><input type="text" id="fExclude" class="exclude-input" placeholder="..."></div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th id="thParte">N° Parte</th>
+                <th id="thDesc">Descripción</th>
+                <th id="thProj">Proyecto</th>
+                <th id="thArea">Área</th>
+                <th id="thCant" style="text-align:right">Cantidad</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody">
+            <tr><td colspan="5" style="text-align:center; padding:30px;">Cargando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="footer-total">
+    <div id="txtFooterTotal" style="font-size: 13px; text-transform: uppercase;">Total Piezas:</div>
+    <div class="total-num" id="totalValue">0</div>
+</div>
+
+<script>
+const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+let allData = [];
+
+const i18n = {
+    es: { menu: "Menú", title: "Inventario por Áreas", search: "🔍 Buscar Parte / Desc.", proj: "📁 Proyecto", area: "📍 Filtrar Área", exclude: "🚫 EXCLUIR", thParte: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thArea: "Área", thCant: "Cantidad", footer: "Total Piezas:" },
+    ko: { menu: "메뉴", title: "구역별 재고", search: "🔍 부품/설명 검색", proj: "📁 프로젝트", area: "📍 구역 필터", exclude: "🚫 제외", thParte: "부품 번호", thDesc: "설명", thProj: "프로젝트", thArea: "구역", thCant: "수량", footer: "총 수량:" }
+};
+
+async function load() {
+    const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
+    if(error) return alert("Error");
+
+    const consolidated = data.reduce((acc, curr) => {
+        const key = `${curr.part_number}-${curr.area}-${curr.project}`;
+        if (!acc[key]) {
+            acc[key] = { ...curr };
+        } else {
+            acc[key].quantity += curr.quantity;
+        }
+        return acc;
+    }, {});
+
+    allData = Object.values(consolidated);
+    applyFilters();
+}
+
+function render(list) {
+    const body = document.getElementById('inventoryBody');
+    const totalDisp = document.getElementById('totalValue');
+    body.innerHTML = '';
+    let suma = 0;
+
+    list.forEach(r => {
+        suma += r.quantity;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><b>${r.part_number}</b></td>
+            <td style="color:var(--label); font-size:12px;">${r.part_name || r.descripcion || ''}</td>
+            <td><span class="tag-project">${r.project || r.proyecto || '-'}</span></td>
+            <td><span class="area-badge">${r.area || 'N/A'}</span></td>
+            <td class="qty-cell">${r.quantity.toLocaleString()}</td>
+        `;
+        body.appendChild(tr);
+    });
+    totalDisp.textContent = suma.toLocaleString() + " PZS";
+}
+
+function applyFilters() {
+    const s = document.getElementById('fSearch').value.toLowerCase();
+    const p = document.getElementById('fProj').value.toLowerCase();
+    const a = document.getElementById('fArea').value.toLowerCase();
+    const e = document.getElementById('fExclude').value.toLowerCase();
+
+    const filtered = allData.filter(r => {
+        const name = (r.part_name || r.descripcion || '').toLowerCase();
+        const proj = (r.project || r.proyecto || '').toLowerCase();
+        const area = (r.area || '').toLowerCase();
+        
+        const mS = r.part_number.toLowerCase().includes(s) || name.includes(s);
+        const mP = !p || proj.includes(p);
+        const mA = !a || area.includes(a);
+        const isE = e && (r.part_number.toLowerCase().includes(e) || area.includes(e) || proj.includes(e));
+        
+        return mS && mP && mA && !isE;
+    });
+    render(filtered);
+}
+
+document.querySelectorAll('input').forEach(i => i.addEventListener('input', applyFilters));
+
+function toggleTheme() {
+    const b = document.body;
+    const isD = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isD ? 'light' : 'dark');
+    document.getElementById('themeIcon').className = isD ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function setLang(lang) {
+    const t = i18n[lang];
+    document.getElementById('txtMenu').innerText = t.menu;
+    document.getElementById('txtTitle').innerText = t.title;
+    document.getElementById('lSearch').innerText = t.search;
+    document.getElementById('lProj').innerText = t.proj;
+    document.getElementById('lArea').innerText = t.area;
+    document.getElementById('lExclude').innerText = t.exclude;
+    document.getElementById('thParte').innerText = t.thParte;
+    document.getElementById('thDesc').innerText = t.thDesc;
+    document.getElementById('thProj').innerText = t.thProj;
+    document.getElementById('thArea').innerText = t.thArea;
+    document.getElementById('thCant').innerText = t.thCant;
+    document.getElementById('txtFooterTotal').innerText = t.footer;
+}
+
+function exportCSV() {
+    let csv = '\uFEFFN° Parte,Descripción,Proyecto,Area,Cantidad\n';
+    allData.forEach(r => {
+        csv += `"${r.part_number}","${r.part_name || ''}","${r.project || ''}","${r.area}",${r.quantity}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Inventario_General.csv";
+    link.click();
+}
+
+load();
+</script>
+</body>
+</html>
