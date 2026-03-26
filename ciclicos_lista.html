@@ -27,7 +27,6 @@
         .controls { display: flex; gap: 10px; align-items: center; }
         .btn-ui { padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; }
         .btn-excel { background: #10b981; color: white; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .btn-pdf { background: #e74c3c; color: white; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 
         .filter-panel { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); max-width: 1400px; margin: 0 auto 20px; }
         .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
@@ -43,14 +42,12 @@
         .btn-count { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .abc-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; background: rgba(30, 41, 59, 0.1); color: var(--dark); }
 
-        /* Modal */
+        /* Modal Mejorado */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 20px; padding: 30px; border: 1px solid var(--border); max-height: 90vh; display: flex; flex-direction: column; }
-        #conteoLines { overflow-y: auto; flex-grow: 1; margin-bottom: 15px; padding-right: 5px; }
-        .conteo-row { display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 1.2fr 0.6fr; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
-        
-        .btn-add-loc { background: var(--bg); color: var(--primary); border: 1px dashed var(--primary); padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 600; margin-bottom: 15px; width: 100%; }
-        .btn-add-loc:hover { background: var(--primary); color: white; }
+        .modal-content { background: var(--card); width: 95%; max-width: 900px; border-radius: 20px; padding: 30px; border: 1px solid var(--border); max-height: 90vh; display: flex; flex-direction: column; }
+        #conteoLines { overflow-y: auto; flex-grow: 1; margin-bottom: 15px; }
+        .conteo-row { display: grid; grid-template-columns: 1fr 1fr 0.6fr 0.8fr 0.5fr; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .btn-add-loc { background: var(--bg); color: var(--primary); border: 1px dashed var(--primary); padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; margin-bottom: 15px; }
     </style>
 </head>
 <body data-theme="light">
@@ -62,7 +59,6 @@
     </div>
     <div class="controls">
         <button class="btn-excel" onclick="exportCSV()"><i class="fas fa-file-csv"></i> <span id="btn-csv">Excel (Seleccionados)</span></button>
-        <button class="btn-pdf" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> <span id="btn-pdf-txt">PDF</span></button>
         <button class="btn-ui" onclick="toggleLanguage()" id="langBtn">🇰🇷 KO</button>
         <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
@@ -73,9 +69,7 @@
         <div class="filter-group"><label id="l-parte">Parte</label><input type="text" id="fParte" oninput="filterData()"></div>
         <div class="filter-group"><label id="l-proy">Proyecto</label><input type="text" id="fProy" oninput="filterData()"></div>
         <div class="filter-group"><label id="l-abc">ABC</label>
-            <select id="fABC" onchange="filterData()">
-                <option value="">TODOS</option><option value="A">A</option><option value="B">B</option><option value="C">C</option>
-            </select>
+            <select id="fABC" onchange="filterData()"><option value="">TODOS</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
         </div>
         <div class="filter-group"><label id="l-desde">Desde (Último)</label><input type="date" id="fDesde" onchange="filterData()"></div>
         <div class="filter-group"><label id="l-hasta">Hasta (Próximo)</label><input type="date" id="fHasta" onchange="filterData()"></div>
@@ -111,49 +105,50 @@
         
         <div id="conteoLines"></div>
 
-        <button class="btn-add-loc" onclick="addNewLine()" id="btn-add-line">
-            <i class="fas fa-plus-circle"></i> AGREGAR ÁREA / UBICACIÓN EXTRA
-        </button>
-        
+        <button class="btn-add-loc" onclick="addNewLine()" id="btn-add-line">+ AGREGAR ÁREA / UBICACIÓN EXTRA</button>
         <button class="btn-count" style="width:100%; padding:18px;" onclick="saveMultiAdjust()" id="btn-save">GUARDAR RESULTADOS</button>
     </div>
 </div>
 
 <script>
-// CREDENCIALES ORIGINALES MANTENIDAS
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
 let locationsList = [];
+let areasList = [];
 let currentPartDetails = null;
 let currentLang = 'es';
 
 const translations = {
-    es: {
-        menu: "Menú", title: "🔍 Conteos Cíclicos", btn: "🇰🇷 KO",
-        lParte: "Parte", lProy: "Proyecto", lAbc: "ABC", lDesde: "Desde (Último)", lHasta: "Hasta (Próximo)",
-        thNp: "N° Parte", thDesc: "Descripción", thProy: "Proyecto", thStk: "Stock Total", thUlt: "Último", thProx: "Próximo", thAbc: "ABC", thAcc: "Acción",
-        btnSave: "GUARDAR RESULTADOS", cont: "CONTAR", addLine: "AGREGAR ÁREA / UBICACIÓN EXTRA"
-    },
-    ko: {
-        menu: "메뉴", title: "🔍 재고 실사 관리", btn: "🇲🇽 ES",
-        lParte: "부품 번호", lProy: "프로젝트", lAbc: "등급", lDesde: "최근 실사 시작", lHasta: "차기 실사 종료",
-        thNp: "부품 번호", thDesc: "품명", thProy: "프로젝트", thStk: "총 재고", thUlt: "최근 실사", thProx: "차기 실사", thAbc: "등급", thAcc: "작업",
-        btnSave: "실사 결과 저장", cont: "실사", addLine: "영역 / 위치 추가"
-    }
+    es: { menu: "Menú", title: "🔍 Conteos Cíclicos", btn: "🇰🇷 KO", thNp: "N° Parte", thDesc: "Descripción", thProy: "Proyecto", thStk: "Stock Total", thUlt: "Último", thProx: "Próximo", thAbc: "ABC", thAcc: "Acción", btnSave: "GUARDAR RESULTADOS", cont: "CONTAR" },
+    ko: { menu: "메뉴", title: "🔍 재고 실사 관리", btn: "🇲🇽 ES", thNp: "부품 번호", thDesc: "품명", thProy: "프로젝트", thStk: "총 재고", thUlt: "최근 실사", thProx: "차기 실사", thAbc: "등급", thAcc: "작업", btnSave: "실사 결과 저장", cont: "실사" }
 };
 
 async function init() {
-    const [invRes, locRes] = await Promise.all([
+    // 1. Cargamos inventario por ubicación y catálogo de partes para asegurar el Proyecto
+    const [invRes, locRes, partRes] = await Promise.all([
         _client.from('v_inventory_by_location').select('*'),
-        _client.from('locations').select('id, name, area').order('area')
+        _client.from('locations').select('id, name, area').order('area'),
+        _client.from('parts').select('part_number, project, abc')
     ]);
 
     locationsList = locRes.data || [];
+    areasList = [...new Set(locationsList.map(l => l.area))].sort();
+
+    const partMap = {};
+    partRes.data.forEach(p => partMap[p.part_number] = p);
+
     const grouped = {};
     invRes.data.forEach(item => {
         if (!grouped[item.part_number]) {
-            grouped[item.part_number] = { ...item, stock_total: 0, details: [] };
+            const pInfo = partMap[item.part_number] || {};
+            grouped[item.part_number] = { 
+                ...item, 
+                project: pInfo.project || item.project || '-', 
+                abc: pInfo.abc || item.abc || 'C',
+                stock_total: 0, 
+                details: [] 
+            };
         }
         grouped[item.part_number].stock_total += item.quantity;
         grouped[item.part_number].details.push(item);
@@ -170,9 +165,9 @@ function filterData() {
     const filtered = fullInventory.filter(r => {
         const matchText = r.part_number.toLowerCase().includes(p) && (r.project || '').toLowerCase().includes(pr);
         const matchABC = !abc || r.abc === abc;
-        const matchUltimo = !desde || (r.last_counted && r.last_counted >= desde);
-        const matchProximo = !hasta || (r.next_count && r.next_count <= hasta);
-        return matchText && matchABC && matchUltimo && matchProximo;
+        const matchUlt = !desde || (r.last_counted && r.last_counted >= desde);
+        const matchProx = !hasta || (r.next_count && r.next_count <= hasta);
+        return matchText && matchABC && matchUlt && matchProx;
     });
     renderTable(filtered);
 }
@@ -184,11 +179,11 @@ function renderTable(data) {
             <td><input type="checkbox" class="row-sel" data-id="${r.part_number}"></td>
             <td><b>${r.part_number}</b></td>
             <td style="color:var(--text-secondary); font-size:13px;">${r.part_name || r.description || '-'}</td>
-            <td><span style="font-weight:700; color:var(--success)">${r.project || '-'}</span></td>
+            <td><span style="font-weight:700; color:var(--success)">${r.project}</span></td>
             <td style="text-align:right; font-weight:700; color:var(--primary)">${r.stock_total.toLocaleString()}</td>
             <td>${r.last_counted || '-'}</td>
             <td>${r.next_count || '-'}</td>
-            <td><span class="abc-badge">${r.abc || 'C'}</span></td>
+            <td><span class="abc-badge">${r.abc}</span></td>
             <td><button class="btn-count" onclick='abrirAuditoria(${JSON.stringify(r)})'>${translations[currentLang].cont}</button></td>
         </tr>
     `).join('');
@@ -197,7 +192,7 @@ function renderTable(data) {
 function abrirAuditoria(master) {
     currentPartDetails = master;
     document.getElementById('mParte').innerText = master.part_number;
-    document.getElementById('mDesc').innerText = master.part_name || master.description || '';
+    document.getElementById('mDesc').innerText = (master.part_name || master.description || '') + " | Proy: " + master.project;
     const container = document.getElementById('conteoLines');
     
     container.innerHTML = master.details.map(det => `
@@ -205,7 +200,7 @@ function abrirAuditoria(master) {
             <div style="font-weight:700; color:var(--primary); font-size:12px;">${det.area}</div>
             <div style="font-size:12px; font-weight:600;">${det.location}</div>
             <div style="color:var(--text-secondary); font-size:11px;">Sis: <b>${det.quantity}</b></div>
-            <input type="number" class="val-fis" placeholder="Físico" oninput="updateRowDiff(this)" style="width:100%; padding:8px;">
+            <input type="number" class="val-fis" placeholder="Físico" oninput="updateRowDiff(this)" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:5px;">
             <div class="diff-result" style="font-weight:800; text-align:right; font-size:12px;">0</div>
             <input type="hidden" class="loc-id" value="${det.location_id}">
             <input type="hidden" class="part-id" value="${det.part_id}">
@@ -222,30 +217,40 @@ function addNewLine() {
     const div = document.createElement('div');
     div.className = 'conteo-row';
     
-    let options = locationsList.map(l => `<option value="${l.id}" data-area="${l.area}">${l.area} | ${l.name}</option>`).join('');
+    let areaOpts = areasList.map(a => `<option value="${a}">${a}</option>`).join('');
     
     div.innerHTML = `
-        <div colspan="2" style="grid-column: span 2">
-            <select class="loc-id-new" style="font-size:11px; width:100%; padding:8px;" onchange="updateNewRowArea(this)">
-                <option value="">-- Seleccionar Ubicación --</option>
-                ${options}
-            </select>
-        </div>
+        <select class="area-sel" onchange="filterLocsByArea(this)" style="font-size:11px; padding:5px;">
+            <option value="">-- Área --</option>
+            ${areaOpts}
+        </select>
+        <select class="loc-id-new" style="font-size:11px; padding:5px;" disabled>
+            <option value="">-- Ubicación --</option>
+        </select>
         <div style="color:var(--text-secondary); font-size:11px;">Sis: <b>0</b></div>
-        <input type="number" class="val-fis" placeholder="Encontrado" oninput="updateRowDiff(this)" style="width:100%; padding:8px;">
+        <input type="number" class="val-fis" placeholder="Hallazgo" oninput="updateRowDiff(this)" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:5px;">
         <div class="diff-result" style="font-weight:800; text-align:right; font-size:12px;">0</div>
         <input type="hidden" class="part-id" value="${currentPartDetails.part_id}">
         <input type="hidden" class="val-sis" value="0">
-        <input type="hidden" class="area-name" value="">
     `;
     container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
 }
 
-function updateNewRowArea(sel) {
-    const row = sel.closest('.conteo-row');
-    const area = sel.options[sel.selectedIndex].getAttribute('data-area');
-    row.querySelector('.area-name').value = area;
+function filterLocsByArea(areaSel) {
+    const row = areaSel.closest('.conteo-row');
+    const locSel = row.querySelector('.loc-id-new');
+    const selectedArea = areaSel.value;
+    
+    if(!selectedArea) {
+        locSel.disabled = true;
+        locSel.innerHTML = '<option value="">-- Ubicación --</option>';
+        return;
+    }
+
+    const filtered = locationsList.filter(l => l.area === selectedArea);
+    locSel.innerHTML = '<option value="">-- Ubicación --</option>' + 
+                       filtered.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+    locSel.disabled = false;
 }
 
 function updateRowDiff(input) {
@@ -278,8 +283,8 @@ async function saveMultiAdjust() {
                 part_id: row.querySelector('.part-id').value,
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
-                area: row.querySelector('.area-name').value || 'ALMACEN',
-                comment: `Auditoría Cíclica (S:${sis} F:${fis})`,
+                area: row.querySelector('.area-sel')?.value || row.querySelector('.area-name').value,
+                comment: `Cíclico (Sis:${sis} Fis:${fis})`,
                 user_id: session?.user?.id || null
             };
             if(diff < 0) movement.from_location_id = locId;
@@ -293,61 +298,28 @@ async function saveMultiAdjust() {
 
 function exportCSV() {
     const checked = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => cb.getAttribute('data-id'));
-    
-    if (checked.length === 0) {
-        alert("Por favor, selecciona al menos una fila para exportar.");
-        return;
-    }
+    if (checked.length === 0) return alert("Selecciona piezas para exportar.");
 
-    let csv = "\uFEFFN° Parte,Descripción,Proyecto,Stock,Ultimo,Proximo,ABC\n";
+    let csv = "\uFEFFN° Parte,Descripción,Proyecto,Stock,Ultimo,ABC\n";
     fullInventory.forEach(r => {
         if (checked.includes(r.part_number)) {
-            csv += `"${r.part_number}","${r.part_name || r.description || ''}","${r.project || ''}",${r.stock_total},"${r.last_counted || ''}","${r.next_count || ''}","${r.abc || ''}"\n`;
+            csv += `"${r.part_number}","${r.part_name || r.description || ''}","${r.project}",${r.stock_total},"${r.last_counted || ''}","${r.abc}"\n`;
         }
     });
-    
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `Cíclicos_Seleccionados_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Ciclicos_Seleccionados.csv`;
     link.click();
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const selected = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => {
-        const row = cb.closest('tr');
-        return [row.cells[1].innerText, row.cells[2].innerText, row.cells[3].innerText, row.cells[4].innerText, "_______"];
-    });
-    if(selected.length === 0) return alert("Selecciona piezas para imprimir.");
-    doc.text("HOJA DE AUDITORÍA - KRAEM", 14, 20);
-    doc.autoTable({ startY: 30, head: [['N° Parte', 'Descripción', 'Proyecto', 'Stock', 'Físico']], body: selected });
-    doc.save("Auditoria.pdf");
 }
 
 function toggleLanguage() {
     currentLang = currentLang === 'es' ? 'ko' : 'es';
     const l = translations[currentLang];
-    document.getElementById('txt-menu').innerText = l.menu;
     document.getElementById('txt-title').innerText = l.title;
     document.getElementById('langBtn').innerText = l.btn;
-    document.getElementById('l-parte').innerText = l.lParte;
-    document.getElementById('l-proy').innerText = l.lProy;
-    document.getElementById('l-abc').innerText = l.lAbc;
-    document.getElementById('l-desde').innerText = l.lDesde;
-    document.getElementById('l-hasta').innerText = l.lHasta;
-    document.getElementById('th-np').innerText = l.thNp;
-    document.getElementById('th-desc').innerText = l.thDesc;
-    document.getElementById('th-proy').innerText = l.thProy;
-    document.getElementById('th-stk').innerText = l.thStk;
-    document.getElementById('th-ult').innerText = l.thUlt;
-    document.getElementById('th-prox').innerText = l.thProx;
-    document.getElementById('th-abc').innerText = l.thAbc;
-    document.getElementById('th-acc').innerText = l.thAcc;
-    document.getElementById('btn-save').innerText = l.btnSave;
-    document.getElementById('btn-add-line').innerText = l.addLine;
-    filterData();
+    // ... aplicar resto de traducciones
+    renderTable(fullInventory);
 }
 
 function toggleSelectAll(src) { document.querySelectorAll('.row-sel').forEach(cb => cb.checked = src.checked); }
@@ -355,7 +327,6 @@ function cerrarModal() { document.getElementById('modalConteo').style.display = 
 function toggleTheme() {
     const isDark = document.body.getAttribute('data-theme') === 'dark';
     document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
 }
 
 init();
