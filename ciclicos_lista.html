@@ -131,7 +131,6 @@
 </div>
 
 <script>
-// CONFIGURACIÓN SUPABASE
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
@@ -157,7 +156,6 @@ async function init() {
     
     fullInventory = (resInv.data || []).map(item => ({
         ...item,
-        // CORRECCIÓN DE FECHAS: Solo YYYY-MM-DD
         last_counted: item.last_count ? item.last_count.split('T')[0] : '-',
         next_count: item.next_count ? item.next_count.split('T')[0] : '-'
     }));
@@ -237,12 +235,14 @@ function calcDiff(input) {
 async function saveMultiAdjust() {
     const rows = document.querySelectorAll('.conteo-row');
     const { data: { session } } = await _client.auth.getSession();
-    if (!confirm("¿Confirmar ajustes e historial de movimientos?")) return;
+    if (!confirm("¿Confirmar ajustes y actualizar fechas de control?")) return;
 
     let movesCount = 0;
+    const hoy = new Date();
+
     for (const row of rows) {
         const fisVal = row.querySelector('.val-fis').value;
-        if (fisVal === "") continue;
+        if (fisVal === "" || fisVal === null) continue;
 
         const sis = parseInt(row.querySelector('.val-sis').value) || 0;
         const fis = parseInt(fisVal);
@@ -257,30 +257,31 @@ async function saveMultiAdjust() {
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
                 area: areaName,
-                comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
+                comment: `Auditoría Cíclica: Sis ${sis} / Fis ${fis}`,
                 user_id: session?.user?.id
             };
 
-            // Lógica de entrada/salida para inventory_movements
             if (diff > 0) mov.to_location_id = parseInt(locId);
             else mov.from_location_id = parseInt(locId);
 
-            await _client.from('inventory_movements').insert([mov]);
-            movesCount++;
+            const { error } = await _client.from('inventory_movements').insert([mov]);
+            if (!error) movesCount++;
         }
     }
 
-    // Actualizar Próximo Conteo basado en ABC
-    const dias = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc || 'C'];
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + dias);
+    // --- LOGICA DE FECHAS CORREGIDA ---
+    const diasABC = { 'A': 30, 'B': 90, 'C': 180 };
+    const diasParaSumar = diasABC[currentMasterPart.abc] || 180;
+    const proximaFecha = new Date();
+    proximaFecha.setDate(hoy.getDate() + diasParaSumar);
 
     await _client.from('parts').update({ 
-        last_counted: new Date().toISOString(),
-        next_count: nextDate.toISOString()
+        last_counted: hoy.toISOString(),
+        next_count: proximaFecha.toISOString()
     }).eq('id', currentMasterPart.part_id);
 
-    alert(`Éxito. Se registraron ${movesCount} ajustes.`);
+    alert(`Éxito. Se registraron ${movesCount} ajustes.\nÚltimo conteo: ${hoy.toISOString().split('T')[0]}\nPróximo conteo: ${proximaFecha.toISOString().split('T')[0]}`);
+    
     cerrarModal();
     init();
 }
