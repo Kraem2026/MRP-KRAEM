@@ -1,331 +1,37 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Conteos Cíclicos Pro - KRAEM</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root { 
-            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
-            --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444;
-            --dark-header: #1e293b;
-        }
-        [data-theme="dark"] {
-            --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8;
-            --border: #334155; --dark-header: #0f172a;
-        }
-        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; max-width: 1400px; margin-inline: auto; }
-        .btn-ui { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .filter-panel { 
-            background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px;
-            margin-bottom: 25px; max-width: 1400px; margin-inline: auto;
-        }
-        .filter-group { display: flex; flex-direction: column; gap: 6px; }
-        .filter-group label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
-        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; outline: none; }
-        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; max-width: 1400px; margin: auto; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: var(--dark-header); color: white; padding: 15px; font-size: 12px; text-transform: uppercase; }
-        td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-        .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 20px; padding: 30px; max-height: 85vh; overflow-y: auto; }
-        .conteo-header { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 40px; gap: 10px; padding: 10px; background: var(--bg); border-radius: 8px; font-weight: bold; font-size: 11px; margin-bottom: 10px; }
-        .conteo-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 40px; gap: 10px; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); }
-        .save-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        .add-line-btn { color: var(--primary); cursor: pointer; font-weight: bold; font-size: 13px; margin: 15px 0; display: inline-flex; align-items: center; gap: 5px; }
-        .diff-result { font-weight: 800; text-align: center; }
-        .neg { color: var(--danger); }
-        .pos { color: var(--success); }
-    </style>
-</head>
-<body data-theme="light">
-
-<header>
-    <div style="display:flex; align-items:center; gap:15px;">
-        <button class="btn-ui" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> <span>Menú</span></button>
-        <h2 id="txt-title">🔍 Auditoría de Conteos Cíclicos</h2>
-    </div>
-    <div style="display:flex; gap:12px;">
-        <button class="btn-ui" onclick="exportExcel()" style="background:#107c41; color:white; border:none;"><i class="fas fa-file-excel"></i> Excel</button>
-        <button class="btn-ui" onclick="exportPDF()" style="background:#ef4444; color:white; border:none;"><i class="fas fa-file-pdf"></i> PDF</button>
-        <button class="btn-ui" onclick="toggleLanguage()" id="langBtn">🇰🇷 KO</button>
-        <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
-    </div>
-</header>
-
-<div class="filter-panel">
-    <div class="filter-group"><label>N° Parte</label><input type="text" id="fParte" oninput="filterData()" placeholder="Buscar..."></div>
-    <div class="filter-group"><label>Proyecto</label><input type="text" id="fProy" oninput="filterData()" placeholder="Filtrar..."></div>
-    <div class="filter-group">
-        <label>ABC</label>
-        <select id="fABC" onchange="filterData()">
-            <option value="">TODOS</option>
-            <option value="A">Clase A (30 días)</option>
-            <option value="B">Clase B (90 días)</option>
-            <option value="C">Clase C (180 días)</option>
-        </select>
-    </div>
-    <div class="filter-group"><label>Último (Desde)</label><input type="date" id="fDesde" onchange="filterData()"></div>
-    <div class="filter-group"><label>Próximo (Hasta)</label><input type="date" id="fHasta" onchange="filterData()"></div>
-</div>
-
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)"></th>
-                <th>N° Parte</th>
-                <th>Descripción</th>
-                <th>Proyecto</th>
-                <th>Stock</th>
-                <th>Último</th>
-                <th>Próximo</th>
-                <th>ABC</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody id="mainBody"></tbody>
-    </table>
-</div>
-
-<div id="modalConteo" class="modal">
-    <div class="modal-content">
-        <h3 id="mParte" style="color:var(--primary); margin:0;"></h3>
-        <p id="mDesc" style="color:var(--text-secondary); margin:5px 0; font-size: 13px;"></p>
-
-        <div class="conteo-header">
-            <div>ÁREA</div><div>UBICACIÓN</div><div>SISTEMA</div><div>FÍSICO</div><div>DIF.</div><div></div>
-        </div>
-        <div id="conteoLines"></div>
-
-        <div class="add-line-btn" onclick="addNewLine()">
-            <i class="fas fa-plus-circle"></i> Agregar ubicación/área extra
-        </div>
-
-        <button class="save-btn" onclick="saveMultiAdjust()" id="btn-save">FINALIZAR AUDITORÍA Y ACTUALIZAR STOCK</button>
-        <button onclick="cerrarModal()" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:10px; cursor:pointer;">Cancelar</button>
-    </div>
-</div>
-
 <script>
-const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+    // Buscamos la función destInput.oninput y la reemplazamos con esta lógica:
+    destInput.oninput = () => {
+        const v = destInput.value.toUpperCase();
+        // Detectamos el área actual (si es transferencia usa el destino, si no el origen)
+        const aId = (mode === 'TRANSFERENCIA') ? areaDestSelect.value : areaSelect.value;
+        
+        destBox.innerHTML = '';
+        if(!v) { destBox.style.display = 'none'; return; }
 
-let fullInventory = []; 
-let currentLang = 'es';
-let currentMasterPart = null;
-let allAreas = [];
-let allLocations = [];
+        // FILTRO ESTRICTO: Coincidencia de texto Y pertenencia al área seleccionada
+        const m = locations.filter(l => 
+            l.area_id == aId && 
+            l.location_code.toUpperCase().includes(v)
+        ).slice(0, 10);
 
-async function init() {
-    const [resInv, resAreas, resLocs] = await Promise.all([
-        _client.from('v_inventory_general').select('*'),
-        _client.from('areas').select('*').eq('active', true),
-        _client.from('locations').select('*').eq('active', true)
-    ]);
-    
-    allAreas = resAreas.data || [];
-    allLocations = resLocs.data || [];
-    fullInventory = (resInv.data || []).map(item => ({
-        ...item,
-        display_last: item.last_count ? item.last_count.split('T')[0] : '---',
-        display_next: item.next_count ? item.next_count.split('T')[0] : '---'
-    }));
-    filterData();
-}
-
-function renderTable(data) {
-    document.getElementById('mainBody').innerHTML = data.map(r => `
-        <tr>
-            <td><input type="checkbox" class="row-sel" 
-                data-np="${r.part_number}" 
-                data-desc="${r.description || ''}" 
-                data-proy="${r.project || ''}" 
-                data-stk="${r.total_quantity}"></td>
-            <td><b>${r.part_number}</b></td>
-            <td style="font-size:11px;">${r.description || ''}</td>
-            <td>${r.project || '-'}</td>
-            <td style="text-align:right;"><b>${(r.total_quantity || 0).toLocaleString()}</b></td>
-            <td>${r.display_last}</td>
-            <td style="color:${new Date(r.next_count) < new Date() ? 'red' : 'inherit'}">${r.display_next}</td>
-            <td><span class="abc-badge">${r.abc || 'C'}</span></td>
-            <td><button class="btn-ui" style="background:var(--primary); color:white; border:none; padding:5px 10px;" onclick='abrirAuditoria(${JSON.stringify(r)})'>Contar</button></td>
-        </tr>
-    `).join('');
-}
-
-async function abrirAuditoria(masterItem) {
-    currentMasterPart = masterItem;
-    document.getElementById('mParte').innerText = masterItem.part_number;
-    document.getElementById('mDesc').innerText = masterItem.description;
-    
-    const { data: details } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id);
-    const container = document.getElementById('conteoLines');
-    container.innerHTML = '';
-
-    if (details && details.length > 0) {
-        details.forEach(det => createRowHtml(det.area, det.location, det.quantity, det.location_id, false));
-    } else {
-        addNewLine(); // Si no hay nada en sistema, abrir una línea vacía
-    }
-
-    document.getElementById('modalConteo').style.display = 'flex';
-}
-
-function createRowHtml(areaName, locName, qtySis, locId, isNew) {
-    const div = document.createElement('div');
-    div.className = 'conteo-row';
-    
-    const areaSelectHtml = isNew ? 
-        `<select class="area-name" style="font-size:10px;">${allAreas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('')}</select>` :
-        `<div style="font-size:10px;">${areaName}</div><input type="hidden" class="area-name" value="${areaName}">`;
-
-    const locHtml = isNew ?
-        `<select class="loc-id" style="font-size:10px;">${allLocations.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('')}</select>` :
-        `<div style="font-size:11px; font-weight:bold;">${locName}</div><input type="hidden" class="loc-id" value="${locId}">`;
-
-    div.innerHTML = `
-        ${areaSelectHtml}
-        ${locHtml}
-        <input type="number" class="val-sis" value="${qtySis}" readonly style="width:50px; border:none; text-align:center; background:transparent;">
-        <input type="number" class="val-fis" placeholder="0" oninput="calcDiff(this)" style="width:100%; border:1px solid var(--primary); border-radius:5px; padding:5px;">
-        <div class="diff-result">0</div>
-        <div onclick="this.parentElement.remove()" style="color:var(--danger); cursor:pointer; text-align:center;"><i class="fas fa-trash"></i></div>
-    `;
-    document.getElementById('conteoLines').appendChild(div);
-}
-
-function addNewLine() {
-    createRowHtml('', '', 0, '', true);
-}
-
-function calcDiff(input) {
-    const row = input.closest('.conteo-row');
-    const sis = parseInt(row.querySelector('.val-sis').value) || 0;
-    const fis = parseInt(input.value) || 0;
-    const diff = fis - sis;
-    const res = row.querySelector('.diff-result');
-    res.innerText = (diff > 0 ? '+' : '') + diff;
-    res.className = 'diff-result ' + (diff < 0 ? 'neg' : (diff > 0 ? 'pos' : ''));
-}
-
-async function saveMultiAdjust() {
-    const rows = document.querySelectorAll('.conteo-row');
-    const { data: { session } } = await _client.auth.getSession();
-    if (!confirm("¿Aplicar ajustes y actualizar fechas de inventario?")) return;
-
-    let movesCount = 0;
-    for (const row of rows) {
-        const fisVal = row.querySelector('.val-fis').value;
-        if (fisVal === "") continue; 
-
-        const sis = parseInt(row.querySelector('.val-sis').value) || 0;
-        const fis = parseInt(fisVal);
-        const diff = fis - sis;
-
-        if (diff !== 0) {
-            const locId = row.querySelector('.loc-id').value;
-            const areaName = row.querySelector('.area-name').value;
-
-            const mov = {
-                part_id: currentMasterPart.part_id,
-                quantity: Math.abs(diff),
-                movement_type: 'AJUSTE',
-                area: areaName,
-                comment: `Auditoría Cíclica: Sis ${sis} / Fis ${fis}`,
-                user_id: session?.user?.id
-            };
-
-            if (diff > 0) mov.to_location_id = parseInt(locId);
-            else mov.from_location_id = parseInt(locId);
-
-            const { error } = await _client.from('inventory_movements').insert([mov]);
-            if (!error) movesCount++;
+        if(m.length > 0) {
+            m.forEach(l => { 
+                const d = document.createElement('div'); 
+                d.textContent = l.location_code; 
+                d.style.padding = '10px';
+                d.style.cursor = 'pointer';
+                d.style.borderBottom = '1px solid var(--border)';
+                
+                d.onclick = () => {
+                    destInput.value = l.location_code; 
+                    selDestId = l.id; 
+                    destBox.style.display = 'none';
+                }; 
+                destBox.appendChild(d); 
+            });
+            destBox.style.display = 'block';
+        } else {
+            destBox.style.display = 'none';
         }
-    }
-
-    // Actualización de fechas en tabla PARTS
-    const hoy = new Date();
-    const dias = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc || 'C'];
-    const prox = new Date();
-    prox.setDate(hoy.getDate() + dias);
-
-    await _client.from('parts').update({ 
-        last_count: hoy.toISOString(),
-        next_count: prox.toISOString()
-    }).eq('id', currentMasterPart.part_id);
-
-    alert(`Proceso finalizado. ${movesCount} movimientos registrados.`);
-    cerrarModal();
-    init(); // Recargar datos para ver fechas nuevas
-}
-
-function exportExcel() {
-    const selected = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => ({
-        "N° Parte": cb.dataset.np,
-        "Descripción": cb.dataset.desc,
-        "Proyecto": cb.dataset.proy,
-        "Stock Sistema": cb.dataset.stk,
-        "Conteo Físico": ""
-    }));
-
-    if (selected.length === 0) return alert("Por favor selecciona al menos una fila.");
-
-    const ws = XLSX.utils.json_to_sheet(selected);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Hoja de Conteo");
-    XLSX.writeFile(wb, `Conteo_Ciclico_${new Date().getTime()}.xlsx`);
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const selected = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => [
-        cb.dataset.np, cb.dataset.desc, cb.dataset.proy, cb.dataset.stk, "________"
-    ]);
-
-    if(selected.length === 0) return alert("Selecciona piezas para imprimir.");
-
-    doc.setFontSize(16);
-    doc.text("KRAEM - HOJA DE CONTEO CÍCLICO", 14, 20);
-    doc.autoTable({
-        startY: 30,
-        head: [['N° Parte', 'Descripción', 'Proyecto', 'Stock Sis', 'Físico']],
-        body: selected,
-        headStyles: { fillColor: [45, 52, 70] }
-    });
-    doc.save(`Conteo_${new Date().getTime()}.pdf`);
-}
-
-function filterData() {
-    const p = fParte.value.toLowerCase(), pr = fProy.value.toLowerCase(), abc = fABC.value;
-    const desde = fDesde.value, hasta = fHasta.value;
-
-    const filtered = fullInventory.filter(r => {
-        const matchText = r.part_number.toLowerCase().includes(p) && (r.project || "").toLowerCase().includes(pr);
-        const matchABC = !abc || r.abc === abc;
-        const matchDesde = !desde || (r.display_last !== '---' && r.display_last >= desde);
-        const matchHasta = !hasta || (r.display_next !== '---' && r.display_next <= hasta);
-        return matchText && matchABC && matchDesde && matchHasta;
-    });
-    renderTable(filtered);
-}
-
-function toggleTheme() {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-}
-
-function toggleSelectAll(src) { document.querySelectorAll('.row-sel').forEach(cb => cb.checked = src.checked); }
-function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
-
-init();
+    };
 </script>
-</body>
-</html>
