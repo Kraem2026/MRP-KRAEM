@@ -27,7 +27,6 @@
         .filter-bar input, .filter-bar select { 
             padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
         }
-        .actions { margin-bottom: 15px; display: flex; gap: 10px; }
         .btn { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-pdf { background: #e74c3c; color: white; }
@@ -35,9 +34,8 @@
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { background: #2d3436; color: white; padding: 12px; font-size: 11px; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        tr:hover { background: rgba(59, 130, 246, 0.05); }
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--card); width: 95%; max-width: 800px; border-radius: 16px; padding: 25px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 16px; padding: 25px; max-height: 90vh; overflow-y: auto; }
         .conteo-row { 
             display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr; gap: 10px; 
             align-items: center; padding: 10px; border-bottom: 1px solid var(--border);
@@ -45,7 +43,7 @@
         .diff-result { font-weight: bold; text-align: center; }
         .neg { color: var(--danger); }
         .pos { color: var(--success); }
-        .add-line { margin-top: 15px; color: var(--primary); cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+        .add-line { margin-top: 15px; color: var(--primary); cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; border: 1px dashed var(--primary); padding: 10px; border-radius: 8px; width: 100%; justify-content: center; }
     </style>
 </head>
 <body data-theme="light">
@@ -55,21 +53,21 @@
         <button class="btn" style="background:#64748b; color:white;" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> Dashboard</button>
         <h2 style="margin: 10px 0 0 0;">🔍 Auditoría de Conteos Cíclicos</h2>
     </div>
-    <div class="actions">
+    <div style="display:flex; gap:10px;">
         <button class="btn btn-pdf" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Imprimir Selección</button>
         <button class="btn" style="background:var(--border); color:var(--text);" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
 
 <div class="filter-bar">
-    <input type="text" id="fParte" placeholder="Filtrar N° Parte..." oninput="filterData()">
-    <input type="text" id="fDesc" placeholder="Filtrar Descripción..." oninput="filterData()">
-    <input type="text" id="fProy" placeholder="Filtrar Proyecto..." oninput="filterData()">
+    <input type="text" id="fParte" placeholder="N° Parte..." oninput="filterData()">
+    <input type="text" id="fDesc" placeholder="Descripción..." oninput="filterData()">
+    <input type="text" id="fProy" placeholder="Proyecto..." oninput="filterData()">
     <select id="fABC" onchange="filterData()">
         <option value="">Clasificación ABC</option>
-        <option value="A">Clase A (Alta)</option>
-        <option value="B">Clase B (Media)</option>
-        <option value="C">Clase C (Baja)</option>
+        <option value="A">Clase A (30 días)</option>
+        <option value="B">Clase B (90 días)</option>
+        <option value="C">Clase C (180 días)</option>
     </select>
 </div>
 
@@ -81,15 +79,14 @@
                 <th>N° Parte</th>
                 <th>Descripción</th>
                 <th>Proyecto</th>
-                <th>Stock Sistema</th>
-                <th>Último Conteo</th>
+                <th>Stock</th>
+                <th>Último</th>
+                <th>Próximo</th>
                 <th>ABC</th>
                 <th>Acción</th>
             </tr>
         </thead>
-        <tbody id="mainBody">
-            <tr><td colspan="8" style="text-align:center; padding:40px;">Cargando datos maestros...</td></tr>
-        </tbody>
+        <tbody id="mainBody"></tbody>
     </table>
 </div>
 
@@ -97,69 +94,51 @@
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:start;">
             <div>
-                <h3 id="mParte" style="margin:0">Número de Parte</h3>
-                <p id="mDesc" style="color:var(--text-secondary); margin:5px 0;"></p>
+                <h3 id="mParte" style="margin:0; color:var(--primary);"></h3>
+                <p id="mDesc" style="color:var(--text-secondary); margin:5px 0; font-size: 12px;"></p>
             </div>
-            <button onclick="cerrarModal()" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-secondary)">&times;</button>
+            <button onclick="cerrarModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-secondary)">&times;</button>
         </div>
 
         <div style="margin-top:20px;">
-            <div class="conteo-row" style="font-weight:bold; font-size:11px; color:var(--text-secondary); border-bottom:2px solid var(--border)">
-                <div>ÁREA</div>
-                <div>UBICACIÓN</div>
-                <div>SISTEMA</div>
-                <div>FÍSICO</div>
-                <div>DIF.</div>
+            <div class="conteo-row" style="font-weight:bold; font-size:11px; color:var(--text-secondary); border-bottom:2px solid var(--border); text-align: center;">
+                <div>ÁREA</div><div>UBICACIÓN</div><div>SISTEMA</div><div>FÍSICO</div><div>DIF.</div>
             </div>
             <div id="conteoLines"></div>
             <div class="add-line" onclick="addNewLine()">
-                <i class="fas fa-plus-circle"></i> Agregar otra ubicación encontrada
+                <i class="fas fa-plus-circle"></i> AGREGAR UBICACIÓN (HALLAZGO)
             </div>
         </div>
 
-        <div style="margin-top:30px; display:flex; gap:10px;">
-            <button id="btnSave" class="btn btn-primary" style="flex:1; justify-content:center;" onclick="saveMultiAdjust()">Finalizar Auditoría y Ajustar</button>
-        </div>
+        <button id="btnSave" class="btn btn-primary" style="width:100%; margin-top:25px; padding:15px; justify-content:center;" onclick="saveMultiAdjust()">GUARDAR AUDITORÍA Y ACTUALIZAR STOCK</button>
     </div>
 </div>
 
 <script>
-// CONFIGURACIÓN SUPABASE
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
-let areas = [];
-let locations = [];
+let areasList = [];
+let locationsList = [];
+let currentMasterPart = null;
 
 async function init() {
     const [resAreas, resLocs, resInv] = await Promise.all([
         _client.from('areas').select('*').eq('active', true),
         _client.from('locations').select('*').eq('active', true),
-        _client.from('v_inventory_by_location').select('*')
+        _client.from('v_inventory_general').select('*') // Usamos la vista general que me pasaste
     ]);
 
-    areas = resAreas.data || [];
-    locations = resLocs.data || [];
+    areasList = resAreas.data || [];
+    locationsList = resLocs.data || [];
+    
+    fullInventory = (resInv.data || []).map(item => ({
+        ...item,
+        // Recorte de fechas para que solo se vea YYYY-MM-DD
+        last_counted: item.last_count ? item.last_count.split(' ')[0] : '-',
+        next_count: item.next_count ? item.next_count.split(' ')[0] : '-'
+    }));
 
-    const grouped = {};
-    (resInv.data || []).forEach(item => {
-        if (!grouped[item.part_number]) {
-            grouped[item.part_number] = {
-                part_id: item.part_id,
-                part_number: item.part_number,
-                part_name: item.part_name,
-                project: item.project,
-                last_counted: item.last_counted,
-                abc: item.abc,
-                stock_total: 0,
-                details: []
-            };
-        }
-        grouped[item.part_number].stock_total += item.quantity;
-        grouped[item.part_number].details.push(item);
-    });
-
-    fullInventory = Object.values(grouped);
     renderTable(fullInventory);
 }
 
@@ -168,43 +147,66 @@ function renderTable(data) {
         <tr>
             <td><input type="checkbox" class="row-sel" data-id="${r.part_number}"></td>
             <td><b>${r.part_number}</b></td>
-            <td>${r.part_name || 'N/A'}</td>
-            <td>${r.project || '-'}</td>
-            <td><span style="font-weight:bold; color:var(--primary)">${r.stock_total.toLocaleString()}</span></td>
-            <td>${r.last_counted || 'Nunca'}</td>
-            <td><span class="btn" style="padding:2px 8px; font-size:10px; background:#eee;">${r.abc || 'C'}</span></td>
-            <td><button class="btn btn-primary" style="padding:5px 10px;" onclick='abrirAuditoria(${JSON.stringify(r)})'>Contar</button></td>
+            <td style="font-size:11px;">${r.description || 'N/A'}</td>
+            <td style="color:var(--primary); font-weight:bold;">${r.project || '-'}</td>
+            <td style="text-align:right;"><b>${(item => item.total_quantity || 0)(r).toLocaleString()}</b></td>
+            <td>${r.last_counted}</td>
+            <td style="color:${new Date(r.next_count) < new Date() ? 'var(--danger)' : 'inherit'}">${r.next_count}</td>
+            <td style="text-align:center;"><span style="background:#eee; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">${r.abc || 'C'}</span></td>
+            <td><button class="btn btn-primary" style="padding:5px 10px; font-size:11px;" onclick='abrirAuditoria(${JSON.stringify(r)})'>CONTAR</button></td>
         </tr>
     `).join('');
 }
 
-function abrirAuditoria(masterItem) {
+async function abrirAuditoria(masterItem) {
+    currentMasterPart = masterItem;
     document.getElementById('mParte').innerText = masterItem.part_number;
-    document.getElementById('mDesc').innerText = masterItem.part_name || '';
+    document.getElementById('mDesc').innerText = `${masterItem.description} | Proyecto: ${masterItem.project}`;
+    
     const container = document.getElementById('conteoLines');
+    container.innerHTML = '<p style="text-align:center; padding:10px;">Consultando ubicaciones...</p>';
+
+    const { data: details } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id);
+    
     container.innerHTML = '';
-
-    masterItem.details.forEach(det => {
-        createLineHtml(det.area, det.location, det.quantity, det.location_id, det.part_id);
+    details.forEach(det => {
+        const div = document.createElement('div');
+        div.className = 'conteo-row';
+        div.innerHTML = `
+            <div style="font-size:11px;">${det.area}</div>
+            <div style="font-weight:bold; font-size:12px;">${det.location}</div>
+            <div style="text-align:center;"><input type="number" class="val-sis" value="${det.quantity}" readonly style="width:60px; border:none; background:none; text-align:center;"></div>
+            <div><input type="number" class="val-fis" placeholder="0" oninput="updateRowDiff(this)" style="width:100%; padding:5px; border:1px solid var(--border); border-radius:4px;"></div>
+            <div class="diff-result">0</div>
+            <input type="hidden" class="loc-id" value="${det.location_id}">
+            <input type="hidden" class="area-name" value="${det.area}">
+        `;
+        container.appendChild(div);
     });
-
     document.getElementById('modalConteo').style.display = 'flex';
 }
 
-function createLineHtml(area, ubi, sistema, locId, partId) {
+function addNewLine() {
+    const container = document.getElementById('conteoLines');
     const div = document.createElement('div');
     div.className = 'conteo-row';
+    const areaOpts = areasList.map(a => `<option value="${a.id}">${a.area_name}</option>`).join('');
+    
+    const idUnico = Date.now();
     div.innerHTML = `
-        <div style="font-size:12px;">${area}</div>
-        <div style="font-weight:bold;">${ubi}</div>
-        <div><input type="number" class="val-sis" value="${sistema}" readonly style="width:60px; background:none; border:none; color:var(--text)"></div>
-        <div><input type="number" class="val-fis" placeholder="0" oninput="updateRowDiff(this)" style="width:70px; padding:5px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--text);"></div>
+        <select onchange="fillLocs(this.value, 'loc_${idUnico}')" style="font-size:10px; width:100%"><option value="">Área...</option>${areaOpts}</select>
+        <select id="loc_${idUnico}" class="loc-id-new" style="font-size:10px; width:100%"><option value="">Ubicación...</option></select>
+        <div style="text-align:center;"><input type="number" class="val-sis" value="0" readonly style="width:60px; border:none; background:none; text-align:center;"></div>
+        <div><input type="number" class="val-fis" placeholder="Cant" oninput="updateRowDiff(this)" style="width:100%; padding:5px; border:1px solid var(--border); border-radius:4px;"></div>
         <div class="diff-result">0</div>
-        <input type="hidden" class="loc-id" value="${locId}">
-        <input type="hidden" class="part-id" value="${partId}">
-        <input type="hidden" class="area-name" value="${area}">
     `;
-    document.getElementById('conteoLines').appendChild(div);
+    container.appendChild(div);
+}
+
+function fillLocs(areaId, targetId) {
+    const sel = document.getElementById(targetId);
+    const filtered = locationsList.filter(l => l.area_id == areaId);
+    sel.innerHTML = '<option value="">...</option>' + filtered.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('');
 }
 
 function updateRowDiff(input) {
@@ -218,101 +220,63 @@ function updateRowDiff(input) {
 }
 
 async function saveMultiAdjust() {
-    const rows = document.querySelectorAll('#conteoLines .conteo-row');
+    const rows = document.querySelectorAll('.conteo-row');
     const { data: { session } } = await _client.auth.getSession();
-    
-    if (!session) return alert("Por favor, inicia sesión para guardar.");
-    if (!confirm("¿Deseas aplicar estos ajustes al inventario global?")) return;
+    if (!confirm("¿Deseas aplicar los ajustes?")) return;
 
-    let successCount = 0;
-    const currentPartId = rows[0]?.querySelector('.part-id')?.value;
-
+    let changes = 0;
     for (const row of rows) {
-        const fisValue = row.querySelector('.val-fis').value;
-        if (fisValue === "" || fisValue === null) continue;
+        const fisVal = row.querySelector('.val-fis').value;
+        if (fisVal === "") continue;
 
         const sis = parseInt(row.querySelector('.val-sis').value) || 0;
-        const fis = parseInt(fisValue) || 0;
+        const fis = parseInt(fisVal);
         const diff = fis - sis;
 
         if (diff !== 0) {
-            const locId = row.querySelector('.loc-id').value;
-            const area = row.querySelector('.area-name').value;
-            const partId = row.querySelector('.part-id').value;
+            const locId = row.querySelector('.loc-id')?.value || row.querySelector('.loc-id-new')?.value;
+            if (!locId) continue;
 
-            // ESTRUCTURA COMPATIBLE CON TU TABLA inventory_movements
-            const movement = {
-                part_id: parseInt(partId),
-                quantity: Math.abs(diff), // Siempre positivo para la columna quantity
+            const mov = {
+                part_id: currentMasterPart.part_id,
+                quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
-                area: area,
-                comment: `Auditoría Cíclica (Sis:${sis} Fis:${fis})`,
-                user_id: session.user.id
+                comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
+                user_id: session?.user?.id
             };
 
-            // Lógica de dirección de stock
-            if (diff < 0) {
-                movement.from_location_id = parseInt(locId); // Resta
-                movement.to_location_id = null;
-            } else {
-                movement.to_location_id = parseInt(locId); // Suma
-                movement.from_location_id = null;
-            }
+            if (diff > 0) mov.to_location_id = parseInt(locId);
+            else mov.from_location_id = parseInt(locId);
 
-            const { error } = await _client.from('inventory_movements').insert([movement]);
-            if (!error) successCount++;
+            await _client.from('inventory_movements').insert([mov]);
+            changes++;
         }
     }
 
-    // Actualizar fecha en la tabla parts
-    if (currentPartId) {
-        await _client.from('parts').update({ last_counted: new Date().toISOString() }).eq('id', currentPartId);
-    }
-    
-    alert(`Proceso terminado. Se realizaron ${successCount} movimientos.`);
+    // Actualizar fecha según ABC
+    const dias = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc || 'C'];
+    const next = new Date();
+    next.setDate(next.getDate() + dias);
+
+    await _client.from('parts').update({ 
+        last_counted: new Date().toISOString(),
+        next_count: next.toISOString()
+    }).eq('id', currentMasterPart.part_id);
+
+    alert(`Ajuste completado. ${changes} movimientos registrados.`);
     cerrarModal();
     init();
 }
 
 function filterData() {
-    const p = document.getElementById('fParte').value.toLowerCase();
-    const d = document.getElementById('fDesc').value.toLowerCase();
-    const pr = document.getElementById('fProy').value.toLowerCase();
-    const abc = document.getElementById('fABC').value;
-
+    const p = fParte.value.toLowerCase(), d = fDesc.value.toLowerCase(), pr = fProy.value.toLowerCase(), abc = fABC.value;
     const filtered = fullInventory.filter(r => 
         r.part_number.toLowerCase().includes(p) &&
-        (r.part_name || "").toLowerCase().includes(d) &&
+        (r.description || "").toLowerCase().includes(d) &&
         (r.project || "").toLowerCase().includes(pr) &&
         (abc === "" || r.abc === abc)
     );
     renderTable(filtered);
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const selected = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => {
-        const row = cb.closest('tr');
-        return [row.cells[1].innerText, row.cells[2].innerText, row.cells[3].innerText, row.cells[4].innerText, "__________"];
-    });
-
-    if(selected.length === 0) return alert("Selecciona piezas para imprimir.");
-
-    doc.setFontSize(16);
-    doc.text("KRAEM - HOJA DE CONTEO CÍCLICO", 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 28);
-
-    doc.autoTable({
-        startY: 35,
-        head: [['N° Parte', 'Descripción', 'Proyecto', 'Stock Sis', 'Físico']],
-        body: selected,
-        theme: 'grid',
-        headStyles: { fillColor: [45, 52, 70] }
-    });
-
-    doc.save(`Conteo_${new Date().getTime()}.pdf`);
 }
 
 function toggleTheme() {
