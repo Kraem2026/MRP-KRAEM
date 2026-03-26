@@ -2,88 +2,90 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Auditoría de Inventarios - Conteos Cíclicos Pro</title>
+    <title>Conteos Cíclicos - KRAEM ERP</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         :root { 
-            --bg: #f4f6f8; --card: #ffffff; --text: #1e293b; --text-secondary: #64748b;
-            --border: #e2e8f0; --primary: #3b82f6; --success: #10b981; --danger: #ef4444;
+            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
+            --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444;
         }
-        [data-theme="dark"] { 
-            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #94a3b8;
-            --border: #334155; 
+        [data-theme="dark"] {
+            --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8;
+            --border: #334155;
         }
-        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .filter-bar { 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-            gap: 10px; background: var(--card); padding: 15px; border-radius: 12px; 
-            border: 1px solid var(--border); margin-bottom: 20px;
-        }
-        .filter-bar input, .filter-bar select { 
-            padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
-        }
-        .btn { padding: 10px 16px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-pdf { background: #e74c3c; color: white; }
-        .table-container { background: var(--card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background: #2d3436; color: white; padding: 12px; font-size: 11px; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 16px; padding: 25px; max-height: 90vh; overflow-y: auto; }
-        .conteo-row { 
-            display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr; gap: 10px; 
-            align-items: center; padding: 10px; border-bottom: 1px solid var(--border);
-        }
-        .diff-result { font-weight: bold; text-align: center; }
-        .neg { color: var(--danger); }
-        .pos { color: var(--success); }
-        .add-line { margin-top: 15px; color: var(--primary); cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; border: 1px dashed var(--primary); padding: 10px; border-radius: 8px; width: 100%; justify-content: center; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        header { max-width: 1400px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .btn-ui { padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        
+        .filter-panel { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); max-width: 1400px; margin: 0 auto 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; }
+
+        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; max-width: 1400px; margin: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #1e293b; color: white; padding: 15px; text-align: left; font-size: 12px; text-transform: uppercase; }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        
+        .abc-badge { padding: 3px 8px; border-radius: 4px; font-weight: 800; font-size: 10px; background: #f1f5f9; color: #475569; }
+        
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--card); width: 95%; max-width: 900px; border-radius: 20px; padding: 25px; max-height: 90vh; overflow-y: auto; }
+        .conteo-row { display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.5fr; gap: 10px; margin-bottom: 10px; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); }
+        
+        .add-btn { width: 100%; padding: 12px; border: 1px dashed var(--primary); color: var(--primary); background: transparent; border-radius: 10px; cursor: pointer; font-weight: bold; margin: 15px 0; }
+        .save-btn { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body data-theme="light">
 
 <header>
-    <div>
-        <button class="btn" style="background:#64748b; color:white;" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> Dashboard</button>
-        <h2 style="margin: 10px 0 0 0;">🔍 Auditoría de Conteos Cíclicos</h2>
+    <div style="display:flex; align-items:center; gap:15px;">
+        <button class="btn-ui" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> <span id="txt-back">Menú</span></button>
+        <h2 id="txt-title" style="margin:0;">🔍 Conteos Cíclicos</h2>
     </div>
     <div style="display:flex; gap:10px;">
-        <button class="btn btn-pdf" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Imprimir Selección</button>
-        <button class="btn" style="background:var(--border); color:var(--text);" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+        <button class="btn-ui" onclick="exportCSV()" style="background:#10b981; color:white; border:none;"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn-ui" onclick="exportPDF()" style="background:#ef4444; color:white; border:none;"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-ui" onclick="toggleLanguage()" id="langBtn">🇰🇷 KO</button>
+        <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
 
-<div class="filter-bar">
-    <input type="text" id="fParte" placeholder="N° Parte..." oninput="filterData()">
-    <input type="text" id="fDesc" placeholder="Descripción..." oninput="filterData()">
-    <input type="text" id="fProy" placeholder="Proyecto..." oninput="filterData()">
-    <select id="fABC" onchange="filterData()">
-        <option value="">Clasificación ABC</option>
-        <option value="A">Clase A (30 días)</option>
-        <option value="B">Clase B (90 días)</option>
-        <option value="C">Clase C (180 días)</option>
-    </select>
+<div class="filter-panel">
+    <div class="filter-group"><label id="l-parte">Parte</label><input type="text" id="fParte" oninput="filterData()"></div>
+    <div class="filter-group"><label id="l-proy">Proyecto</label><input type="text" id="fProy" oninput="filterData()"></div>
+    <div class="filter-group"><label id="l-abc">ABC</label>
+        <select id="fABC" onchange="filterData()">
+            <option value="">TODOS</option>
+            <option value="A">A (30 días)</option>
+            <option value="B">B (90 días)</option>
+            <option value="C">C (180 días)</option>
+        </select>
+    </div>
+    <div class="filter-group"><label id="l-desde">Último Desde</label><input type="date" id="fDesde" onchange="filterData()"></div>
+    <div class="filter-group"><label id="l-hasta">Próximo Hasta</label><input type="date" id="fHasta" onchange="filterData()"></div>
 </div>
 
 <div class="table-container">
     <table>
         <thead>
             <tr>
-                <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)"></th>
-                <th>N° Parte</th>
-                <th>Descripción</th>
-                <th>Proyecto</th>
-                <th>Stock</th>
-                <th>Último</th>
-                <th>Próximo</th>
-                <th>ABC</th>
-                <th>Acción</th>
+                <th style="width: 30px;"><input type="checkbox" onclick="toggleSelectAll(this)"></th>
+                <th id="th-np">N° Parte</th>
+                <th id="th-desc">Descripción</th>
+                <th id="th-proy">Proyecto</th>
+                <th id="th-stk">Stock</th>
+                <th id="th-ult">Último</th>
+                <th id="th-prox">Próximo</th>
+                <th id="th-abc">ABC</th>
+                <th id="th-acc">Acción</th>
             </tr>
         </thead>
         <tbody id="mainBody"></tbody>
@@ -92,25 +94,16 @@
 
 <div id="modalConteo" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:start;">
-            <div>
-                <h3 id="mParte" style="margin:0; color:var(--primary);"></h3>
-                <p id="mDesc" style="color:var(--text-secondary); margin:5px 0; font-size: 12px;"></p>
-            </div>
-            <button onclick="cerrarModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text-secondary)">&times;</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 id="mParte" style="margin:0; color:var(--primary)"></h3>
+            <button onclick="cerrarModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
         </div>
-
-        <div style="margin-top:20px;">
-            <div class="conteo-row" style="font-weight:bold; font-size:11px; color:var(--text-secondary); border-bottom:2px solid var(--border); text-align: center;">
-                <div>ÁREA</div><div>UBICACIÓN</div><div>SISTEMA</div><div>FÍSICO</div><div>DIF.</div>
-            </div>
-            <div id="conteoLines"></div>
-            <div class="add-line" onclick="addNewLine()">
-                <i class="fas fa-plus-circle"></i> AGREGAR UBICACIÓN (HALLAZGO)
-            </div>
-        </div>
-
-        <button id="btnSave" class="btn btn-primary" style="width:100%; margin-top:25px; padding:15px; justify-content:center;" onclick="saveMultiAdjust()">GUARDAR AUDITORÍA Y ACTUALIZAR STOCK</button>
+        <p id="mDesc" style="font-size:12px; color:var(--text-secondary); margin-bottom:20px;"></p>
+        
+        <div id="conteoLines"></div>
+        
+        <button class="add-btn" onclick="addNewLine()">+ AGREGAR UBICACIÓN / HALLAZGO</button>
+        <button class="save-btn" onclick="saveMultiAdjust()" id="btn-save">GUARDAR AJUSTE DE INVENTARIO</button>
     </div>
 </div>
 
@@ -118,42 +111,49 @@
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
-let areasList = [];
-let locationsList = [];
+let areas = [];
+let locations = [];
+let currentLang = 'es';
 let currentMasterPart = null;
+
+const i18n = {
+    es: { title: "🔍 Conteos Cíclicos", back: "Menú", np: "N° Parte", desc: "Descripción", proy: "Proyecto", stk: "Stock", ult: "Último", prox: "Próximo", abc: "ABC", acc: "Contar", save: "GUARDAR AJUSTE", lang: "🇰🇷 KO", l_parte: "Parte", l_proy: "Proyecto", l_abc: "ABC", l_desde: "Último Desde", l_hasta: "Próximo Hasta" },
+    ko: { title: "🔍 재고 실사 관리", back: "메뉴", np: "부품 번호", desc: "품명", proy: "프로젝트", stk: "재고", ult: "최근 실사", prox: "차기 실사", abc: "등급", acc: "실사", save: "재고 조정 저장", lang: "🇲🇽 ES", l_parte: "부품", l_proy: "프로젝트", l_abc: "등급", l_desde: "최근일자부터", l_hasta: "차기일자까지" }
+};
 
 async function init() {
     const [resAreas, resLocs, resInv] = await Promise.all([
         _client.from('areas').select('*').eq('active', true),
         _client.from('locations').select('*').eq('active', true),
-        _client.from('v_inventory_general').select('*') // Usamos la vista general que me pasaste
+        _client.from('v_inventory_general').select('*')
     ]);
 
-    areasList = resAreas.data || [];
-    locationsList = resLocs.data || [];
+    areas = resAreas.data || [];
+    locations = resLocs.data || [];
     
     fullInventory = (resInv.data || []).map(item => ({
         ...item,
-        // Recorte de fechas para que solo se vea YYYY-MM-DD
+        // Limpieza de fechas: solo YYYY-MM-DD
         last_counted: item.last_count ? item.last_count.split(' ')[0] : '-',
         next_count: item.next_count ? item.next_count.split(' ')[0] : '-'
     }));
 
-    renderTable(fullInventory);
+    filterData();
 }
 
 function renderTable(data) {
-    document.getElementById('mainBody').innerHTML = data.map(r => `
+    const body = document.getElementById('mainBody');
+    body.innerHTML = data.map(r => `
         <tr>
             <td><input type="checkbox" class="row-sel" data-id="${r.part_number}"></td>
             <td><b>${r.part_number}</b></td>
             <td style="font-size:11px;">${r.description || 'N/A'}</td>
             <td style="color:var(--primary); font-weight:bold;">${r.project || '-'}</td>
-            <td style="text-align:right;"><b>${(item => item.total_quantity || 0)(r).toLocaleString()}</b></td>
+            <td style="text-align:right;"><b>${(r.total_quantity || 0).toLocaleString()}</b></td>
             <td>${r.last_counted}</td>
             <td style="color:${new Date(r.next_count) < new Date() ? 'var(--danger)' : 'inherit'}">${r.next_count}</td>
-            <td style="text-align:center;"><span style="background:#eee; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">${r.abc || 'C'}</span></td>
-            <td><button class="btn btn-primary" style="padding:5px 10px; font-size:11px;" onclick='abrirAuditoria(${JSON.stringify(r)})'>CONTAR</button></td>
+            <td><span class="abc-badge">${r.abc || 'C'}</span></td>
+            <td><button class="btn-ui" style="padding:5px 10px; font-size:11px;" onclick='abrirAuditoria(${JSON.stringify(r)})'>${i18n[currentLang].acc}</button></td>
         </tr>
     `).join('');
 }
@@ -163,66 +163,60 @@ async function abrirAuditoria(masterItem) {
     document.getElementById('mParte').innerText = masterItem.part_number;
     document.getElementById('mDesc').innerText = `${masterItem.description} | Proyecto: ${masterItem.project}`;
     
-    const container = document.getElementById('conteoLines');
-    container.innerHTML = '<p style="text-align:center; padding:10px;">Consultando ubicaciones...</p>';
-
     const { data: details } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id);
     
-    container.innerHTML = '';
-    details.forEach(det => {
-        const div = document.createElement('div');
-        div.className = 'conteo-row';
-        div.innerHTML = `
-            <div style="font-size:11px;">${det.area}</div>
-            <div style="font-weight:bold; font-size:12px;">${det.location}</div>
-            <div style="text-align:center;"><input type="number" class="val-sis" value="${det.quantity}" readonly style="width:60px; border:none; background:none; text-align:center;"></div>
-            <div><input type="number" class="val-fis" placeholder="0" oninput="updateRowDiff(this)" style="width:100%; padding:5px; border:1px solid var(--border); border-radius:4px;"></div>
-            <div class="diff-result">0</div>
+    const container = document.getElementById('conteoLines');
+    container.innerHTML = (details || []).map(det => `
+        <div class="conteo-row">
+            <div style="font-size:11px;"><b>${det.area}</b></div>
+            <div style="font-size:11px;">${det.location}</div>
+            <div style="text-align:center; color:var(--text-secondary);">Sis: ${det.quantity}</div>
+            <input type="number" class="val-fis" placeholder="Físico" oninput="calcDiff(this)" style="width:100%">
+            <div class="diff-result" style="font-weight:bold; text-align:right;">0</div>
             <input type="hidden" class="loc-id" value="${det.location_id}">
+            <input type="hidden" class="val-sis" value="${det.quantity}">
             <input type="hidden" class="area-name" value="${det.area}">
-        `;
-        container.appendChild(div);
-    });
+        </div>
+    `).join('');
+    
     document.getElementById('modalConteo').style.display = 'flex';
 }
 
 function addNewLine() {
-    const container = document.getElementById('conteoLines');
     const div = document.createElement('div');
     div.className = 'conteo-row';
-    const areaOpts = areasList.map(a => `<option value="${a.id}">${a.area_name}</option>`).join('');
-    
-    const idUnico = Date.now();
+    const id = Date.now();
     div.innerHTML = `
-        <select onchange="fillLocs(this.value, 'loc_${idUnico}')" style="font-size:10px; width:100%"><option value="">Área...</option>${areaOpts}</select>
-        <select id="loc_${idUnico}" class="loc-id-new" style="font-size:10px; width:100%"><option value="">Ubicación...</option></select>
-        <div style="text-align:center;"><input type="number" class="val-sis" value="0" readonly style="width:60px; border:none; background:none; text-align:center;"></div>
-        <div><input type="number" class="val-fis" placeholder="Cant" oninput="updateRowDiff(this)" style="width:100%; padding:5px; border:1px solid var(--border); border-radius:4px;"></div>
-        <div class="diff-result">0</div>
+        <select onchange="fillLocs(this.value, 'loc_${id}')" style="font-size:10px;"><option value="">Área...</option>${areas.map(a=>`<option value="${a.id}">${a.area_name}</option>`).join('')}</select>
+        <select id="loc_${id}" class="loc-id-new" style="font-size:10px;"><option value="">Ubicación...</option></select>
+        <div style="text-align:center; color:var(--text-secondary);">Sis: 0</div>
+        <input type="number" class="val-fis" placeholder="Físico" oninput="calcDiff(this)" style="width:100%">
+        <div class="diff-result" style="font-weight:bold; text-align:right;">0</div>
+        <input type="hidden" class="val-sis" value="0">
     `;
-    container.appendChild(div);
+    document.getElementById('conteoLines').appendChild(div);
 }
 
 function fillLocs(areaId, targetId) {
     const sel = document.getElementById(targetId);
-    const filtered = locationsList.filter(l => l.area_id == areaId);
-    sel.innerHTML = '<option value="">...</option>' + filtered.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('');
+    const filtered = locations.filter(l => l.area_id == areaId);
+    sel.innerHTML = '<option value="">...</option>' + filtered.map(l=>`<option value="${l.id}">${l.location_code}</option>`).join('');
 }
 
-function updateRowDiff(input) {
+function calcDiff(input) {
     const row = input.closest('.conteo-row');
     const sis = parseInt(row.querySelector('.val-sis').value) || 0;
     const fis = parseInt(input.value) || 0;
     const diff = fis - sis;
     const res = row.querySelector('.diff-result');
     res.innerText = (diff > 0 ? '+' : '') + diff;
-    res.className = 'diff-result ' + (diff < 0 ? 'neg' : (diff > 0 ? 'pos' : ''));
+    res.style.color = diff < 0 ? 'var(--danger)' : (diff > 0 ? 'var(--success)' : 'inherit');
 }
 
 async function saveMultiAdjust() {
     const rows = document.querySelectorAll('.conteo-row');
     const { data: { session } } = await _client.auth.getSession();
-    if (!confirm("¿Deseas aplicar los ajustes?")) return;
+    if (!confirm("¿Aplicar ajustes a la base de datos?")) return;
 
     let changes = 0;
     for (const row of rows) {
@@ -235,60 +229,16 @@ async function saveMultiAdjust() {
 
         if (diff !== 0) {
             const locId = row.querySelector('.loc-id')?.value || row.querySelector('.loc-id-new')?.value;
-            if (!locId) continue;
+            const areaName = row.querySelector('.area-name')?.value || areas.find(a=>a.id == row.querySelector('select')?.value)?.area_name;
 
             const mov = {
                 part_id: currentMasterPart.part_id,
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
+                area: areaName,
                 comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
                 user_id: session?.user?.id
             };
 
             if (diff > 0) mov.to_location_id = parseInt(locId);
-            else mov.from_location_id = parseInt(locId);
-
-            await _client.from('inventory_movements').insert([mov]);
-            changes++;
-        }
-    }
-
-    // Actualizar fecha según ABC
-    const dias = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc || 'C'];
-    const next = new Date();
-    next.setDate(next.getDate() + dias);
-
-    await _client.from('parts').update({ 
-        last_counted: new Date().toISOString(),
-        next_count: next.toISOString()
-    }).eq('id', currentMasterPart.part_id);
-
-    alert(`Ajuste completado. ${changes} movimientos registrados.`);
-    cerrarModal();
-    init();
-}
-
-function filterData() {
-    const p = fParte.value.toLowerCase(), d = fDesc.value.toLowerCase(), pr = fProy.value.toLowerCase(), abc = fABC.value;
-    const filtered = fullInventory.filter(r => 
-        r.part_number.toLowerCase().includes(p) &&
-        (r.description || "").toLowerCase().includes(d) &&
-        (r.project || "").toLowerCase().includes(pr) &&
-        (abc === "" || r.abc === abc)
-    );
-    renderTable(filtered);
-}
-
-function toggleTheme() {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
-}
-
-function toggleSelectAll(src) { document.querySelectorAll('.row-sel').forEach(cb => cb.checked = src.checked); }
-function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
-
-init();
-</script>
-</body>
-</html>
+            else mov.from_location_id =
