@@ -1,37 +1,228 @@
-<script>
-    // Buscamos la función destInput.oninput y la reemplazamos con esta lógica:
-    destInput.oninput = () => {
-        const v = destInput.value.toUpperCase();
-        // Detectamos el área actual (si es transferencia usa el destino, si no el origen)
-        const aId = (mode === 'TRANSFERENCIA') ? areaDestSelect.value : areaSelect.value;
-        
-        destBox.innerHTML = '';
-        if(!v) { destBox.style.display = 'none'; return; }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM - Gestión de Conteos Cíclicos</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root { --primary: #2d3446; --accent: #3498db; --bg: #f4f7f6; --text: #333; --white: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: var(--primary); padding: 15px 25px; color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        th { background: #ecf0f1; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        tr:hover { background: #f9f9f9; }
+        .btn { padding: 10px 18px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .btn-pdf { background: #e74c3c; color: white; }
+        .btn-adjust { background: var(--accent); color: white; }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 25px; width: 400px; border-radius: 10px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .abc-A { background: #ff7675; color: white; }
+        .abc-B { background: #fdcb6e; color: #2d3436; }
+        .abc-C { background: #55efc4; color: #2d3436; }
+    </style>
+</head>
+<body>
 
-        // FILTRO ESTRICTO: Coincidencia de texto Y pertenencia al área seleccionada
-        const m = locations.filter(l => 
-            l.area_id == aId && 
-            l.location_code.toUpperCase().includes(v)
-        ).slice(0, 10);
+    <div class="header">
+        <h2>📊 Control de Inventarios Cíclicos (Kraem)</h2>
+        <div>
+            <button class="btn btn-pdf" onclick="generatePDF()">📄 Descargar Hoja de Auditoría</button>
+        </div>
+    </div>
 
-        if(m.length > 0) {
-            m.forEach(l => { 
-                const d = document.createElement('div'); 
-                d.textContent = l.location_code; 
-                d.style.padding = '10px';
-                d.style.cursor = 'pointer';
-                d.style.borderBottom = '1px solid var(--border)';
-                
-                d.onclick = () => {
-                    destInput.value = l.location_code; 
-                    selDestId = l.id; 
-                    destBox.style.display = 'none';
-                }; 
-                destBox.appendChild(d); 
-            });
-            destBox.style.display = 'block';
-        } else {
-            destBox.style.display = 'none';
+    <div class="card">
+        <div style="margin-bottom: 15px;">
+            <label>Filtrar por Área:</label>
+            <select id="fArea" onchange="loadData()" style="padding: 8px; border-radius: 5px;">
+                </select>
+        </div>
+
+        <table id="ciclicosTable">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll"></th>
+                    <th>N° Parte</th>
+                    <th>Descripción</th>
+                    <th>ABC</th>
+                    <th>Stock Sist.</th>
+                    <th>Últ. Conteo</th>
+                    <th>Prox. Conteo</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <div id="adjustModal" class="modal">
+        <div class="modal-content">
+            <h3>Ajuste por Conteo Físico</h3>
+            <hr>
+            <div class="input-group">
+                <label>Stock en Sistema:</label>
+                <input type="number" id="modalStockSist" disabled>
+            </div>
+            <div class="input-group">
+                <label>Cantidad Encontrada (Físico):</label>
+                <input type="number" id="modalConteoFisico" placeholder="Ej. 15">
+            </div>
+            <input type="hidden" id="modalPartId">
+            <input type="hidden" id="modalLocationId">
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-adjust" onclick="processAjuste()">✅ Confirmar y Ajustar</button>
+                <button class="btn" onclick="closeModal()" style="background:#ccc;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const _supabase = "TU_URL_SUPABASE";
+        const _key = "TU_KEY_SUPABASE";
+        const _client = supabase.createClient(_supabase, _key);
+
+        let partsData = [];
+
+        async function loadData() {
+            // Lógica para cargar v_inventory_general filtrado por área
+            const areaId = document.getElementById('fArea').value;
+            const { data, error } = await _client
+                .from('v_inventory_general')
+                .select('*'); // Aquí agregarías el filtro de área si tu vista lo permite
+
+            if (error) return console.error(error);
+            partsData = data;
+            renderTable(data);
         }
-    };
-</script>
+
+        function renderTable(data) {
+            const body = document.getElementById('tableBody');
+            body.innerHTML = '';
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                // Guardamos datos en el dataset para el PDF
+                tr.dataset.part_number = p.part_number;
+                tr.dataset.description = p.description;
+                tr.dataset.project = p.project || 'N/A';
+                tr.dataset.abc = p.abc;
+                tr.dataset.total_quantity = p.total_quantity;
+
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="row-sel"></td>
+                    <td><b>${p.part_number}</b></td>
+                    <td>${p.description}</td>
+                    <td><span class="badge abc-${p.abc}">${p.abc}</span></td>
+                    <td>${p.total_quantity}</td>
+                    <td>${p.last_count ? new Date(p.last_count).toLocaleDateString() : '---'}</td>
+                    <td>${p.next_count ? new Date(p.next_count).toLocaleDateString() : '---'}</td>
+                    <td><button class="btn btn-adjust" onclick="openModal(${p.part_id}, ${p.total_quantity})">Ajustar</button></td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function openModal(id, stock) {
+            document.getElementById('modalPartId').value = id;
+            document.getElementById('modalStockSist').value = stock;
+            document.getElementById('modalConteoFisico').value = '';
+            document.getElementById('adjustModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('adjustModal').style.display = 'none';
+        }
+
+        // LÓGICA CORE: Cálculo de diferencia real
+        async function processAjuste() {
+            const partId = document.getElementById('modalPartId').value;
+            const sist = parseFloat(document.getElementById('modalStockSist').value);
+            const fis = parseFloat(document.getElementById('modalConteoFisico').value);
+
+            if (isNaN(fis)) return alert("Ingresa un número válido");
+
+            // DIFERENCIA MATEMÁTICA: Si fis=15 y sist=20, delta=-5. Si fis=25 y sist=20, delta=+5.
+            const delta = fis - sist;
+
+            if (delta === 0) {
+                alert("Sin diferencias. Solo se actualizará la fecha de auditoría.");
+                await updateLastCount(partId);
+                closeModal();
+                loadData();
+                return;
+            }
+
+            // Insertar movimiento de ajuste
+            const { error } = await _client.from('inventory_movements').insert([{
+                part_id: partId,
+                quantity: delta, // El signo positivo o negativo ajusta el inventario
+                movement_type: 'AJUSTE_CICLICO',
+                notes: `Auditoría: Sistema ${sist} vs Físico ${fis}`
+            }]);
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                await updateLastCount(partId);
+                alert(`Ajuste registrado: ${delta > 0 ? '+' : ''}${delta} piezas.`);
+                closeModal();
+                loadData();
+            }
+        }
+
+        async function updateLastCount(id) {
+            await _client.from('parts').update({ last_count: new Date().toISOString() }).eq('id', id);
+        }
+
+        // PDF PROFESIONAL CON FIRMAS Y LÍNEAS MANUALES
+        async function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const selected = [];
+            document.querySelectorAll('.row-sel:checked').forEach(cb => {
+                const row = cb.closest('tr').dataset;
+                selected.push([row.part_number, row.description, row.project, row.abc, "________", row.total_quantity, "_______"]);
+            });
+
+            if (selected.length === 0) return alert("Selecciona piezas para auditar.");
+
+            doc.setFontSize(14);
+            doc.text("KRAEM - HOJA DE AUDITORÍA DE INVENTARIOS", 14, 15);
+            doc.setFontSize(9);
+            doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 22);
+            doc.text(`Auditor: ___________________________`, 120, 22);
+
+            // Líneas manuales para hallazgos
+            selected.push(["", "HALLAZGO EXTRA:", "---", "---", "________", "0", "_______"]);
+            selected.push(["", "HALLAZGO EXTRA:", "---", "---", "________", "0", "_______"]);
+
+            doc.autoTable({
+                startY: 30,
+                head: [['N° Parte', 'Descripción', 'Proyecto', 'ABC', 'Ubicación Real', 'Sistema', 'Físico']],
+                body: selected,
+                styles: { fontSize: 7 },
+                headStyles: { fillColor: [45, 52, 70] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 30;
+            doc.line(20, finalY, 80, finalY);
+            doc.line(120, finalY, 180, finalY);
+            doc.text("Firma Auditor", 40, finalY + 5);
+            doc.text("Firma Supervisor", 140, finalY + 5);
+
+            doc.save("Auditoria_Kraem.pdf");
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
