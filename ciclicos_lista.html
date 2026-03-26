@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Conteos Cíclicos Pro - KRAEM</title>
+    <title>Conteos Cíclicos Pro - SISTEMA MRP KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -18,50 +18,59 @@
             --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8;
             --border: #334155;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
         header { max-width: 1400px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; }
-        .controls { display: flex; gap: 10px; }
-        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-excel { background: #10b981; color: white; border: none; }
-        .btn-pdf { background: #e74c3c; color: white; border: none; }
         
-        .filter-panel { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); max-width: 1400px; margin: 0 auto 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+        .back-btn { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .btn-ui { padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+
+        .filter-panel { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); max-width: 1400px; margin: 0 auto 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; }
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         .filter-group label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
-        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; }
 
         .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow-x: auto; max-width: 1400px; margin: auto; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: var(--bg); padding: 15px; text-align: left; font-size: 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+        th { background: var(--bg); padding: 15px; text-align: left; font-size: 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 14px; }
         
-        .abc-badge { padding: 4px 8px; border-radius: 5px; font-weight: 800; font-size: 12px; background: #f1f5f9; }
+        .abc-badge { padding: 4px 8px; border-radius: 5px; font-weight: 800; font-size: 11px; background: rgba(0,0,0,0.05); }
+        .btn-action { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: var(--card); width: 90%; max-width: 850px; border-radius: 20px; padding: 25px; max-height: 85vh; overflow-y: auto; }
-        .conteo-row { display: grid; grid-template-columns: 1.2fr 1.2fr 0.5fr 0.8fr 0.5fr; gap: 10px; margin-bottom: 10px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--card); width: 95%; max-width: 900px; border-radius: 20px; padding: 25px; max-height: 90vh; overflow-y: auto; }
+        .conteo-row { display: grid; grid-template-columns: 1.2fr 1.2fr 0.6fr 0.8fr 0.5fr; gap: 10px; margin-bottom: 10px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
 <header>
-    <div>
-        <h2 style="margin:0;">🔍 Conteos Cíclicos</h2>
-        <span id="date-now" style="font-size: 12px; color: var(--text-secondary);"></span>
+    <div style="display:flex; align-items:center; gap:15px;">
+        <a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> <span id="txt-back">Menú</span></a>
+        <h2 style="margin:0;" id="txt-title">🔍 Conteos Cíclicos</h2>
     </div>
     <div class="controls">
-        <button class="btn btn-excel" onclick="exportCSV()"><i class="fas fa-file-excel"></i> Excel</button>
-        <button class="btn btn-pdf" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-ui" onclick="exportCSV()" style="background:#10b981; color:white; border:none;"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn-ui" onclick="exportPDF()" style="background:#ef4444; color:white; border:none;"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-ui" onclick="toggleLanguage()" id="langBtn">🇰🇷 KO</button>
+        <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
 
 <div class="filter-panel">
-    <div class="filter-group"><label>Parte</label><input type="text" id="fParte" oninput="filterData()"></div>
-    <div class="filter-group"><label>Proyecto</label><input type="text" id="fProy" oninput="filterData()"></div>
-    <div class="filter-group"><label>ABC</label>
-        <select id="fABC" onchange="filterData()"><option value="">TODOS</option><option value="A">A (30d)</option><option value="B">B (90d)</option><option value="C">C (180d)</option></select>
+    <div class="filter-group"><label id="l-parte">Parte</label><input type="text" id="fParte" oninput="filterData()"></div>
+    <div class="filter-group"><label id="l-proy">Proyecto</label><input type="text" id="fProy" oninput="filterData()"></div>
+    <div class="filter-group"><label id="l-abc">ABC</label>
+        <select id="fABC" onchange="filterData()">
+            <option value="">TODOS</option>
+            <option value="A">A (30 días)</option>
+            <option value="B">B (90 días)</option>
+            <option value="C">C (180 días)</option>
+        </select>
     </div>
+    <div class="filter-group"><label id="l-desde">Último Desde</label><input type="date" id="fDesde" onchange="filterData()"></div>
+    <div class="filter-group"><label id="l-hasta">Próximo Hasta</label><input type="date" id="fHasta" onchange="filterData()"></div>
 </div>
 
 <div class="table-container">
@@ -69,13 +78,14 @@
         <thead>
             <tr>
                 <th style="width: 30px;"><input type="checkbox" id="chkAll" onclick="toggleSelectAll(this)"></th>
-                <th>N° Parte</th>
-                <th>Proyecto</th>
-                <th style="text-align:right">Stock Sistema</th>
-                <th>Último Conteo</th>
-                <th>Próximo Conteo</th>
-                <th>ABC</th>
-                <th>Acción</th>
+                <th id="th-np">N° Parte</th>
+                <th id="th-desc">Descripción</th>
+                <th id="th-proy">Proyecto</th>
+                <th id="th-stk">Stock</th>
+                <th id="th-ult">Último</th>
+                <th id="th-prox">Próximo</th>
+                <th id="th-abc">ABC</th>
+                <th id="th-acc">Acción</th>
             </tr>
         </thead>
         <tbody id="mainBody"></tbody>
@@ -84,13 +94,14 @@
 
 <div id="modalConteo" class="modal">
     <div class="modal-content">
-        <h3 id="mParte" style="margin-top:0; color:var(--primary)"></h3>
-        <div id="conteoLines"></div>
-        <button class="btn" onclick="addNewLine()" style="width:100%; border: 1px dashed var(--primary); color: var(--primary); margin-bottom: 15px;">+ AGREGAR UBICACIÓN EXTRA</button>
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" style="flex:1" onclick="saveMultiAdjust()">GUARDAR CONTEO</button>
-            <button class="btn" onclick="cerrarModal()">CANCELAR</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 id="mParte" style="margin:0; color:var(--primary)"></h3>
+            <button onclick="cerrarModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:var(--text)">&times;</button>
         </div>
+        <p id="mDesc" style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;"></p>
+        <div id="conteoLines"></div>
+        <button class="btn-ui" onclick="addNewLine()" style="width:100%; border: 1px dashed var(--primary); color: var(--primary); margin-bottom: 15px;">+ AGREGAR UBICACIÓN / HALLAZGO</button>
+        <button class="btn-action" style="width:100%; padding:15px;" onclick="saveMultiAdjust()" id="btn-save">GUARDAR AJUSTE DE INVENTARIO</button>
     </div>
 </div>
 
@@ -101,32 +112,35 @@ let fullInventory = [];
 let locationsList = [];
 let areasList = [];
 let currentPart = null;
+let currentLang = 'es';
+
+const i18n = {
+    es: { title: "🔍 Conteos Cíclicos", back: "Menú", np: "N° Parte", desc: "Descripción", proy: "Proyecto", stk: "Stock", ult: "Último", prox: "Próximo", abc: "ABC", acc: "Acción", save: "GUARDAR AJUSTE", lang: "🇰🇷 KO" },
+    ko: { title: "🔍 재고 실사 관리", back: "메뉴", np: "부품 번호", desc: "품명", proy: "프로젝트", stk: "재고", ult: "최근 실사", prox: "차기 실사", abc: "등급", acc: "실사", save: "재고 조정 저장", lang: "🇲🇽 ES" }
+};
 
 async function init() {
-    document.getElementById('date-now').innerText = "Hoy: " + new Date().toLocaleDateString();
-    
-    // Cargamos tablas relacionadas
+    // 1. Cargar datos maestros
     const [invRes, locRes, partRes, areaRes] = await Promise.all([
         _client.from('v_inventory_by_location').select('*'),
         _client.from('locations').select('*'),
-        _client.from('parts').select('part_number, project, abc, last_counted'),
-        _client.from('areas').select('*') // Suponiendo tabla areas por area_id
+        _client.from('parts').select('part_number, part_name, project, abc, last_counted, id'),
+        _client.from('areas').select('*')
     ]);
 
     locationsList = locRes.data || [];
     areasList = areaRes.data || [];
-
-    const partDataMap = {};
-    partRes.data?.forEach(p => partDataMap[p.part_number] = p);
+    const partMap = {};
+    partRes.data?.forEach(p => partMap[p.part_number] = p);
 
     const grouped = {};
     invRes.data?.forEach(item => {
         if (!grouped[item.part_number]) {
-            const extra = partDataMap[item.part_number] || {};
-            const abc = extra.abc || 'C';
-            const last = extra.last_counted;
+            const pInfo = partMap[item.part_number] || {};
+            const abc = pInfo.abc || 'C';
+            const last = pInfo.last_counted;
             
-            // Lógica de fechas (Hoy si no hay previo)
+            // Lógica de fechas solicitada: A=30, B=90, C=180
             const baseDate = last ? new Date(last) : new Date();
             const days = abc === 'A' ? 30 : (abc === 'B' ? 90 : 180);
             const next = new Date(baseDate);
@@ -134,13 +148,14 @@ async function init() {
 
             grouped[item.part_number] = { 
                 part_number: item.part_number,
-                project: extra.project || '-',
+                part_name: pInfo.part_name || '-',
+                project: pInfo.project || '-',
                 abc: abc,
-                last_counted: last || 'Sin registros',
+                last_counted: last || '-',
                 next_count: next.toISOString().split('T')[0],
                 stock_total: 0,
                 details: [],
-                part_id: item.part_id
+                part_id: pInfo.id || item.part_id
             };
         }
         grouped[item.part_number].stock_total += (item.quantity || 0);
@@ -148,7 +163,21 @@ async function init() {
     });
 
     fullInventory = Object.values(grouped);
-    renderTable(fullInventory);
+    filterData();
+}
+
+function filterData() {
+    const p = fParte.value.toLowerCase(), pr = fProy.value.toLowerCase(), abc = fABC.value;
+    const desde = fDesde.value, hasta = fHasta.value;
+
+    const filtered = fullInventory.filter(r => {
+        const matchText = r.part_number.toLowerCase().includes(p) && r.project.toLowerCase().includes(pr);
+        const matchABC = !abc || r.abc === abc;
+        const matchUlt = !desde || (r.last_counted !== '-' && r.last_counted >= desde);
+        const matchProx = !hasta || r.next_count <= hasta;
+        return matchText && matchABC && matchUlt && matchProx;
+    });
+    renderTable(filtered);
 }
 
 function renderTable(data) {
@@ -157,27 +186,29 @@ function renderTable(data) {
         <tr>
             <td><input type="checkbox" class="row-sel" data-id="${r.part_number}"></td>
             <td><b>${r.part_number}</b></td>
-            <td>${r.project}</td>
-            <td style="text-align:right; font-weight:700;">${r.stock_total.toLocaleString()}</td>
+            <td style="font-size:12px; color:var(--text-secondary)">${r.part_name}</td>
+            <td style="color:var(--success); font-weight:700;">${r.project}</td>
+            <td style="text-align:right; font-weight:bold;">${r.stock_total.toLocaleString()}</td>
             <td>${r.last_counted}</td>
-            <td style="color:${new Date(r.next_count) < new Date() ? 'red' : 'inherit'}">${r.next_count}</td>
+            <td style="color:${new Date(r.next_count) < new Date() ? 'var(--danger)' : 'inherit'}">${r.next_count}</td>
             <td><span class="abc-badge">${r.abc}</span></td>
-            <td><button class="btn btn-primary" onclick='abrirConteo(${JSON.stringify(r)})'>CONTAR</button></td>
+            <td><button class="btn-action" onclick='abrirConteo(${JSON.stringify(r)})'>${i18n[currentLang].acc}</button></td>
         </tr>
     `).join('');
 }
 
 function abrirConteo(part) {
     currentPart = part;
-    document.getElementById('mParte').innerText = part.part_number + " [" + part.project + "]";
+    document.getElementById('mParte').innerText = part.part_number;
+    document.getElementById('mDesc').innerText = `${part.part_name} | Proyecto: ${part.project}`;
     const container = document.getElementById('conteoLines');
     
     container.innerHTML = part.details.map(det => `
         <div class="conteo-row">
             <div style="font-size:11px;"><b>${det.area || 'N/A'}</b></div>
             <div style="font-size:11px;">${det.location || det.location_code}</div>
-            <div style="color:gray; font-size:10px;">Sis: ${det.quantity}</div>
-            <input type="number" class="val-fis" placeholder="Físico" oninput="calcDiff(this)">
+            <div style="color:var(--text-secondary); font-size:10px;">Sis: ${det.quantity}</div>
+            <input type="number" class="val-fis" placeholder="Físico" oninput="calcDiff(this)" style="width:100%">
             <div class="diff-result" style="font-weight:bold; text-align:right">0</div>
             <input type="hidden" class="loc-id" value="${det.location_id}">
             <input type="hidden" class="val-sis" value="${det.quantity}">
@@ -193,12 +224,12 @@ function addNewLine() {
     const areaOpts = areasList.map(a => `<option value="${a.id}">${a.name || a.area_name}</option>`).join('');
     
     div.innerHTML = `
-        <select class="area-sel" onchange="updateLocs(this)" style="font-size:10px;">
+        <select class="area-sel" onchange="updateLocs(this)" style="font-size:10px; width:100%">
             <option value="">-- Área --</option>${areaOpts}
         </select>
-        <select class="loc-id-new" style="font-size:10px;" disabled><option value="">-- Ubicación --</option></select>
-        <div style="color:gray; font-size:10px;">Sis: 0</div>
-        <input type="number" class="val-fis" placeholder="Hallazgo" oninput="calcDiff(this)">
+        <select class="loc-id-new" style="font-size:10px; width:100%" disabled><option value="">-- Ubicación --</option></select>
+        <div style="color:var(--text-secondary); font-size:10px;">Sis: 0</div>
+        <input type="number" class="val-fis" placeholder="Hallazgo" oninput="calcDiff(this)" style="width:100%">
         <div class="diff-result" style="font-weight:bold; text-align:right">0</div>
         <input type="hidden" class="val-sis" value="0">
     `;
@@ -218,8 +249,8 @@ function calcDiff(input) {
     const row = input.closest('.conteo-row');
     const sis = parseInt(row.querySelector('.val-sis').value) || 0;
     const fis = parseInt(input.value) || 0;
-    const res = row.querySelector('.diff-result');
     const diff = fis - sis;
+    const res = row.querySelector('.diff-result');
     res.innerText = (diff > 0 ? '+' : '') + diff;
     res.style.color = diff < 0 ? 'var(--danger)' : (diff > 0 ? 'var(--success)' : 'inherit');
 }
@@ -227,6 +258,7 @@ function calcDiff(input) {
 async function saveMultiAdjust() {
     const rows = document.querySelectorAll('.conteo-row');
     const today = new Date().toISOString().split('T')[0];
+    const { data: { session } } = await _client.auth.getSession();
 
     for (const row of rows) {
         const fisVal = row.querySelector('.val-fis').value;
@@ -242,51 +274,79 @@ async function saveMultiAdjust() {
                 part_id: currentPart.part_id,
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
-                comment: `Cíclico Automático (Sis:${sis} Fis:${fis})`
+                comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
+                user_id: session?.user?.id || null
             };
+            // Si falta material, sale de la ubicación. Si sobra, entra.
             if(diff < 0) mov.from_location_id = locId; else mov.to_location_id = locId;
-            await _client.from('inventory_movements').insert([mov]);
+            
+            const { error } = await _client.from('inventory_movements').insert([mov]);
+            if(error) console.error("Error en movimiento:", error);
         }
     }
-    await _client.from('parts').update({ last_counted: today }).eq('part_number', currentPart.part_number);
+    // Actualizar fecha en la parte
+    await _client.from('parts').update({ last_counted: today }).eq('id', currentPart.part_id);
+    
+    alert("Inventario Ajustado Correctamente");
     cerrarModal(); init();
 }
 
-function filterData() {
-    const p = fParte.value.toLowerCase(), pr = fProy.value.toLowerCase(), abc = fABC.value;
-    const filtered = fullInventory.filter(r => 
-        r.part_number.toLowerCase().includes(p) && 
-        r.project.toLowerCase().includes(pr) &&
-        (abc === "" || r.abc === abc)
-    );
-    renderTable(filtered);
+function toggleLanguage() {
+    currentLang = currentLang === 'es' ? 'ko' : 'es';
+    const t = i18n[currentLang];
+    document.getElementById('txt-title').innerText = t.title;
+    document.getElementById('txt-back').innerText = t.back;
+    document.getElementById('langBtn').innerText = t.lang;
+    document.getElementById('btn-save').innerText = t.save;
+    // Traducir headers
+    document.getElementById('th-np').innerText = t.np;
+    document.getElementById('th-desc').innerText = t.desc;
+    document.getElementById('th-proy').innerText = t.proy;
+    document.getElementById('th-stk').innerText = t.stk;
+    document.getElementById('th-ult').innerText = t.ult;
+    document.getElementById('th-prox').innerText = t.prox;
+    document.getElementById('th-abc').innerText = t.abc;
+    document.getElementById('th-acc').innerText = t.acc;
+    filterData();
+}
+
+function toggleTheme() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const checked = Array.from(document.querySelectorAll('.row-sel:checked'));
+    if(checked.length === 0) return alert("Selecciona piezas para imprimir");
+
+    const tableRows = checked.map(cb => {
+        const r = cb.closest('tr');
+        return [r.cells[1].innerText, r.cells[2].innerText, r.cells[3].innerText, r.cells[4].innerText, "______"];
+    });
+
+    doc.setFontSize(16);
+    doc.text("KRAEM - HOJA DE AUDITORÍA CÍCLICA", 14, 20);
+    doc.autoTable({ startY: 25, head: [['Parte', 'Desc', 'Proy', 'Sis', 'Físico']], body: tableRows });
+    doc.save("Auditoria.pdf");
 }
 
 function exportCSV() {
     const checked = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => cb.getAttribute('data-id'));
-    if(checked.length === 0) return alert("Selecciona filas");
-    let csv = "\uFEFFParte,Proyecto,Stock,Ultimo,Proximo,ABC\n";
+    if(checked.length === 0) return alert("Selecciona piezas");
+    let csv = "\uFEFFParte,Proyecto,Stock,Ultimo,ABC\n";
     fullInventory.filter(r => checked.includes(r.part_number)).forEach(r => {
-        csv += `${r.part_number},${r.project},${r.stock_total},${r.last_counted},${r.next_count},${r.abc}\n`;
+        csv += `${r.part_number},${r.project},${r.stock_total},${r.last_counted},${r.abc}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Inventario_Ciclicos.csv'; a.click();
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf; const doc = new jsPDF();
-    const checked = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => {
-        const r = cb.closest('tr');
-        return [r.cells[1].innerText, r.cells[2].innerText, r.cells[3].innerText, r.cells[5].innerText, "_______"];
-    });
-    if(checked.length === 0) return alert("Selecciona filas");
-    doc.text("KRAEM - AUDITORÍA CÍCLICA", 14, 20);
-    doc.autoTable({ startY: 25, head: [['Parte', 'Proyecto', 'Stock', 'Vence', 'Físico']], body: checked });
-    doc.save("Auditoria.pdf");
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Ciclicos.csv'; a.click();
 }
 
 function toggleSelectAll(src) { document.querySelectorAll('.row-sel').forEach(cb => cb.checked = src.checked); }
 function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
+
 init();
 </script>
 </body>
