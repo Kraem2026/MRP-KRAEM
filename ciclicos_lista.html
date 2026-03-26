@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Conteos Cíclicos Pro - SISTEMA MRP KRAEM</title>
+    <title>Conteos Cíclicos Pro - KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -41,6 +41,7 @@
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
         .modal-content { background: var(--card); width: 95%; max-width: 900px; border-radius: 20px; padding: 25px; max-height: 90vh; overflow-y: auto; }
         .conteo-row { display: grid; grid-template-columns: 1.2fr 1.2fr 0.6fr 0.8fr 0.5fr; gap: 10px; margin-bottom: 10px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .diff-result { font-weight: bold; text-align: right; }
     </style>
 </head>
 <body data-theme="light">
@@ -106,6 +107,7 @@
 </div>
 
 <script>
+// CONFIGURACIÓN SUPABASE (Usando tus credenciales)
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
@@ -115,54 +117,39 @@ let currentPart = null;
 let currentLang = 'es';
 
 const i18n = {
-    es: { title: "🔍 Conteos Cíclicos", back: "Menú", np: "N° Parte", desc: "Descripción", proy: "Proyecto", stk: "Stock", ult: "Último", prox: "Próximo", abc: "ABC", acc: "Acción", save: "GUARDAR AJUSTE", lang: "🇰🇷 KO" },
-    ko: { title: "🔍 재고 실사 관리", back: "메뉴", np: "부품 번호", desc: "품명", proy: "프로젝트", stk: "재고", ult: "최근 실사", prox: "차기 실사", abc: "등급", acc: "실사", save: "재고 조정 저장", lang: "🇲🇽 ES" }
+    es: { 
+        title: "🔍 Conteos Cíclicos", back: "Menú", np: "N° Parte", desc: "Descripción", proy: "Proyecto", stk: "Stock", ult: "Último", prox: "Próximo", abc: "ABC", acc: "Acción", save: "GUARDAR AJUSTE", lang: "🇰🇷 KO",
+        l_parte: "Parte", l_proy: "Proyecto", l_abc: "ABC", l_desde: "Último Desde", l_hasta: "Próximo Hasta"
+    },
+    ko: { 
+        title: "🔍 재고 실사 관리", back: "메뉴", np: "부품 번호", desc: "품명", proy: "프로젝트", stk: "재고", ult: "최근 실사", prox: "차기 실사", abc: "등급", acc: "실사", save: "재고 조정 저장", lang: "🇲🇽 ES",
+        l_parte: "부품", l_proy: "프로젝트", l_abc: "등급", l_desde: "최근일자부터", l_hasta: "차기일자까지"
+    }
 };
 
 async function init() {
-    // 1. Cargar datos maestros
-    const [invRes, locRes, partRes, areaRes] = await Promise.all([
-        _client.from('v_inventory_by_location').select('*'),
-        _client.from('locations').select('*'),
-        _client.from('parts').select('part_number, part_name, project, abc, last_counted, id'),
-        _client.from('areas').select('*')
+    // 1. Cargamos datos maestros y la vista general que proporcionaste
+    const [invRes, locRes, areaRes] = await Promise.all([
+        _client.from('v_inventory_general').select('*'),
+        _client.from('locations').select('id, location_code, area_id').eq('active', true),
+        _client.from('areas').select('id, area_name').eq('active', true)
     ]);
 
     locationsList = locRes.data || [];
     areasList = areaRes.data || [];
-    const partMap = {};
-    partRes.data?.forEach(p => partMap[p.part_number] = p);
+    
+    // 2. Mapeamos la información de v_inventory_general
+    fullInventory = (invRes.data || []).map(item => ({
+        part_id: item.part_id,
+        part_number: item.part_number,
+        part_name: item.description || '-',
+        project: item.project || '-',
+        abc: item.abc || 'C',
+        last_counted: item.last_count ? item.last_count.split(' ')[0] : '-',
+        next_count: item.next_count ? item.next_count.split(' ')[0] : '-',
+        stock_total: item.total_quantity || 0
+    }));
 
-    const grouped = {};
-    invRes.data?.forEach(item => {
-        if (!grouped[item.part_number]) {
-            const pInfo = partMap[item.part_number] || {};
-            const abc = pInfo.abc || 'C';
-            const last = pInfo.last_counted;
-            
-            // Lógica de fechas solicitada: A=30, B=90, C=180
-            const baseDate = last ? new Date(last) : new Date();
-            const days = abc === 'A' ? 30 : (abc === 'B' ? 90 : 180);
-            const next = new Date(baseDate);
-            next.setDate(baseDate.getDate() + days);
-
-            grouped[item.part_number] = { 
-                part_number: item.part_number,
-                part_name: pInfo.part_name || '-',
-                project: pInfo.project || '-',
-                abc: abc,
-                last_counted: last || '-',
-                next_count: next.toISOString().split('T')[0],
-                stock_total: 0,
-                details: [],
-                part_id: pInfo.id || item.part_id
-            };
-        }
-        grouped[item.part_number].stock_total += (item.quantity || 0);
-        grouped[item.part_number].details.push(item);
-    });
-
-    fullInventory = Object.values(grouped);
     filterData();
 }
 
@@ -174,7 +161,7 @@ function filterData() {
         const matchText = r.part_number.toLowerCase().includes(p) && r.project.toLowerCase().includes(pr);
         const matchABC = !abc || r.abc === abc;
         const matchUlt = !desde || (r.last_counted !== '-' && r.last_counted >= desde);
-        const matchProx = !hasta || r.next_count <= hasta;
+        const matchProx = !hasta || (r.next_count !== '-' && r.next_count <= hasta);
         return matchText && matchABC && matchUlt && matchProx;
     });
     renderTable(filtered);
@@ -197,23 +184,30 @@ function renderTable(data) {
     `).join('');
 }
 
-function abrirConteo(part) {
+async function abrirConteo(part) {
     currentPart = part;
     document.getElementById('mParte').innerText = part.part_number;
     document.getElementById('mDesc').innerText = `${part.part_name} | Proyecto: ${part.project}`;
-    const container = document.getElementById('conteoLines');
     
-    container.innerHTML = part.details.map(det => `
+    // Consultar desglose por ubicación de este part_id específico
+    const { data: details } = await _client
+        .from('v_inventory_by_location')
+        .select('*')
+        .eq('part_id', part.part_id);
+
+    const container = document.getElementById('conteoLines');
+    container.innerHTML = (details || []).map(det => `
         <div class="conteo-row">
             <div style="font-size:11px;"><b>${det.area || 'N/A'}</b></div>
             <div style="font-size:11px;">${det.location || det.location_code}</div>
             <div style="color:var(--text-secondary); font-size:10px;">Sis: ${det.quantity}</div>
             <input type="number" class="val-fis" placeholder="Físico" oninput="calcDiff(this)" style="width:100%">
-            <div class="diff-result" style="font-weight:bold; text-align:right">0</div>
+            <div class="diff-result">0</div>
             <input type="hidden" class="loc-id" value="${det.location_id}">
             <input type="hidden" class="val-sis" value="${det.quantity}">
         </div>
     `).join('');
+    
     document.getElementById('modalConteo').style.display = 'flex';
 }
 
@@ -221,28 +215,28 @@ function addNewLine() {
     const container = document.getElementById('conteoLines');
     const div = document.createElement('div');
     div.className = 'conteo-row';
-    const areaOpts = areasList.map(a => `<option value="${a.id}">${a.name || a.area_name}</option>`).join('');
+    const areaOpts = areasList.map(a => `<option value="${a.id}">${a.area_name}</option>`).join('');
     
     div.innerHTML = `
-        <select class="area-sel" onchange="updateLocs(this)" style="font-size:10px; width:100%">
+        <select class="area-sel" onchange="updateLocs(selLoc_${Date.now()}, this.value)" style="font-size:10px; width:100%">
             <option value="">-- Área --</option>${areaOpts}
         </select>
-        <select class="loc-id-new" style="font-size:10px; width:100%" disabled><option value="">-- Ubicación --</option></select>
+        <select id="selLoc_${Date.now()}" class="loc-id-new" style="font-size:10px; width:100%" disabled>
+            <option value="">-- Ubicación --</option>
+        </select>
         <div style="color:var(--text-secondary); font-size:10px;">Sis: 0</div>
         <input type="number" class="val-fis" placeholder="Hallazgo" oninput="calcDiff(this)" style="width:100%">
-        <div class="diff-result" style="font-weight:bold; text-align:right">0</div>
+        <div class="diff-result">0</div>
         <input type="hidden" class="val-sis" value="0">
     `;
     container.appendChild(div);
 }
 
-function updateLocs(sel) {
-    const row = sel.closest('.conteo-row');
-    const locSel = row.querySelector('.loc-id-new');
-    const filtered = locationsList.filter(l => l.area_id == sel.value);
-    locSel.innerHTML = '<option value="">-- Ubicación --</option>' + 
-                       filtered.map(l => `<option value="${l.id}">${l.location_name || l.location_code}</option>`).join('');
-    locSel.disabled = false;
+function updateLocs(targetSelect, areaId) {
+    const filtered = locationsList.filter(l => l.area_id == areaId);
+    targetSelect.innerHTML = '<option value="">-- Ubicación --</option>' + 
+                       filtered.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('');
+    targetSelect.disabled = false;
 }
 
 function calcDiff(input) {
@@ -257,12 +251,15 @@ function calcDiff(input) {
 
 async function saveMultiAdjust() {
     const rows = document.querySelectorAll('.conteo-row');
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString();
     const { data: { session } } = await _client.auth.getSession();
+
+    if (!confirm("¿Confirmar ajuste de inventario?")) return;
 
     for (const row of rows) {
         const fisVal = row.querySelector('.val-fis').value;
         const locId = row.querySelector('.loc-id')?.value || row.querySelector('.loc-id-new')?.value;
+        
         if (fisVal === "" || !locId) continue;
 
         const sis = parseInt(row.querySelector('.val-sis').value) || 0;
@@ -270,35 +267,44 @@ async function saveMultiAdjust() {
         const diff = fis - sis;
 
         if (diff !== 0) {
-            const mov = {
+            const movement = {
                 part_id: currentPart.part_id,
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
                 comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
                 user_id: session?.user?.id || null
             };
-            // Si falta material, sale de la ubicación. Si sobra, entra.
-            if(diff < 0) mov.from_location_id = locId; else mov.to_location_id = locId;
+
+            if (diff > 0) movement.to_location_id = locId;
+            else movement.from_location_id = locId;
             
-            const { error } = await _client.from('inventory_movements').insert([mov]);
-            if(error) console.error("Error en movimiento:", error);
+            await _client.from('inventory_movements').insert([movement]);
         }
     }
-    // Actualizar fecha en la parte
+    
+    // Actualizar fecha en parts
     await _client.from('parts').update({ last_counted: today }).eq('id', currentPart.part_id);
     
-    alert("Inventario Ajustado Correctamente");
-    cerrarModal(); init();
+    alert("Proceso completado exitosamente.");
+    cerrarModal(); 
+    init();
 }
 
 function toggleLanguage() {
     currentLang = currentLang === 'es' ? 'ko' : 'es';
     const t = i18n[currentLang];
+    
     document.getElementById('txt-title').innerText = t.title;
     document.getElementById('txt-back').innerText = t.back;
     document.getElementById('langBtn').innerText = t.lang;
     document.getElementById('btn-save').innerText = t.save;
-    // Traducir headers
+    
+    document.getElementById('l-parte').innerText = t.l_parte;
+    document.getElementById('l-proy').innerText = t.l_proy;
+    document.getElementById('l-abc').innerText = t.l_abc;
+    document.getElementById('l-desde').innerText = t.l_desde;
+    document.getElementById('l-hasta').innerText = t.l_hasta;
+
     document.getElementById('th-np').innerText = t.np;
     document.getElementById('th-desc').innerText = t.desc;
     document.getElementById('th-proy').innerText = t.proy;
@@ -307,6 +313,7 @@ function toggleLanguage() {
     document.getElementById('th-prox').innerText = t.prox;
     document.getElementById('th-abc').innerText = t.abc;
     document.getElementById('th-acc').innerText = t.acc;
+    
     filterData();
 }
 
@@ -320,25 +327,23 @@ function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const checked = Array.from(document.querySelectorAll('.row-sel:checked'));
-    if(checked.length === 0) return alert("Selecciona piezas para imprimir");
+    if(checked.length === 0) return alert("Selecciona piezas");
 
     const tableRows = checked.map(cb => {
         const r = cb.closest('tr');
         return [r.cells[1].innerText, r.cells[2].innerText, r.cells[3].innerText, r.cells[4].innerText, "______"];
     });
 
-    doc.setFontSize(16);
-    doc.text("KRAEM - HOJA DE AUDITORÍA CÍCLICA", 14, 20);
+    doc.text("KRAEM - AUDITORÍA CÍCLICA", 14, 20);
     doc.autoTable({ startY: 25, head: [['Parte', 'Desc', 'Proy', 'Sis', 'Físico']], body: tableRows });
-    doc.save("Auditoria.pdf");
+    doc.save("Ciclicos_Kraem.pdf");
 }
 
 function exportCSV() {
     const checked = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => cb.getAttribute('data-id'));
-    if(checked.length === 0) return alert("Selecciona piezas");
-    let csv = "\uFEFFParte,Proyecto,Stock,Ultimo,ABC\n";
+    let csv = "\uFEFFParte,Proyecto,Stock,Ultimo\n";
     fullInventory.filter(r => checked.includes(r.part_number)).forEach(r => {
-        csv += `${r.part_number},${r.project},${r.stock_total},${r.last_counted},${r.abc}\n`;
+        csv += `${r.part_number},${r.project},${r.stock_total},${r.last_counted}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Ciclicos.csv'; a.click();
