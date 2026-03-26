@@ -19,66 +19,91 @@
             --border: #334155; --dark-header: #0f172a;
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; max-width: 1400px; margin-inline: auto; }
+        
         .btn-ui { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .filter-panel { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 25px; max-width: 1400px; margin-inline: auto; }
+        .btn-ui:hover { background: var(--bg); transform: translateY(-1px); }
+
+        .filter-panel { 
+            background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px;
+            margin-bottom: 25px; max-width: 1400px; margin-inline: auto;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
-        .filter-group label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+        .filter-group label { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
         input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; outline: none; }
-        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; max-width: 1400px; margin: auto; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: var(--dark-header); color: white; padding: 15px; font-size: 12px; text-transform: uppercase; }
+        input:focus { border-color: var(--primary); }
+
+        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; max-width: 1400px; margin: auto; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: var(--dark-header); color: white; padding: 15px; font-size: 12px; text-transform: uppercase; font-weight: 600; }
         td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        .abc-badge { padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 11px; background: #f1f5f9; color: #475569; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: rgba(37, 99, 235, 0.03); }
+
+        .abc-badge { padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 11px; background: #f1f5f9; color: #475569; border: 1px solid var(--border); }
+        
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-        .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 20px; padding: 30px; max-height: 85vh; overflow-y: auto; }
-        .conteo-header { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr; gap: 10px; padding: 10px; background: var(--bg); border-radius: 8px; font-weight: bold; font-size: 11px; }
+        .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 20px; padding: 30px; max-height: 85vh; overflow-y: auto; position: relative; }
+        
+        .conteo-header { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr; gap: 10px; padding: 10px; background: var(--bg); border-radius: 8px; font-weight: bold; font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; }
         .conteo-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr; gap: 10px; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); }
-        .save-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        
+        .add-btn { width: 100%; padding: 12px; border: 2px dashed var(--primary); color: var(--primary); background: transparent; border-radius: 12px; cursor: pointer; font-weight: bold; margin-top: 15px; transition: 0.2s; }
+        .add-btn:hover { background: rgba(37, 99, 235, 0.05); }
+        .save-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4); }
+        
         .diff-result { font-weight: 800; text-align: center; }
         .neg { color: var(--danger); }
         .pos { color: var(--success); }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
 <header>
     <div style="display:flex; align-items:center; gap:15px;">
-        <button class="btn-ui" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> Menú</button>
-        <h2>🔍 Auditoría de Conteos Cíclicos</h2>
+        <button class="btn-ui" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> <span id="txt-back">Menú</span></button>
+        <h2 id="txt-title" style="margin:0; letter-spacing: -0.5px;">🔍 Auditoría de Conteos Cíclicos</h2>
     </div>
     <div style="display:flex; gap:12px;">
         <button class="btn-ui" onclick="exportCSV()" style="background:#10b981; color:white; border:none;"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn-ui" onclick="exportPDF()" style="background:#ef4444; color:white; border:none;"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-ui" onclick="toggleLanguage()" id="langBtn">🇰🇷 KO</button>
         <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
 
 <div class="filter-panel">
-    <div class="filter-group"><label>N° Parte</label><input type="text" id="fParte" oninput="filterData()"></div>
-    <div class="filter-group"><label>Proyecto</label><input type="text" id="fProy" oninput="filterData()"></div>
+    <div class="filter-group"><label id="l-parte">N° Parte</label><input type="text" id="fParte" oninput="filterData()" placeholder="Buscar..."></div>
+    <div class="filter-group"><label id="l-proy">Proyecto</label><input type="text" id="fProy" oninput="filterData()" placeholder="Filtrar..."></div>
     <div class="filter-group">
-        <label>ABC</label>
+        <label id="l-abc">Clasificación ABC</label>
         <select id="fABC" onchange="filterData()">
             <option value="">TODOS</option>
-            <option value="A">A (30 días)</option>
-            <option value="B">B (90 días)</option>
-            <option value="C">C (180 días)</option>
+            <option value="A">Clase A (30 días)</option>
+            <option value="B">Clase B (90 días)</option>
+            <option value="C">Clase C (180 días)</option>
         </select>
     </div>
+    <div class="filter-group"><label id="l-desde">Último Conteo (Desde)</label><input type="date" id="fDesde" onchange="filterData()"></div>
+    <div class="filter-group"><label id="l-hasta">Próximo Conteo (Hasta)</label><input type="date" id="fHasta" onchange="filterData()"></div>
 </div>
 
 <div class="table-container">
     <table>
         <thead>
             <tr>
-                <th>N° Parte</th>
-                <th>Descripción</th>
-                <th>Proyecto</th>
-                <th>Stock</th>
-                <th>Último</th>
-                <th>Próximo</th>
-                <th>ABC</th>
-                <th>Acción</th>
+                <th style="width: 40px;"><input type="checkbox" onclick="toggleSelectAll(this)"></th>
+                <th id="th-np">N° Parte</th>
+                <th id="th-desc">Descripción</th>
+                <th id="th-proy">Proyecto</th>
+                <th id="th-stk">Stock</th>
+                <th id="th-ult">Último</th>
+                <th id="th-prox">Próximo</th>
+                <th id="th-abc">ABC</th>
+                <th id="th-acc">Acción</th>
             </tr>
         </thead>
         <tbody id="mainBody"></tbody>
@@ -87,48 +112,71 @@
 
 <div id="modalConteo" class="modal">
     <div class="modal-content">
-        <h3 id="mParte" style="color:var(--primary); margin:0;"></h3>
-        <p id="mDesc" style="color:var(--text-secondary); margin-bottom:20px;"></p>
+        <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:20px;">
+            <div>
+                <h3 id="mParte" style="margin:0; color:var(--primary); font-size: 22px;"></h3>
+                <p id="mDesc" style="color:var(--text-secondary); margin:5px 0; font-size: 13px; font-weight: 500;"></p>
+            </div>
+            <button onclick="cerrarModal()" style="background:var(--bg); border:none; width:35px; height:35px; border-radius:50%; cursor:pointer; color:var(--text-secondary); font-size:20px;">&times;</button>
+        </div>
 
         <div class="conteo-header">
             <div>ÁREA</div><div>UBICACIÓN</div><div>SISTEMA</div><div>FÍSICO</div><div>DIF.</div>
         </div>
         <div id="conteoLines"></div>
-        <button class="save-btn" onclick="saveMultiAdjust()">FINALIZAR AUDITORÍA Y ACTUALIZAR STOCK</button>
-        <button onclick="cerrarModal()" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:10px; cursor:pointer;">Cancelar</button>
+
+        <button class="add-btn" onclick="addNewLine()"><i class="fas fa-plus-circle"></i> AGREGAR UBICACIÓN (HALLAZGO)</button>
+        <button class="save-btn" onclick="saveMultiAdjust()" id="btn-save">FINALIZAR AUDITORÍA Y ACTUALIZAR STOCK</button>
     </div>
 </div>
 
 <script>
+// CONFIGURACIÓN SUPABASE
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
+let areas = [];
+let locations = [];
+let currentLang = 'es';
 let currentMasterPart = null;
 
-async function init() {
-    const { data, error } = await _client.from('v_inventory_general').select('*');
-    if (error) return console.error(error);
+const i18n = {
+    es: { title: "🔍 Auditoría de Conteos Cíclicos", back: "Menú", np: "N° Parte", desc: "Descripción", proy: "Proyecto", stk: "Stock", ult: "Último", prox: "Próximo", abc: "ABC", acc: "Contar", save: "FINALIZAR Y ACTUALIZAR STOCK", lang: "🇰🇷 KO", l_parte: "N° Parte", l_proy: "Proyecto", l_abc: "Clasificación ABC", l_desde: "Último Desde", l_hasta: "Próximo Hasta" },
+    ko: { title: "🔍 순환 재고 실사 관리", back: "메뉴", np: "부품 번호", desc: "품명", proy: "프로젝트", stk: "현재고", ult: "최근 실사일", prox: "차기 실사일", abc: "등급", acc: "실사", save: "실사 완료 및 재고 조정", lang: "🇲🇽 ES", l_parte: "부품 번호", l_proy: "프로젝트", l_abc: "ABC 등급", l_desde: "실사 시작일", l_hasta: "실사 종료일" }
+};
 
-    fullInventory = data.map(item => ({
+async function init() {
+    const [resAreas, resLocs, resInv] = await Promise.all([
+        _client.from('areas').select('*').eq('active', true),
+        _client.from('locations').select('*').eq('active', true),
+        _client.from('v_inventory_general').select('*')
+    ]);
+
+    areas = resAreas.data || [];
+    locations = resLocs.data || [];
+    
+    fullInventory = (resInv.data || []).map(item => ({
         ...item,
-        // Sincronización con nombres de columnas de Supabase
-        display_last: item.last_count ? item.last_count.split('T')[0] : '---',
-        display_next: item.next_count ? item.next_count.split('T')[0] : '---'
+        // CORRECCIÓN DE FECHAS: Solo YYYY-MM-DD
+        last_counted: item.last_count ? item.last_count.split('T')[0] : '-',
+        next_count: item.next_count ? item.next_count.split('T')[0] : '-'
     }));
+
     filterData();
 }
 
 function renderTable(data) {
     document.getElementById('mainBody').innerHTML = data.map(r => `
         <tr>
+            <td><input type="checkbox" class="row-sel" data-id="${r.part_number}"></td>
             <td><b>${r.part_number}</b></td>
-            <td style="font-size:11px;">${r.description || ''}</td>
-            <td>${r.project || ''}</td>
-            <td style="text-align:right;">${(r.total_quantity || 0)}</td>
-            <td>${r.display_last}</td>
-            <td style="color:${new Date(r.next_count) < new Date() ? 'red' : 'inherit'}">${r.display_next}</td>
-            <td><span class="abc-badge">${r.abc || 'C'}</span></td>
-            <td><button class="btn-ui" onclick='abrirAuditoria(${JSON.stringify(r)})'>Contar</button></td>
+            <td style="font-size:11px; color:var(--text-secondary)">${r.description || 'N/A'}</td>
+            <td style="color:var(--primary); font-weight:700;">${r.project || '-'}</td>
+            <td style="text-align:right;"><b>${(r.total_quantity || 0).toLocaleString()}</b></td>
+            <td>${r.last_counted}</td>
+            <td style="color:${new Date(r.next_count) < new Date() ? 'var(--danger)' : 'inherit'}; font-weight:600;">${r.next_count}</td>
+            <td style="text-align:center;"><span class="abc-badge">${r.abc || 'C'}</span></td>
+            <td><button class="btn-ui" style="padding:6px 12px; font-size:11px; background:var(--primary); color:white; border:none;" onclick='abrirAuditoria(${JSON.stringify(r)})'>${i18n[currentLang].acc}</button></td>
         </tr>
     `).join('');
 }
@@ -136,28 +184,44 @@ function renderTable(data) {
 async function abrirAuditoria(masterItem) {
     currentMasterPart = masterItem;
     document.getElementById('mParte').innerText = masterItem.part_number;
-    document.getElementById('mDesc').innerText = masterItem.description;
+    document.getElementById('mDesc').innerText = `${masterItem.description || ''} | PROYECTO: ${masterItem.project || 'N/A'}`;
     
-    // Obtener stock por ubicación
     const { data: details } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id);
     
     const container = document.getElementById('conteoLines');
-    if(!details || details.length === 0) {
-        container.innerHTML = "<p style='text-align:center; padding:20px;'>Sin ubicaciones registradas.</p>";
-    } else {
-        container.innerHTML = details.map(det => `
-            <div class="conteo-row">
-                <div style="font-size:10px;">${det.area}</div>
-                <div style="font-size:11px; font-weight:bold;">${det.location}</div>
-                <input type="number" class="val-sis" value="${det.quantity}" readonly style="width:50px; border:none; text-align:center;">
-                <input type="number" class="val-fis" placeholder="Cant" oninput="calcDiff(this)" style="width:100%; border:1px solid #2563eb; padding:5px; border-radius:5px;">
-                <div class="diff-result">0</div>
-                <input type="hidden" class="loc-id" value="${det.location_id}">
-                <input type="hidden" class="area-name" value="${det.area}">
-            </div>
-        `).join('');
-    }
+    container.innerHTML = (details || []).map(det => `
+        <div class="conteo-row">
+            <div style="font-size:11px; font-weight:bold;">${det.area}</div>
+            <div style="font-size:12px;">${det.location}</div>
+            <div style="text-align:center;"><input type="number" class="val-sis" value="${det.quantity}" readonly style="width:60px; border:none; background:none; text-align:center; font-weight:bold;"></div>
+            <div><input type="number" class="val-fis" placeholder="0" oninput="calcDiff(this)" style="width:100%; font-weight:bold; border-color:var(--primary);"></div>
+            <div class="diff-result">0</div>
+            <input type="hidden" class="loc-id" value="${det.location_id}">
+            <input type="hidden" class="area-name" value="${det.area}">
+        </div>
+    `).join('');
+    
     document.getElementById('modalConteo').style.display = 'flex';
+}
+
+function addNewLine() {
+    const div = document.createElement('div');
+    div.className = 'conteo-row';
+    const id = Date.now();
+    div.innerHTML = `
+        <select onchange="fillLocs(this.value, 'loc_${id}')" style="font-size:10px;"><option value="">ÁREA...</option>${areas.map(a=>`<option value="${a.id}">${a.area_name}</option>`).join('')}</select>
+        <select id="loc_${id}" class="loc-id-new" style="font-size:10px;"><option value="">UBICACIÓN...</option></select>
+        <div style="text-align:center;"><input type="number" class="val-sis" value="0" readonly style="width:60px; border:none; background:none; text-align:center;"></div>
+        <div><input type="number" class="val-fis" placeholder="Cant" oninput="calcDiff(this)" style="width:100%"></div>
+        <div class="diff-result">0</div>
+    `;
+    document.getElementById('conteoLines').appendChild(div);
+}
+
+function fillLocs(areaId, targetId) {
+    const sel = document.getElementById(targetId);
+    const filtered = locations.filter(l => l.area_id == areaId);
+    sel.innerHTML = '<option value="">...</option>' + filtered.map(l=>`<option value="${l.id}">${l.location_code}</option>`).join('');
 }
 
 function calcDiff(input) {
@@ -173,81 +237,116 @@ function calcDiff(input) {
 async function saveMultiAdjust() {
     const rows = document.querySelectorAll('.conteo-row');
     const { data: { session } } = await _client.auth.getSession();
-    
-    if (!confirm("¿Guardar resultados y actualizar fechas de conteo?")) return;
+    if (!confirm("¿Confirmar ajustes e historial de movimientos?")) return;
 
-    let totalMoves = 0;
-    const hoy = new Date();
-
+    let movesCount = 0;
     for (const row of rows) {
         const fisVal = row.querySelector('.val-fis').value;
-        if (fisVal === "") continue; // Ignorar si no se puso nada
+        if (fisVal === "") continue;
 
         const sis = parseInt(row.querySelector('.val-sis').value) || 0;
         const fis = parseInt(fisVal);
         const diff = fis - sis;
 
         if (diff !== 0) {
-            const locId = row.querySelector('.loc-id').value;
-            const area = row.querySelector('.area-name').value;
+            const locId = row.querySelector('.loc-id')?.value || row.querySelector('.loc-id-new')?.value;
+            const areaName = row.querySelector('.area-name')?.value || "Hallazgo";
 
             const mov = {
                 part_id: currentMasterPart.part_id,
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
-                area: area,
+                area: areaName,
                 comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
                 user_id: session?.user?.id
             };
 
+            // Lógica de entrada/salida para inventory_movements
             if (diff > 0) mov.to_location_id = parseInt(locId);
             else mov.from_location_id = parseInt(locId);
 
-            const { error } = await _client.from('inventory_movements').insert([mov]);
-            if (!error) totalMoves++;
+            await _client.from('inventory_movements').insert([mov]);
+            movesCount++;
         }
     }
 
-    // --- ACTUALIZACIÓN DE FECHAS (CORREGIDO) ---
-    const diasABC = { 'A': 30, 'B': 90, 'C': 180 };
-    const suma = diasABC[currentMasterPart.abc] || 180;
-    
-    const prox = new Date();
-    prox.setDate(hoy.getDate() + suma);
+    // Actualizar Próximo Conteo basado en ABC
+    const dias = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc || 'C'];
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + dias);
 
-    // IMPORTANTE: Aquí usamos 'last_count' y 'next_count' que son tus columnas reales
-    const { error: updError } = await _client.from('parts').update({ 
-        last_count: hoy.toISOString(),
-        next_count: prox.toISOString()
+    await _client.from('parts').update({ 
+        last_counted: new Date().toISOString(),
+        next_count: nextDate.toISOString()
     }).eq('id', currentMasterPart.part_id);
 
-    if (updError) {
-        console.error("Error al actualizar fechas:", updError);
-    }
-
-    alert(`Auditoría finalizada.\n- Ajustes realizados: ${totalMoves}\n- Próximo conteo: ${prox.toISOString().split('T')[0]}`);
+    alert(`Éxito. Se registraron ${movesCount} ajustes.`);
     cerrarModal();
     init();
 }
 
 function filterData() {
-    const p = document.getElementById('fParte').value.toLowerCase();
-    const pr = document.getElementById('fProy').value.toLowerCase();
-    const abc = document.getElementById('fABC').value;
+    const p = fParte.value.toLowerCase(), pr = fProy.value.toLowerCase(), abc = fABC.value;
+    const desde = fDesde.value, hasta = fHasta.value;
 
     const filtered = fullInventory.filter(r => {
-        return r.part_number.toLowerCase().includes(p) && 
-               (r.project || "").toLowerCase().includes(pr) &&
-               (!abc || r.abc === abc);
+        const matchText = r.part_number.toLowerCase().includes(p) && (r.project || "").toLowerCase().includes(pr);
+        const matchABC = !abc || r.abc === abc;
+        const matchDesde = !desde || (r.last_counted !== '-' && r.last_counted >= desde);
+        const matchHasta = !hasta || (r.next_count !== '-' && r.next_count <= hasta);
+        return matchText && matchABC && matchDesde && matchHasta;
     });
     renderTable(filtered);
 }
 
-function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
+function toggleLanguage() {
+    currentLang = currentLang === 'es' ? 'ko' : 'es';
+    const t = i18n[currentLang];
+    document.getElementById('txt-title').innerText = t.title;
+    document.getElementById('txt-back').innerText = t.back;
+    document.getElementById('langBtn').innerText = t.lang;
+    document.getElementById('btn-save').innerText = t.save;
+    
+    const ids = ['l-parte','l-proy','l-abc','l-desde','l-hasta','th-np','th-desc','th-proy','th-stk','th-ult','th-prox','th-abc','th-acc'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.innerText = t[id.replace('-','_').replace('th_','')];
+    });
+}
+
 function toggleTheme() {
     const isDark = document.body.getAttribute('data-theme') === 'dark';
     document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
 }
+
+function exportCSV() {
+    let csv = "\uFEFFN° Parte,Descripción,Proyecto,Stock,Último Conteo\n";
+    fullInventory.forEach(r => {
+        csv += `${r.part_number},"${r.description || ''}",${r.project || ''},${r.total_quantity || 0},${r.last_counted}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Conteos_Ciclicos_Kraem.csv";
+    link.click();
+}
+
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const rows = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => {
+        const r = cb.closest('tr');
+        return [r.cells[1].innerText, r.cells[2].innerText, r.cells[3].innerText, r.cells[4].innerText, "_______"];
+    });
+    if(!rows.length) return alert("Selecciona piezas para imprimir.");
+    doc.setFontSize(14); doc.text("KRAEM - HOJA DE CONTEO", 14, 15);
+    doc.autoTable({ startY: 20, head: [['Parte', 'Descripción', 'Proyecto', 'Sistema', 'Físico']], body: rows, theme: 'grid' });
+    doc.save("Hoja_Conteo.pdf");
+}
+
+function toggleSelectAll(src) { document.querySelectorAll('.row-sel').forEach(cb => cb.checked = src.checked); }
+function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
 
 init();
 </script>
