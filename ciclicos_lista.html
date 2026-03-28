@@ -71,8 +71,6 @@
             <option value="C">Clase C (180 días)</option>
         </select>
     </div>
-    <div class="filter-group"><label>Último (Desde)</label><input type="date" id="fDesde" onchange="filterData()"></div>
-    <div class="filter-group"><label>Próximo (Hasta)</label><input type="date" id="fHasta" onchange="filterData()"></div>
 </div>
 
 <div class="table-container">
@@ -83,7 +81,7 @@
                 <th>N° Parte</th>
                 <th>Descripción</th>
                 <th>Proyecto</th>
-                <th>Stock</th>
+                <th>Stock Total</th>
                 <th>Último</th>
                 <th>Próximo</th>
                 <th>ABC</th>
@@ -105,11 +103,11 @@
         <div id="conteoLines"></div>
 
         <div class="add-line-btn" onclick="addNewLine()">
-            <i class="fas fa-plus-circle"></i> Agregar ubicación/área extra
+            <i class="fas fa-plus-circle"></i> Agregar ubicación extra
         </div>
 
-        <button class="save-btn" onclick="saveMultiAdjust()" id="btn-save">FINALIZAR AUDITORÍA Y ACTUALIZAR STOCK</button>
-        <button onclick="cerrarModal()" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:10px; cursor:pointer;">Cancelar</button>
+        <button class="save-btn" onclick="saveMultiAdjust()" id="btn-save">GUARDAR AJUSTES</button>
+        <button onclick="cerrarModal()" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:10px; cursor:pointer;">Cerrar sin guardar</button>
     </div>
 </div>
 
@@ -122,6 +120,7 @@ let allAreas = [];
 let allLocations = [];
 
 async function init() {
+    // Forzamos la recarga de datos para que la tabla general se actualice
     const [resInv, resAreas, resLocs] = await Promise.all([
         _client.from('v_inventory_general').select('*'),
         _client.from('areas').select('*').eq('active', true),
@@ -142,10 +141,7 @@ function renderTable(data) {
     document.getElementById('mainBody').innerHTML = data.map(r => `
         <tr>
             <td><input type="checkbox" class="row-sel" 
-                data-np="${r.part_number}" 
-                data-desc="${r.description || ''}" 
-                data-proy="${r.project || ''}" 
-                data-stk="${r.total_quantity}"></td>
+                data-np="${r.part_number}" data-stk="${r.total_quantity}"></td>
             <td><b>${r.part_number}</b></td>
             <td style="font-size:11px;">${r.description || ''}</td>
             <td>${r.project || '-'}</td>
@@ -153,7 +149,7 @@ function renderTable(data) {
             <td>${r.display_last}</td>
             <td style="color:${new Date(r.next_count) < new Date() ? 'red' : 'inherit'}">${r.display_next}</td>
             <td><span class="abc-badge">${r.abc || 'C'}</span></td>
-            <td><button class="btn-ui" style="background:var(--primary); color:white; border:none; padding:5px 10px;" onclick='abrirAuditoria(${JSON.stringify(r)})'>Contar</button></td>
+            <td><button class="btn-ui" style="background:var(--primary); color:white; border:none; padding:5px 10px;" onclick='abrirAuditoria(${JSON.stringify(r)})'>Audit</button></td>
         </tr>
     `).join('');
 }
@@ -163,12 +159,17 @@ async function abrirAuditoria(masterItem) {
     document.getElementById('mParte').innerText = masterItem.part_number;
     document.getElementById('mDesc').innerText = masterItem.description;
     
-    const { data: details } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id);
+    // Obtenemos el desglose por ubicación
+    const { data: details, error } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id || masterItem.id);
+    
     const container = document.getElementById('conteoLines');
     container.innerHTML = '';
 
     if (details && details.length > 0) {
-        details.forEach(det => createRowHtml(det.area_name || det.area, det.location_code || det.location, det.quantity, det.location_id, false));
+        details.forEach(det => {
+            // Pasamos el location_id real para asegurar el ajuste
+            createRowHtml(det.area_name || det.area, det.location_code || det.location, det.quantity, det.location_id, false);
+        });
     } else {
         addNewLine();
     }
@@ -180,20 +181,20 @@ function createRowHtml(areaName, locName, qtySis, locId, isNew) {
     div.className = 'conteo-row';
     
     const areaSelectHtml = isNew ? 
-        `<select class="area-name" style="font-size:10px;">${allAreas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('')}</select>` :
-        `<div style="font-size:10px;">${areaName}</div><input type="hidden" class="area-name" value="${areaName}">`;
+        `<select class="area-name">${allAreas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('')}</select>` :
+        `<div>${areaName}</div><input type="hidden" class="area-name" value="${areaName}">`;
 
     const locHtml = isNew ?
-        `<select class="loc-id" style="font-size:10px;">${allLocations.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('')}</select>` :
-        `<div style="font-size:11px; font-weight:bold;">${locName}</div><input type="hidden" class="loc-id" value="${locId}">`;
+        `<select class="loc-id">${allLocations.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('')}</select>` :
+        `<div><b>${locName}</b></div><input type="hidden" class="loc-id" value="${locId}">`;
 
     div.innerHTML = `
         ${areaSelectHtml}
         ${locHtml}
-        <input type="number" class="val-sis" value="${qtySis}" readonly style="width:50px; border:none; text-align:center; background:transparent;">
-        <input type="number" class="val-fis" placeholder="0" oninput="calcDiff(this)" style="width:100%; border:1px solid var(--primary); border-radius:5px; padding:5px;">
+        <input type="number" class="val-sis" value="${qtySis}" readonly style="width:60px; border:none; text-align:center; background:transparent;">
+        <input type="number" class="val-fis" placeholder="Cant." oninput="calcDiff(this)" style="width:80px; border:1px solid var(--primary); border-radius:5px; padding:5px;">
         <div class="diff-result">0</div>
-        <div onclick="this.parentElement.remove()" style="color:var(--danger); cursor:pointer; text-align:center;"><i class="fas fa-trash"></i></div>
+        <div onclick="this.parentElement.remove()" style="color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></div>
     `;
     document.getElementById('conteoLines').appendChild(div);
 }
@@ -203,7 +204,11 @@ function addNewLine() { createRowHtml('', '', 0, '', true); }
 function calcDiff(input) {
     const row = input.closest('.conteo-row');
     const sis = parseInt(row.querySelector('.val-sis').value) || 0;
-    const fis = parseInt(input.value) || 0;
+    const fis = parseInt(input.value);
+    if (isNaN(fis)) {
+        row.querySelector('.diff-result').innerText = "0";
+        return;
+    }
     const diff = fis - sis;
     const res = row.querySelector('.diff-result');
     res.innerText = (diff > 0 ? '+' : '') + diff;
@@ -215,121 +220,79 @@ async function saveMultiAdjust() {
     const { data: { session } } = await _client.auth.getSession();
     const userId = session?.user?.id || null;
 
-    if (!confirm("¿Confirmas los ajustes de stock para Kraem?")) return;
-
     let movesCount = 0;
     const btn = document.getElementById('btn-save');
     btn.disabled = true;
-    btn.innerText = "ACTUALIZANDO STOCK...";
+    btn.innerText = "GUARDANDO...";
 
-    // Usar part_id o id según lo que venga de la vista
-    const partIdToUpdate = currentMasterPart.part_id || currentMasterPart.id;
+    // Usamos el ID de la parte de forma segura
+    const pID = currentMasterPart.part_id || currentMasterPart.id;
 
     for (const row of rows) {
         const fisVal = row.querySelector('.val-fis').value;
-        if (fisVal === "" || fisVal === null) continue; 
+        const locId = row.querySelector('.loc-id').value;
+
+        // Saltamos si no hay dato físico o no hay ubicación
+        if (fisVal === "" || !locId) continue; 
 
         const sis = parseInt(row.querySelector('.val-sis').value) || 0;
         const fis = parseInt(fisVal);
         const diff = fis - sis;
 
         if (diff !== 0) {
-            const locId = row.querySelector('.loc-id').value;
-            const areaName = row.querySelector('.area-name').value;
+            const area = row.querySelector('.area-name').value;
 
-            if (!locId) continue;
-
-            // LÓGICA CRÍTICA DE STOCK:
-            // Si diff > 0 (Sobra): ENTRADA -> to_location_id (Suma stock)
-            // Si diff < 0 (Falta): SALIDA -> from_location_id (Resta stock)
+            // Lógica Kraem: 
+            // Si diff es -5 -> SALE de locId (from_location_id = locId)
+            // Si diff es +5 -> ENTRA a locId (to_location_id = locId)
             const mov = {
-                part_id: partIdToUpdate,
+                part_id: pID,
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
-                area: areaName,
-                comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
+                comment: `Auditoría: Sis ${sis} / Fis ${fis}`,
                 user_id: userId,
+                area: area,
                 from_location_id: diff < 0 ? parseInt(locId) : null,
                 to_location_id: diff > 0 ? parseInt(locId) : null
             };
 
             const { error: errMov } = await _client.from('inventory_movements').insert([mov]);
-            if (errMov) {
-                console.error("Error al insertar movimiento:", errMov);
-            } else {
-                movesCount++;
-            }
+            if (!errMov) movesCount++;
+            else console.error("Error Supabase:", errMov);
         }
     }
 
-    // Actualizar fechas
-    const hoy = new Date();
-    const diasMapping = { 'A': 30, 'B': 90, 'C': 180 };
-    const dias = diasMapping[currentMasterPart.abc] || 180;
-    const prox = new Date();
-    prox.setDate(hoy.getDate() + dias);
+    if (movesCount > 0) {
+        // Actualizar fechas en la tabla parts
+        const hoy = new Date();
+        const diasProx = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc] || 180;
+        const prox = new Date();
+        prox.setDate(hoy.getDate() + diasProx);
 
-    const { error: errParts } = await _client.from('parts').update({ 
-        last_count: hoy.toISOString(),
-        next_count: prox.toISOString()
-    }).eq('id', partIdToUpdate);
+        await _client.from('parts').update({ 
+            last_count: hoy.toISOString(),
+            next_count: prox.toISOString()
+        }).eq('id', pID);
 
-    if (errParts) console.error("Error al actualizar fechas:", errParts);
+        alert(`Éxito: ${movesCount} ajuste(s) realizados.`);
+    } else {
+        alert("No se detectaron cambios numéricos para ajustar.");
+    }
 
-    alert(`Proceso Kraem finalizado. ${movesCount} movimientos realizados.`);
     btn.disabled = false;
-    btn.innerText = "FINALIZAR AUDITORÍA Y ACTUALIZAR STOCK";
+    btn.innerText = "GUARDAR AJUSTES";
     cerrarModal();
-    init(); 
+    init(); // Esto recargará v_inventory_general y actualizará el stock en la tabla
 }
 
 function filterData() {
-    const p = (document.getElementById('fParte').value || "").toLowerCase();
-    const pr = (document.getElementById('fProy').value || "").toLowerCase();
-    const abc = document.getElementById('fABC').value;
-    const desde = document.getElementById('fDesde').value;
-    const hasta = document.getElementById('fHasta').value;
-
-    const filtered = fullInventory.filter(r => {
-        const matchText = r.part_number.toLowerCase().includes(p) && (r.project || "").toLowerCase().includes(pr);
-        const matchABC = !abc || r.abc === abc;
-        const matchDesde = !desde || (r.display_last !== '---' && r.display_last >= desde);
-        const matchHasta = !hasta || (r.display_next !== '---' && r.display_next <= hasta);
-        return matchText && matchABC && matchDesde && matchHasta;
-    });
+    const p = fParte.value.toLowerCase();
+    const filtered = fullInventory.filter(r => r.part_number.toLowerCase().includes(p));
     renderTable(filtered);
 }
 
-function exportExcel() {
-    const selected = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => ({
-        "N° Parte": cb.dataset.np, "Descripción": cb.dataset.desc, "Proyecto": cb.dataset.proy, "Stock": cb.dataset.stk, "Físico": ""
-    }));
-    if (selected.length === 0) return alert("Selecciona piezas primero.");
-    const ws = XLSX.utils.json_to_sheet(selected);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Conteo");
-    XLSX.writeFile(wb, "Kraem_Conteo.xlsx");
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const selected = Array.from(document.querySelectorAll('.row-sel:checked')).map(cb => [
-        cb.dataset.np, cb.dataset.desc, cb.dataset.proy, cb.dataset.stk, "________"
-    ]);
-    if(selected.length === 0) return alert("Selecciona piezas.");
-    doc.text("KRAEM - HOJA DE CONTEO CÍCLICO", 14, 20);
-    doc.autoTable({ startY: 30, head: [['N° Parte', 'Descripción', 'Proyecto', 'Sis', 'Físico']], body: selected });
-    doc.save("Kraem_Conteo.pdf");
-}
-
-function toggleTheme() {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-}
-
-function toggleSelectAll(src) { document.querySelectorAll('.row-sel').forEach(cb => cb.checked = src.checked); }
 function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
+function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
 
 init();
 </script>
