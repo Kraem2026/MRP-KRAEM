@@ -114,7 +114,6 @@
 </div>
 
 <script>
-// CONFIGURACIÓN SUPABASE
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
@@ -216,15 +215,19 @@ async function saveMultiAdjust() {
     const { data: { session } } = await _client.auth.getSession();
     const userId = session?.user?.id || null;
 
-    if (!confirm("¿Aplicar ajustes y actualizar fechas de inventario?")) return;
+    if (!confirm("¿Confirmas los ajustes de stock para Kraem?")) return;
 
     let movesCount = 0;
-    document.getElementById('btn-save').disabled = true;
-    document.getElementById('btn-save').innerText = "PROCESANDO...";
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.innerText = "ACTUALIZANDO STOCK...";
+
+    // Usar part_id o id según lo que venga de la vista
+    const partIdToUpdate = currentMasterPart.part_id || currentMasterPart.id;
 
     for (const row of rows) {
         const fisVal = row.querySelector('.val-fis').value;
-        if (fisVal === "") continue; 
+        if (fisVal === "" || fisVal === null) continue; 
 
         const sis = parseInt(row.querySelector('.val-sis').value) || 0;
         const fis = parseInt(fisVal);
@@ -234,46 +237,58 @@ async function saveMultiAdjust() {
             const locId = row.querySelector('.loc-id').value;
             const areaName = row.querySelector('.area-name').value;
 
+            if (!locId) continue;
+
+            // LÓGICA CRÍTICA DE STOCK:
+            // Si diff > 0 (Sobra): ENTRADA -> to_location_id (Suma stock)
+            // Si diff < 0 (Falta): SALIDA -> from_location_id (Resta stock)
             const mov = {
-                part_id: currentMasterPart.part_id,
+                part_id: partIdToUpdate,
                 quantity: Math.abs(diff),
                 movement_type: 'AJUSTE',
-                comment: `Auditoría Cíclica: Sis ${sis} / Fis ${fis} (Área: ${areaName})`,
-                user_id: userId
+                area: areaName,
+                comment: `Ciclo: Sis ${sis} / Fis ${fis}`,
+                user_id: userId,
+                from_location_id: diff < 0 ? parseInt(locId) : null,
+                to_location_id: diff > 0 ? parseInt(locId) : null
             };
 
-            // Lógica de entradas/salidas
-            if (diff > 0) mov.to_location_id = parseInt(locId);
-            else mov.from_location_id = parseInt(locId);
-
-            const { error } = await _client.from('inventory_movements').insert([mov]);
-            if (!error) movesCount++;
-            else console.error("Error en movimiento:", error);
+            const { error: errMov } = await _client.from('inventory_movements').insert([mov]);
+            if (errMov) {
+                console.error("Error al insertar movimiento:", errMov);
+            } else {
+                movesCount++;
+            }
         }
     }
 
-    // Actualización de fecha hoy y cálculo de próxima auditoría
+    // Actualizar fechas
     const hoy = new Date();
     const diasMapping = { 'A': 30, 'B': 90, 'C': 180 };
-    const diasProx = diasMapping[currentMasterPart.abc] || 180;
+    const dias = diasMapping[currentMasterPart.abc] || 180;
     const prox = new Date();
-    prox.setDate(hoy.getDate() + diasProx);
+    prox.setDate(hoy.getDate() + dias);
 
-    await _client.from('parts').update({ 
+    const { error: errParts } = await _client.from('parts').update({ 
         last_count: hoy.toISOString(),
         next_count: prox.toISOString()
-    }).eq('id', currentMasterPart.part_id);
+    }).eq('id', partIdToUpdate);
 
-    alert(`Auditoría finalizada. ${movesCount} ajustes de stock registrados.`);
-    document.getElementById('btn-save').disabled = false;
-    document.getElementById('btn-save').innerText = "FINALIZAR AUDITORÍA Y ACTUALIZAR STOCK";
+    if (errParts) console.error("Error al actualizar fechas:", errParts);
+
+    alert(`Proceso Kraem finalizado. ${movesCount} movimientos realizados.`);
+    btn.disabled = false;
+    btn.innerText = "FINALIZAR AUDITORÍA Y ACTUALIZAR STOCK";
     cerrarModal();
     init(); 
 }
 
 function filterData() {
-    const p = fParte.value.toLowerCase(), pr = fProy.value.toLowerCase(), abc = fABC.value;
-    const desde = fDesde.value, hasta = fHasta.value;
+    const p = (document.getElementById('fParte').value || "").toLowerCase();
+    const pr = (document.getElementById('fProy').value || "").toLowerCase();
+    const abc = document.getElementById('fABC').value;
+    const desde = document.getElementById('fDesde').value;
+    const hasta = document.getElementById('fHasta').value;
 
     const filtered = fullInventory.filter(r => {
         const matchText = r.part_number.toLowerCase().includes(p) && (r.project || "").toLowerCase().includes(pr);
@@ -293,7 +308,7 @@ function exportExcel() {
     const ws = XLSX.utils.json_to_sheet(selected);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Conteo");
-    XLSX.writeFile(wb, "Hoja_Conteo.xlsx");
+    XLSX.writeFile(wb, "Kraem_Conteo.xlsx");
 }
 
 function exportPDF() {
@@ -305,13 +320,12 @@ function exportPDF() {
     if(selected.length === 0) return alert("Selecciona piezas.");
     doc.text("KRAEM - HOJA DE CONTEO CÍCLICO", 14, 20);
     doc.autoTable({ startY: 30, head: [['N° Parte', 'Descripción', 'Proyecto', 'Sis', 'Físico']], body: selected });
-    doc.save("Conteo.pdf");
+    doc.save("Kraem_Conteo.pdf");
 }
 
 function toggleTheme() {
     const isDark = document.body.getAttribute('data-theme') === 'dark';
     document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
 }
 
 function toggleSelectAll(src) { document.querySelectorAll('.row-sel').forEach(cb => cb.checked = src.checked); }
