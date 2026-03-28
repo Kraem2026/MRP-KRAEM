@@ -110,17 +110,26 @@ const i18n = {
 async function init() {
     const { data: { session } } = await _client.auth.getSession();
     const loginBtn = document.getElementById('btnLoginStatus');
+    const userDisplay = document.getElementById('userDisplay'); // Asegúrate de tener esta línea
     
     if (session) {
+        // --- SI HAY SESIÓN ---
         const userShort = session.user.email.split('@')[0].toUpperCase();
         userDisplay.innerHTML = "👤 OPERADOR: " + userShort;
         loginBtn.innerHTML = "✅ " + userShort;
         loginBtn.classList.add('online');
+        loginBtn.onclick = null; // Desactivamos el clic porque ya está dentro
     } else {
+        // --- SI NO HAY SESIÓN ---
         userDisplay.innerHTML = "⚠️ DEBES INICIAR SESIÓN";
         loginBtn.innerHTML = "🔑 Login";
+        loginBtn.classList.remove('online'); // Por si acaso se quedó verde
+        loginBtn.onclick = () => { location.href = '/'; }; // Mandamos al index de Vercel
     }
+    
     loginBtn.style.display = "block";
+
+    // ... aquí sigue el resto de tu código de cargar áreas y partes
 
     const {data:a} = await _client.from('areas').select('*');
     if(a) a.forEach(r => { areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; });
