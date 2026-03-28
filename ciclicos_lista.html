@@ -35,22 +35,15 @@
         
         .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; max-width: 1400px; margin: auto; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: var(--dark-header); color: white; padding: 15px; font-size: 12px; text-transform: uppercase; text-align: left; }
-        td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        th { background: var(--dark-header); color: white; padding: 15px; font-size: 11px; text-transform: uppercase; text-align: left; }
+        td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
         
-        .abc-badge { background: var(--primary); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 11px; }
-        
+        .abc-badge { background: var(--primary); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 10px; }
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
         .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 20px; padding: 30px; max-height: 85vh; overflow-y: auto; }
-        
         .conteo-header { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 40px; gap: 10px; padding: 10px; background: var(--bg); border-radius: 8px; font-weight: bold; font-size: 11px; margin-bottom: 10px; }
         .conteo-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 40px; gap: 10px; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); }
-        
         .save-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        .add-line-btn { color: var(--primary); cursor: pointer; font-weight: bold; font-size: 13px; margin: 15px 0; display: inline-flex; align-items: center; gap: 5px; }
-        .diff-result { font-weight: 800; text-align: center; }
-        .neg { color: var(--danger); }
-        .pos { color: var(--success); }
     </style>
 </head>
 <body data-theme="light">
@@ -61,6 +54,8 @@
         <h2 id="txt-title">🔍 Auditoría de Conteos Cíclicos</h2>
     </div>
     <div style="display:flex; gap:12px;">
+        <button class="btn-ui" onclick="exportToExcel()" style="background:#107c41; color:white; border:none;"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn-ui" onclick="exportToPDF()" style="background:#ef4444; color:white; border:none;"><i class="fas fa-file-pdf"></i> Auditoría</button>
         <button class="btn-ui" onclick="setLang('es')">🇲🇽</button>
         <button class="btn-ui" onclick="setLang('ko')">🇰🇷</button>
         <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
@@ -68,40 +63,21 @@
 </header>
 
 <div class="filter-panel">
-    <div class="filter-group">
-        <label id="lbl-search">Búsqueda (N° Parte o Descripción)</label>
-        <input type="text" id="fGeneral" oninput="filterData()" placeholder="Buscar...">
-    </div>
-    <div class="filter-group">
-        <label id="lbl-project">Proyecto</label>
-        <input type="text" id="fProy" oninput="filterData()" placeholder="Filtrar...">
-    </div>
-    <div class="filter-group">
-        <label id="lbl-date">Rango Último Conteo</label>
-        <div style="display:flex; gap:5px;">
-            <input type="date" id="fFechaInicio" onchange="filterData()">
-            <input type="date" id="fFechaFin" onchange="filterData()">
-        </div>
-    </div>
-    <div class="filter-group">
-        <label>ABC</label>
-        <select id="fABC" onchange="filterData()">
-            <option value="">TODOS</option>
-            <option value="A">Clase A (30 días)</option>
-            <option value="B">Clase B (90 días)</option>
-            <option value="C">Clase C (180 días)</option>
-        </select>
-    </div>
+    <div class="filter-group"><label id="lbl-search">Búsqueda</label><input type="text" id="fGeneral" oninput="filterData()" placeholder="N/P o Desc..."></div>
+    <div class="filter-group"><label id="lbl-project">Proyecto</label><input type="text" id="fProy" oninput="filterData()" placeholder="Filtrar..."></div>
+    <div class="filter-group"><label id="lbl-date">Último Conteo</label><div style="display:flex; gap:5px;"><input type="date" id="fFechaInicio" onchange="filterData()"><input type="date" id="fFechaFin" onchange="filterData()"></div></div>
+    <div class="filter-group"><label>ABC</label><select id="fABC" onchange="filterData()"><option value="">TODOS</option><option value="A">A</option><option value="B">B</option><option value="C">C</option></select></div>
 </div>
 
 <div class="table-container">
     <table>
         <thead>
             <tr>
+                <th style="width: 40px;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
                 <th id="th-part">N° Parte</th>
                 <th id="th-desc">Descripción</th>
                 <th id="th-proj">Proyecto</th>
-                <th id="th-stock" style="text-align:right;">Stock Sist.</th>
+                <th id="th-stock" style="text-align:right;">Stock</th>
                 <th id="th-last">Último</th>
                 <th id="th-next">Próximo</th>
                 <th>ABC</th>
@@ -116,28 +92,15 @@
     <div class="modal-content">
         <h3 id="mParte" style="color:var(--primary); margin:0;"></h3>
         <p id="mDesc" style="color:var(--text-secondary); margin:5px 0; font-size: 13px;"></p>
-
-        <div class="conteo-header">
-            <div id="mdl-area">ÁREA</div>
-            <div id="mdl-loc">UBICACIÓN</div>
-            <div id="mdl-sis">SISTEMA</div>
-            <div id="mdl-fis">FÍSICO</div>
-            <div>DIF.</div>
-            <div></div>
-        </div>
+        <div class="conteo-header"><div id="mdl-area">ÁREA</div><div id="mdl-loc">UBICACIÓN</div><div id="mdl-sis">SISTEMA</div><div id="mdl-fis">FÍSICO</div><div>DIF.</div><div></div></div>
         <div id="conteoLines"></div>
-
-        <div class="add-line-btn" onclick="addNewLine()">
-            <i class="fas fa-plus-circle"></i> <span id="mdl-add">Agregar ubicación extra</span>
-        </div>
-
+        <div class="add-line-btn" onclick="addNewLine()" style="cursor:pointer; color:var(--primary); margin: 15px 0;"><i class="fas fa-plus-circle"></i> <span id="mdl-add">Ubicación extra</span></div>
         <button class="save-btn" onclick="saveMultiAdjust()" id="btn-save">GUARDAR AJUSTES</button>
-        <button onclick="cerrarModal()" id="btn-close-mdl" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:10px; cursor:pointer;">Cerrar sin guardar</button>
+        <button onclick="cerrarModal()" id="btn-close-mdl" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:10px; cursor:pointer;">Cerrar</button>
     </div>
 </div>
 
 <script>
-// Configuración de Supabase
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
@@ -146,20 +109,8 @@ let allAreas = [];
 let allLocations = [];
 
 const i18n = {
-    es: {
-        title: "🔍 Auditoría de Conteos Cíclicos", back: "Menú", search: "Búsqueda (N/P o Descripción)", 
-        project: "Proyecto", date: "Rango Último Conteo", thPart: "N° Parte", thDesc: "Descripción",
-        thProj: "Proyecto", thStock: "Stock Sist.", thLast: "Último", thNext: "Próximo", thAction: "Acción",
-        mdlArea: "ÁREA", mdlLoc: "UBICACIÓN", mdlSis: "SISTEMA", mdlFis: "FÍSICO", mdlAdd: "Agregar ubicación extra",
-        btnSave: "GUARDAR AJUSTES", btnClose: "Cerrar sin guardar"
-    },
-    ko: {
-        title: "🔍 순환 재고 실사 (Auditoria)", back: "메뉴", search: "검색 (부품 번호 또는 설명)", 
-        project: "프로젝트", date: "마지막 실사 기간", thPart: "부품 번호", thDesc: "설명",
-        thProj: "프로젝트", thStock: "시스템 재고", thLast: "마지막", thNext: "다음", thAction: "작업",
-        mdlArea: "구역", mdlLoc: "위치", mdlSis: "시스템", mdlFis: "실사", mdlAdd: "위치 추가",
-        btnSave: "조정 저장", btnClose: "저장하지 않고 닫기"
-    }
+    es: { title: "🔍 Auditoría de Conteos Cíclicos", back: "Menú", search: "Búsqueda", project: "Proyecto", date: "Último Conteo", thPart: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thStock: "Stock", thLast: "Último", thNext: "Próximo", thAction: "Acción", mdlArea: "ÁREA", mdlLoc: "UBICACIÓN", mdlSis: "SISTEMA", mdlFis: "FÍSICO", mdlAdd: "Ubicación extra", btnSave: "GUARDAR AJUSTES", btnClose: "Cerrar" },
+    ko: { title: "🔍 순환 재고 실사", back: "메뉴", search: "검색", project: "프로젝트", date: "마지막 실사", thPart: "부품 번호", thDesc: "설명", thProj: "프로젝트", thStock: "재고", thLast: "마지막", thNext: "다음", thAction: "작업", mdlArea: "구역", mdlLoc: "위치", mdlSis: "시스템", mdlFis: "실사", mdlAdd: "위치 추가", btnSave: "조정 저장", btnClose: "닫기" }
 };
 
 async function init() {
@@ -168,47 +119,18 @@ async function init() {
         _client.from('areas').select('*').eq('active', true),
         _client.from('locations').select('*').eq('active', true)
     ]);
-    
     allAreas = resAreas.data || [];
     allLocations = resLocs.data || [];
-    fullInventory = (resInv.data || []).map(item => ({
-        ...item,
-        display_last: item.last_count ? item.last_count.split('T')[0] : '---',
-        display_next: item.next_count ? item.next_count.split('T')[0] : '---'
-    }));
+    fullInventory = (resInv.data || []).map(item => ({ ...item, display_last: item.last_count ? item.last_count.split('T')[0] : '---', display_next: item.next_count ? item.next_count.split('T')[0] : '---' }));
     filterData();
-}
-
-function setLang(lang) {
-    const t = i18n[lang];
-    document.getElementById('txt-title').innerText = t.title;
-    document.getElementById('btn-back').innerText = t.back;
-    document.getElementById('lbl-search').innerText = t.search;
-    document.getElementById('lbl-project').innerText = t.project;
-    document.getElementById('lbl-date').innerText = t.date;
-    document.getElementById('th-part').innerText = t.thPart;
-    document.getElementById('th-desc').innerText = t.thDesc;
-    document.getElementById('th-proj').innerText = t.thProj;
-    document.getElementById('th-stock').innerText = t.thStock;
-    document.getElementById('th-last').innerText = t.thLast;
-    document.getElementById('th-next').innerText = t.thNext;
-    document.getElementById('th-action').innerText = t.thAction;
-    
-    // Modal
-    document.getElementById('mdl-area').innerText = t.mdlArea;
-    document.getElementById('mdl-loc').innerText = t.mdlLoc;
-    document.getElementById('mdl-sis').innerText = t.mdlSis;
-    document.getElementById('mdl-fis').innerText = t.mdlFis;
-    document.getElementById('mdl-add').innerText = t.mdlAdd;
-    document.getElementById('btn-save').innerText = t.btnSave;
-    document.getElementById('btn-close-mdl').innerText = t.btnClose;
 }
 
 function renderTable(data) {
     document.getElementById('mainBody').innerHTML = data.map(r => `
         <tr>
+            <td><input type="checkbox" class="row-checkbox" data-id="${r.part_id || r.id}"></td>
             <td><b>${r.part_number}</b></td>
-            <td style="font-size:11px; max-width:250px;">${r.description || ''}</td>
+            <td style="font-size:11px;">${r.description || ''}</td>
             <td>${r.project || '-'}</td>
             <td style="text-align:right;"><b>${(r.total_quantity || 0).toLocaleString()}</b></td>
             <td>${r.display_last}</td>
@@ -219,151 +141,142 @@ function renderTable(data) {
     `).join('');
 }
 
-function filterData() {
-    const query = document.getElementById('fGeneral').value.toLowerCase();
-    const proy = document.getElementById('fProy').value.toLowerCase();
-    const abc = document.getElementById('fABC').value;
-    const fInicio = document.getElementById('fFechaInicio').value;
-    const fFin = document.getElementById('fFechaFin').value;
+function toggleSelectAll() {
+    const master = document.getElementById('selectAll').checked;
+    document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = master);
+}
 
+function filterData() {
+    const q = document.getElementById('fGeneral').value.toLowerCase();
+    const p = document.getElementById('fProy').value.toLowerCase();
+    const a = document.getElementById('fABC').value;
+    const fI = document.getElementById('fFechaInicio').value;
+    const fF = document.getElementById('fFechaFin').value;
     const filtered = fullInventory.filter(r => {
-        const matchText = r.part_number.toLowerCase().includes(query) || 
-                          (r.description && r.description.toLowerCase().includes(query));
-        const matchProy = r.project ? r.project.toLowerCase().includes(proy) : true;
-        const matchABC = abc === "" || r.abc === abc;
-        
-        let matchFecha = true;
-        if (fInicio && r.last_count) {
-            const fechaUltimo = r.last_count.split('T')[0];
-            matchFecha = fechaUltimo >= fInicio && (!fFin || fechaUltimo <= fFin);
-        }
-        return matchText && matchProy && matchABC && matchFecha;
+        const tM = r.part_number.toLowerCase().includes(q) || (r.description && r.description.toLowerCase().includes(q));
+        const pM = r.project ? r.project.toLowerCase().includes(p) : true;
+        const aM = a === "" || r.abc === a;
+        let dM = true;
+        if (fI && r.last_count) { const dU = r.last_count.split('T')[0]; dM = dU >= fI && (!fF || dU <= fF); }
+        return tM && pM && aM && dM;
     });
     renderTable(filtered);
+}
+
+async function exportToExcel() {
+    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
+    if (selectedIds.length === 0) return alert("Selecciona al menos una fila.");
+    const dataToExport = fullInventory.filter(r => selectedIds.includes(String(r.part_id || r.id)));
+    const ws = XLSX.utils.json_to_sheet(dataToExport.map(r => ({ "N° Parte": r.part_number, "Descripción": r.description, "Proyecto": r.project, "Stock": r.total_quantity, "Último Conteo": r.display_last, "ABC": r.abc })));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+    XLSX.writeFile(wb, "Inventario_Kraem.xlsx");
+}
+
+async function exportToPDF() {
+    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
+    if (selectedIds.length === 0) return alert("Selecciona al menos una fila.");
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const { data: locData } = await _client.from('v_inventory_by_location').select('*').in('part_id', selectedIds);
+    
+    doc.setFontSize(16); doc.text("HOJA DE AUDITORÍA DE INVENTARIO - KRAEM", 40, 50);
+    doc.setFontSize(10); doc.text(`Fecha: ${new Date().toLocaleDateString()}   |   Generado por: Auditoría de Sistema`, 40, 70);
+
+    const body = [];
+    selectedIds.forEach(id => {
+        const master = fullInventory.find(f => String(f.part_id || f.id) === id);
+        const locations = locData.filter(l => String(l.part_id) === id);
+        if (locations.length > 0) {
+            locations.forEach((l, idx) => {
+                body.push([idx === 0 ? master.part_number : '', idx === 0 ? master.description : '', l.area, l.location_code, l.quantity, '', '']);
+            });
+        } else {
+            body.push([master.part_number, master.description, 'N/A', 'SIN UBICACIÓN', 0, '', '']);
+        }
+    });
+
+    doc.autoTable({
+        startY: 90,
+        head: [['N° Parte', 'Descripción', 'Área', 'Ubicación', 'Sist.', 'Físico', 'Dif.']],
+        body: body,
+        theme: 'grid',
+        headStyles: { fillStyle: '#1e293b' }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 80;
+    doc.line(40, finalY, 200, finalY); doc.text("Firma Contador", 80, finalY + 15);
+    doc.line(350, finalY, 510, finalY); doc.text("Firma Auditor", 400, finalY + 15);
+    doc.save("Auditoria_Kraem.pdf");
+}
+
+async function saveMultiAdjust() {
+    const { data: { session } } = await _client.auth.getSession();
+    if (!session) return alert("Error: Debes iniciar sesión para realizar ajustes.");
+
+    const rows = document.querySelectorAll('.conteo-row');
+    let movesCount = 0;
+    const pID = currentMasterPart.part_id || currentMasterPart.id;
+
+    for (const row of rows) {
+        const fisVal = row.querySelector('.val-fis').value;
+        const locId = row.querySelector('.loc-id').value;
+        if (fisVal === "" || !locId) continue;
+        const sis = parseInt(row.querySelector('.val-sis').value) || 0;
+        const fis = parseInt(fisVal);
+        const diff = fis - sis;
+        if (diff !== 0) {
+            const { error } = await _client.from('inventory_movements').insert([{
+                part_id: pID, quantity: diff, movement_type: 'AJUSTE', 
+                comment: `Auditoría: Sis ${sis} / Fis ${fis}`, user_id: session.user.id,
+                from_location_id: diff < 0 ? parseInt(locId) : null,
+                to_location_id: diff > 0 ? parseInt(locId) : null
+            }]);
+            if (!error) movesCount++;
+        }
+    }
+    if (movesCount > 0) {
+        const h = new Date(); const d = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc] || 180;
+        const p = new Date(); p.setDate(h.getDate() + d);
+        await _client.from('parts').update({ last_count: h.toISOString(), next_count: p.toISOString() }).eq('id', pID);
+        alert(`Éxito: ${movesCount} ajuste(s) realizados.`);
+    }
+    cerrarModal(); init();
 }
 
 async function abrirAuditoria(masterItem) {
     currentMasterPart = masterItem;
     document.getElementById('mParte').innerText = masterItem.part_number;
     document.getElementById('mDesc').innerText = masterItem.description;
-    
     const { data: details } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id || masterItem.id);
-    
-    const container = document.getElementById('conteoLines');
-    container.innerHTML = '';
-
-    if (details && details.length > 0) {
-        details.forEach(det => {
-            createRowHtml(det.area_name || det.area, det.location_code || det.location, det.quantity, det.location_id, false);
-        });
-    } else {
-        addNewLine();
-    }
+    const c = document.getElementById('conteoLines'); c.innerHTML = '';
+    if (details?.length) details.forEach(d => createRowHtml(d.area_name || d.area, d.location_code || d.location, d.quantity, d.location_id, false));
+    else addNewLine();
     document.getElementById('modalConteo').style.display = 'flex';
 }
 
-function createRowHtml(areaName, locName, qtySis, locId, isNew) {
-    const div = document.createElement('div');
-    div.className = 'conteo-row';
-    
-    const areaSelectHtml = isNew ? 
-        `<select class="area-name">${allAreas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('')}</select>` :
-        `<div>${areaName}</div><input type="hidden" class="area-name" value="${areaName}">`;
-
-    const locHtml = isNew ?
-        `<select class="loc-id">${allLocations.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('')}</select>` :
-        `<div><b>${locName}</b></div><input type="hidden" class="loc-id" value="${locId}">`;
-
-    div.innerHTML = `
-        ${areaSelectHtml}
-        ${locHtml}
-        <input type="number" class="val-sis" value="${qtySis}" readonly style="width:60px; border:none; text-align:center; background:transparent;">
-        <input type="number" class="val-fis" placeholder="Cant." oninput="calcDiff(this)" style="width:80px; border:1px solid var(--primary); border-radius:5px; padding:5px;">
-        <div class="diff-result">0</div>
-        <div onclick="this.parentElement.remove()" style="color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></div>
-    `;
-    document.getElementById('conteoLines').appendChild(div);
+function createRowHtml(aN, lN, qS, lI, isN) {
+    const d = document.createElement('div'); d.className = 'conteo-row';
+    const aS = isN ? `<select class="area-name">${allAreas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('')}</select>` : `<div>${aN}</div><input type="hidden" class="area-name" value="${aN}">`;
+    const lH = isN ? `<select class="loc-id">${allLocations.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('')}</select>` : `<div><b>${lN}</b></div><input type="hidden" class="loc-id" value="${lI}">`;
+    d.innerHTML = `${aS}${lH}<input type="number" class="val-sis" value="${qS}" readonly style="width:50px; border:none; background:transparent;"><input type="number" class="val-fis" oninput="calcDiff(this)" style="width:70px; border:1px solid var(--primary); border-radius:5px;"><div class="diff-result">0</div><div onclick="this.parentElement.remove()" style="color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></div>`;
+    document.getElementById('conteoLines').appendChild(d);
 }
 
 function addNewLine() { createRowHtml('', '', 0, '', true); }
-
-function calcDiff(input) {
-    const row = input.closest('.conteo-row');
-    const sis = parseInt(row.querySelector('.val-sis').value) || 0;
-    const fis = parseInt(input.value);
-    const res = row.querySelector('.diff-result');
-    if (isNaN(fis)) { res.innerText = "0"; return; }
-    const diff = fis - sis;
-    res.innerText = (diff > 0 ? '+' : '') + diff;
-    res.className = 'diff-result ' + (diff < 0 ? 'neg' : (diff > 0 ? 'pos' : ''));
+function calcDiff(i) {
+    const r = i.closest('.conteo-row'); const s = parseInt(r.querySelector('.val-sis').value) || 0;
+    const f = parseInt(i.value); const res = r.querySelector('.diff-result');
+    if (isNaN(f)) { res.innerText = "0"; return; }
+    const d = f - s; res.innerText = (d > 0 ? '+' : '') + d;
+    res.className = 'diff-result ' + (d < 0 ? 'neg' : (d > 0 ? 'pos' : ''));
 }
-
-async function saveMultiAdjust() {
-    const rows = document.querySelectorAll('.conteo-row');
-    const { data: { session } } = await _client.auth.getSession();
-    const userId = session?.user?.id || null;
-
-    let movesCount = 0;
-    const btn = document.getElementById('btn-save');
-    btn.disabled = true;
-    btn.innerText = "GUARDANDO...";
-
-    const pID = currentMasterPart.part_id || currentMasterPart.id;
-
-    for (const row of rows) {
-        const fisVal = row.querySelector('.val-fis').value;
-        const locId = row.querySelector('.loc-id').value;
-
-        if (fisVal === "" || !locId) continue; 
-
-        const sis = parseInt(row.querySelector('.val-sis').value) || 0;
-        const fis = parseInt(fisVal);
-        const diff = fis - sis;
-
-        if (diff !== 0) {
-            const area = row.querySelector('.area-name').value;
-
-            // LÓGICA DE AJUSTE KRAEM (CORREGIDA):
-            // Enviamos el diferencial real (positivo o negativo)
-            const mov = {
-                part_id: pID,
-                quantity: diff, // Enviamos el signo real
-                movement_type: 'AJUSTE',
-                comment: `Auditoría: Sis ${sis} / Fis ${fis}`,
-                user_id: userId,
-                area: area,
-                // Si es negativo, sale de la ubicación; si es positivo, entra.
-                from_location_id: diff < 0 ? parseInt(locId) : null,
-                to_location_id: diff > 0 ? parseInt(locId) : null
-            };
-
-            const { error: errMov } = await _client.from('inventory_movements').insert([mov]);
-            if (!errMov) movesCount++;
-        }
-    }
-
-    if (movesCount > 0) {
-        const hoy = new Date();
-        const diasProx = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc] || 180;
-        const prox = new Date();
-        prox.setDate(hoy.getDate() + diasProx);
-
-        await _client.from('parts').update({ 
-            last_count: hoy.toISOString(),
-            next_count: prox.toISOString()
-        }).eq('id', pID);
-
-        alert(`Éxito: ${movesCount} ajuste(s) realizados.`);
-    }
-
-    cerrarModal();
-    init();
-    btn.disabled = false;
-    btn.innerText = "GUARDAR AJUSTES";
-}
-
 function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
 function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
+function setLang(l) {
+    const t = i18n[l]; document.getElementById('txt-title').innerText = t.title;
+    ['btn-back', 'lbl-search', 'lbl-project', 'lbl-date', 'th-part', 'th-desc', 'th-proj', 'th-stock', 'th-last', 'th-next', 'th-action', 'mdl-area', 'mdl-loc', 'mdl-sis', 'mdl-fis', 'mdl-add', 'btn-save', 'btn-close-mdl'].forEach(id => document.getElementById(id).innerText = t[id.replace(/-./g, x => x[1].toUpperCase())] || t[id.split('-')[1]]);
+}
 
 init();
 </script>
