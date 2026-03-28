@@ -40,7 +40,7 @@
         
         .abc-badge { background: var(--primary); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 10px; }
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-        .modal-content { background: var(--card); width: 95%; max-width: 850px; border-radius: 20px; padding: 30px; max-height: 85vh; overflow-y: auto; }
+        .modal-content { background: var(--card); width: 95%; max-width: 900px; border-radius: 20px; padding: 30px; max-height: 85vh; overflow-y: auto; }
         .conteo-header { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 40px; gap: 10px; padding: 10px; background: var(--bg); border-radius: 8px; font-weight: bold; font-size: 11px; margin-bottom: 10px; }
         .conteo-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr 40px; gap: 10px; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); }
         .save-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
@@ -119,8 +119,8 @@ const i18n = {
 async function init() {
     const [resInv, resAreas, resLocs] = await Promise.all([
         _client.from('v_inventory_general').select('*'),
-        _client.from('areas').select('*').eq('active', true),
-        _client.from('locations').select('*').eq('active', true)
+        _client.from('areas').select('*').eq('active', true).order('area_name'),
+        _client.from('locations').select('*').eq('active', true).order('location_code')
     ]);
     allAreas = resAreas.data || [];
     allLocations = resLocs.data || [];
@@ -182,8 +182,10 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4');
     
-    const { data: locData } = await _client.from('v_inventory_by_location').select('*').in('part_id', selectedIds);
-    
+    // IMPORTANTE: Obtenemos el desglose real de ubicaciones por N/P
+    const { data: locData, error } = await _client.from('v_inventory_by_location').select('*').in('part_id', selectedIds);
+    if(error) return alert("Error al obtener ubicaciones: " + error.message);
+
     doc.setFontSize(16); doc.text("HOJA DE AUDITORÍA DE INVENTARIO - KRAEM", 40, 50);
     doc.setFontSize(9); doc.text(`Fecha: ${new Date().toLocaleString()}   |   Planta: Kraem de Inyección de Plástico`, 40, 65);
 
@@ -193,7 +195,15 @@ async function exportToPDF() {
         const locations = locData.filter(l => String(l.part_id) === id);
         if (locations.length > 0) {
             locations.forEach((l, idx) => {
-                tableBody.push([idx === 0 ? master.part_number : '', idx === 0 ? (master.description || '').substring(0,30) : '', l.area, l.location_code, l.quantity, '', '']);
+                tableBody.push([
+                    idx === 0 ? master.part_number : '', 
+                    idx === 0 ? (master.description || '').substring(0,30) : '', 
+                    l.area_name || l.area || 'N/A', 
+                    l.location_code || l.location || 'S/U', // <--- CORREGIDO: SE MUESTRA EL CÓDIGO DE UBICACIÓN
+                    l.quantity, 
+                    '', 
+                    ''
+                ]);
             });
         } else {
             tableBody.push([master.part_number, master.description, 'N/A', 'SIN UBICACIÓN', 0, '', '']);
@@ -252,8 +262,7 @@ async function saveMultiAdjust() {
                 part_id: pID, quantity: diff, movement_type: 'AJUSTE', 
                 comment: `Auditoría: Sis ${sis} / Fis ${fis}`, user_id: session.user.id,
                 from_location_id: diff < 0 ? parseInt(locId) : null,
-                to_location_id: diff > 0 ? parseInt(locId) : null,
-                area: row.querySelector('.area-name').value || currentMasterPart.area
+                to_location_id: diff > 0 ? parseInt(locId) : null
             }]);
             if (!error) movesCount++;
         }
@@ -281,13 +290,55 @@ async function abrirAuditoria(masterItem) {
 
 function createRowHtml(aN, lN, qS, lI, isN) {
     const d = document.createElement('div'); d.className = 'conteo-row';
-    const aS = isN ? `<select class="area-name">${allAreas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('')}</select>` : `<div>${aN}</div><input type="hidden" class="area-name" value="${aN}">`;
-    const lH = isN ? `<select class="loc-id">${allLocations.map(l => `<option value="${l.id}">${l.location_code}</option>`).join('')}</select>` : `<div><b>${lN}</b></div><input type="hidden" class="loc-id" value="${lI}">`;
-    d.innerHTML = `${aS}${lH}<input type="number" class="val-sis" value="${qS}" readonly style="width:50px; border:none; background:transparent;"><input type="number" class="val-fis" oninput="calcDiff(this)" style="width:70px; border:1px solid var(--primary); border-radius:5px;"><div class="diff-result">0</div><div onclick="this.parentElement.remove()" style="color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></div>`;
+    
+    let aS, lH;
+    
+    if(isN) {
+        // SELECT DE ÁREA (Llama a filterLocationsByArea al cambiar)
+        aS = `<select class="area-selector" onchange="filterLocationsByArea(this)">
+                <option value="">-- ÁREA --</option>
+                ${allAreas.map(a => `<option value="${a.id}">${a.area_name}</option>`).join('')}
+              </select>`;
+        
+        // SELECT DE UBICACIÓN (Empieza vacío, se llena al elegir área)
+        lH = `<select class="loc-id loc-selector">
+                <option value="">-- UBICACIÓN --</option>
+              </select>`;
+    } else {
+        aS = `<div>${aN}</div><input type="hidden" class="area-id" value="">`;
+        lH = `<div><b>${lN}</b></div><input type="hidden" class="loc-id" value="${lI}">`;
+    }
+
+    d.innerHTML = `${aS}${lH}
+        <input type="number" class="val-sis" value="${qS}" readonly style="width:50px; border:none; background:transparent;">
+        <input type="number" class="val-fis" oninput="calcDiff(this)" style="width:70px; border:1px solid var(--primary); border-radius:5px;">
+        <div class="diff-result">0</div>
+        <div onclick="this.parentElement.remove()" style="color:var(--danger); cursor:pointer;"><i class="fas fa-times"></i></div>`;
+    
     document.getElementById('conteoLines').appendChild(d);
 }
 
+// FUNCIÓN PARA FILTRAR DINÁMICAMENTE LAS UBICACIONES SEGÚN EL ÁREA
+function filterLocationsByArea(areaSelect) {
+    const row = areaSelect.closest('.conteo-row');
+    const locSelect = row.querySelector('.loc-selector');
+    const areaId = areaSelect.value;
+    
+    locSelect.innerHTML = '<option value="">-- UBICACIÓN --</option>';
+    
+    if(areaId) {
+        const filtered = allLocations.filter(l => l.area_id == areaId);
+        filtered.forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.id;
+            opt.textContent = l.location_code;
+            locSelect.appendChild(opt);
+        });
+    }
+}
+
 function addNewLine() { createRowHtml('', '', 0, '', true); }
+
 function calcDiff(i) {
     const r = i.closest('.conteo-row'); const s = parseInt(r.querySelector('.val-sis').value) || 0;
     const f = parseInt(i.value); const res = r.querySelector('.diff-result');
