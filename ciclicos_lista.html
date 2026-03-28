@@ -182,7 +182,6 @@ async function exportToPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4');
     
-    // IMPORTANTE: Obtenemos el desglose real de ubicaciones por N/P
     const { data: locData, error } = await _client.from('v_inventory_by_location').select('*').in('part_id', selectedIds);
     if(error) return alert("Error al obtener ubicaciones: " + error.message);
 
@@ -199,7 +198,7 @@ async function exportToPDF() {
                     idx === 0 ? master.part_number : '', 
                     idx === 0 ? (master.description || '').substring(0,30) : '', 
                     l.area_name || l.area || 'N/A', 
-                    l.location_code || l.location || 'S/U', // <--- CORREGIDO: SE MUESTRA EL CÓDIGO DE UBICACIÓN
+                    l.location_code || l.location || 'S/U', 
                     l.quantity, 
                     '', 
                     ''
@@ -254,25 +253,42 @@ async function saveMultiAdjust() {
         const fisVal = row.querySelector('.val-fis').value;
         const locId = row.querySelector('.loc-id').value;
         if (fisVal === "" || !locId) continue;
+        
         const sis = parseInt(row.querySelector('.val-sis').value) || 0;
         const fis = parseInt(fisVal);
         const diff = fis - sis;
+        
+        // Obtenemos el nombre del área (ya sea del select o del texto fijo)
+        const areaElem = row.querySelector('.area-name');
+        const areaValue = areaElem.tagName === 'SELECT' 
+            ? areaElem.options[areaElem.selectedIndex].text 
+            : areaElem.value;
+
         if (diff !== 0) {
             const { error } = await _client.from('inventory_movements').insert([{
-                part_id: pID, quantity: diff, movement_type: 'AJUSTE', 
-                comment: `Auditoría: Sis ${sis} / Fis ${fis}`, user_id: session.user.id,
+                part_id: pID, 
+                quantity: diff, 
+                movement_type: 'AJUSTE', 
+                comment: `Auditoría: Sis ${sis} / Fis ${fis}`, 
+                user_id: session.user.id,
                 from_location_id: diff < 0 ? parseInt(locId) : null,
-                to_location_id: diff > 0 ? parseInt(locId) : null
+                to_location_id: diff > 0 ? parseInt(locId) : null,
+                area: areaValue // <-- CAMBIO CLAVE: Aquí enviamos el área detectada
             }]);
             if (!error) movesCount++;
         }
     }
+    
     if (movesCount > 0) {
-        const h = new Date(); const d = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc] || 180;
+        const h = new Date(); 
+        const d = { 'A': 30, 'B': 90, 'C': 180 }[currentMasterPart.abc] || 180;
         const p = new Date(); p.setDate(h.getDate() + d);
         await _client.from('parts').update({ last_count: h.toISOString(), next_count: p.toISOString() }).eq('id', pID);
         alert(`Éxito: ${movesCount} ajuste(s) realizados.`);
+    } else {
+        alert("No se detectaron cambios para ajustar.");
     }
+    
     btn.disabled = false; btn.innerText = "GUARDAR AJUSTES";
     cerrarModal(); init();
 }
@@ -283,8 +299,11 @@ async function abrirAuditoria(masterItem) {
     document.getElementById('mDesc').innerText = masterItem.description;
     const { data: details } = await _client.from('v_inventory_by_location').select('*').eq('part_id', masterItem.part_id || masterItem.id);
     const c = document.getElementById('conteoLines'); c.innerHTML = '';
-    if (details?.length) details.forEach(d => createRowHtml(d.area_name || d.area, d.location_code || d.location, d.quantity, d.location_id, false));
-    else addNewLine();
+    if (details?.length) {
+        details.forEach(d => createRowHtml(d.area_name || d.area, d.location_code || d.location, d.quantity, d.location_id, false));
+    } else {
+        addNewLine();
+    }
     document.getElementById('modalConteo').style.display = 'flex';
 }
 
@@ -294,18 +313,19 @@ function createRowHtml(aN, lN, qS, lI, isN) {
     let aS, lH;
     
     if(isN) {
-        // SELECT DE ÁREA (Llama a filterLocationsByArea al cambiar)
-        aS = `<select class="area-selector" onchange="filterLocationsByArea(this)">
+        // SELECT DE ÁREA (Clase area-name para que saveMultiAdjust la encuentre)
+        aS = `<select class="area-name" onchange="filterLocationsByArea(this)">
                 <option value="">-- ÁREA --</option>
                 ${allAreas.map(a => `<option value="${a.id}">${a.area_name}</option>`).join('')}
               </select>`;
         
-        // SELECT DE UBICACIÓN (Empieza vacío, se llena al elegir área)
+        // SELECT DE UBICACIÓN
         lH = `<select class="loc-id loc-selector">
                 <option value="">-- UBICACIÓN --</option>
               </select>`;
     } else {
-        aS = `<div>${aN}</div><input type="hidden" class="area-id" value="">`;
+        // En líneas existentes mantenemos la clase area-name
+        aS = `<div>${aN}</div><input type="hidden" class="area-name" value="${aN}">`;
         lH = `<div><b>${lN}</b></div><input type="hidden" class="loc-id" value="${lI}">`;
     }
 
@@ -318,14 +338,11 @@ function createRowHtml(aN, lN, qS, lI, isN) {
     document.getElementById('conteoLines').appendChild(d);
 }
 
-// FUNCIÓN PARA FILTRAR DINÁMICAMENTE LAS UBICACIONES SEGÚN EL ÁREA
 function filterLocationsByArea(areaSelect) {
     const row = areaSelect.closest('.conteo-row');
     const locSelect = row.querySelector('.loc-selector');
     const areaId = areaSelect.value;
-    
     locSelect.innerHTML = '<option value="">-- UBICACIÓN --</option>';
-    
     if(areaId) {
         const filtered = allLocations.filter(l => l.area_id == areaId);
         filtered.forEach(l => {
