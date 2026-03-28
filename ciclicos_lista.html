@@ -21,7 +21,6 @@
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
         
-        /* HEADER RESPONSIVO */
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; max-width: 1400px; margin-inline: auto; flex-wrap: wrap; gap: 10px; }
         .btn-ui { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; white-space: nowrap; }
         
@@ -35,30 +34,21 @@
         
         input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; outline: none; width: 100%; box-sizing: border-box; }
         
-        /* --- ARREGLO PARA DESPLAZAMIENTO MÓVIL --- */
         .table-container { 
-            background: var(--card); 
-            border-radius: 16px; 
-            border: 1px solid var(--border); 
-            max-width: 1400px; 
-            margin: auto;
-            overflow-x: auto; /* Permite el scroll horizontal */
-            -webkit-overflow-scrolling: touch; /* Suavidad en iPhone */
+            background: var(--card); border-radius: 16px; border: 1px solid var(--border); 
+            max-width: 1400px; margin: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; /* Asegura que la tabla no se colapse y obligue al scroll */ }
-        /* ----------------------------------------- */
-
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
         th { background: var(--dark-header); color: white; padding: 15px; font-size: 11px; text-transform: uppercase; text-align: left; position: sticky; top: 0; }
         td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
         
         .abc-badge { background: var(--primary); color: white; padding: 4px 8px; border-radius: 6px; font-weight: 800; font-size: 10px; }
+        
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); padding: 10px; }
         .modal-content { background: var(--card); width: 100%; max-width: 900px; border-radius: 20px; padding: 20px; max-height: 90vh; overflow-y: auto; }
         
-        /* MODAL RESPONSIVO */
-        .conteo-header { display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr 40px; gap: 8px; padding: 10px; background: var(--bg); border-radius: 8px; font-weight: bold; font-size: 10px; margin-bottom: 10px; min-width: 500px; }
-        .conteo-row { display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr 40px; gap: 8px; align-items: center; padding: 10px 5px; border-bottom: 1px solid var(--border); min-width: 500px; }
-        #conteoLines { overflow-x: auto; } /* Scroll interno si el modal es muy ancho */
+        .conteo-header { display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr 40px; gap: 8px; padding: 10px; background: var(--bg); border-radius: 8px; font-weight: bold; font-size: 10px; margin-bottom: 10px; min-width: 550px; }
+        .conteo-row { display: grid; grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr 40px; gap: 8px; align-items: center; padding: 10px 5px; border-bottom: 1px solid var(--border); min-width: 550px; }
 
         .save-btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 16px; }
         .diff-result { font-weight: 800; text-align: center; }
@@ -71,11 +61,13 @@
 <header>
     <div style="display:flex; align-items:center; gap:10px;">
         <button class="btn-ui" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> <span id="btn-back">Menú</span></button>
-        <h2 id="txt-title" style="font-size: 1.2rem;">🔍 Auditoría</h2>
+        <h2 id="txt-title" style="font-size: 1.1rem;">🔍 Auditoría de Conteos Cíclicos</h2>
     </div>
     <div style="display:flex; gap:8px; flex-wrap: wrap;">
         <button class="btn-ui" onclick="exportToExcel()" style="background:#107c41; color:white; border:none;"><i class="fas fa-file-excel"></i></button>
-        <button class="btn-ui" onclick="exportToPDF()" style="background:#ef4444; color:white; border:none;"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn-ui" onclick="exportToPDF()" style="background:#ef4444; color:white; border:none;"><i class="fas fa-file-pdf"></i></button>
+        <button class="btn-ui" onclick="setLang('es')">🇲🇽</button>
+        <button class="btn-ui" onclick="setLang('ko')">🇰🇷</button>
         <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
@@ -84,7 +76,7 @@
     <div class="filter-group"><label id="lbl-search">Búsqueda</label><input type="text" id="fGeneral" oninput="filterData()" placeholder="N/P o Desc..."></div>
     <div class="filter-group"><label id="lbl-project">Proyecto</label><input type="text" id="fProy" oninput="filterData()" placeholder="Filtrar..."></div>
     <div class="filter-group">
-        <label id="lbl-date">Rango</label>
+        <label id="lbl-date">Último Conteo</label>
         <div style="display:flex; gap:5px;">
             <input type="date" id="fFechaInicio" onchange="filterData()">
             <input type="date" id="fFechaFin" onchange="filterData()">
@@ -117,18 +109,25 @@
         <h3 id="mParte" style="color:var(--primary); margin:0;"></h3>
         <p id="mDesc" style="color:var(--text-secondary); margin:5px 0; font-size: 12px;"></p>
         
-        <div style="overflow-x: auto;"> <div class="conteo-header"><div id="mdl-area">ÁREA</div><div id="mdl-loc">UBICACIÓN</div><div id="mdl-sis">SISTEMA</div><div id="mdl-fis">FÍSICO</div><div>DIF.</div><div></div></div>
+        <div style="overflow-x: auto;">
+            <div class="conteo-header">
+                <div id="mdl-area">ÁREA</div>
+                <div id="mdl-loc">UBICACIÓN</div>
+                <div id="mdl-sis">SISTEMA</div>
+                <div id="mdl-fis">FÍSICO</div>
+                <div id="mdl-dif">DIF.</div>
+                <div></div>
+            </div>
             <div id="conteoLines"></div>
         </div>
 
         <div class="add-line-btn" onclick="addNewLine()" style="cursor:pointer; color:var(--primary); margin: 20px 0; font-weight: bold;"><i class="fas fa-plus-circle"></i> <span id="mdl-add">Ubicación extra</span></div>
         <button class="save-btn" onclick="saveMultiAdjust()" id="btn-save">GUARDAR AJUSTES</button>
-        <button onclick="cerrarModal()" id="btn-close-mdl" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:15px; cursor:pointer; font-weight: bold; padding: 10px;">Cerrar</button>
+        <button onclick="cerrarModal()" id="btn-close-mdl" style="width:100%; background:none; border:none; color:var(--text-secondary); margin-top:15px; cursor:pointer; font-weight: bold;">Cerrar</button>
     </div>
 </div>
 
 <script>
-// --- Lógica de Supabase y funciones (IDÉNTICAS A TU VERSIÓN ANTERIOR) ---
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let fullInventory = []; 
@@ -137,7 +136,8 @@ let allAreas = [];
 let allLocations = [];
 
 const i18n = {
-    es: { title: "🔍 Auditoría de Conteos Cíclicos", back: "Menú", search: "Búsqueda", project: "Proyecto", date: "Último Conteo", thPart: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thStock: "Stock", thLast: "Último", thNext: "Próximo", thAction: "Acción", mdlArea: "ÁREA", mdlLoc: "UBICACIÓN", mdlSis: "SISTEMA", mdlFis: "FÍSICO", mdlAdd: "Ubicación extra", btnSave: "GUARDAR AJUSTES", btnClose: "Cerrar" }
+    es: { title: "🔍 Auditoría de Conteos Cíclicos", back: "Menú", search: "Búsqueda", project: "Proyecto", date: "Último Conteo", thPart: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thStock: "Stock", thLast: "Último", thNext: "Próximo", thAction: "Acción", mdlArea: "ÁREA", mdlLoc: "UBICACIÓN", mdlSis: "SISTEMA", mdlFis: "FÍSICO", mdlDif: "DIF.", mdlAdd: "Ubicación extra", btnSave: "GUARDAR AJUSTES", btnCloseMdl: "Cerrar" },
+    ko: { title: "🔍 순환 재고 실사", back: "메뉴", search: "검색", project: "프로젝트", date: "마지막 실사", thPart: "부품 번호", thDesc: "설명", thProj: "프로젝트", thStock: "재고", thLast: "마지막", thNext: "다음", thAction: "작업", mdlArea: "구역", mdlLoc: "위치", mdlSis: "시스템", mdlFis: "실사", mdlDif: "차이", mdlAdd: "위치 추가", btnSave: "조정 저장", btnCloseMdl: "닫기" }
 };
 
 async function init() {
@@ -185,45 +185,15 @@ function filterData() {
     renderTable(filtered);
 }
 
-// FUNCIONES DE PDF Y EXCEL (Mantenidas de la versión anterior)
-async function exportToExcel() {
-    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
-    if (selectedIds.length === 0) return alert("Selecciona filas.");
-    const dataToExport = fullInventory.filter(r => selectedIds.includes(String(r.part_id || r.id)));
-    const ws = XLSX.utils.json_to_sheet(dataToExport.map(r => ({ "N° Parte": r.part_number, "Descripción": r.description, "Proyecto": r.project, "Stock": r.total_quantity, "ABC": r.abc })));
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-    XLSX.writeFile(wb, "Inventario_Kraem.xlsx");
-}
-
-async function exportToPDF() {
-    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
-    if (selectedIds.length === 0) return alert("Selecciona filas.");
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'pt', 'a4');
-    const { data: locData } = await _client.from('v_inventory_by_location').select('*').in('part_id', selectedIds);
-    doc.setFontSize(16); doc.text("HOJA DE AUDITORÍA - KRAEM", 40, 50);
-    const tableBody = [];
-    selectedIds.forEach(id => {
-        const master = fullInventory.find(f => String(f.part_id || f.id) === id);
-        const locations = locData.filter(l => String(l.part_id) === id);
-        if (locations.length > 0) {
-            locations.forEach((l, idx) => tableBody.push([idx === 0 ? master.part_number : '', idx === 0 ? (master.description || '').substring(0,30) : '', l.area_name || l.area, l.location_code || l.location, l.quantity, '', '']));
-        } else {
-            tableBody.push([master.part_number, master.description, 'N/A', 'SIN UBICACIÓN', 0, '', '']);
-        }
-    });
-    doc.autoTable({ startY: 80, head: [['N° Parte', 'Descripción', 'Área', 'Ubicación', 'Sist.', 'Físico', 'Dif.']], body: tableBody, theme: 'grid', styles: { fontSize: 8 }, headStyles: { fillColor: [30, 41, 59] } });
-    doc.save("Hoja_Auditoria_Kraem.pdf");
-}
-
 async function saveMultiAdjust() {
     const { data: { session } } = await _client.auth.getSession();
-    if (!session) return alert("Inicia sesión.");
+    if (!session) return alert("Debes iniciar sesión.");
     const rows = document.querySelectorAll('.conteo-row');
     const btn = document.getElementById('btn-save');
-    btn.disabled = true; btn.innerText = "GUARDANDO...";
+    btn.disabled = true; btn.innerText = "...";
     const pID = currentMasterPart.part_id || currentMasterPart.id;
     let movesCount = 0;
+
     for (const row of rows) {
         const fisVal = row.querySelector('.val-fis').value;
         const locId = row.querySelector('.loc-id').value;
@@ -233,10 +203,11 @@ async function saveMultiAdjust() {
         const diff = fis - sis;
         const areaElem = row.querySelector('.area-name');
         const areaValue = areaElem.tagName === 'SELECT' ? areaElem.options[areaElem.selectedIndex].text : areaElem.value;
+
         if (diff !== 0) {
             const { error } = await _client.from('inventory_movements').insert([{
                 part_id: pID, quantity: diff, movement_type: 'AJUSTE', 
-                comment: `Auditoría: Sis ${sis} / Fis ${fis}`, user_id: session.user.id,
+                comment: `Audit: Sis ${sis} / Fis ${fis}`, user_id: session.user.id,
                 from_location_id: diff < 0 ? parseInt(locId) : null,
                 to_location_id: diff > 0 ? parseInt(locId) : null,
                 area: areaValue
@@ -296,6 +267,28 @@ function calcDiff(i) {
 function cerrarModal() { document.getElementById('modalConteo').style.display = 'none'; }
 function toggleTheme() { document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); }
 function toggleSelectAll() { const m = document.getElementById('selectAll').checked; document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = m); }
+
+function setLang(l) {
+    const t = i18n[l]; 
+    document.getElementById('txt-title').innerText = t.title;
+    const ids = ['btn-back', 'lbl-search', 'lbl-project', 'lbl-date', 'th-part', 'th-desc', 'th-proj', 'th-stock', 'th-last', 'th-next', 'th-action', 'mdl-area', 'mdl-loc', 'mdl-sis', 'mdl-fis', 'mdl-dif', 'mdl-add', 'btn-save', 'btn-close-mdl'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            const key = id.replace('btn-', '').replace('lbl-', '').replace('th-', '').replace('mdl-', '').replace('-mdl', 'Mdl');
+            const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+            // Mapeo simple de IDs a llaves de i18n
+            const finalKey = id.includes('btn-back') ? 'back' : 
+                             id.includes('th-') ? 'th' + id.charAt(3).toUpperCase() + id.slice(4) : 
+                             id.includes('mdl-') ? 'mdl' + id.charAt(4).toUpperCase() + id.slice(5) : 
+                             id.includes('lbl-') ? id.split('-')[1] : camelKey;
+            
+            // Caso especial para llaves que no siguen el patrón
+            const map = { "thPart": "thPart", "thDesc": "thDesc", "thProj": "thProj", "thStock": "thStock", "thLast": "thLast", "thNext": "thNext", "thAction": "thAction" };
+            el.innerText = t[finalKey] || t[id.replace('btn-','').replace('lbl-','')] || el.innerText;
+        }
+    });
+}
 
 init();
 </script>
