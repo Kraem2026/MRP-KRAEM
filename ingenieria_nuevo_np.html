@@ -20,13 +20,13 @@
         .container { max-width: 900px; margin: 0 auto; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; }
-        .btn-primary { background: var(--primary); color: white; border: none; width: 100%; justify-content: center; padding: 15px; font-size: 16px; cursor: pointer;}
+        .btn-primary { background: var(--primary); color: white; border: none; width: 100%; justify-content: center; padding: 15px; font-size: 16px; cursor: pointer; border-radius: 12px;}
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         @media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }
         .card { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .card-title { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;}
+        label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;}
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text); box-sizing: border-box; font-size: 14px;}
         .image-uploader { text-align: center; border: 2px dashed var(--border); padding: 20px; border-radius: 12px; cursor: pointer; position: relative; background: var(--input-bg); min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;}
         .image-preview { max-width: 100%; max-height: 200px; margin-top: 10px; border-radius: 8px; display: none; }
@@ -62,11 +62,15 @@
                 <div class="card-title" id="t1">1. Identificación Básica</div>
                 <div class="form-group">
                     <label id="l_np">Número de Parte *</label>
-                    <input type="text" id="part_number" required>
+                    <input type="text" id="part_number" required placeholder="Ej. KRM-101">
                 </div>
                 <div class="form-group">
-                    <label id="l_desc">Descripción *</label>
-                    <textarea id="description" required></textarea>
+                    <label id="l_name">Nombre de la Pieza *</label>
+                    <input type="text" id="part_name" required placeholder="Nombre corto">
+                </div>
+                <div class="form-group">
+                    <label id="l_desc">Descripción Técnica</label>
+                    <textarea id="description" rows="2"></textarea>
                 </div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group"><label id="l_cli">Cliente</label><input type="text" id="client"></div>
@@ -125,16 +129,18 @@
 <script>
     const editId = new URLSearchParams(window.location.search).get('id');
     const translations = {
-        es: { title: "Registro de Ingeniería", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS", loading: "Guardando...", upload: "Click para subir foto" },
-        ko: { title: "엔지니어링 등록", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진을 올리려면 클릭하세요" }
+        es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *" },
+        ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진을 올리려면 클릭하세요", name: "부품 이름 *" }
     };
 
     async function init() {
+        applyTheme();
         if (editId) {
-            document.getElementById('main_title').innerText = "Editar Número de Parte";
             const { data: p } = await client.from('parts').select('*').eq('id', editId).single();
             if (p) {
-                document.getElementById('part_number').value = p.part_number;
+                document.getElementById('main_title').innerText = translations[localStorage.getItem('lang') || 'es'].edit;
+                document.getElementById('part_number').value = p.part_number || '';
+                document.getElementById('part_name').value = p.part_name || '';
                 document.getElementById('description').value = p.description || '';
                 document.getElementById('client').value = p.client || '';
                 document.getElementById('project').value = p.project || '';
@@ -145,7 +151,8 @@
                 document.getElementById('part_weight_gr').value = p.part_weight_gr || 0;
                 document.getElementById('runner_weight_gr').value = p.runner_weight_gr || 0;
                 document.getElementById('std_pack').value = p.std_pack || 0;
-                document.getElementById('obsolete').value = p.obsolete.toString();
+                document.getElementById('obsolete').value = (p.obsolete || false).toString();
+                
                 if(p.image_url) {
                     const prev = document.getElementById('imgPreview');
                     prev.src = p.image_url;
@@ -178,14 +185,18 @@
         let imageUrl = document.getElementById('imgPreview').src;
         const file = document.getElementById('fileInput').files[0];
         
+        // Solo subir si hay un archivo nuevo (no una URL de base64 previa o link)
         if (file) {
             const path = `part_images/${Date.now()}_${file.name}`;
-            await client.storage.from('inventario').upload(path, file);
-            imageUrl = client.storage.from('inventario').getPublicUrl(path).data.publicUrl;
+            const { data, error } = await client.storage.from('inventario').upload(path, file);
+            if(!error) {
+                imageUrl = client.storage.from('inventario').getPublicUrl(path).data.publicUrl;
+            }
         }
 
         const payload = {
             part_number: document.getElementById('part_number').value,
+            part_name: document.getElementById('part_name').value,
             description: document.getElementById('description').value,
             client: document.getElementById('client').value,
             project: document.getElementById('project').value,
@@ -204,12 +215,18 @@
             ? await client.from('parts').update(payload).eq('id', editId)
             : await client.from('parts').insert([payload]);
 
-        if (error) alert(error.message);
-        else location.href = 'admin_partes.html';
+        if (error) {
+            alert("Error: " + error.message);
+            document.getElementById('loading').style.display = 'none';
+        } else {
+            location.href = 'admin_partes.html';
+        }
     }
 
     function setLang(lang) {
+        localStorage.setItem('lang', lang);
         const l = translations[lang];
+        document.getElementById('main_title').innerText = editId ? l.edit : l.title;
         document.getElementById('t1').innerText = l.t1;
         document.getElementById('t2').innerText = l.t2;
         document.getElementById('t3').innerText = l.t3;
@@ -217,6 +234,20 @@
         document.getElementById('txt_save').innerText = l.save;
         document.getElementById('txt_loading').innerText = l.loading;
         document.getElementById('upload_txt').innerText = l.upload;
+        document.getElementById('l_name').innerText = l.name;
+    }
+
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    function applyTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 
     init();
