@@ -1,121 +1,192 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Ficha Técnica - Control de Carritos</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <title>Ficha Técnica Maestra - KRAEM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
+      --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b;
+    }
+    [data-theme="dark"] {
+      --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+    
+    .container { max-width: 1100px; margin: auto; }
+    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    
+    .btn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; color: var(--text); background: var(--card); }
+    .btn-primary { background: var(--primary); color: white; border: none; }
 
-<style>
-body{font-family:Arial;background:#f4f6f8;padding:15px}
-.card{background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:15px}
-h2{margin-top:0;color:#333}
-input{padding:10px;width:100%;max-width:400px;margin-bottom:20px;border:1px solid #ccc;border-radius:5px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
-.label{font-size:12px;color:#666;font-weight:bold}
-.value{font-size:16px;margin-bottom:10px}
+    .main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+    @media (max-width: 850px) { .main-grid { grid-template-columns: 1fr; } }
+    
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    
+    .product-img-container { width: 100%; height: 280px; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed var(--border); margin-bottom: 15px; position: relative; }
+    .product-img-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .no-image { color: var(--text-secondary); text-align: center; font-size: 0.9rem; }
 
-/* Estilos de la Barra Kanban */
-.kanban-container{background:#f9f9f9;padding:15px;border-radius:8px;border:1px solid #ddd;margin-top:20px}
-.progress-bar{background:#e0e0e0;width:100%;height:25px;border-radius:15px;overflow:hidden;margin:10px 0}
-.progress-fill{height:100%;transition:width 0.5s ease-in-out}
-.status-text{font-weight:bold;text-align:center;padding:5px;border-radius:5px}
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .status-active { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+    .status-obs { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
 
-.back{background:#6c757d;color:#fff;border:none;padding:10px 15px;border-radius:5px;cursor:pointer;margin-bottom:15px}
-</style>
+    .spec-group { margin-bottom: 20px; }
+    .spec-title { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+    .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .spec-item { background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .spec-label { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; }
+    .spec-value { font-size: 1rem; font-weight: 600; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+    .kpi-card { text-align: center; padding: 15px; border-radius: 12px; color: white; }
+    .bg-blue { background: var(--primary); }
+    .bg-orange { background: var(--warning); }
+    .bg-coverage { background: var(--success); }
+
+    h2, h3 { margin: 0; }
+  </style>
 </head>
-
 <body>
 
-<button class="back" onclick="location.href='dashboard.html'">⬅ Volver al Dashboard</button>
-<h2>📘 Ficha Técnica e Inventario de Carritos</h2>
-
-<input id="search" placeholder="Escribe el Número de Parte y presiona Enter..." onchange="buscar()">
-
-<div id="info_part" style="display:none">
-  <div class="card">
-    <div class="grid">
-      <div><div class="label">NÚMERO DE PARTE</div><div class="value" id="p_number"></div></div>
-      <div><div class="label">PROYECTO</div><div class="value" id="p_project"></div></div>
-      <div><div class="label">RESINA</div><div class="value" id="p_resin"></div></div>
-      <div><div class="label">CAVIDADES</div><div class="value" id="p_cavities"></div></div>
+<div class="container">
+  <div class="header-actions">
+    <button class="btn" onclick="history.back()"><i class="fas fa-arrow-left"></i> Volver</button>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> PDF</button>
+        <button class="btn btn-primary" id="btn_edit"><i class="fas fa-edit"></i> Editar</button>
     </div>
+  </div>
 
-    <div class="kanban-container">
-      <h3>📦 Control de Carritos (KIA)</h3>
-      <div class="grid">
-        <div><div class="label">Piezas por Carrito</div><div class="value" id="k_pcs"></div></div>
-        <div><div class="label">Máximo de Carritos Permitidos</div><div class="value" id="k_max"></div></div>
+  <div class="main-grid">
+    <div class="card">
+      <div class="product-img-container" id="container_img">
+        <div class="no-image"><i class="fas fa-image fa-3x"></i><br>Sin imagen</div>
       </div>
       
-      <p>Ocupación actual: <b id="k_occupied">0</b> carritos llenos</p>
-      <div class="progress-bar">
-        <div id="bar_fill" class="progress-fill" style="width: 0%"></div>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span id="badge_status" class="status-badge">---</span>
+        <h2 id="txt_part_number" style="margin-top: 10px; font-size: 1.5rem;">Cargando...</h2>
+        <p id="txt_part_name" style="font-size: 0.9rem; color: var(--text-secondary);">Cargando descripción...</p>
       </div>
-      <div id="k_status" class="status-text">Cargando estado...</div>
+
+      <div class="spec-group">
+        <div class="spec-title">General</div>
+        <div class="spec-grid">
+          <div class="spec-item"><div class="spec-label">Cliente</div><div id="val_client" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Proyecto</div><div id="val_project" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Clase ABC</div><div id="val_abc" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Std Pack</div><div id="val_std" class="spec-value">-</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="spec-group">
+        <div class="spec-title">Ficha de Ingeniería (Inyección)</div>
+        <div class="spec-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="spec-item"><div class="spec-label">Resina</div><div id="val_resin" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Grado</div><div id="val_grade" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Color</div><div id="val_color" class="spec-value">-</div></div>
+          
+          <div class="spec-item"><div class="spec-label">Cavidades</div><div id="val_cav" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Ciclo (s)</div><div id="val_cycle" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Tolerancia</div><div id="val_tol" class="spec-value">± 0.0g</div></div>
+
+          <div class="spec-item"><div class="spec-label">Peso Pieza</div><div id="val_w_part" class="spec-value">0.0g</div></div>
+          <div class="spec-item"><div class="spec-label">Colada Prop.</div><div id="val_w_runner" class="spec-value">0.0g</div></div>
+          <div class="spec-item" style="border: 2px solid var(--primary);"><div class="spec-label">Total Shot</div><div id="val_w_total" class="spec-value" style="color:var(--primary)">0.0g</div></div>
+        </div>
+      </div>
+
+      <div class="spec-group" style="margin-top: 30px;">
+        <div class="spec-title">Radiografía de Planeación</div>
+        <div class="kpi-grid">
+          <div class="kpi-card bg-blue">
+            <div class="spec-label" style="color:white; opacity:0.8;">Inventario</div>
+            <div id="kpi_inv" class="spec-value" style="font-size: 1.4rem;">0</div>
+          </div>
+          <div class="kpi-card bg-orange">
+            <div class="spec-label" style="color:white; opacity:0.8;">Demanda (30d)</div>
+            <div id="kpi_demand" class="spec-value" style="font-size: 1.4rem;">0</div>
+          </div>
+          <div id="card_coverage" class="kpi-card bg-coverage">
+            <div class="spec-label" style="color:white; opacity:0.8;">Cobertura (Días)</div>
+            <div id="kpi_days" class="spec-value" style="font-size: 1.4rem;">0</div>
+          </div>
+        </div>
+      </div>
+      
+      <p id="txt_last_move" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 20px; text-align: right;"></p>
     </div>
   </div>
 </div>
 
 <script>
-// Configuración de tu Supabase
-const client = supabase.createClient(
-  'https://telntsrrschcdxczlape.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
-);
+// USAR TUS CREDENCIALES
+const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
-async function buscar() {
-  const num = document.getElementById('search').value;
+const id = new URLSearchParams(window.location.search).get('id');
+
+async function init() {
+  if(!id) return;
+
+  // Cargar datos de la tabla PARTS
+  const { data: p } = await client.from('parts').select('*').eq('id', id).single();
+  if(!p) return;
+
+  // Llenado de UI
+  document.getElementById('txt_part_number').innerText = p.part_number;
+  document.getElementById('txt_part_name').innerText = p.part_name || p.description || 'Sin descripción';
   
-  // 1. Buscamos datos básicos de la parte
-  const {data: p, error} = await client.from('parts').select('*').eq('part_number', num).single();
-  
-  if(error || !p) {
-    alert("Número de parte no encontrado");
-    return;
+  const b = document.getElementById('badge_status');
+  b.innerText = p.obsolete ? 'OBSOLETO' : 'ACTIVO';
+  b.className = 'status-badge ' + (p.obsolete ? 'status-obs' : 'status-active');
+
+  if(p.image_url) document.getElementById('container_img').innerHTML = `<img src="${p.image_url}">`;
+
+  // Datos Ingeniería
+  document.getElementById('val_client').innerText = p.client || '-';
+  document.getElementById('val_project').innerText = p.project || '-';
+  document.getElementById('val_abc').innerText = p.abc_class || '-';
+  document.getElementById('val_std').innerText = p.std_pack || '-';
+  document.getElementById('val_resin').innerText = p.resin_type || '-';
+  document.getElementById('val_grade').innerText = p.resin_grade || '-';
+  document.getElementById('val_color').innerText = p.color || '-';
+  document.getElementById('val_cav').innerText = p.cavities || '0';
+  document.getElementById('val_cycle').innerText = (p.cycle_time_seg || '0') + 's';
+  document.getElementById('val_tol').innerText = `± ${p.tolerance_plus || 0}g`;
+
+  const wp = parseFloat(p.part_weight_gr || 0);
+  const wr = parseFloat(p.runner_weight_gr || 0);
+  document.getElementById('val_w_part').innerText = wp.toFixed(2) + 'g';
+  document.getElementById('val_w_runner').innerText = wr.toFixed(2) + 'g';
+  document.getElementById('val_w_total').innerText = (wp + wr).toFixed(2) + 'g';
+
+  // Cargar Inventario y KPIs desde la vista de resumen
+  const { data: kpi } = await client.from('inventory_part_summary').select('*').eq('part_id', id).single();
+  if(kpi) {
+    document.getElementById('kpi_inv').innerText = (kpi.current_inventory || 0).toLocaleString();
+    document.getElementById('kpi_demand').innerText = (kpi.avg_monthly_demand || 0).toLocaleString();
+    const days = kpi.coverage_days || 0;
+    document.getElementById('kpi_days').innerText = days;
+
+    const c = document.getElementById('card_coverage');
+    if(days < 3) c.style.background = 'var(--danger)';
+    else if(days < 7) c.style.background = 'var(--warning)';
+    else c.style.background = 'var(--success)';
   }
 
-  // Mostrar la tarjeta
-  document.getElementById('info_part').style.display = 'block';
-  document.getElementById('p_number').innerText = p.part_number;
-  document.getElementById('p_project').innerText = p.project || 'N/A';
-  document.getElementById('p_resin').innerText = p.resin || 'N/A';
-  document.getElementById('p_cavities').innerText = p.cavities || '0';
-
-  // 2. Buscamos el estado de los carritos en la vista que creamos
-  const {data: k} = await client.from('v_kanban_status').select('*').eq('part_id', p.id).single();
-
-  if(k) {
-    document.getElementById('k_pcs').innerText = k.pcs_per_trolley || 'No definido';
-    document.getElementById('k_max').innerText = k.limite_carritos || 'No definido';
-    document.getElementById('k_occupied').innerText = k.carritos_ocupados;
-    
-    const perc = k.porcentaje_uso > 100 ? 100 : k.porcentaje_uso;
-    const fill = document.getElementById('bar_fill');
-    const status = document.getElementById('k_status');
-
-    fill.style.width = perc + '%';
-
-    // Lógica de colores según el espacio
-    if(perc >= 90) {
-      fill.style.background = '#dc3545'; // Rojo (Sin espacio)
-      status.innerText = "🚨 ALTO: SIN ESPACIO PARA MÁS CARRITOS";
-      status.style.background = '#f8d7da';
-      status.style.color = '#721c24';
-    } else if (perc <= 30) {
-      fill.style.background = '#28a745'; // Verde (Inyectar)
-      status.innerText = "✅ GO: POCO STOCK, PUEDES INYECTAR";
-      status.style.background = '#d4edda';
-      status.style.color = '#155724';
-    } else {
-      fill.style.background = '#ffc107'; // Amarillo (Normal)
-      status.innerText = "🟡 ESTADO NORMAL";
-      status.style.background = '#fff3cd';
-      status.style.color = '#856404';
-    }
-  }
+  // Último Movimiento
+  const { data: m } = await client.from('inventory_movements').select('created_at').eq('part_id', id).order('created_at',{ascending:false}).limit(1);
+  if(m && m[0]) document.getElementById('txt_last_move').innerText = "Último mov: " + new Date(m[0].created_at).toLocaleString();
 }
-</script>
 
+init();
+</script>
 </body>
 </html>
