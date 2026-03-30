@@ -34,6 +34,9 @@
         .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); color: white; z-index: 1000; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px);}
         .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Clase para ocultar elementos con suavidad */
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -61,6 +64,14 @@
             <div class="card">
                 <div class="card-title" id="t1">1. Identificación Básica</div>
                 <div class="form-group">
+                    <label id="l_type">Tipo de Producto</label>
+                    <select id="product_type" onchange="adjustFormByProductType()">
+                        <option value="PT">PT (Producto Terminado)</option>
+                        <option value="COMPONENTE">Componente (Clip/Pad/Otros)</option>
+                        <option value="RESINA">Resina / Materia Prima</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label id="l_np">Número de Parte *</label>
                     <input type="text" id="part_number" required placeholder="Ej. KRM-101">
                 </div>
@@ -68,13 +79,15 @@
                     <label id="l_name">Nombre de la Pieza *</label>
                     <input type="text" id="part_name" required placeholder="Nombre corto">
                 </div>
-                <div class="form-group">
-                    <label id="l_desc">Descripción Técnica</label>
-                    <textarea id="description" rows="2"></textarea>
-                </div>
                 <div class="form-grid" style="gap:10px;">
-                    <div class="form-group"><label id="l_cli">Cliente</label><input type="text" id="client"></div>
-                    <div class="form-group"><label id="l_proj">Proyecto</label><input type="text" id="project"></div>
+                    <div class="form-group" id="group_cli"><label id="l_cli">Cliente</label><input type="text" id="client"></div>
+                    <div class="form-group"><label id="l_uom">Unidad Medida</label>
+                        <select id="unit_of_measure">
+                            <option value="PZA">PZA</option>
+                            <option value="KG">KG</option>
+                            <option value="M">METRO</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -88,7 +101,7 @@
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card" id="card_specs">
                 <div class="card-title" id="t3">3. Especificaciones</div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group"><label id="l_res">Resina (Tipo)</label><input type="text" id="resin_type" placeholder="Ej. PP"></div>
@@ -96,13 +109,13 @@
                 </div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group"><label id="l_col">Color</label><input type="text" id="color"></div>
-                    <div class="form-group"><label id="l_cav">Cavidades</label><input type="number" id="cavities"></div>
+                    <div class="form-group" id="group_cav"><label id="l_cav">Cavidades</label><input type="number" id="cavities"></div>
                 </div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group"><label id="l_wp">Peso Pza (g)</label><input type="number" step="0.01" id="part_weight_gr"></div>
                     <div class="form-group"><label id="l_tol">Tolerancia Peso (+/- g)</label><input type="number" step="0.01" id="weight_tolerance" placeholder="Ej. 0.05"></div>
                 </div>
-                <div class="form-grid" style="gap:10px;">
+                <div class="form-grid" style="gap:10px;" id="group_injection_details">
                     <div class="form-group"><label id="l_wr">Peso Vena (g)</label><input type="number" step="0.01" id="runner_weight_gr"></div>
                     <div class="form-group"><label id="l_cic">Ciclo (s)</label><input type="number" id="cycle_time_seg"></div>
                 </div>
@@ -111,15 +124,21 @@
             <div class="card">
                 <div class="card-title" id="t4">4. Estatus y Logística</div>
                 <div class="form-group">
-                    <label id="l_sta">Estatus de Ingeniería</label>
-                    <select id="obsolete">
-                        <option value="false">ACTIVO</option>
-                        <option value="true">OBSOLETO</option>
-                    </select>
+                    <label id="l_proj">Proyecto</label>
+                    <input type="text" id="project">
                 </div>
-                <div class="form-group">
-                    <label id="l_sp">Standard Pack</label>
-                    <input type="number" id="std_pack">
+                <div class="form-grid" style="gap:10px;">
+                    <div class="form-group">
+                        <label id="l_sta">Estatus</label>
+                        <select id="obsolete">
+                            <option value="false">ACTIVO</option>
+                            <option value="true">OBSOLETO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="l_sp">Standard Pack</label>
+                        <input type="number" id="std_pack">
+                    </div>
                 </div>
             </div>
         </div>
@@ -133,28 +152,51 @@
 <script>
     const editId = new URLSearchParams(window.location.search).get('id');
     const translations = {
-        es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *", grade: "Grado de Resina", tol: "Tolerancia Peso (+/- g)" },
-        ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진을 올리려면 클릭하세요", name: "부품 이름 *", grade: "레진 등급 (Grade)", tol: "중량 허용 오차 (+/- g)" }
+        es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *", grade: "Grado de Resina", tol: "Tolerancia Peso (+/- g)", uom: "Unidad Medida", type: "Tipo de Producto" },
+        ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진을 올리려면 클릭하세요", name: "부품 이름 *", grade: "레진 등급 (Grade)", tol: "중량 허용 오차 (+/- g)", uom: "측정 단위", type: "제품 유형" }
     };
+
+    function adjustFormByProductType() {
+        const type = document.getElementById('product_type').value;
+        const groupCav = document.getElementById('group_cav');
+        const groupInj = document.getElementById('group_injection_details');
+        const groupCli = document.getElementById('group_cli');
+        const uom = document.getElementById('unit_of_measure');
+
+        if (type === 'RESINA') {
+            groupCav.classList.add('hidden');
+            groupInj.classList.add('hidden');
+            uom.value = 'KG';
+        } else if (type === 'COMPONENTE') {
+            groupCav.classList.add('hidden');
+            groupInj.classList.add('hidden');
+            uom.value = 'PZA';
+        } else {
+            // PT muestra todo
+            groupCav.classList.remove('hidden');
+            groupInj.classList.remove('hidden');
+            uom.value = 'PZA';
+        }
+    }
 
     async function init() {
         applyTheme();
         if (editId) {
             const { data: p } = await client.from('parts').select('*').eq('id', editId).single();
             if (p) {
-                document.getElementById('main_title').innerText = translations[localStorage.getItem('lang') || 'es'].edit;
+                document.getElementById('product_type').value = p.product_type || 'PT';
                 document.getElementById('part_number').value = p.part_number || '';
                 document.getElementById('part_name').value = p.part_name || '';
-                document.getElementById('description').value = p.description || '';
                 document.getElementById('client').value = p.client || '';
                 document.getElementById('project').value = p.project || '';
+                document.getElementById('unit_of_measure').value = p.unit_of_measure || 'PZA';
                 document.getElementById('resin_type').value = p.resin_type || '';
-                document.getElementById('resin_grade').value = p.resin_grade || ''; // CARGA GRADO
+                document.getElementById('resin_grade').value = p.resin_grade || '';
                 document.getElementById('color').value = p.color || '';
                 document.getElementById('cavities').value = p.cavities || 0;
                 document.getElementById('cycle_time_seg').value = p.cycle_time_seg || 0;
                 document.getElementById('part_weight_gr').value = p.part_weight_gr || 0;
-                document.getElementById('weight_tolerance').value = p.weight_tolerance || 0; // CARGA TOLERANCIA
+                document.getElementById('weight_tolerance').value = p.weight_tolerance || 0;
                 document.getElementById('runner_weight_gr').value = p.runner_weight_gr || 0;
                 document.getElementById('std_pack').value = p.std_pack || 0;
                 document.getElementById('obsolete').value = (p.obsolete || false).toString();
@@ -166,6 +208,7 @@
                     document.getElementById('upload_icon').style.display = 'none';
                     document.getElementById('upload_txt').style.display = 'none';
                 }
+                adjustFormByProductType();
             }
         }
         setLang(localStorage.getItem('lang') || 'es');
@@ -194,25 +237,26 @@
         
         if (file) {
             const path = `part_images/${Date.now()}_${file.name}`;
-            const { data, error } = await client.storage.from('inventario').upload(path, file);
-            if(!error) {
+            const { error: storageError } = await client.storage.from('inventario').upload(path, file);
+            if(!storageError) {
                 imageUrl = client.storage.from('inventario').getPublicUrl(path).data.publicUrl;
             }
         }
 
         const payload = {
+            product_type: document.getElementById('product_type').value,
             part_number: document.getElementById('part_number').value,
             part_name: document.getElementById('part_name').value,
-            description: document.getElementById('description').value,
             client: document.getElementById('client').value,
             project: document.getElementById('project').value,
+            unit_of_measure: document.getElementById('unit_of_measure').value,
             resin_type: document.getElementById('resin_type').value,
-            resin_grade: document.getElementById('resin_grade').value, // GUARDA GRADO
+            resin_grade: document.getElementById('resin_grade').value,
             color: document.getElementById('color').value,
             cavities: parseInt(document.getElementById('cavities').value) || 0,
             cycle_time_seg: parseInt(document.getElementById('cycle_time_seg').value) || 0,
             part_weight_gr: parseFloat(document.getElementById('part_weight_gr').value) || 0,
-            weight_tolerance: parseFloat(document.getElementById('weight_tolerance').value) || 0, // GUARDA TOLERANCIA
+            weight_tolerance: parseFloat(document.getElementById('weight_tolerance').value) || 0,
             runner_weight_gr: parseFloat(document.getElementById('runner_weight_gr').value) || 0,
             std_pack: parseInt(document.getElementById('std_pack').value) || 0,
             obsolete: document.getElementById('obsolete').value === 'true',
@@ -245,6 +289,8 @@
         document.getElementById('l_name').innerText = l.name;
         document.getElementById('l_grade').innerText = l.grade;
         document.getElementById('l_tol').innerText = l.tol;
+        document.getElementById('l_uom').innerText = l.uom;
+        document.getElementById('l_type').innerText = l.type;
     }
 
     function toggleTheme() {
