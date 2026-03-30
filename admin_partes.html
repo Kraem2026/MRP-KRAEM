@@ -30,8 +30,8 @@
 
         .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); max-width: 1200px; margin: auto; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
-        th { background: #1e293b; color: white; padding: 15px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 14px; cursor: pointer; }
+        th { background: #1e293b; color: white; padding: 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 13px; cursor: pointer; }
         tr:hover td { background: rgba(37, 99, 235, 0.05); }
         
         .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
@@ -42,7 +42,7 @@
         .dot-active { background: var(--success); }
         .dot-obs { background: var(--danger); }
 
-        .controls { display: flex; gap: 10px; }
+        .controls { display: flex; gap: 10px; align-items: center; }
         .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
     </style>
@@ -58,8 +58,8 @@
         <a href="ingenieria_nuevo_np.html" class="btn btn-primary" id="btn_new">
             <i class="fas fa-plus"></i> Nuevo Número de Parte
         </a>
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
         <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
@@ -93,6 +93,7 @@
 
 <script>
     let allParts = [];
+    let currentLang = localStorage.getItem('lang') || 'es';
 
     const translations = {
         es: {
@@ -111,10 +112,14 @@
         }
     };
 
-    let currentLang = 'es';
+    // --- Inicialización ---
+    async function init() {
+        applyTheme();
+        setLang(currentLang);
+        await loadParts();
+    }
 
     async function loadParts() {
-        // 'client' viene de config.js
         const { data, error } = await client
             .from('parts')
             .select('*')
@@ -135,7 +140,7 @@
         body.innerHTML = list.map(p => `
             <tr onclick="goToFicha(${p.id})">
                 <td><strong>${p.part_number}</strong></td>
-                <td>${p.part_name || p.description || '---'}</td>
+                <td>${p.description || p.part_name || '---'}</td>
                 <td>${p.project || '---'}</td>
                 <td><span class="badge ${p.part_type === 'PT' ? 'badge-pt' : 'badge-mp'}">${p.part_type || 'N/A'}</span></td>
                 <td>${p.resin_type || '---'}</td>
@@ -153,7 +158,9 @@
         const statusQ = document.getElementById('filterStatus').value;
 
         const filtered = allParts.filter(p => {
-            const matchesPart = p.part_number.toLowerCase().includes(partQ) || (p.part_name && p.part_name.toLowerCase().includes(partQ));
+            const matchesPart = p.part_number.toLowerCase().includes(partQ) || 
+                               (p.description && p.description.toLowerCase().includes(partQ)) ||
+                               (p.part_name && p.part_name.toLowerCase().includes(partQ));
             const matchesProj = (p.project || '').toLowerCase().includes(projQ);
             const matchesStatus = statusQ === "" || (statusQ === 'obs' ? p.obsolete : !p.obsolete);
             
@@ -164,12 +171,16 @@
     }
 
     function goToFicha(id) {
+        // Redirige a la ficha técnica
         window.location.href = `part_ficha_tecnica.html?id=${id}`;
     }
 
+    // --- Configuración de Idioma ---
     function setLang(lang) {
         currentLang = lang;
+        localStorage.setItem('lang', lang);
         const l = translations[lang];
+        
         document.getElementById('txt_title').innerText = l.title;
         document.getElementById('btn_new').innerHTML = `<i class="fas fa-plus"></i> ${l.new}`;
         document.getElementById('searchPart').placeholder = l.pPart;
@@ -183,11 +194,25 @@
         document.getElementById('th_type').innerText = l.thType;
         document.getElementById('th_resin').innerText = l.thResin;
         document.getElementById('th_status').innerText = l.thStatus;
-        renderTable(allParts); // Recargar tabla para actualizar estatus
+        
+        renderTable(allParts);
     }
 
-    // Cargar datos al iniciar
-    loadParts();
+    // --- Configuración de Tema ---
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    function applyTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    init();
 </script>
 
 </body>
