@@ -35,7 +35,6 @@
         .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Clase para ocultar elementos con suavidad */
         .hidden { display: none !important; }
     </style>
 </head>
@@ -79,15 +78,20 @@
                     <label id="l_name">Nombre de la Pieza *</label>
                     <input type="text" id="part_name" required placeholder="Nombre corto">
                 </div>
+                
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group" id="group_cli"><label id="l_cli">Cliente</label><input type="text" id="client"></div>
-                    <div class="form-group"><label id="l_uom">Unidad Medida</label>
-                        <select id="unit_of_measure">
-                            <option value="PZA">PZA</option>
-                            <option value="KG">KG</option>
-                            <option value="M">METRO</option>
-                        </select>
-                    </div>
+                    <div class="form-group" id="group_sup" class="hidden"><label id="l_sup">Proveedor</label><input type="text" id="supplier" placeholder="Nombre del proveedor"></div>
+                </div>
+
+                <div class="form-group">
+                    <label id="l_uom">Unidad de Medida</label>
+                    <select id="unit_of_measure">
+                        <option value="PZA">PIEZA (PZA)</option>
+                        <option value="KG">KILOGRAMOS (KG)</option>
+                        <option value="M">METROS (M)</option>
+                        <option value="L">LITROS (L)</option>
+                    </select>
                 </div>
             </div>
 
@@ -112,11 +116,11 @@
                     <div class="form-group" id="group_cav"><label id="l_cav">Cavidades</label><input type="number" id="cavities"></div>
                 </div>
                 <div class="form-grid" style="gap:10px;">
-                    <div class="form-group"><label id="l_wp">Peso Pza (g)</label><input type="number" step="0.01" id="part_weight_gr"></div>
-                    <div class="form-group"><label id="l_tol">Tolerancia Peso (+/- g)</label><input type="number" step="0.01" id="weight_tolerance" placeholder="Ej. 0.05"></div>
+                    <div class="form-group"><label id="l_wp">Peso Pza (g)</label><input type="number" step="0.001" id="part_weight_gr"></div>
+                    <div class="form-group"><label id="l_tol">Tolerancia Peso (+/- g)</label><input type="number" step="0.001" id="weight_tolerance" placeholder="0.005"></div>
                 </div>
                 <div class="form-grid" style="gap:10px;" id="group_injection_details">
-                    <div class="form-group"><label id="l_wr">Peso Vena (g)</label><input type="number" step="0.01" id="runner_weight_gr"></div>
+                    <div class="form-group"><label id="l_wr">Peso Vena (g)</label><input type="number" step="0.001" id="runner_weight_gr"></div>
                     <div class="form-group"><label id="l_cic">Ciclo (s)</label><input type="number" id="cycle_time_seg"></div>
                 </div>
             </div>
@@ -152,8 +156,8 @@
 <script>
     const editId = new URLSearchParams(window.location.search).get('id');
     const translations = {
-        es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *", grade: "Grado de Resina", tol: "Tolerancia Peso (+/- g)", uom: "Unidad Medida", type: "Tipo de Producto" },
-        ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진을 올리려면 클릭하세요", name: "부품 이름 *", grade: "레진 등급 (Grade)", tol: "중량 허용 오차 (+/- g)", uom: "측정 단위", type: "제품 유형" }
+        es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *", grade: "Grado de Resina", tol: "Tolerancia (+/- g)", uom: "Unidad Medida", type: "Tipo Producto", sup: "Proveedor", cli: "Cliente" },
+        ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진 클릭", name: "부품 이름 *", grade: "레진 등급", tol: "허용 오차", uom: "측정 단위", type: "제품 유형", sup: "공급업체", cli: "고객사" }
     };
 
     function adjustFormByProductType() {
@@ -161,21 +165,22 @@
         const groupCav = document.getElementById('group_cav');
         const groupInj = document.getElementById('group_injection_details');
         const groupCli = document.getElementById('group_cli');
+        const groupSup = document.getElementById('group_sup');
         const uom = document.getElementById('unit_of_measure');
 
-        if (type === 'RESINA') {
-            groupCav.classList.add('hidden');
-            groupInj.classList.add('hidden');
-            uom.value = 'KG';
-        } else if (type === 'COMPONENTE') {
-            groupCav.classList.add('hidden');
-            groupInj.classList.add('hidden');
-            uom.value = 'PZA';
-        } else {
-            // PT muestra todo
+        if (type === 'PT') {
             groupCav.classList.remove('hidden');
             groupInj.classList.remove('hidden');
+            groupCli.classList.remove('hidden');
+            groupSup.classList.add('hidden'); // No proveedor para PT
             uom.value = 'PZA';
+        } else {
+            // COMPONENTE o RESINA
+            groupCav.classList.add('hidden');
+            groupInj.classList.add('hidden');
+            groupCli.classList.add('hidden'); // No cliente para MP
+            groupSup.classList.remove('hidden'); // Mostrar proveedor
+            uom.value = (type === 'RESINA') ? 'KG' : 'PZA';
         }
     }
 
@@ -188,6 +193,7 @@
                 document.getElementById('part_number').value = p.part_number || '';
                 document.getElementById('part_name').value = p.part_name || '';
                 document.getElementById('client').value = p.client || '';
+                document.getElementById('supplier').value = p.supplier || '';
                 document.getElementById('project').value = p.project || '';
                 document.getElementById('unit_of_measure').value = p.unit_of_measure || 'PZA';
                 document.getElementById('resin_type').value = p.resin_type || '';
@@ -208,9 +214,9 @@
                     document.getElementById('upload_icon').style.display = 'none';
                     document.getElementById('upload_txt').style.display = 'none';
                 }
-                adjustFormByProductType();
             }
         }
+        adjustFormByProductType();
         setLang(localStorage.getItem('lang') || 'es');
     }
 
@@ -248,6 +254,7 @@
             part_number: document.getElementById('part_number').value,
             part_name: document.getElementById('part_name').value,
             client: document.getElementById('client').value,
+            supplier: document.getElementById('supplier').value, // NUEVO
             project: document.getElementById('project').value,
             unit_of_measure: document.getElementById('unit_of_measure').value,
             resin_type: document.getElementById('resin_type').value,
@@ -291,6 +298,8 @@
         document.getElementById('l_tol').innerText = l.tol;
         document.getElementById('l_uom').innerText = l.uom;
         document.getElementById('l_type').innerText = l.type;
+        document.getElementById('l_sup').innerText = l.sup;
+        document.getElementById('l_cli').innerText = l.cli;
     }
 
     function toggleTheme() {
