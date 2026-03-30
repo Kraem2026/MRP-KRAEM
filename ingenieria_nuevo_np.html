@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Ingeniería - KRAEM</title>
+    <title>Admin Partes - KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,215 +11,133 @@
     <style>
         :root { 
             --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
-            --border: #e2e8f0; --primary: #2563eb; --input-bg: #ffffff;
+            --border: #e2e8f0; --primary: #2563eb;
         }
         [data-theme="dark"] {
-            --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155; --input-bg: #0f172a;
+            --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
         }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: auto; }
+        
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; }
-        .btn-primary { background: var(--primary); color: white; border: none; width: 100%; justify-content: center; padding: 15px; font-size: 16px; cursor: pointer;}
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        @media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }
-        .card { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .card-title { font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase;}
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text); box-sizing: border-box; font-size: 14px;}
-        .image-uploader { text-align: center; border: 2px dashed var(--border); padding: 20px; border-radius: 12px; cursor: pointer; position: relative; background: var(--input-bg); min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;}
-        .image-preview { max-width: 100%; max-height: 200px; margin-top: 10px; border-radius: 8px; display: none; }
-        #fileInput { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-        .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); color: white; z-index: 1000; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(5px);}
-        .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
+        .controls { display: flex; gap: 10px; align-items: center; }
+
+        .btn { padding: 8px 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        th { background: var(--bg); color: var(--text-secondary); text-align: left; padding: 12px; font-size: 12px; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        tr:hover { background: rgba(37, 99, 235, 0.05); }
+
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .active { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+        .obs { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        .lang-btn { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loading">
-    <i class="fas fa-spinner fa-3x fa-spin"></i>
-    <h3 style="margin-top:15px" id="txt_loading">Guardando...</h3>
-</div>
-
 <div class="container">
     <header>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <a href="admin_partes.html" class="btn"><i class="fas fa-arrow-left"></i></a>
-            <h2 style="margin:0;" id="main_title">Registro de Ingeniería</h2>
-        </div>
-        <div style="display: flex; gap: 10px;">
+        <h2 id="txt_title">Administración de Partes</h2>
+        <div class="controls">
             <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
             <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
             <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+            <a href="ingenieria_nuevo_np.html" class="btn btn-primary"><i class="fas fa-plus"></i> <span id="txt_new">Nuevo</span></a>
         </div>
     </header>
 
-    <form id="npForm" onsubmit="saveData(event)">
-        <div class="form-grid">
-            <div class="card">
-                <div class="card-title" id="t1">1. Identificación Básica</div>
-                <div class="form-group">
-                    <label id="l_np">Número de Parte *</label>
-                    <input type="text" id="part_number" required>
-                </div>
-                <div class="form-group">
-                    <label id="l_desc">Descripción *</label>
-                    <textarea id="description" required></textarea>
-                </div>
-                <div class="form-grid" style="gap:10px;">
-                    <div class="form-group"><label id="l_cli">Cliente</label><input type="text" id="client"></div>
-                    <div class="form-group"><label id="l_proj">Proyecto</label><input type="text" id="project"></div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title" id="t2">2. Fotografía</div>
-                <div class="image-uploader">
-                    <i class="fas fa-cloud-upload-alt fa-2x" id="upload_icon"></i>
-                    <p id="upload_txt">Click para subir foto</p>
-                    <input type="file" id="fileInput" accept="image/*" onchange="previewImage(this)">
-                    <img id="imgPreview" class="image-preview">
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title" id="t3">3. Especificaciones</div>
-                <div class="form-grid" style="gap:10px;">
-                    <div class="form-group"><label id="l_res">Resina</label><input type="text" id="resin_type"></div>
-                    <div class="form-group"><label id="l_col">Color</label><input type="text" id="color"></div>
-                </div>
-                <div class="form-grid" style="gap:10px;">
-                    <div class="form-group"><label id="l_cav">Cavidades</label><input type="number" id="cavities"></div>
-                    <div class="form-group"><label id="l_cic">Ciclo (s)</label><input type="number" id="cycle_time_seg"></div>
-                </div>
-                <div class="form-grid" style="gap:10px;">
-                    <div class="form-group"><label id="l_wp">Peso Pza (g)</label><input type="number" step="0.01" id="part_weight_gr"></div>
-                    <div class="form-group"><label id="l_wr">Peso Vena (g)</label><input type="number" step="0.01" id="runner_weight_gr"></div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title" id="t4">4. Estatus y Logística</div>
-                <div class="form-group">
-                    <label id="l_sta">Estatus de Ingeniería</label>
-                    <select id="obsolete">
-                        <option value="false">ACTIVO</option>
-                        <option value="true">OBSOLETO</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label id="l_sp">Standard Pack</label>
-                    <input type="number" id="std_pack">
-                </div>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary" id="btn_save">
-            <i class="fas fa-save"></i> <span id="txt_save">GUARDAR DATOS</span>
-        </button>
-    </form>
+    <table>
+        <thead>
+            <tr>
+                <th id="th_np">N° Parte</th>
+                <th id="th_desc">Descripción / Nombre</th>
+                <th id="th_proj">Proyecto</th>
+                <th id="th_type">Tipo Producto</th>
+                <th id="th_inv">Inventario</th>
+                <th id="th_stat">Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            </tbody>
+    </table>
 </div>
 
 <script>
-    const editId = new URLSearchParams(window.location.search).get('id');
+    let currentLang = localStorage.getItem('lang') || 'es';
     const translations = {
-        es: { title: "Registro de Ingeniería", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS", loading: "Guardando...", upload: "Click para subir foto" },
-        ko: { title: "엔지니어링 등록", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진을 올리려면 클릭하세요" }
+        es: { title: "Administración de Partes", new: "Nuevo", thNp: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thType: "Tipo Producto", thInv: "Inventario", thStat: "Status", edit: "Editar", act: "ACTIVO", obs: "OBSOLETO" },
+        ko: { title: "부품 관리", new: "신규 등록", thNp: "부품 번호", thDesc: "품명 / 설명", thProj: "프로젝트", thType: "제품 유형", thInv: "재고", thStat: "상태", edit: "수정", act: "활성", obs: "단종" }
     };
 
-    async function init() {
-        if (editId) {
-            document.getElementById('main_title').innerText = "Editar Número de Parte";
-            const { data: p } = await client.from('parts').select('*').eq('id', editId).single();
-            if (p) {
-                document.getElementById('part_number').value = p.part_number;
-                document.getElementById('description').value = p.description || '';
-                document.getElementById('client').value = p.client || '';
-                document.getElementById('project').value = p.project || '';
-                document.getElementById('resin_type').value = p.resin_type || '';
-                document.getElementById('color').value = p.color || '';
-                document.getElementById('cavities').value = p.cavities || 0;
-                document.getElementById('cycle_time_seg').value = p.cycle_time_seg || 0;
-                document.getElementById('part_weight_gr').value = p.part_weight_gr || 0;
-                document.getElementById('runner_weight_gr').value = p.runner_weight_gr || 0;
-                document.getElementById('std_pack').value = p.std_pack || 0;
-                document.getElementById('obsolete').value = p.obsolete.toString();
-                if(p.image_url) {
-                    const prev = document.getElementById('imgPreview');
-                    prev.src = p.image_url;
-                    prev.style.display = 'block';
-                    document.getElementById('upload_icon').style.display = 'none';
-                    document.getElementById('upload_txt').style.display = 'none';
-                }
-            }
-        }
-    }
-
-    function previewImage(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                const prev = document.getElementById('imgPreview');
-                prev.src = e.target.result;
-                prev.style.display = 'block';
-                document.getElementById('upload_icon').style.display = 'none';
-                document.getElementById('upload_txt').style.display = 'none';
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    async function saveData(event) {
-        event.preventDefault();
-        document.getElementById('loading').style.display = 'flex';
+    async function loadTable() {
+        applyTheme();
+        setLang(currentLang);
         
-        let imageUrl = document.getElementById('imgPreview').src;
-        const file = document.getElementById('fileInput').files[0];
-        
-        if (file) {
-            const path = `part_images/${Date.now()}_${file.name}`;
-            await client.storage.from('inventario').upload(path, file);
-            imageUrl = client.storage.from('inventario').getPublicUrl(path).data.publicUrl;
-        }
+        // Jalar partes y su inventario actual
+        const { data: parts, error } = await client.from('parts').select('*').order('part_number', { ascending: true });
+        const { data: inv } = await client.from('inventory_part_summary').select('*');
 
-        const payload = {
-            part_number: document.getElementById('part_number').value,
-            description: document.getElementById('description').value,
-            client: document.getElementById('client').value,
-            project: document.getElementById('project').value,
-            resin_type: document.getElementById('resin_type').value,
-            color: document.getElementById('color').value,
-            cavities: parseInt(document.getElementById('cavities').value) || 0,
-            cycle_time_seg: parseInt(document.getElementById('cycle_time_seg').value) || 0,
-            part_weight_gr: parseFloat(document.getElementById('part_weight_gr').value) || 0,
-            runner_weight_gr: parseFloat(document.getElementById('runner_weight_gr').value) || 0,
-            std_pack: parseInt(document.getElementById('std_pack').value) || 0,
-            obsolete: document.getElementById('obsolete').value === 'true',
-            image_url: imageUrl.startsWith('data:') ? null : imageUrl
-        };
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
 
-        const { error } = editId 
-            ? await client.from('parts').update(payload).eq('id', editId)
-            : await client.from('parts').insert([payload]);
+        parts.forEach(p => {
+            const stock = inv?.find(i => i.part_id === p.id)?.current_inventory || 0;
+            const isObs = p.obsolete;
+            const statusLabel = isObs ? translations[currentLang].obs : translations[currentLang].act;
 
-        if (error) alert(error.message);
-        else location.href = 'admin_partes.html';
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${p.part_number}</b></td>
+                    <td>${p.part_name || p.description || '-'}</td>
+                    <td>${p.project || '-'}</td>
+                    <td>${p.product_type || 'Inyección'}</td>
+                    <td>${stock.toLocaleString()}</td>
+                    <td><span class="status-badge ${isObs ? 'obs' : 'active'}">${statusLabel}</span></td>
+                    <td>
+                        <a href="ingenieria_nuevo_np.html?id=${p.id}" class="btn" style="padding:4px 8px; font-size:12px;">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+            `;
+        });
     }
 
     function setLang(lang) {
+        currentLang = lang;
+        localStorage.setItem('lang', lang);
         const l = translations[lang];
-        document.getElementById('t1').innerText = l.t1;
-        document.getElementById('t2').innerText = l.t2;
-        document.getElementById('t3').innerText = l.t3;
-        document.getElementById('t4').innerText = l.t4;
-        document.getElementById('txt_save').innerText = l.save;
-        document.getElementById('txt_loading').innerText = l.loading;
-        document.getElementById('upload_txt').innerText = l.upload;
+        document.getElementById('txt_title').innerText = l.title;
+        document.getElementById('txt_new').innerText = l.new;
+        document.getElementById('th_np').innerText = l.thNp;
+        document.getElementById('th_desc').innerText = l.thDesc;
+        document.getElementById('th_proj').innerText = l.thProj;
+        document.getElementById('th_type').innerText = l.thType;
+        document.getElementById('th_inv').innerText = l.thInv;
+        document.getElementById('th_stat').innerText = l.thStat;
+        // Recargar badges si es necesario sin refrescar toda la tabla
     }
 
-    init();
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    function applyTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    loadTable();
 </script>
 </body>
 </html>
