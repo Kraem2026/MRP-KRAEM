@@ -49,23 +49,35 @@
     .bg-coverage { background: var(--success); }
 
     h2, h3 { margin: 0; }
+    
+    /* Controles de Idioma y Tema */
+    .controls { display: flex; gap: 8px; align-items: center; }
+    .lang-btn { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
+    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="header-actions">
-    <button class="btn" onclick="history.back()"><i class="fas fa-arrow-left"></i> Volver</button>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn" onclick="history.back()"><i class="fas fa-arrow-left"></i> <span id="txt_back">Volver</span></button>
+        <div class="controls">
+            <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
+            <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+            <button class="btn" onclick="toggleTheme()" style="padding: 10px;"><i id="themeIcon" class="fas fa-moon"></i></button>
+        </div>
+    </div>
     <div style="display: flex; gap: 10px;">
         <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> PDF</button>
-        <button class="btn btn-primary" id="btn_edit"><i class="fas fa-edit"></i> Editar</button>
+        <button class="btn btn-primary" id="btn_edit"><i class="fas fa-edit"></i> <span id="txt_edit_btn">Editar</span></button>
     </div>
   </div>
 
   <div class="main-grid">
     <div class="card">
       <div class="product-img-container" id="container_img">
-        <div class="no-image"><i class="fas fa-image fa-3x"></i><br>Sin imagen</div>
+        <div class="no-image" id="txt_no_image"><i class="fas fa-image fa-3x"></i><br>Sin imagen</div>
       </div>
       
       <div style="text-align: center; margin-bottom: 20px;">
@@ -75,47 +87,47 @@
       </div>
 
       <div class="spec-group">
-        <div class="spec-title">General</div>
+        <div class="spec-title" id="title_general">General</div>
         <div class="spec-grid">
-          <div class="spec-item"><div class="spec-label">Cliente</div><div id="val_client" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label">Proyecto</div><div id="val_project" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label">Clase ABC</div><div id="val_abc" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label">Std Pack</div><div id="val_std" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_client">Cliente</div><div id="val_client" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_project">Proyecto</div><div id="val_project" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_abc">Clase ABC</div><div id="val_abc" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_std">Std Pack</div><div id="val_std" class="spec-value">-</div></div>
         </div>
       </div>
     </div>
 
     <div class="card">
       <div class="spec-group">
-        <div class="spec-title">Ficha de Ingeniería (Inyección)</div>
+        <div class="spec-title" id="title_eng">Ficha de Ingeniería (Inyección)</div>
         <div class="spec-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="spec-item"><div class="spec-label">Resina</div><div id="val_resin" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label">Grado</div><div id="val_grade" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label">Color</div><div id="val_color" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_resin">Resina</div><div id="val_resin" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_grade">Grado</div><div id="val_grade" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_color">Color</div><div id="val_color" class="spec-value">-</div></div>
           
-          <div class="spec-item"><div class="spec-label">Cavidades</div><div id="val_cav" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label">Ciclo (s)</div><div id="val_cycle" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label">Tolerancia</div><div id="val_tol" class="spec-value">± 0.0g</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_cav">Cavidades</div><div id="val_cav" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_cycle">Ciclo (s)</div><div id="val_cycle" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_tol">Tolerancia</div><div id="val_tol" class="spec-value">± 0.0g</div></div>
 
-          <div class="spec-item"><div class="spec-label">Peso Pieza</div><div id="val_w_part" class="spec-value">0.0g</div></div>
-          <div class="spec-item"><div class="spec-label">Colada Prop.</div><div id="val_w_runner" class="spec-value">0.0g</div></div>
-          <div class="spec-item" style="border: 2px solid var(--primary);"><div class="spec-label">Total Shot</div><div id="val_w_total" class="spec-value" style="color:var(--primary)">0.0g</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_w_part">Peso Pieza</div><div id="val_w_part" class="spec-value">0.0g</div></div>
+          <div class="spec-item"><div class="spec-label" id="lbl_w_runner">Colada Prop.</div><div id="val_w_runner" class="spec-value">0.0g</div></div>
+          <div class="spec-item" style="border: 2px solid var(--primary);"><div class="spec-label" id="lbl_w_total">Total Shot</div><div id="val_w_total" class="spec-value" style="color:var(--primary)">0.0g</div></div>
         </div>
       </div>
 
       <div class="spec-group" style="margin-top: 30px;">
-        <div class="spec-title">Radiografía de Planeación</div>
+        <div class="spec-title" id="title_plan">Radiografía de Planeación</div>
         <div class="kpi-grid">
           <div class="kpi-card bg-blue">
-            <div class="spec-label" style="color:white; opacity:0.8;">Inventario</div>
+            <div class="spec-label" id="lbl_inv" style="color:white; opacity:0.8;">Inventario</div>
             <div id="kpi_inv" class="spec-value" style="font-size: 1.4rem;">0</div>
           </div>
           <div class="kpi-card bg-orange">
-            <div class="spec-label" style="color:white; opacity:0.8;">Demanda (30d)</div>
+            <div class="spec-label" id="lbl_demand" style="color:white; opacity:0.8;">Demanda (30d)</div>
             <div id="kpi_demand" class="spec-value" style="font-size: 1.4rem;">0</div>
           </div>
           <div id="card_coverage" class="kpi-card bg-coverage">
-            <div class="spec-label" style="color:white; opacity:0.8;">Cobertura (Días)</div>
+            <div class="spec-label" id="lbl_days" style="color:white; opacity:0.8;">Cobertura (Días)</div>
             <div id="kpi_days" class="spec-value" style="font-size: 1.4rem;">0</div>
           </div>
         </div>
@@ -127,29 +139,46 @@
 </div>
 
 <script>
-// USAR TUS CREDENCIALES
 const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
-
 const id = new URLSearchParams(window.location.search).get('id');
+let currentLang = localStorage.getItem('lang') || 'es';
+
+const translations = {
+    es: {
+        back: "Volver", edit: "Editar", noImg: "Sin imagen", titleGen: "General",
+        lblClient: "Cliente", lblProj: "Proyecto", lblAbc: "Clase ABC", lblStd: "Std Pack",
+        titleEng: "Ficha de Ingeniería (Inyección)", lblResin: "Resina", lblGrade: "Grado", lblColor: "Color",
+        lblCav: "Cavidades", lblCycle: "Ciclo (s)", lblTol: "Tolerancia", lblWPart: "Peso Pieza",
+        lblWRun: "Colada Prop.", lblWTotal: "Total Shot", titlePlan: "Radiografía de Planeación",
+        lblInv: "Inventario", lblDem: "Demanda (30d)", lblCov: "Cobertura (Días)", act: "ACTIVO", obs: "OBSOLETO"
+    },
+    ko: {
+        back: "뒤로 가기", edit: "수정하기", noImg: "이미지 없음", titleGen: "일반 정보",
+        lblClient: "고객사", lblProj: "프로젝트", lblAbc: "ABC 등급", lblStd: "표준 포장",
+        titleEng: "엔지니어링 데이터 (사출)", lblResin: "레진", lblGrade: "등급", lblColor: "색상",
+        lblCav: "캐비티", lblCycle: "사이클 (초)", lblTol: "공차", lblWPart: "제품 중량",
+        lblWRun: "러너 중량", lblWTotal: "총 중량", titlePlan: "생산 계획 분석",
+        lblInv: "현재고", lblDem: "수요 (30일)", lblCov: "재고 일수", act: "활성", obs: "단종"
+    }
+};
 
 async function init() {
+  applyTheme();
+  setLang(currentLang);
   if(!id) return;
 
-  // Cargar datos de la tabla PARTS
   const { data: p } = await client.from('parts').select('*').eq('id', id).single();
   if(!p) return;
 
-  // Llenado de UI
   document.getElementById('txt_part_number').innerText = p.part_number;
-  document.getElementById('txt_part_name').innerText = p.part_name || p.description || 'Sin descripción';
+  document.getElementById('txt_part_name').innerText = p.part_name || p.description || '---';
   
   const b = document.getElementById('badge_status');
-  b.innerText = p.obsolete ? 'OBSOLETO' : 'ACTIVO';
+  b.innerText = p.obsolete ? translations[currentLang].obs : translations[currentLang].act;
   b.className = 'status-badge ' + (p.obsolete ? 'status-obs' : 'status-active');
 
   if(p.image_url) document.getElementById('container_img').innerHTML = `<img src="${p.image_url}">`;
 
-  // Datos Ingeniería
   document.getElementById('val_client').innerText = p.client || '-';
   document.getElementById('val_project').innerText = p.project || '-';
   document.getElementById('val_abc').innerText = p.abc_class || '-';
@@ -167,23 +196,63 @@ async function init() {
   document.getElementById('val_w_runner').innerText = wr.toFixed(2) + 'g';
   document.getElementById('val_w_total').innerText = (wp + wr).toFixed(2) + 'g';
 
-  // Cargar Inventario y KPIs desde la vista de resumen
   const { data: kpi } = await client.from('inventory_part_summary').select('*').eq('part_id', id).single();
   if(kpi) {
     document.getElementById('kpi_inv').innerText = (kpi.current_inventory || 0).toLocaleString();
     document.getElementById('kpi_demand').innerText = (kpi.avg_monthly_demand || 0).toLocaleString();
     const days = kpi.coverage_days || 0;
     document.getElementById('kpi_days').innerText = days;
-
     const c = document.getElementById('card_coverage');
     if(days < 3) c.style.background = 'var(--danger)';
     else if(days < 7) c.style.background = 'var(--warning)';
     else c.style.background = 'var(--success)';
   }
 
-  // Último Movimiento
+  document.getElementById('btn_edit').onclick = () => location.href = `ingenieria_nuevo_np.html?id=${id}`;
+
   const { data: m } = await client.from('inventory_movements').select('created_at').eq('part_id', id).order('created_at',{ascending:false}).limit(1);
-  if(m && m[0]) document.getElementById('txt_last_move').innerText = "Último mov: " + new Date(m[0].created_at).toLocaleString();
+  if(m && m[0]) document.getElementById('txt_last_move').innerText = (currentLang === 'es' ? "Último mov: " : "최근 이동: ") + new Date(m[0].created_at).toLocaleString();
+}
+
+function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('lang', lang);
+    const l = translations[lang];
+    document.getElementById('txt_back').innerText = l.back;
+    document.getElementById('txt_edit_btn').innerText = l.edit;
+    document.getElementById('title_general').innerText = l.titleGen;
+    document.getElementById('lbl_client').innerText = l.lblClient;
+    document.getElementById('lbl_project').innerText = l.lblProj;
+    document.getElementById('lbl_abc').innerText = l.lblAbc;
+    document.getElementById('lbl_std').innerText = l.lblStd;
+    document.getElementById('title_eng').innerText = l.titleEng;
+    document.getElementById('lbl_resin').innerText = l.lblResin;
+    document.getElementById('lbl_grade').innerText = l.lblGrade;
+    document.getElementById('lbl_color').innerText = l.lblColor;
+    document.getElementById('lbl_cav').innerText = l.lblCav;
+    document.getElementById('lbl_cycle').innerText = l.lblCycle;
+    document.getElementById('lbl_tol').innerText = l.lblTol;
+    document.getElementById('lbl_w_part').innerText = l.lblWPart;
+    document.getElementById('lbl_w_runner').innerText = l.lblWRun;
+    document.getElementById('lbl_w_total').innerText = l.lblWTotal;
+    document.getElementById('title_plan').innerText = l.titlePlan;
+    document.getElementById('lbl_inv').innerText = l.lblInv;
+    document.getElementById('lbl_demand').innerText = l.lblDem;
+    document.getElementById('lbl_days').innerText = l.lblCov;
+    if(document.getElementById('txt_no_image')) document.getElementById('txt_no_image').innerHTML = `<i class="fas fa-image fa-3x"></i><br>${l.noImg}`;
+}
+
+function toggleTheme() {
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function applyTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 init();
