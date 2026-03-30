@@ -2,140 +2,188 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Ficha Técnica - KRAEM</title>
+  <title>Ficha Técnica Maestra - KRAEM</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
   <style>
-    :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b; --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
-    [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155; }
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
+      --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b;
+    }
+    [data-theme="dark"] {
+      --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
+    }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+    
     .container { max-width: 1100px; margin: auto; }
-    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    
     .btn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; color: var(--text); background: var(--card); }
     .btn-primary { background: var(--primary); color: white; border: none; }
+
     .main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+    @media (max-width: 850px) { .main-grid { grid-template-columns: 1fr; } }
+    
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    .product-img-container { width: 100%; height: 280px; background: rgba(0,0,0,0.05); border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed var(--border); margin-bottom: 15px; }
+    
+    .product-img-container { width: 100%; height: 280px; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed var(--border); margin-bottom: 15px; position: relative; }
     .product-img-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .no-image { color: var(--text-secondary); text-align: center; font-size: 0.9rem; }
+
     .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
     .status-active { background: rgba(34, 197, 94, 0.1); color: var(--success); }
     .status-obs { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
     .spec-group { margin-bottom: 20px; }
-    .spec-title { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+    .spec-title { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
     .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
     .spec-item { background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
     .spec-label { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; }
     .spec-value { font-size: 1rem; font-weight: 600; }
-    .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
-    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+    .kpi-card { text-align: center; padding: 15px; border-radius: 12px; color: white; }
+    .bg-blue { background: var(--primary); }
+    .bg-orange { background: var(--warning); }
+    .bg-coverage { background: var(--success); }
+
+    h2, h3 { margin: 0; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="header-actions">
-    <button class="btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
-    <div style="display: flex; gap: 10px; align-items: center;">
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
-        <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
-        <button class="btn btn-primary" id="btn_edit_link"><i class="fas fa-edit"></i> <span id="txt_edit">Editar</span></button>
+    <button class="btn" onclick="history.back()"><i class="fas fa-arrow-left"></i> Volver</button>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> PDF</button>
+        <button class="btn btn-primary" id="btn_edit"><i class="fas fa-edit"></i> Editar</button>
     </div>
   </div>
 
   <div class="main-grid">
     <div class="card">
       <div class="product-img-container" id="container_img">
-        <div class="no-image"><i class="fas fa-image fa-3x"></i></div>
+        <div class="no-image"><i class="fas fa-image fa-3x"></i><br>Sin imagen</div>
       </div>
+      
       <div style="text-align: center; margin-bottom: 20px;">
         <span id="badge_status" class="status-badge">---</span>
-        <h2 id="txt_part_number" style="margin-top: 10px;">---</h2>
-        <p id="txt_part_name" class="text-secondary">---</p>
+        <h2 id="txt_part_number" style="margin-top: 10px; font-size: 1.5rem;">Cargando...</h2>
+        <p id="txt_part_name" style="font-size: 0.9rem; color: var(--text-secondary);">Cargando descripción...</p>
       </div>
+
       <div class="spec-group">
-        <div class="spec-title" id="title_gen">General</div>
+        <div class="spec-title">General</div>
         <div class="spec-grid">
-          <div class="spec-item"><div class="spec-label" id="lbl_cli">Cliente</div><div id="val_client" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_proj">Proyecto</div><div id="val_project" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Cliente</div><div id="val_client" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Proyecto</div><div id="val_project" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Clase ABC</div><div id="val_abc" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Std Pack</div><div id="val_std" class="spec-value">-</div></div>
         </div>
       </div>
     </div>
 
     <div class="card">
       <div class="spec-group">
-        <div class="spec-title" id="title_eng">Ingeniería</div>
+        <div class="spec-title">Ficha de Ingeniería (Inyección)</div>
         <div class="spec-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="spec-item"><div class="spec-label" id="lbl_res">Resina</div><div id="val_resin" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_col">Color</div><div id="val_color" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_cav">Cavidades</div><div id="val_cav" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_wei">Peso (g)</div><div id="val_w_part" class="spec-value">0.0</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_run">Vena (g)</div><div id="val_w_runner" class="spec-value">0.0</div></div>
-          <div class="spec-item" style="border-color:var(--primary)"><div class="spec-label" id="lbl_tot">Total Shot</div><div id="val_w_total" class="spec-value" style="color:var(--primary)">0.0</div></div>
+          <div class="spec-item"><div class="spec-label">Resina</div><div id="val_resin" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Grado</div><div id="val_grade" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Color</div><div id="val_color" class="spec-value">-</div></div>
+          
+          <div class="spec-item"><div class="spec-label">Cavidades</div><div id="val_cav" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Ciclo (s)</div><div id="val_cycle" class="spec-value">-</div></div>
+          <div class="spec-item"><div class="spec-label">Tolerancia</div><div id="val_tol" class="spec-value">± 0.0g</div></div>
+
+          <div class="spec-item"><div class="spec-label">Peso Pieza</div><div id="val_w_part" class="spec-value">0.0g</div></div>
+          <div class="spec-item"><div class="spec-label">Colada Prop.</div><div id="val_w_runner" class="spec-value">0.0g</div></div>
+          <div class="spec-item" style="border: 2px solid var(--primary);"><div class="spec-label">Total Shot</div><div id="val_w_total" class="spec-value" style="color:var(--primary)">0.0g</div></div>
         </div>
       </div>
+
+      <div class="spec-group" style="margin-top: 30px;">
+        <div class="spec-title">Radiografía de Planeación</div>
+        <div class="kpi-grid">
+          <div class="kpi-card bg-blue">
+            <div class="spec-label" style="color:white; opacity:0.8;">Inventario</div>
+            <div id="kpi_inv" class="spec-value" style="font-size: 1.4rem;">0</div>
+          </div>
+          <div class="kpi-card bg-orange">
+            <div class="spec-label" style="color:white; opacity:0.8;">Demanda (30d)</div>
+            <div id="kpi_demand" class="spec-value" style="font-size: 1.4rem;">0</div>
+          </div>
+          <div id="card_coverage" class="kpi-card bg-coverage">
+            <div class="spec-label" style="color:white; opacity:0.8;">Cobertura (Días)</div>
+            <div id="kpi_days" class="spec-value" style="font-size: 1.4rem;">0</div>
+          </div>
+        </div>
+      </div>
+      
+      <p id="txt_last_move" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 20px; text-align: right;"></p>
     </div>
   </div>
 </div>
 
 <script>
-const translations = {
-    es: { edit: "Editar", gen: "General", eng: "Ingeniería", cli: "Cliente", proj: "Proyecto", res: "Resina", col: "Color", cav: "Cavidades", wei: "Peso Pieza", run: "Vena Prop.", tot: "Total Inyección", act: "ACTIVO", obs: "OBSOLETO" },
-    ko: { edit: "수정", gen: "일반 정보", eng: "공학 데이터", cli: "고객", proj: "프로젝트", res: "레진", col: "색상", cav: "캐비티", wei: "부품 무게", run: "런너 무게", tot: "총 사출량", act: "활성", obs: "단종" }
-};
+// USAR TUS CREDENCIALES
+const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 const id = new URLSearchParams(window.location.search).get('id');
 
 async function init() {
-    if(!id) return;
-    document.getElementById('btn_edit_link').onclick = () => location.href = `ingenieria_nuevo_np.html?id=${id}`;
-    
-    const { data: p } = await client.from('parts').select('*').eq('id', id).single();
-    if(!p) return;
+  if(!id) return;
 
-    document.getElementById('txt_part_number').innerText = p.part_number;
-    document.getElementById('txt_part_name').innerText = p.description || p.part_name;
-    if(p.image_url) document.getElementById('container_img').innerHTML = `<img src="${p.image_url}">`;
-    
-    document.getElementById('val_client').innerText = p.client || '-';
-    document.getElementById('val_project').innerText = p.project || '-';
-    document.getElementById('val_resin').innerText = p.resin_type || '-';
-    document.getElementById('val_color').innerText = p.color || '-';
-    document.getElementById('val_cav').innerText = p.cavities || '0';
-    
-    const wp = parseFloat(p.part_weight_gr || 0);
-    const wr = parseFloat(p.runner_weight_gr || 0);
-    document.getElementById('val_w_part').innerText = wp.toFixed(2);
-    document.getElementById('val_w_runner').innerText = wr.toFixed(2);
-    document.getElementById('val_w_total').innerText = (wp + wr).toFixed(2);
+  // Cargar datos de la tabla PARTS
+  const { data: p } = await client.from('parts').select('*').eq('id', id).single();
+  if(!p) return;
 
-    updateBadge(p.obsolete);
-}
+  // Llenado de UI
+  document.getElementById('txt_part_number').innerText = p.part_number;
+  document.getElementById('txt_part_name').innerText = p.part_name || p.description || 'Sin descripción';
+  
+  const b = document.getElementById('badge_status');
+  b.innerText = p.obsolete ? 'OBSOLETO' : 'ACTIVO';
+  b.className = 'status-badge ' + (p.obsolete ? 'status-obs' : 'status-active');
 
-function updateBadge(isObs) {
-    const b = document.getElementById('badge_status');
-    const l = translations[localStorage.getItem('lang') || 'es'];
-    b.innerText = isObs ? l.obs : l.act;
-    b.className = 'status-badge ' + (isObs ? 'status-obs' : 'status-active');
-}
+  if(p.image_url) document.getElementById('container_img').innerHTML = `<img src="${p.image_url}">`;
 
-function setLang(lang) {
-    localStorage.setItem('lang', lang);
-    const l = translations[lang];
-    document.getElementById('txt_edit').innerText = l.edit;
-    document.getElementById('title_gen').innerText = l.gen;
-    document.getElementById('title_eng').innerText = l.eng;
-    document.getElementById('lbl_cli').innerText = l.cli;
-    document.getElementById('lbl_proj').innerText = l.proj;
-    document.getElementById('lbl_res').innerText = l.res;
-    document.getElementById('lbl_col').innerText = l.col;
-    document.getElementById('lbl_cav').innerText = l.cav;
-    document.getElementById('lbl_wei').innerText = l.wei;
-    document.getElementById('lbl_run').innerText = l.run;
-    document.getElementById('lbl_tot').innerText = l.tot;
-    init(); // Refrescar para estatus
+  // Datos Ingeniería
+  document.getElementById('val_client').innerText = p.client || '-';
+  document.getElementById('val_project').innerText = p.project || '-';
+  document.getElementById('val_abc').innerText = p.abc_class || '-';
+  document.getElementById('val_std').innerText = p.std_pack || '-';
+  document.getElementById('val_resin').innerText = p.resin_type || '-';
+  document.getElementById('val_grade').innerText = p.resin_grade || '-';
+  document.getElementById('val_color').innerText = p.color || '-';
+  document.getElementById('val_cav').innerText = p.cavities || '0';
+  document.getElementById('val_cycle').innerText = (p.cycle_time_seg || '0') + 's';
+  document.getElementById('val_tol').innerText = `± ${p.tolerance_plus || 0}g`;
+
+  const wp = parseFloat(p.part_weight_gr || 0);
+  const wr = parseFloat(p.runner_weight_gr || 0);
+  document.getElementById('val_w_part').innerText = wp.toFixed(2) + 'g';
+  document.getElementById('val_w_runner').innerText = wr.toFixed(2) + 'g';
+  document.getElementById('val_w_total').innerText = (wp + wr).toFixed(2) + 'g';
+
+  // Cargar Inventario y KPIs desde la vista de resumen
+  const { data: kpi } = await client.from('inventory_part_summary').select('*').eq('part_id', id).single();
+  if(kpi) {
+    document.getElementById('kpi_inv').innerText = (kpi.current_inventory || 0).toLocaleString();
+    document.getElementById('kpi_demand').innerText = (kpi.avg_monthly_demand || 0).toLocaleString();
+    const days = kpi.coverage_days || 0;
+    document.getElementById('kpi_days').innerText = days;
+
+    const c = document.getElementById('card_coverage');
+    if(days < 3) c.style.background = 'var(--danger)';
+    else if(days < 7) c.style.background = 'var(--warning)';
+    else c.style.background = 'var(--success)';
+  }
+
+  // Último Movimiento
+  const { data: m } = await client.from('inventory_movements').select('created_at').eq('part_id', id).order('created_at',{ascending:false}).limit(1);
+  if(m && m[0]) document.getElementById('txt_last_move').innerText = "Último mov: " + new Date(m[0].created_at).toLocaleString();
 }
 
 init();
