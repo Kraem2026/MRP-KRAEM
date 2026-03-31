@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Calidad - KRAEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="config.js"></script>
+
+    <style>
+        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
+        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 20px; }
+        .btn { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; }
+        
+        .grid-quality { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: auto; }
+        @media (max-width: 800px) { .grid-quality { grid-template-columns: 1fr; } }
+
+        .card { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); }
+        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+        .bg-success { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+        .bg-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+        
+        .check-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border); }
+        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+
+        .lang-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
+        <h2 id="txt_title">Módulo de Calidad</h2>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" width="100%"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" width="100%"></button>
+        <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+</header>
+
+<div class="grid-quality">
+    <div class="card">
+        <h3 id="txt_release_title"><i class="fas fa-check-double"></i> Liberación de Primera Pieza</h3>
+        <p id="txt_release_desc" style="font-size: 0.9rem; color: gray;">Autorización para inicio de producción por turno.</p>
+        
+        <div style="margin-top: 15px;">
+            <label id="lbl_part">Número de Parte:</label>
+            <input type="text" id="partInput" placeholder="Ej: 1584..." style="width:100%; padding:10px; margin: 10px 0; border-radius: 8px; border:1px solid var(--border); background: var(--bg); color: var(--text);">
+            
+            <div class="check-item">
+                <span id="txt_check_visual">Inspección Visual (Sin ráfagas/quemados)</span>
+                <input type="checkbox" id="checkVisual">
+            </div>
+            <div class="check-item">
+                <span id="txt_check_dim">Dimensiones Críticas (Según Plano)</span>
+                <input type="checkbox" id="checkDim">
+            </div>
+            <div class="check-item">
+                <span id="txt_check_weight">Peso de la Pieza (Gramaje)</span>
+                <input type="checkbox" id="checkWeight">
+            </div>
+
+            <button class="btn" style="width:100%; margin-top:20px; justify-content: center; background: var(--primary); color:white; border:none;" onclick="saveInspection()">
+                <i class="fas fa-save"></i> <span id="txt_btn_save">Guardar Liberación</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 id="txt_recent_title"><i class="fas fa-history"></i> Inspecciones Recientes</h3>
+        <div id="inspectionsList" style="margin-top: 15px;">
+            <div style="text-align:center; padding: 20px; color: gray;" id="txt_loading">Cargando registros...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentLang = localStorage.getItem('lang') || 'es';
+    const translations = {
+        es: {
+            title: "Módulo de Calidad", releaseTitle: "Liberación de Primera Pieza", 
+            releaseDesc: "Autorización para inicio de producción.", lblPart: "Número de Parte:",
+            cVisual: "Inspección Visual", cDim: "Dimensiones Críticas", cWeight: "Peso de Pieza",
+            btnSave: "Guardar Liberación", recent: "Inspecciones Recientes"
+        },
+        ko: {
+            title: "품질 관리 모듈", releaseTitle: "초물 검사 승인", 
+            releaseDesc: "생산 시작 전 품질 승인 양식입니다.", lblPart: "부품 번호:",
+            cVisual: "외관 검사", cDim: "주요 치수 검사", cWeight: "중량 측정",
+            btnSave: "검사 결과 저장", recent: "최근 검사 이력"
+        }
+    };
+
+    function setLang(lang) {
+        currentLang = lang;
+        localStorage.setItem('lang', lang);
+        const l = translations[lang];
+        document.getElementById('txt_title').innerText = l.title;
+        document.getElementById('txt_release_title').innerHTML = `<i class="fas fa-check-double"></i> ${l.releaseTitle}`;
+        document.getElementById('txt_release_desc').innerText = l.releaseDesc;
+        document.getElementById('lbl_part').innerText = l.lblPart;
+        document.getElementById('txt_check_visual').innerText = l.cVisual;
+        document.getElementById('txt_check_dim').innerText = l.cDim;
+        document.getElementById('txt_check_weight').innerText = l.cWeight;
+        document.getElementById('txt_btn_save').innerText = l.btnSave;
+        document.getElementById('txt_recent_title').innerHTML = `<i class="fas fa-history"></i> ${l.recent}`;
+    }
+
+    async function saveInspection() {
+        // Lógica para insertar en Supabase (Pendiente conectar con ID real)
+        alert("Inspección Guardada Correctamente");
+    }
+
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }
+
+    setLang(currentLang);
+</script>
+</body>
+</html>

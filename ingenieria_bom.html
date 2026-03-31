@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de BOM - KRAEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <script src="config.js"></script>
+
+    <style>
+        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --secondary: #64748b; --success: #22c55e; }
+        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 20px auto; flex-wrap: wrap; gap: 10px; }
+        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 13px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-success { background: var(--success); color: white; border: none; }
+
+        .main-container { max-width: 1200px; margin: auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        @media (max-width: 900px) { .main-container { grid-template-columns: 1fr; } }
+
+        .panel { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        /* Buscador Lateral */
+        .search-box { position: sticky; top: 20px; height: fit-content; }
+        input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 10px; }
+        .pt-list { max-height: 500px; overflow-y: auto; margin-top: 10px; }
+        .pt-item { padding: 10px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s; }
+        .pt-item:hover { background: rgba(37, 99, 235, 0.1); }
+        .pt-item.active { background: var(--primary); color: white; }
+
+        /* Tabla BOM */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--secondary); }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+
+        .controls { display: flex; gap: 8px; align-items: center; }
+        .lang-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
+        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .bom-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
+        <h2 style="margin:0;" id="txt_title">Estructura de Materiales (BOM)</h2>
+    </div>
+    <div class="controls">
+        <button class="btn" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+        <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+</header>
+
+<div class="main-container">
+    <div class="panel search-box">
+        <h4 id="txt_select_pt" style="margin-top:0">Seleccionar Producto Terminado</h4>
+        <input type="text" id="inputSearchPT" placeholder="Buscar PT..." onkeyup="fetchPTs()">
+        <div class="pt-list" id="ptList">
+            </div>
+    </div>
+
+    <div class="panel">
+        <div class="bom-header">
+            <div>
+                <h3 id="selectedPTName" style="margin:0">---</h3>
+                <small id="selectedPTNumber" style="color:var(--secondary)">Seleccione un número de parte</small>
+            </div>
+            <button class="btn btn-primary" id="btn_edit" onclick="toggleEdit()" style="display:none;">
+                <i class="fas fa-edit"></i> <span id="txt_edit">Editar BOM</span>
+            </button>
+        </div>
+
+        <div id="bomContent">
+            <table id="bomTable">
+                <thead>
+                    <tr>
+                        <th id="th_comp">Componente / Materia Prima</th>
+                        <th id="th_type">Tipo</th>
+                        <th id="th_qty">Cantidad (Q)</th>
+                        <th id="th_unit">Unidad</th>
+                        <th style="width:50px"></th>
+                    </tr>
+                </thead>
+                <tbody id="bomBody">
+                    <tr><td colspan="5" style="text-align:center; color:var(--secondary)">Seleccione un PT para ver su estructura</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentLang = localStorage.getItem('lang') || 'es';
+    let selectedPTId = null;
+    let allBomData = [];
+
+    const translations = {
+        es: {
+            title: "Estructura de Materiales (BOM)", selectPT: "Seleccionar Producto Terminado",
+            thComp: "Componente / Materia Prima", thType: "Tipo", thQty: "Cantidad", thUnit: "Unidad",
+            edit: "Editar BOM", save: "Guardar Cambios"
+        },
+        ko: {
+            title: "자재 명세서 (BOM) 관리", selectPT: "완제품 선택",
+            thComp: "부품 / 원자재", thType: "유형", thQty: "수량", thUnit: "단위",
+            edit: "BOM 수정", save: "변경 사항 저장"
+        }
+    };
+
+    async function init() {
+        applyTheme();
+        setLang(currentLang);
+        fetchPTs();
+    }
+
+    // Busca PTs en Supabase (solo los que no son obsoletos y son PT)
+    async function fetchPTs() {
+        const q = document.getElementById('inputSearchPT').value.trim();
+        let query = client.from('parts').select('id, part_number, part_name')
+                          .eq('obsolete', false)
+                          .neq('product_type', 'RESINA'); // Omitimos resinas puras en la lista de búsqueda de padres
+
+        if (q) query = query.or(`part_number.ilike.%${q}%,part_name.ilike.%${q}%`);
+
+        const { data, error } = await query.limit(20).order('part_number');
+        if (error) return;
+
+        const list = document.getElementById('ptList');
+        list.innerHTML = data.map(pt => `
+            <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="loadBOM(${pt.id}, '${pt.part_number}', '${pt.part_name}')">
+                <strong>${pt.part_number}</strong><br>
+                <small>${pt.part_name || ''}</small>
+            </div>
+        `).join('');
+    }
+
+    // Carga los "hijos" del PT seleccionado
+    async function loadBOM(id, number, name) {
+        selectedPTId = id;
+        document.getElementById('selectedPTName').innerText = name;
+        document.getElementById('selectedPTNumber').innerText = number;
+        document.getElementById('btn_edit').style.display = 'flex';
+        
+        // Resaltar en la lista
+        document.querySelectorAll('.pt-item').forEach(el => el.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        // Aquí haríamos el Join con la tabla bom_structures (cuando la crees)
+        // Por ahora simulamos la carga de la tabla
+        const { data, error } = await client
+            .from('bom_structures') 
+            .select('*, parts!bom_structures_child_id_fkey(part_number, part_name, product_type)')
+            .eq('parent_id', id);
+
+        allBomData = data || [];
+        renderBOM();
+    }
+
+    function renderBOM() {
+        const body = document.getElementById('bomBody');
+        if (allBomData.length === 0) {
+            body.innerHTML = `<tr><td colspan="5" style="text-align:center;">No tiene componentes registrados.</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = allBomData.map(item => `
+            <tr>
+                <td><strong>${item.parts.part_number}</strong><br>${item.parts.part_name}</td>
+                <td><small>${item.parts.product_type}</small></td>
+                <td>${item.quantity}</td>
+                <td>${item.unit || 'kg'}</td>
+                <td><i class="fas fa-info-circle" style="color:var(--secondary); cursor:pointer"></i></td>
+            </tr>
+        `).join('');
+    }
+
+    function exportExcel() {
+        const ws = XLSX.utils.table_to_sheet(document.getElementById('bomTable'));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "BOM");
+        XLSX.writeFile(wb, `BOM_${document.getElementById('selectedPTNumber').innerText}.xlsx`);
+    }
+
+    function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text(`BOM: ${document.getElementById('selectedPTName').innerText}`, 14, 15);
+        doc.autoTable({ html: '#bomTable', startY: 20 });
+        doc.save(`BOM_${document.getElementById('selectedPTNumber').innerText}.pdf`);
+    }
+
+    function toggleEdit() {
+        // Aquí abrirías un modal o habilitarías inputs para agregar componentes
+        alert("Redirigiendo al editor de BOM para el ID: " + selectedPTId);
+    }
+
+    function setLang(lang) {
+        currentLang = lang;
+        localStorage.setItem('lang', lang);
+        const l = translations[lang];
+        document.getElementById('txt_title').innerText = l.title;
+        document.getElementById('txt_select_pt').innerText = l.selectPT;
+        document.getElementById('th_comp').innerText = l.thComp;
+        document.getElementById('th_qty').innerText = l.thQty;
+        document.getElementById('th_unit').innerText = l.thUnit;
+        document.getElementById('txt_edit').innerText = l.edit;
+    }
+
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }
+
+    function applyTheme() {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    }
+
+    init();
+</script>
+</body>
+</html>
