@@ -6,49 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <script src="config.js"></script>
 
     <style>
-        :root { 
-            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
-            --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444;
-        }
-        [data-theme="dark"] {
-            --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
-        }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 20px auto; flex-wrap: wrap; gap: 10px;}
-        
-        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: 0.2s; text-decoration: none; font-size: 14px; }
+        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; }
+        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 20px auto; }
+        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; }
         .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-primary:hover { background: #1d4ed8; }
-
         .search-container { background: var(--card); padding: 15px; border-radius: 16px; border: 1px solid var(--border); max-width: 1200px; margin: 0 auto 20px auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-        input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); outline: none; box-sizing: border-box;}
-
-        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); max-width: 1200px; margin: auto; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); outline: none; }
+        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); max-width: 1200px; margin: auto; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
-        th { background: #1e293b; color: white; padding: 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 13px; cursor: pointer; }
-        tr:hover td { background: rgba(37, 99, 235, 0.05); }
-        
-        .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .badge-pt { background: rgba(34, 197, 94, 0.1); color: #166534; }
-        .badge-resina { background: rgba(245, 158, 11, 0.1); color: #854d0e; }
-        .badge-comp { background: rgba(37, 99, 235, 0.1); color: #1e40af; }
-        
+        th { background: #1e293b; color: white; padding: 15px; font-size: 11px; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
         .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .dot-active { background: var(--success); }
         .dot-obs { background: var(--danger); }
-
-        .controls { display: flex; gap: 10px; align-items: center; }
-        .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
-        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .btn-edit { color: var(--primary); font-size: 16px; transition: 0.2s; }
-        .btn-edit:hover { transform: scale(1.2); color: #1d4ed8; }
     </style>
 </head>
 <body>
@@ -56,25 +32,21 @@
 <header>
     <div style="display: flex; align-items: center; gap: 15px;">
         <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
-        <h2 style="margin:0;" id="txt_title">Catálogo Maestro de Ingeniería</h2>
+        <h2 style="margin:0;" id="txt_title">Catálogo Maestro</h2>
     </div>
-    <div class="controls">
-        <a href="ingenieria_nuevo_np.html" class="btn btn-primary" id="btn_new">
-            <i class="fas fa-plus"></i> Nuevo Número de Parte
-        </a>
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+    <div class="controls" style="display:flex; gap:10px;">
+        <a href="ingenieria_nuevo_np.html" class="btn btn-primary"><i class="fas fa-plus"></i> Nuevo</a>
         <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
 
 <div class="search-container">
-    <input type="text" id="searchPart" placeholder="Buscar por N° Parte o Nombre..." oninput="filterTable()">
-    <input type="text" id="searchProject" placeholder="Filtrar por Proyecto..." oninput="filterTable()">
-    <select id="filterStatus" onchange="filterTable()">
-        <option value="" id="opt_all">Todos los estatus</option>
-        <option value="active" id="opt_active">Activos</option>
-        <option value="obs" id="opt_obs">Obsoletos</option>
+    <input type="text" id="searchPart" placeholder="N° Parte o Nombre..." onkeyup="searchOnSupabase()">
+    <input type="text" id="searchProject" placeholder="Proyecto..." onkeyup="searchOnSupabase()">
+    <select id="filterStatus" onchange="searchOnSupabase()">
+        <option value="">Todos los estatus</option>
+        <option value="false">Activos</option>
+        <option value="true">Obsoletos</option>
     </select>
 </div>
 
@@ -82,162 +54,99 @@
     <table>
         <thead>
             <tr>
-                <th id="th_part">N° Parte</th>
-                <th id="th_desc">Nombre / Descripción</th>
-                <th id="th_proj">Proyecto</th>
-                <th id="th_type">Tipo</th>
-                <th id="th_resin">Resina</th>
-                <th id="th_status">Estatus</th>
-                <th style="width: 50px;"></th> </tr>
+                <th>N° Parte</th>
+                <th>Descripción</th>
+                <th>Proyecto</th>
+                <th>Tipo</th>
+                <th>Estatus</th>
+                <th style="width:50px;"></th>
+            </tr>
         </thead>
-        <tbody id="partsBody">
-        </tbody>
+        <tbody id="partsBody"></tbody>
     </table>
 </div>
 
 <script>
-    let allParts = [];
-    let currentLang = localStorage.getItem('lang') || 'es';
-
-    const translations = {
-        es: {
-            title: "Catálogo Maestro de Ingeniería", new: "Nuevo Número de Parte",
-            pPart: "Buscar por N° Parte o Nombre...", pProj: "Filtrar por Proyecto...",
-            optAll: "Todos los estatus", optActive: "Activos", optObs: "Obsoletos",
-            thPart: "N° Parte", thDesc: "Nombre / Descripción", thProj: "Proyecto", thType: "Tipo", thResin: "Resina", thStatus: "Estatus",
-            act: "Activo", obs: "Obsoleto"
-        },
-        ko: {
-            title: "마스터 엔지니어링 카탈로그", new: "새 부품 번호 등록",
-            pPart: "부품 번호 또는 이름으로 검색...", pProj: "프로젝트별 필터링...",
-            optAll: "모든 상태", optActive: "활성", optObs: "단종",
-            thPart: "부품 번호", thDesc: "이름 / 설명", thProj: "프로젝트", thType: "유형", thResin: "레진", thStatus: "상태",
-            act: "활성 (Active)", obs: "단종 (Obsolete)"
-        }
-    };
+    let searchTimeout;
 
     async function init() {
         applyTheme();
-        setLang(currentLang);
-        await loadParts();
+        await searchOnSupabase(); // Carga inicial
     }
 
-    async function loadParts() {
-        // MODIFICACIÓN CRÍTICA: Añadimos .range(0, 2000) para saltar el límite de 1,000 de Supabase
-        const { data, error } = await client
-            .from('parts')
-            .select('*')
-            .range(0, 2000) 
-            .order('id', { ascending: false });
+    // Esta es la función clave: busca directamente en la base de datos
+    async function searchOnSupabase() {
+        // Usamos un timeout para no saturar a Supabase mientras el usuario escribe
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            const partQ = document.getElementById('searchPart').value.trim();
+            const projQ = document.getElementById('searchProject').value.trim();
+            const statusQ = document.getElementById('filterStatus').value;
 
-        if (error) {
-            console.error('Error al cargar partes:', error);
-            return;
-        }
+            let query = client.from('parts').select('*');
 
-        allParts = data;
-        console.log("Registros cargados:", allParts.length); // Verificación en consola
-        renderTable(allParts);
+            // Filtros de Supabase (Server-side)
+            if (partQ) {
+                // Busca coincidencias en part_number O part_name
+                query = query.or(`part_number.ilike.%${partQ}%,part_name.ilike.%${partQ}%,description.ilike.%${partQ}%`);
+            }
+            if (projQ) {
+                query = query.ilike('project', `%${projQ}%`);
+            }
+            if (statusQ !== "") {
+                query = query.eq('obsolete', statusQ === "true");
+            }
+
+            // Limitamos a 100 resultados por rapidez y ordenamos por ID
+            const { data, error } = await query
+                .order('id', { ascending: false })
+                .limit(100);
+
+            if (error) {
+                console.error('Error:', error);
+                return;
+            }
+
+            renderTable(data);
+        }, 300); // Espera 300ms después de que el usuario deja de escribir
     }
 
     function renderTable(list) {
         const body = document.getElementById('partsBody');
-        const l = translations[currentLang];
-        
         if (!list || list.length === 0) {
-            body.innerHTML = `<tr><td colspan="7" style="text-align:center;">No se encontraron resultados</td></tr>`;
+            body.innerHTML = `<tr><td colspan="6" style="text-align:center;">No se encontraron resultados en la base de datos.</td></tr>`;
             return;
         }
 
-        body.innerHTML = list.map(p => {
-            let badgeClass = 'badge-pt';
-            let typeText = p.product_type || 'N/A';
-
-            if (p.product_type === 'RESINA') badgeClass = 'badge-resina';
-            if (p.product_type === 'COMPONENTE') badgeClass = 'badge-comp';
-
-            return `
-                <tr>
-                    <td onclick="goToFicha(${p.id})"><strong>${p.part_number}</strong></td>
-                    <td onclick="goToFicha(${p.id})">${p.part_name || p.description || '---'}</td>
-                    <td onclick="goToFicha(${p.id})">${p.project || '---'}</td>
-                    <td onclick="goToFicha(${p.id})"><span class="badge ${badgeClass}">${typeText}</span></td>
-                    <td onclick="goToFicha(${p.id})">${p.resin_type || '---'}</td>
-                    <td onclick="goToFicha(${p.id})">
-                        <span class="status-dot ${p.obsolete ? 'dot-obs' : 'dot-active'}"></span>
-                        ${p.obsolete ? l.obs : l.act}
-                    </td>
-                    <td style="text-align:center;">
-                        <a href="ingenieria_nuevo_np.html?id=${p.id}" class="btn-edit" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
-
-    function filterTable() {
-        const partQ = document.getElementById('searchPart').value.toLowerCase().trim();
-        const projQ = document.getElementById('searchProject').value.toLowerCase().trim();
-        const statusQ = document.getElementById('filterStatus').value;
-
-        const filtered = allParts.filter(p => {
-            const nParte = (p.part_number || '').toLowerCase();
-            const nNombre = (p.part_name || p.description || '').toLowerCase();
-            const nProyecto = (p.project || '').toLowerCase();
-
-            const matchesPart = nParte.includes(partQ) || nNombre.includes(partQ);
-            const matchesProj = nProyecto.includes(projQ);
-            const matchesStatus = statusQ === "" || (statusQ === 'obs' ? p.obsolete : !p.obsolete);
-            
-            return matchesPart && matchesProj && matchesStatus;
-        });
-
-        renderTable(filtered);
-    }
-
-    function goToFicha(id) {
-        window.location.href = `part_ficha_tecnica.html?id=${id}`;
-    }
-
-    function setLang(lang) {
-        currentLang = lang;
-        localStorage.setItem('lang', lang);
-        const l = translations[lang];
-        
-        document.getElementById('txt_title').innerText = l.title;
-        document.getElementById('btn_new').innerHTML = `<i class="fas fa-plus"></i> ${l.new}`;
-        document.getElementById('searchPart').placeholder = l.pPart;
-        document.getElementById('searchProject').placeholder = l.pProj;
-        document.getElementById('opt_all').innerText = l.optAll;
-        document.getElementById('opt_active').innerText = l.optActive;
-        document.getElementById('opt_obs').innerText = l.optObs;
-        document.getElementById('th_part').innerText = l.thPart;
-        document.getElementById('th_desc').innerText = l.thDesc;
-        document.getElementById('th_proj').innerText = l.thProj;
-        document.getElementById('th_type').innerText = l.thType;
-        document.getElementById('th_resin').innerText = l.thResin;
-        document.getElementById('th_status').innerText = l.thStatus;
-        
-        renderTable(allParts);
+        body.innerHTML = list.map(p => `
+            <tr>
+                <td onclick="location.href='part_ficha_tecnica.html?id=${p.id}'"><strong>${p.part_number}</strong></td>
+                <td>${p.part_name || p.description || '---'}</td>
+                <td>${p.project || '---'}</td>
+                <td>${p.product_type || '---'}</td>
+                <td>
+                    <span class="status-dot ${p.obsolete ? 'dot-obs' : 'dot-active'}"></span>
+                    ${p.obsolete ? 'Obsoleto' : 'Activo'}
+                </td>
+                <td>
+                    <a href="ingenieria_nuevo_np.html?id=${p.id}" style="color:var(--primary)"><i class="fas fa-edit"></i></a>
+                </td>
+            </tr>
+        `).join('');
     }
 
     function toggleTheme() {
         const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 
     function applyTheme() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
     }
 
     init();
 </script>
-
 </body>
 </html>
