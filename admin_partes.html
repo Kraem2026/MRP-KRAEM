@@ -126,8 +126,7 @@
         const { data, error } = await client
             .from('parts')
             .select('*')
-            // MODIFICACIÓN: Ordenamos por ID descendente para ver lo más nuevo primero
-            .order('id', { ascending: false });
+            .order('id', { ascending: false }); // Lo más nuevo arriba
 
         if (error) {
             console.error('Error al cargar partes:', error);
@@ -141,6 +140,12 @@
     function renderTable(list) {
         const body = document.getElementById('partsBody');
         const l = translations[currentLang];
+        
+        if (!list || list.length === 0) {
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center;">No se encontraron resultados</td></tr>`;
+            return;
+        }
+
         body.innerHTML = list.map(p => {
             let badgeClass = 'badge-pt';
             let typeText = p.product_type || 'N/A';
@@ -170,15 +175,19 @@
     }
 
     function filterTable() {
-        const partQ = document.getElementById('searchPart').value.toLowerCase();
-        const projQ = document.getElementById('searchProject').value.toLowerCase();
+        // Mejorado: trim() elimina espacios accidentales y toLowerCase() asegura coincidencia
+        const partQ = document.getElementById('searchPart').value.toLowerCase().trim();
+        const projQ = document.getElementById('searchProject').value.toLowerCase().trim();
         const statusQ = document.getElementById('filterStatus').value;
 
         const filtered = allParts.filter(p => {
-            const matchesPart = p.part_number.toLowerCase().includes(partQ) || 
-                               (p.description && p.description.toLowerCase().includes(partQ)) ||
-                               (p.part_name && p.part_name.toLowerCase().includes(partQ));
-            const matchesProj = (p.project || '').toLowerCase().includes(projQ);
+            // Manejamos nulos para que el buscador no se detenga
+            const nParte = (p.part_number || '').toLowerCase();
+            const nNombre = (p.part_name || p.description || '').toLowerCase();
+            const nProyecto = (p.project || '').toLowerCase();
+
+            const matchesPart = nParte.includes(partQ) || nNombre.includes(partQ);
+            const matchesProj = nProyecto.includes(projQ);
             const matchesStatus = statusQ === "" || (statusQ === 'obs' ? p.obsolete : !p.obsolete);
             
             return matchesPart && matchesProj && matchesStatus;
@@ -188,7 +197,6 @@
     }
 
     function goToFicha(id) {
-        // Redirige a la FICHA TÉCNICA (Vista de consulta)
         window.location.href = `part_ficha_tecnica.html?id=${id}`;
     }
 
