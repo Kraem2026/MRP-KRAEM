@@ -46,6 +46,9 @@
         .controls { display: flex; gap: 10px; align-items: center; }
         .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .btn-edit { color: var(--primary); font-size: 16px; transition: 0.2s; }
+        .btn-edit:hover { transform: scale(1.2); color: #1d4ed8; }
     </style>
 </head>
 <body>
@@ -85,7 +88,7 @@
                 <th id="th_type">Tipo</th>
                 <th id="th_resin">Resina</th>
                 <th id="th_status">Estatus</th>
-            </tr>
+                <th style="width: 50px;"></th> </tr>
         </thead>
         <tbody id="partsBody">
         </tbody>
@@ -138,7 +141,6 @@
         const body = document.getElementById('partsBody');
         const l = translations[currentLang];
         body.innerHTML = list.map(p => {
-            // Lógica de visualización de etiquetas por tipo
             let badgeClass = 'badge-pt';
             let typeText = p.product_type || 'N/A';
 
@@ -146,15 +148,20 @@
             if (p.product_type === 'COMPONENTE') badgeClass = 'badge-comp';
 
             return `
-                <tr onclick="goToFicha(${p.id})">
-                    <td><strong>${p.part_number}</strong></td>
-                    <td>${p.part_name || p.description || '---'}</td>
-                    <td>${p.project || '---'}</td>
-                    <td><span class="badge ${badgeClass}">${typeText}</span></td>
-                    <td>${p.resin_type || '---'}</td>
-                    <td>
+                <tr>
+                    <td onclick="goToFicha(${p.id})"><strong>${p.part_number}</strong></td>
+                    <td onclick="goToFicha(${p.id})">${p.part_name || p.description || '---'}</td>
+                    <td onclick="goToFicha(${p.id})">${p.project || '---'}</td>
+                    <td onclick="goToFicha(${p.id})"><span class="badge ${badgeClass}">${typeText}</span></td>
+                    <td onclick="goToFicha(${p.id})">${p.resin_type || '---'}</td>
+                    <td onclick="goToFicha(${p.id})">
                         <span class="status-dot ${p.obsolete ? 'dot-obs' : 'dot-active'}"></span>
                         ${p.obsolete ? l.obs : l.act}
+                    </td>
+                    <td style="text-align:center;">
+                        <a href="ingenieria_nuevo_np.html?id=${p.id}" class="btn-edit" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
                     </td>
                 </tr>
             `;
@@ -180,7 +187,8 @@
     }
 
     function goToFicha(id) {
-        window.location.href = `ingenieria_nuevo_np.html?id=${id}`;
+        // Redirige a la FICHA TÉCNICA (Vista de consulta)
+        window.location.href = `part_ficha_tecnica.html?id=${id}`;
     }
 
     function setLang(lang) {
