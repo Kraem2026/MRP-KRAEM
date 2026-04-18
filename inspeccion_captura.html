@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura de Inspección Interna - KRAEM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a;
+            --border: #e2e8f0; --success: #22c55e;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .btn-back { border: none; background: none; font-size: 1.2rem; cursor: pointer; color: var(--primary); }
+        
+        .form-container { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #64748b; }
+        
+        input, select, textarea {
+            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 1rem; box-sizing: border-box; outline: none;
+        }
+        input:focus { border-color: var(--primary); }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .btn-save {
+            width: 100%; padding: 15px; background: var(--primary); color: white;
+            border: none; border-radius: 8px; font-weight: bold; font-size: 1rem;
+            cursor: pointer; margin-top: 10px; transition: 0.2s;
+        }
+        .btn-save:active { transform: scale(0.98); }
+
+        /* Estilo para los cálculos automáticos */
+        .readonly-box { background: #f1f5f9; font-weight: bold; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <button class="btn-back" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i></button>
+    <h2>Nueva Inspección</h2>
+</div>
+
+<div class="form-container">
+    <div class="grid-2">
+        <div class="form-group">
+            <label>Turno</label>
+            <select id="turno">
+                <option value="1">Turno 1</option>
+                <option value="2">Turno 2</option>
+                <option value="3">Turno 3</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Máquina</label>
+            <input type="text" id="maquina" placeholder="Ej. #13">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Operador</label>
+        <input type="text" id="operador" placeholder="Nombre del operador">
+    </div>
+
+    <div class="form-group">
+        <label>Número de Parte</label>
+        <input type="text" id="num_parte" placeholder="Ej. 85393-XA000" oninput="autoNombrePieza(this.value)">
+    </div>
+
+    <div class="form-group">
+        <label>Nombre de Pieza</label>
+        <input type="text" id="nombre_pieza" class="readonly-box" readonly>
+    </div>
+
+    <div class="grid-2">
+        <div class="form-group">
+            <label>Cant. Inspeccionada</label>
+            <input type="number" id="cant_insp" oninput="calcularOk()">
+        </div>
+        <div class="form-group">
+            <label>Cant. Defectuosa</label>
+            <input type="number" id="cant_def" oninput="calcularOk()">
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="form-group">
+            <label>Cantidad OK</label>
+            <input type="number" id="cant_ok" class="readonly-box" readonly>
+        </div>
+        <div class="form-group">
+            <label>% Defecto</label>
+            <input type="text" id="porcentaje" class="readonly-box" readonly>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Tipo de Defecto</label>
+        <select id="tipo_defecto">
+            <option value="">Ninguno / OK</option>
+            <option value="RAFAGA">Ráfaga</option>
+            <option value="RAYON">Rayón</option>
+            <option value="CONTAMINADO">Contaminado</option>
+            <option value="TIRO CORTO">Tiro Corto</option>
+            <option value="REBABA">Exceso de Rebaba</option>
+            <option value="MANCHADO">Manchado</option>
+            <option value="GOLPE">Golpe</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Destino</label>
+        <select id="destino">
+            <option value="LIBERADO">Liberado</option>
+            <option value="RETRABAJO">Retrabajo</option>
+            <option value="SCRAP">Scrap</option>
+        </select>
+    </div>
+
+    <button class="btn-save" onclick="guardarInspeccion()">
+        <i class="fas fa-save"></i> GUARDAR LIBERACIÓN
+    </button>
+</div>
+
+<script>
+    // Lógica para que el nombre de la pieza salga solo
+    function autoNombrePieza(np) {
+        // Aquí podrías jalar de tu tabla de catálogo de piezas de Supabase
+        // Ejemplo rápido:
+        if(np.includes('85393')) document.getElementById('nombre_pieza').value = 'PLATE VENT GRILLE';
+        else if(np.includes('89897')) document.getElementById('nombre_pieza').value = 'HOUSING CHILD ANCHOR';
+    }
+
+    function calcularOk() {
+        const insp = parseInt(document.getElementById('cant_insp').value) || 0;
+        const def = parseInt(document.getElementById('cant_def').value) || 0;
+        const ok = insp - def;
+        document.getElementById('cant_ok').value = ok;
+        
+        const perc = insp > 0 ? ((def / insp) * 100).toFixed(2) : 0;
+        document.getElementById('porcentaje').value = perc + "%";
+    }
+
+    async function guardarInspeccion() {
+        // Aquí va tu lógica de Supabase .from('inspeccion_produccion').insert([...])
+        alert("Datos registrados correctamente. Calidad del lote: " + document.getElementById('porcentaje').value);
+        // location.reload();
+    }
+</script>
+</body>
+</html>
