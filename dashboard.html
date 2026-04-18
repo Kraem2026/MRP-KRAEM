@@ -15,8 +15,6 @@
     
     body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
     header { max-width: 1400px; margin: 0 auto 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-    .brand { display: flex; align-items: center; gap: 15px; }
-    .brand img { height: 60px; border-radius: 8px; }
     
     .grid-main { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1400px; margin: auto; }
     
@@ -31,37 +29,64 @@
     .module-info h3 { margin: 0; font-size: 0.95rem; }
     .module-info p { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-secondary); }
 
-    /* Estilo Especial Inspección */
     #modulo-privado { border: 1px solid var(--primary); background: rgba(37, 99, 235, 0.03); }
     .hidden { display: none !important; }
     .btn-ui { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); cursor: pointer; }
+    
+    /* Estilo para indicadores de veracidad */
+    .metric-value { font-size: 1.5rem; font-weight: 800; color: var(--primary); }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">
-    <img src="logo-kraem.jpg" alt="KRAEM">
+  <div style="display:flex; align-items:center; gap:15px;">
+    <img src="logo-kraem.jpg" alt="KRAEM" style="height:60px; border-radius:8px;">
     <h1>SISTEMA MRP KRAEM</h1>
   </div>
   <div class="controls">
-    <button class="btn-ui" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
-    <button class="btn-ui" onclick="location.href='Admin.html'"><i class="fas fa-cog"></i> Panel Admin</button>
+    <button class="btn-ui" onclick="location.href='Admin.html'"><i class="fas fa-cog"></i> Configuración</button>
   </div>
 </header>
 
 <main class="grid-main">
+
+  <div class="section-container">
+    <div class="section-header"><i class="fas fa-warehouse"></i> WMS e Inventarios</div>
+    <div class="card-group">
+      <a href="inventarios.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-boxes"></i></div>
+        <div class="module-info"><h3>Existencias</h3><p>Consultar Stock MP y PT.</p></div>
+      </a>
+      <a href="captura_inventario.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-exchange-alt"></i></div>
+        <div class="module-info"><h3>Movimientos</h3><p>Entradas, salidas y traspasos.</p></div>
+      </a>
+      <a href="conteos_menu.html" class="module-card" style="border-left: 4px solid var(--warning);">
+        <div class="icon-box" style="color: var(--warning);"><i class="fas fa-redo"></i></div>
+        <div class="module-info"><h3>Menú de Conteos</h3><p>Programar nuevos cíclicos.</p></div>
+      </a>
+      <a href="ciclicos_lista.html" class="module-card" style="border-left: 4px solid var(--warning);">
+        <div class="icon-box" style="color: var(--warning);"><i class="fas fa-list-check"></i></div>
+        <div class="module-info"><h3>Lista de Cíclicos</h3><p>Auditoría y conciliación.</p></div>
+      </a>
+      <a href="historial.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-history"></i></div>
+        <div class="module-info"><h3>Kardex</h3><p>Historial completo de movimientos.</p></div>
+      </a>
+    </div>
+  </div>
 
   <div class="section-container hidden" id="modulo-privado">
     <div class="section-header" style="color: var(--primary);"><i class="fas fa-shield-alt"></i> Control de Inspección</div>
     <div class="card-group">
       <a href="inspeccion_captura.html" class="module-card">
         <div class="icon-box" style="background:var(--primary); color:white;"><i class="fas fa-clipboard-check"></i></div>
-        <div class="module-info"><h3>Captura de Inspección</h3><p>Validación técnica de inspectores.</p></div>
+        <div class="module-info"><h3>Captura de Inspección</h3><p>Validación técnica.</p></div>
       </a>
       <a href="admin_defectos.html" class="module-card">
         <div class="icon-box" style="background:var(--warning); color:white;"><i class="fas fa-bug"></i></div>
-        <div class="module-info"><h3>Catálogo de Defectos</h3><p>Gestión de tipos de falla.</p></div>
+        <div class="module-info"><h3>Catálogo de Defectos</h3><p>Tipos de fallas en inspección.</p></div>
       </a>
     </div>
   </div>
@@ -71,96 +96,46 @@
     <div class="card-group">
       <a href="admin_rh.html" class="module-card">
         <div class="icon-box" style="background:var(--success); color:white;"><i class="fas fa-user-friends"></i></div>
-        <div class="module-info"><h3>Gestión de Personal</h3><p>Control de 70 operadores y turnos.</p></div>
+        <div class="module-info"><h3>Personal</h3><p>Gestión de los 70 operadores.</p></div>
       </a>
     </div>
   </div>
 
   <div class="section-container">
-    <div class="section-header"><i class="fas fa-drafting-compass"></i> Ingeniería</div>
-    <div class="card-group">
-      <a href="admin_partes.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-component-ant"></i></div>
-        <div class="module-info"><h3>Catálogo N/P</h3><p>Fichas técnicas y registros.</p></div>
-      </a>
-      <a href="ingenieria_bom.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-sitemap"></i></div>
-        <div class="module-info"><h3>BOM</h3><p>Estructura de materiales.</p></div>
-      </a>
-      <a href="ingenieria_nuevo_np.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-plus-circle"></i></div>
-        <div class="module-info"><h3>Nuevo N/P</h3><p>Registro de nuevas partes.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container">
-    <div class="section-header"><i class="fas fa-warehouse"></i> WMS & Almacén</div>
-    <div class="card-group">
-      <a href="inventarios.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-boxes"></i></div>
-        <div class="module-info"><h3>Inventario General</h3><p>Existencias actuales.</p></div>
-      </a>
-      <a href="captura_inventario.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-exchange-alt"></i></div>
-        <div class="module-info"><h3>Movimientos</h3><p>Entradas y salidas.</p></div>
-      </a>
-      <a href="historial.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-history"></i></div>
-        <div class="module-info"><h3>Historial (Kardex)</h3><p>Log de movimientos WMS.</p></div>
-      </a>
-      <a href="ciclicos_lista.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-check-double"></i></div>
-        <div class="module-info"><h3>Conteos Cíclicos</h3><p>Veracidad de inventarios.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container">
-    <div class="section-header"><i class="fas fa-calendar-alt"></i> Planeación</div>
-    <div class="card-group">
-      <a href="planeacion_forecast.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-chart-line"></i></div>
-        <div class="module-info"><h3>Forecast</h3><p>Pronóstico de demanda.</p></div>
-      </a>
-      <a href="planeacion_produccion.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-industry"></i></div>
-        <div class="module-info"><h3>Programa Prod.</h3><p>Órdenes de trabajo.</p></div>
-      </a>
-      <a href="planeacion_requerimientos.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-tasks"></i></div>
-        <div class="module-info"><h3>Requerimientos</h3><p>Cálculo de necesidades.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container">
-    <div class="section-header"><i class="fas fa-microchip"></i> Producción en Tiempo Real</div>
+    <div class="section-header"><i class="fas fa-microchip"></i> Producción</div>
     <div class="card-group">
       <a href="planeacion_calendario_maquinas.html" class="module-card">
         <div class="icon-box"><i class="fas fa-tablet-alt"></i></div>
-        <div class="module-info"><h3>Monitor de Piso</h3><p>Reporte directo en máquina.</p></div>
+        <div class="module-info"><h3>Tablet de Máquina</h3><p>Captura en tiempo real.</p></div>
       </a>
       <a href="#" class="module-card">
         <div class="icon-box" style="color:var(--danger);"><i class="fas fa-trash-alt"></i></div>
-        <div class="module-info"><h3>Scrap de Máquina</h3><p>Defectos en tiempo real.</p></div>
+        <div class="module-info"><h3>Scrap de Máquina</h3><p>Defectos de operación.</p></div>
       </a>
     </div>
   </div>
 
   <div class="section-container">
-    <div class="section-header"><i class="fas fa-cogs"></i> Configuración</div>
+    <div class="section-header"><i class="fas fa-drafting-compass"></i> Ingeniería y Planeación</div>
     <div class="card-group">
-      <a href="admin_areas.html" class="module-card"><div class="module-info"><h3>Áreas</h3></div></a>
-      <a href="admin_ubicaciones.html" class="module-card"><div class="module-info"><h3>Ubicaciones</h3></div></a>
+      <a href="admin_partes.html" class="module-card"><h3>Catálogo N/P</h3></a>
+      <a href="ingenieria_bom.html" class="module-card"><h3>BOM</h3></a>
+      <a href="planeacion_forecast.html" class="module-card"><h3>Forecast</h3></a>
+      <a href="planeacion_produccion.html" class="module-card"><h3>Programa de Producción</h3></a>
     </div>
   </div>
 
   <div class="section-container" style="grid-column: 1 / -1;">
-    <div class="section-header"><i class="fas fa-chart-bar"></i> Métricas Gerenciales</div>
-    <div class="card-group" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-      <div class="module-card"><h3>OEE: 85%</h3></div>
-      <div class="module-card"><h3>Veracidad Inv: 98.2%</h3></div>
+    <div class="section-header"><i class="fas fa-chart-line"></i> Desempeño General</div>
+    <div class="card-group" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); text-align: center;">
+      <div class="module-card" style="flex-direction: column;">
+        <span class="metric-value">98.5%</span>
+        <p>Veracidad de Inventario</p>
+      </div>
+      <div class="module-card" style="flex-direction: column;">
+        <span class="metric-value">82%</span>
+        <p>Cumplimiento de Plan</p>
+      </div>
     </div>
   </div>
 
