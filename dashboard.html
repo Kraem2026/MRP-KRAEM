@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>SISTEMA MRP KRAEM - Dashboard Profesional</title>
+  <title>SISTEMA MRP KRAEM - Dashboard Integral</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
@@ -11,182 +11,167 @@
         --border: #e2e8f0; --primary: #2563eb; --accent: #4f46e5; --success: #22c55e;
         --warning: #f59e0b; --danger: #ef4444;
     }
-    [data-theme="dark"] { 
-        --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8;
-        --border: #334155; 
-    }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+    [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
+    
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
     header { max-width: 1400px; margin: 0 auto 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
     .brand { display: flex; align-items: center; gap: 15px; }
     .brand img { height: 60px; border-radius: 8px; }
-    .brand h1 { margin: 0; font-size: 1.8rem; letter-spacing: -1px; color: var(--primary); }
-    .grid-main { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; max-width: 1400px; margin: auto; }
-    .section-container { background: rgba(0,0,0,0.02); padding: 20px; border-radius: 16px; border: 1px dashed var(--border); }
-    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; }
-    .card-group { display: grid; gap: 12px; }
-    .module-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit; transition: all 0.2s; cursor: pointer; }
-    .module-card:hover { transform: translateX(5px); border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .icon-box { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(37, 99, 235, 0.1); color: var(--primary); }
-    .module-info h3 { margin: 0; font-size: 1rem; }
-    .module-info p { margin: 3px 0 0; font-size: 0.8rem; color: var(--text-secondary); }
+    
+    .grid-main { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1400px; margin: auto; }
+    
+    .section-container { background: rgba(0,0,0,0.02); padding: 18px; border-radius: 16px; border: 1px dashed var(--border); }
+    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; }
+    
+    .card-group { display: grid; gap: 10px; }
+    .module-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; transition: 0.2s; }
+    .module-card:hover { transform: translateX(5px); border-color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    
+    .icon-box { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; background: rgba(37, 99, 235, 0.1); color: var(--primary); }
+    .module-info h3 { margin: 0; font-size: 0.95rem; }
+    .module-info p { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-secondary); }
+
+    /* Estilo Especial Inspección */
     #modulo-privado { border: 1px solid var(--primary); background: rgba(37, 99, 235, 0.03); }
     .hidden { display: none !important; }
-    .badge-live { background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .btn-ui { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+    .btn-ui { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); cursor: pointer; }
   </style>
 </head>
-<body data-theme="light">
+<body>
 
 <header>
   <div class="brand">
     <img src="logo-kraem.jpg" alt="KRAEM">
-    <div>
-      <h1 id="txt-title">SISTEMA MRP KRAEM</h1>
-      <p id="txt-subtitle" style="margin:0; color: var(--text-secondary);">Panel de Control de Producción e Inventarios</p>
-    </div>
+    <h1>SISTEMA MRP KRAEM</h1>
   </div>
   <div class="controls">
-    <button class="btn-ui" onclick="toggleLanguage()" id="langBtn">🇰🇷 KO</button>
-    <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
-    <button class="btn-ui" onclick="location.href='index.html'"><i class="fas fa-sign-out-alt"></i></button>
+    <button class="btn-ui" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+    <button class="btn-ui" onclick="location.href='Admin.html'"><i class="fas fa-cog"></i> Panel Admin</button>
   </div>
 </header>
 
 <main class="grid-main">
 
   <div class="section-container hidden" id="modulo-privado">
-    <div class="section-header" style="color: var(--primary);"><i class="fas fa-shield-alt"></i> <span>Control de Inspección (Validación)</span></div>
+    <div class="section-header" style="color: var(--primary);"><i class="fas fa-shield-alt"></i> Control de Inspección</div>
     <div class="card-group">
-      <a href="produccion_inspeccion_captura.html" class="module-card">
-        <div class="icon-box" style="background: var(--primary); color: white;"><i class="fas fa-edit"></i></div>
-        <div class="module-info"><h3>Captura de Inspección</h3><p>Registro preventivo para Inspectores.</p></div>
+      <a href="inspeccion_captura.html" class="module-card">
+        <div class="icon-box" style="background:var(--primary); color:white;"><i class="fas fa-clipboard-check"></i></div>
+        <div class="module-info"><h3>Captura de Inspección</h3><p>Validación técnica de inspectores.</p></div>
       </a>
-      <a href="admin_defectos_inspeccion.html" class="module-card">
-        <div class="icon-box" style="background: var(--warning); color: white;"><i class="fas fa-microscope"></i></div>
-        <div class="module-info"><h3>Defectos de Inspección</h3><p>Catálogo para validación técnica.</p></div>
-      </a>
-      <a href="inspeccion_analisis.html" class="module-card">
-        <div class="icon-box" style="background: var(--accent); color: white;"><i class="fas fa-chart-bar"></i></div>
-        <div class="module-info"><h3>Análisis y Paretos</h3><p>Reportes de calidad (Validación).</p></div>
+      <a href="admin_defectos.html" class="module-card">
+        <div class="icon-box" style="background:var(--warning); color:white;"><i class="fas fa-bug"></i></div>
+        <div class="module-info"><h3>Catálogo de Defectos</h3><p>Gestión de tipos de falla.</p></div>
       </a>
     </div>
   </div>
 
   <div class="section-container">
-    <div class="section-header"><i class="fas fa-users"></i> <span>Gestión de Personal</span></div>
+    <div class="section-header"><i class="fas fa-users"></i> Recursos Humanos</div>
     <div class="card-group">
       <a href="admin_rh.html" class="module-card">
-        <div class="icon-box" style="background: var(--success); color: white;"><i class="fas fa-user-check"></i></div>
-        <div class="module-info"><h3>Personal (RH)</h3><p>Control de los 70 operadores y turnos.</p></div>
+        <div class="icon-box" style="background:var(--success); color:white;"><i class="fas fa-user-friends"></i></div>
+        <div class="module-info"><h3>Gestión de Personal</h3><p>Control de 70 operadores y turnos.</p></div>
       </a>
     </div>
   </div>
 
   <div class="section-container">
-    <div class="section-header"><i class="fas fa-drafting-compass"></i> <span>Ingeniería</span></div>
+    <div class="section-header"><i class="fas fa-drafting-compass"></i> Ingeniería</div>
     <div class="card-group">
       <a href="admin_partes.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-list-ol"></i></div>
-        <div class="module-info"><h3>Catálogo de N/P</h3><p>Ficha técnica y tabla exportable.</p></div>
+        <div class="icon-box"><i class="fas fa-component-ant"></i></div>
+        <div class="module-info"><h3>Catálogo N/P</h3><p>Fichas técnicas y registros.</p></div>
       </a>
       <a href="ingenieria_bom.html" class="module-card">
         <div class="icon-box"><i class="fas fa-sitemap"></i></div>
         <div class="module-info"><h3>BOM</h3><p>Estructura de materiales.</p></div>
       </a>
-      <a href="#" class="module-card">
-        <div class="icon-box"><i class="fas fa-shapes"></i></div>
-        <div class="module-info"><h3>Matriz de Moldes</h3><p>Cavidades y especificaciones.</p></div>
+      <a href="ingenieria_nuevo_np.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-plus-circle"></i></div>
+        <div class="module-info"><h3>Nuevo N/P</h3><p>Registro de nuevas partes.</p></div>
       </a>
     </div>
   </div>
 
   <div class="section-container">
-    <div class="section-header"><i class="fas fa-check-circle"></i> <span>Calidad</span></div>
-    <div class="card-group">
-      <a href="calidad_control.html" class="module-card">
-        <div class="icon-box" style="color: var(--success);"><i class="fas fa-check-double"></i></div>
-        <div class="module-info"><h3>Control de Calidad</h3><p>Liberaciones y auditorías.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container">
-    <div class="section-header"><i class="fas fa-warehouse"></i> <span>WMS (Inventarios)</span></div>
+    <div class="section-header"><i class="fas fa-warehouse"></i> WMS & Almacén</div>
     <div class="card-group">
       <a href="inventarios.html" class="module-card">
         <div class="icon-box"><i class="fas fa-boxes"></i></div>
-        <div class="module-info"><h3>Inventario General</h3><p>Existencias PT y MP.</p></div>
-      </a>
-      <a href="inventarios_ubicacion.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-map-marker-alt"></i></div>
-        <div class="module-info"><h3>Inventario por Ubicación</h3><p>Rastreo en almacenes.</p></div>
+        <div class="module-info"><h3>Inventario General</h3><p>Existencias actuales.</p></div>
       </a>
       <a href="captura_inventario.html" class="module-card">
         <div class="icon-box"><i class="fas fa-exchange-alt"></i></div>
-        <div class="module-info"><h3>Transacciones</h3><p>Entradas y salidas.</p></div>
+        <div class="module-info"><h3>Movimientos</h3><p>Entradas y salidas.</p></div>
       </a>
       <a href="historial.html" class="module-card">
         <div class="icon-box"><i class="fas fa-history"></i></div>
-        <div class="module-info"><h3>Historial de Movimientos</h3><p>Kardex de transacciones.</p></div>
+        <div class="module-info"><h3>Historial (Kardex)</h3><p>Log de movimientos WMS.</p></div>
+      </a>
+      <a href="ciclicos_lista.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-check-double"></i></div>
+        <div class="module-info"><h3>Conteos Cíclicos</h3><p>Veracidad de inventarios.</p></div>
       </a>
     </div>
   </div>
 
   <div class="section-container">
-    <div class="section-header"><i class="fas fa-microchip"></i> <span>Producción</span> <span class="badge-live">LIVE</span></div>
+    <div class="section-header"><i class="fas fa-calendar-alt"></i> Planeación</div>
+    <div class="card-group">
+      <a href="planeacion_forecast.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-chart-line"></i></div>
+        <div class="module-info"><h3>Forecast</h3><p>Pronóstico de demanda.</p></div>
+      </a>
+      <a href="planeacion_produccion.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-industry"></i></div>
+        <div class="module-info"><h3>Programa Prod.</h3><p>Órdenes de trabajo.</p></div>
+      </a>
+      <a href="planeacion_requerimientos.html" class="module-card">
+        <div class="icon-box"><i class="fas fa-tasks"></i></div>
+        <div class="module-info"><h3>Requerimientos</h3><p>Cálculo de necesidades.</p></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="section-container">
+    <div class="section-header"><i class="fas fa-microchip"></i> Producción en Tiempo Real</div>
     <div class="card-group">
       <a href="planeacion_calendario_maquinas.html" class="module-card">
         <div class="icon-box"><i class="fas fa-tablet-alt"></i></div>
-        <div class="module-info"><h3>Ejecución en Máquina</h3><p>Reporte en tiempo real (Tablet).</p></div>
+        <div class="module-info"><h3>Monitor de Piso</h3><p>Reporte directo en máquina.</p></div>
       </a>
       <a href="#" class="module-card">
-        <div class="icon-box"><i class="fas fa-trash-alt"></i></div>
-        <div class="module-info"><h3>Registro de Scrap</h3><p>Defectos detectados EN MÁQUINA.</p></div>
+        <div class="icon-box" style="color:var(--danger);"><i class="fas fa-trash-alt"></i></div>
+        <div class="module-info"><h3>Scrap de Máquina</h3><p>Defectos en tiempo real.</p></div>
       </a>
+    </div>
+  </div>
+
+  <div class="section-container">
+    <div class="section-header"><i class="fas fa-cogs"></i> Configuración</div>
+    <div class="card-group">
+      <a href="admin_areas.html" class="module-card"><div class="module-info"><h3>Áreas</h3></div></a>
+      <a href="admin_ubicaciones.html" class="module-card"><div class="module-info"><h3>Ubicaciones</h3></div></a>
     </div>
   </div>
 
   <div class="section-container" style="grid-column: 1 / -1;">
-    <div class="section-header"><i class="fas fa-chart-pie"></i> <span>Dashboard Gerencial (Métricas)</span></div>
-    <div class="card-group" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-      <div class="module-card" style="border-bottom: 3px solid var(--success);">
-        <div class="icon-box"><i class="fas fa-percentage"></i></div>
-        <div class="module-info"><h3>OEE</h3><p>Eficiencia General del Equipo.</p></div>
-      </div>
-      <div class="module-card" style="border-bottom: 3px solid var(--primary);">
-        <div class="icon-box"><i class="fas fa-check-double"></i></div>
-        <div class="module-info"><h3>Cumplimiento</h3><p>Plan vs Real Semanal/Mensual.</p></div>
-      </div>
-      <div class="module-card" style="border-bottom: 3px solid var(--warning);">
-        <div class="icon-box"><i class="fas fa-bullseye"></i></div>
-        <div class="module-info"><h3>Veracidad Inv.</h3><p>Basado en conteos cíclicos.</p></div>
-      </div>
+    <div class="section-header"><i class="fas fa-chart-bar"></i> Métricas Gerenciales</div>
+    <div class="card-group" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+      <div class="module-card"><h3>OEE: 85%</h3></div>
+      <div class="module-card"><h3>Veracidad Inv: 98.2%</h3></div>
     </div>
   </div>
 
 </main>
 
 <script>
-const autorizados = ['tu_correo@kraem.com'];
-
-function verificarAcceso() {
-    const modulo = document.getElementById('modulo-privado');
-    modulo.classList.remove('hidden'); 
-}
-
-window.onload = verificarAcceso;
-
-function toggleTheme() {
-    const body = document.body;
-    const isDark = body.getAttribute('data-theme') === 'dark';
-    body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
-}
-
-function toggleLanguage() {
-    // Lógica para cambio de idioma si es necesario
-}
+  function verificarAcceso() {
+    document.getElementById('modulo-privado').classList.remove('hidden');
+  }
+  window.onload = verificarAcceso;
 </script>
+
 </body>
 </html>
