@@ -4,44 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Captura de Inspección Interna - KRAEM</title>
-    <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a;
-            --border: #e2e8f0; --success: #22c55e;
-        }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        .header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .btn-back { border: none; background: none; font-size: 1.2rem; cursor: pointer; color: var(--primary); }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
+        /* Estilos de Dark Mode basados en tu config.js */
+        [data-theme='dark'] { --bg: #1e293b; --card: #0f172a; --text: #f8fafc; --border: #334155; }
         
-        .form-container { max-width: 600px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .form-container { max-width: 600px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #64748b; }
-        
-        input, select, textarea {
-            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
-            font-size: 1rem; box-sizing: border-box; outline: none; background: var(--card); color: var(--text);
-        }
-        input:focus, textarea:focus { border-color: var(--primary); }
-
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; opacity: 0.8; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--card); color: var(--text); }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        
-        .btn-save {
-            width: 100%; padding: 15px; background: var(--primary); color: white;
-            border: none; border-radius: 8px; font-weight: bold; font-size: 1rem;
-            cursor: pointer; margin-top: 10px; transition: 0.2s;
-        }
-        .btn-save:active { transform: scale(0.98); }
-        .readonly-box { background: #f1f5f9; font-weight: bold; color: var(--primary); }
+        .btn-save { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .readonly-box { background: rgba(0,0,0,0.05); font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <button class="btn-back" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i></button>
-    <h2>Nueva Inspección</h2>
+    <button onclick="location.href='dashboard.html'" style="border:none; background:none; color:var(--primary); cursor:pointer;">
+        <i class="fas fa-arrow-left"></i> Volver
+    </button>
+    <h2 style="margin:0">Nueva Inspección</h2>
+    <button onclick="toggleTheme()" style="border:none; background:none; color:var(--text); cursor:pointer;">
+        <i id="themeIcon" class="fas fa-moon"></i>
+    </button>
 </div>
 
 <div class="form-container">
@@ -75,7 +66,7 @@
 
     <div class="form-group">
         <label>Nombre de Pieza</label>
-        <input type="text" id="nombre_pieza" class="readonly-box" readonly placeholder="Buscando en catálogo...">
+        <input type="text" id="nombre_pieza" class="readonly-box" readonly placeholder="Buscando...">
     </div>
 
     <div class="grid-2">
@@ -103,13 +94,13 @@
     <div class="form-group">
         <label>Tipo de Defecto</label>
         <select id="tipo_defecto">
-            <option value="">Cargando lista de defectos...</option>
+            <option value="">Cargando lista...</option>
         </select>
     </div>
 
     <div class="form-group">
-        <label>Comentarios / Observaciones</label>
-        <textarea id="comentarios" rows="2" placeholder="Explique el hallazgo aquí..."></textarea>
+        <label>Comentarios</label>
+        <textarea id="comentarios" rows="2" placeholder="Notas adicionales..."></textarea>
     </div>
 
     <div class="form-group">
@@ -122,18 +113,17 @@
     </div>
 
     <button class="btn-save" id="btn_guardar" onclick="guardarInspeccion()">
-        <i class="fas fa-save"></i> GUARDAR LIBERACIÓN
+        <i class="fas fa-save"></i> GUARDAR REGISTRO
     </button>
 </div>
 
 <script>
-    // Inicialización usando las constantes de config.js
-    const _client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // NOTA: No declaramos _client, usamos 'client' que ya viene de config.js
 
-    // Cargar defectos desde la tabla 'defects'
     async function cargarDefectos() {
         try {
-            const { data, error } = await _client.from('defects').select('Defect_name').order('Defect_name');
+            // Usamos 'client' que es como se llama en tu config.js
+            const { data, error } = await client.from('defects').select('Defect_name').order('Defect_name');
             const select = document.getElementById('tipo_defecto');
             if (data) {
                 select.innerHTML = '<option value="NINGUNO">Ninguno / OK</option>';
@@ -141,19 +131,18 @@
                     select.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`;
                 });
             }
-        } catch (e) { console.error("Error cargando defectos"); }
+        } catch (e) { console.error("Error:", e); }
     }
 
-    // Buscar en la tabla 'parts'
     async function buscarParte(np) {
         if(!np) return;
-        const { data, error } = await _client
+        const { data, error } = await client
             .from('parts')
             .select('part_name')
             .eq('part_number', np.trim())
             .single();
 
-        document.getElementById('nombre_pieza').value = data ? data.part_name : "N/P No registrado";
+        document.getElementById('nombre_pieza').value = data ? data.part_name : "No encontrado";
     }
 
     function calcularOk() {
@@ -183,19 +172,20 @@
         btn.disabled = true;
         btn.innerText = "Guardando...";
 
-        const { error } = await _client.from('inspecciones_calidad').insert([datos]);
+        const { error } = await client.from('inspecciones_calidad').insert([datos]);
 
         if (error) {
             alert("Error: " + error.message);
             btn.disabled = false;
-            btn.innerText = "GUARDAR LIBERACIÓN";
+            btn.innerText = "GUARDAR REGISTRO";
         } else {
-            alert("✅ Registro guardado");
+            alert("✅ Guardado con éxito");
             location.reload();
         }
     }
 
-    window.onload = cargarDefectos;
+    // Iniciar
+    document.addEventListener('DOMContentLoaded', cargarDefectos);
 </script>
 </body>
 </html>
