@@ -30,7 +30,6 @@
             font-size: 15px; box-sizing: border-box; outline: none; background: var(--bg); color: var(--text);
         }
 
-        /* Estilo del Autobox de Nùmeros de Parte */
         .autobox { 
             background: var(--card); border: 1px solid var(--border); position: absolute; 
             width: 100%; z-index: 1000; max-height: 200px; overflow-y: auto; display: none; 
@@ -116,7 +115,7 @@
     <div class="form-group">
         <label>Tipo de Defecto</label>
         <select id="tipo_defecto">
-            <option value="">Cargando defectos...</option>
+            <option value="">Cargando lista...</option>
         </select>
     </div>
 
@@ -140,31 +139,41 @@
 </div>
 
 <script>
-    // Variables globales
     let listaPartes = [];
     let selPartId = null;
 
     async function init() {
-        // 1. Cargar Defectos
+        // 1. Cargar Defectos con manejo de mayúsculas exactas (Defect_name)
         try {
-            const { data: defs } = await client.from('defects').select('Defect_name').order('Defect_name');
+            const { data: defs, error: errDef } = await client
+                .from('defects')
+                .select('Defect_name')
+                .order('Defect_name');
+            
             const selectDef = document.getElementById('tipo_defecto');
-            if (defs) {
+            
+            if (defs && defs.length > 0) {
                 selectDef.innerHTML = '<option value="NINGUNO">Ninguno / OK</option>';
                 defs.forEach(d => {
+                    // Usamos d.Defect_name respetando la D mayúscula
                     selectDef.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`;
                 });
+            } else {
+                selectDef.innerHTML = '<option value="NINGUNO">Sin defectos registrados</option>';
             }
-        } catch (e) { console.error("Error cargando defectos", e); }
+        } catch (e) { 
+            console.error("Error en lista de defectos:", e);
+            document.getElementById('tipo_defecto').innerHTML = '<option value="">Error al cargar</option>';
+        }
 
-        // 2. Cargar Partes para el Autocomplete (limitamos a 2000 como en tu otro archivo)
+        // 2. Cargar Partes para el Autocomplete
         try {
             const { data: pts } = await client.from('parts').select('id, part_number, part_name').limit(2000);
             if (pts) listaPartes = pts;
-        } catch (e) { console.error("Error cargando partes", e); }
+        } catch (e) { console.error("Error en lista de partes:", e); }
     }
 
-    // Lógica de Autocomplete (Igual a tu archivo de Inventario)
+    // Autocomplete de Partes
     const partSearch = document.getElementById('partSearch');
     const partResults = document.getElementById('partResults');
     const nombrePiezaInput = document.getElementById('nombre_pieza');
@@ -181,7 +190,7 @@
             d.textContent = p.part_number;
             d.onclick = () => {
                 partSearch.value = p.part_number;
-                nombrePiezaInput.value = p.part_name; // Autocompleta el nombre
+                nombrePiezaInput.value = p.part_name;
                 selPartId = p.id;
                 partResults.style.display = 'none';
             };
@@ -193,7 +202,7 @@
     function calcularOk() {
         const insp = parseInt(document.getElementById('cant_insp').value) || 0;
         const def = parseInt(document.getElementById('cant_def').value) || 0;
-        document.getElementById('cant_ok').value = insp - def;
+        document.getElementById('cant_ok').value = Math.max(0, insp - def);
         document.getElementById('porcentaje').value = insp > 0 ? ((def / insp) * 100).toFixed(2) + "%" : "0%";
     }
 
@@ -205,16 +214,16 @@
             maquina: document.getElementById('maquina').value,
             part_number: partSearch.value,
             part_name: nombrePiezaInput.value,
-            qty_inspected: parseInt(document.getElementById('cant_insp').value),
-            qty_defective: parseInt(document.getElementById('cant_def').value),
+            qty_inspected: parseInt(document.getElementById('cant_insp').value) || 0,
+            qty_defective: parseInt(document.getElementById('cant_def').value) || 0,
             defect_type: document.getElementById('tipo_defecto').value,
             comments: document.getElementById('comentarios').value,
             disposition: document.getElementById('destino').value,
             created_at: new Date().toISOString()
         };
 
-        if (!datos.part_number || isNaN(datos.qty_inspected)) {
-            return alert("Falta Número de Parte o Cantidad Inspeccionada");
+        if (!datos.part_number || isNaN(datos.qty_inspected) || datos.qty_inspected <= 0) {
+            return alert("Verifica el Número de Parte y que la Cantidad Inspeccionada sea válida.");
         }
 
         btn.disabled = true;
@@ -223,16 +232,15 @@
         const { error } = await client.from('inspecciones_calidad').insert([datos]);
 
         if (error) {
-            alert("Error: " + error.message);
+            alert("Error al guardar: " + error.message);
             btn.disabled = false;
             btn.innerText = "GUARDAR LIBERACIÓN";
         } else {
-            alert("✅ Inspección guardada con éxito");
+            alert("✅ Registro guardado correctamente");
             location.reload();
         }
     }
 
-    // Iniciar carga al abrir
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
