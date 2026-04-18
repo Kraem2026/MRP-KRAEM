@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Captura de Inspección Interna - KRAEM</title>
+    <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -15,13 +16,13 @@
         .header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .btn-back { border: none; background: none; font-size: 1.2rem; cursor: pointer; color: var(--primary); }
         
-        .form-container { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .form-container { max-width: 600px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #64748b; }
         
         input, select, textarea {
             width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
-            font-size: 1rem; box-sizing: border-box; outline: none;
+            font-size: 1rem; box-sizing: border-box; outline: none; background: var(--card); color: var(--text);
         }
         input:focus, textarea:focus { border-color: var(--primary); }
 
@@ -50,13 +51,21 @@
             <select id="turno">
                 <option value="1">Turno 1</option>
                 <option value="2">Turno 2</option>
-                <option value="3">Turno 3</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Máquina</label>
-            <input type="text" id="maquina" placeholder="Ej. #13">
+            <label>Área</label>
+            <select id="area">
+                <option value="NISSEI">NISSEI</option>
+                <option value="LS">LS</option>
+                <option value="HDL">HDL</option>
+            </select>
         </div>
+    </div>
+
+    <div class="form-group">
+        <label>Máquina</label>
+        <input type="text" id="maquina" placeholder="Ej. #13">
     </div>
 
     <div class="form-group">
@@ -65,8 +74,8 @@
     </div>
 
     <div class="form-group">
-        <label>Nombre de Pieza (Auto)</label>
-        <input type="text" id="nombre_pieza" class="readonly-box" readonly placeholder="Se llenará solo...">
+        <label>Nombre de Pieza</label>
+        <input type="text" id="nombre_pieza" class="readonly-box" readonly placeholder="Buscando en catálogo...">
     </div>
 
     <div class="grid-2">
@@ -92,15 +101,15 @@
     </div>
 
     <div class="form-group">
-        <label>Tipo de Defecto (Desde Supabase)</label>
+        <label>Tipo de Defecto</label>
         <select id="tipo_defecto">
-            <option value="">Cargando defectos...</option>
+            <option value="">Cargando lista de defectos...</option>
         </select>
     </div>
 
     <div class="form-group">
         <label>Comentarios / Observaciones</label>
-        <textarea id="comentarios" rows="3" placeholder="Detalles sobre el defecto o hallazgos..."></textarea>
+        <textarea id="comentarios" rows="2" placeholder="Explique el hallazgo aquí..."></textarea>
     </div>
 
     <div class="form-group">
@@ -118,23 +127,24 @@
 </div>
 
 <script>
-    const SUPABASE_URL = 'https://telntsrrschcdxczlape.supabase.co';
-    const SUPABASE_KEY = 'TU_KEY_AQUI'; // Reutiliza la key que ya tienes
+    // Inicialización usando las constantes de config.js
     const _client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 1. Cargar la lista de defectos de la tabla 'defects'
+    // Cargar defectos desde la tabla 'defects'
     async function cargarDefectos() {
-        const { data, error } = await _client.from('defects').select('Defect_name').order('Defect_name');
-        const select = document.getElementById('tipo_defecto');
-        if (!error) {
-            select.innerHTML = '<option value="NINGUNO">Ninguno / OK</option>';
-            data.forEach(d => {
-                select.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`;
-            });
-        }
+        try {
+            const { data, error } = await _client.from('defects').select('Defect_name').order('Defect_name');
+            const select = document.getElementById('tipo_defecto');
+            if (data) {
+                select.innerHTML = '<option value="NINGUNO">Ninguno / OK</option>';
+                data.forEach(d => {
+                    select.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`;
+                });
+            }
+        } catch (e) { console.error("Error cargando defectos"); }
     }
 
-    // 2. Buscar nombre de parte en la tabla 'parts'
+    // Buscar en la tabla 'parts'
     async function buscarParte(np) {
         if(!np) return;
         const { data, error } = await _client
@@ -143,52 +153,48 @@
             .eq('part_number', np.trim())
             .single();
 
-        if (data) {
-            document.getElementById('nombre_pieza').value = data.part_name;
-        } else {
-            document.getElementById('nombre_pieza').value = "No encontrado";
-        }
+        document.getElementById('nombre_pieza').value = data ? data.part_name : "N/P No registrado";
     }
 
     function calcularOk() {
         const insp = parseInt(document.getElementById('cant_insp').value) || 0;
         const def = parseInt(document.getElementById('cant_def').value) || 0;
-        const ok = insp - def;
-        document.getElementById('cant_ok').value = ok;
-        const perc = insp > 0 ? ((def / insp) * 100).toFixed(2) : 0;
-        document.getElementById('porcentaje').value = perc + "%";
+        document.getElementById('cant_ok').value = insp - def;
+        document.getElementById('porcentaje').value = insp > 0 ? ((def / insp) * 100).toFixed(2) + "%" : "0%";
     }
 
     async function guardarInspeccion() {
         const btn = document.getElementById('btn_guardar');
         const datos = {
             turno: document.getElementById('turno').value,
+            area: document.getElementById('area').value,
             maquina: document.getElementById('maquina').value,
-            num_parte: document.getElementById('num_parte').value,
-            cant_insp: parseInt(document.getElementById('cant_insp').value),
-            cant_def: parseInt(document.getElementById('cant_def').value),
-            tipo_defecto: document.getElementById('tipo_defecto').value,
-            comentarios: document.getElementById('comentarios').value,
-            destino: document.getElementById('destino').value,
-            fecha: new Date().toISOString()
+            part_number: document.getElementById('num_parte').value,
+            qty_inspected: parseInt(document.getElementById('cant_insp').value),
+            qty_defective: parseInt(document.getElementById('cant_def').value),
+            defect_type: document.getElementById('tipo_defecto').value,
+            comments: document.getElementById('comentarios').value,
+            disposition: document.getElementById('destino').value,
+            created_at: new Date().toISOString()
         };
 
-        if(!datos.num_parte || !datos.cant_insp) return alert("Completa N/P y Cantidad");
+        if(!datos.part_number || isNaN(datos.qty_inspected)) return alert("Falta N/P o Cantidad");
 
         btn.disabled = true;
         btn.innerText = "Guardando...";
 
-        const { error } = await _client.from('inspecciones').insert([datos]);
+        const { error } = await _client.from('inspecciones_calidad').insert([datos]);
 
         if (error) {
-            alert("Error al guardar: " + error.message);
+            alert("Error: " + error.message);
+            btn.disabled = false;
+            btn.innerText = "GUARDAR LIBERACIÓN";
         } else {
-            alert("✅ Inspección guardada correctamente");
+            alert("✅ Registro guardado");
             location.reload();
         }
     }
 
-    // Iniciar carga
     window.onload = cargarDefectos;
 </script>
 </body>
