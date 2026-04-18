@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Catálogo de Defectos - KRAEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        
+        .form-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        
+        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
+        
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        th { background: #1e293b; color: white; padding: 12px; text-align: left; font-size: 12px; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        .bg-scrap { background: #fee2e2; color: #991b1b; }
+        .bg-retrabajo { background: #fef9c3; color: #854d0e; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="admin.html" style="color: var(--text); text-decoration: none;"><i class="fas fa-arrow-left"></i> Volver</a>
+    <h2 style="margin:0">🚫 Catálogo de Defectos</h2>
+</div>
+
+<div class="form-card">
+    <label style="font-size: 12px; font-weight: bold;">Nuevo Tipo de Defecto</label>
+    <input type="text" id="defecto_nombre" placeholder="Ej. MARCA DE GAS">
+    
+    <label style="font-size: 12px; font-weight: bold;">Destino Sugerido</label>
+    <select id="defecto_destino">
+        <option value="SCRAP">SCRAP</option>
+        <option value="RETRABAJO">RETRABAJO</option>
+    </select>
+    
+    <button class="btn-add" onclick="agregarDefecto()">
+        <i class="fas fa-plus"></i> AGREGAR AL CATÁLOGO
+    </button>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Defecto</th>
+            <th>Destino</th>
+            <th>Acción</th>
+        </tr>
+    </thead>
+    <tbody id="lista_defectos"></tbody>
+</table>
+
+<script>
+    const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+    async function cargarDefectos() {
+        const { data, error } = await _client.from('catalogo_defectos').select('*').order('nombre_defecto');
+        const tabla = document.getElementById('lista_defectos');
+        tabla.innerHTML = '';
+
+        data.forEach(d => {
+            const badgeClass = d.destino_sugerido === 'SCRAP' ? 'bg-scrap' : 'bg-retrabajo';
+            tabla.innerHTML += `
+                <tr>
+                    <td><strong>${d.nombre_defecto}</strong></td>
+                    <td><span class="badge ${badgeClass}">${d.destino_sugerido}</span></td>
+                    <td>
+                        <button onclick="eliminarDefecto(${d.id})" style="border:none; background:none; color:var(--danger); cursor:pointer;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    async function agregarDefecto() {
+        const nombre = document.getElementById('defecto_nombre').value.toUpperCase();
+        const destino = document.getElementById('defecto_destino').value;
+
+        if(!nombre) return alert("Escribe el nombre del defecto");
+
+        const { error } = await _client.from('catalogo_defectos').insert([{ 
+            nombre_defecto: nombre, 
+            destino_sugerido: destino 
+        }]);
+
+        if(error) alert("Error: " + error.message);
+        else {
+            document.getElementById('defecto_nombre').value = '';
+            cargarDefectos();
+        }
+    }
+
+    async function eliminarDefecto(id) {
+        if(confirm('¿Deseas eliminar este defecto del catálogo?')) {
+            await _client.from('catalogo_defectos').delete().eq('id', id);
+            cargarDefectos();
+        }
+    }
+
+    cargarDefectos();
+</script>
+
+</body>
+</html>
