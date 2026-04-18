@@ -57,6 +57,10 @@
 
     .controls { display: flex; gap: 10px; }
     .btn-ui { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+
+    /* Estilo especial para tu módulo privado */
+    #modulo-privado { border: 1px solid var(--primary); background: rgba(37, 99, 235, 0.03); }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body data-theme="light">
@@ -77,6 +81,20 @@
 </header>
 
 <main class="grid-main">
+
+  <div class="section-container hidden" id="modulo-privado">
+    <div class="section-header" style="color: var(--primary);"><i class="fas fa-shield-alt"></i> <span>Control Interno Producción</span></div>
+    <div class="card-group">
+      <a href="inspeccion_captura.html" class="module-card">
+        <div class="icon-box" style="background: var(--primary); color: white;"><i class="fas fa-edit"></i></div>
+        <div class="module-info"><h3>Captura de Inspección</h3><p>Registro de piezas y defectos por lote.</p></div>
+      </a>
+      <a href="inspeccion_analisis.html" class="module-card">
+        <div class="icon-box" style="background: var(--accent); color: white;"><i class="fas fa-chart-bar"></i></div>
+        <div class="module-info"><h3>Análisis y Paretos</h3><p>Reporte por Operador, Máquina y N/P.</p></div>
+      </a>
+    </div>
+  </div>
 
   <div class="section-container">
     <div class="section-header"><i class="fas fa-drafting-compass"></i> <span class="lang-eng">Ingeniería</span></div>
@@ -176,16 +194,6 @@
     </div>
   </div>
 
-  <div class="section-container">
-    <div class="section-header"><i class="fas fa-tools"></i> <span class="lang-maint">Mantenimiento</span></div>
-    <div class="card-group">
-      <a href="#" class="module-card">
-        <div class="icon-box"><i class="fas fa-calendar-check"></i></div>
-        <div class="module-info"><h3 class="lang-mplan">Plan de Mantenimiento</h3><p>Preventivos y Correctivos (Máquinas/Moldes).</p></div>
-      </a>
-    </div>
-  </div>
-
   <div class="section-container" style="grid-column: 1 / -1;">
     <div class="section-header"><i class="fas fa-chart-pie"></i> <span class="lang-met">Dashboard Gerencial (Métricas)</span></div>
     <div class="card-group" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
@@ -201,16 +209,24 @@
         <div class="icon-box"><i class="fas fa-bullseye"></i></div>
         <div class="module-info"><h3 class="lang-vera">Veracidad Inv.</h3><p>Materia Prima y PT por separado.</p></div>
       </div>
-      <div class="module-card" style="background: var(--primary); color: white;">
-        <div class="icon-box" style="color: white;"><i class="fas fa-filter"></i></div>
-        <div class="module-info"><h3 style="color:white" class="lang-filt">Filtros Avanzados</h3><p style="color: rgba(255,255,255,0.8)">Por Proyecto o N/P.</p></div>
-      </div>
     </div>
   </div>
 
 </main>
 
 <script>
+// --- LOGICA DE ACCESO PRIVADO ---
+// Aquí puedes poner tu correo para que solo tú veas el módulo
+const USUARIOS_AUTORIZADOS = ['gegonza@kraem.com', 'admin@kraem.com']; 
+
+function verificarAccesoPrivado() {
+    // Simulamos obtener el usuario actual (puedes conectarlo a tu Supabase Auth)
+    // Por ahora lo dejamos visible para que lo veas, pero aquí iría la validación real.
+    const modulo = document.getElementById('modulo-privado');
+    modulo.classList.remove('hidden'); 
+}
+
+// Idiomas y Temas
 const translations = {
     es: {
         title: "SISTEMA MRP KRAEM", subtitle: "Panel de Control de Producción e Inventarios",
@@ -265,6 +281,9 @@ function toggleTheme() {
     body.setAttribute('data-theme', isDark ? 'light' : 'dark');
     document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
 }
+
+// Ejecutar al cargar
+window.onload = verificarAccesoPrivado;
 </script>
 </body>
 </html>
