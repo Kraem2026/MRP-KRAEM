@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Captura de Producción - KRAEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --prod-blue: #0f172a; --accent: #3b82f6; --bg: #f8fafc; --text: #334155; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; max-width: 450px; margin: auto; }
+        h2 { color: var(--prod-blue); font-size: 1.2rem; display: flex; align-items: center; gap: 10px; margin-top: 0; }
+        
+        label { display: block; font-size: 11px; font-weight: 800; margin-top: 12px; color: #64748b; text-transform: uppercase; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; box-sizing: border-box; }
+        
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .calc-box { background: #f1f5f9; font-weight: bold; color: var(--accent); border: 1px solid #e2e8f0; }
+        
+        .btn-save { width: 100%; padding: 14px; background: var(--prod-blue); color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        
+        /* Buscador */
+        .results { position: absolute; background: white; border: 1px solid #ddd; width: 100%; z-index: 10; max-height: 150px; overflow-y: auto; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .results div { padding: 10px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+        .results div:hover { background: #f0f9ff; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <button onclick="location.href='dashboard.html'" style="border:none; background:none; color:var(--accent); cursor:pointer; font-weight:bold; padding:0; margin-bottom:10px;"><i class="fas fa-arrow-left"></i> PANEL</button>
+    <h2><i class="fas fa-industry"></i> Inspección de Producción</h2>
+
+    <div class="row">
+        <div>
+            <label>Turno</label>
+            <select id="turno">
+                <option value="1">Turno 1</option>
+                <option value="2">Turno 2</option>
+                <option value="3">Turno 3</option>
+            </select>
+        </div>
+        <div>
+            <label>Máquina #</label>
+            <input type="text" id="maquina" placeholder="Ej. 15">
+        </div>
+    </div>
+
+    <label>Operador (Generador)</label>
+    <select id="operador_id"><option value="">Seleccionar de RH...</option></select>
+
+    <div style="position:relative;">
+        <label>Número de Parte</label>
+        <input id="part_search" placeholder="Buscar N/P..." autocomplete="off">
+        <div id="part_results" class="results" style="display:none;"></div>
+    </div>
+
+    <label>Nombre de Pieza</label>
+    <input id="part_name" class="calc-box" readonly placeholder="Automático...">
+
+    <div class="row">
+        <div>
+            <label>Insp. (Q)</label>
+            <input type="number" id="q_insp" oninput="recalc()">
+        </div>
+        <div>
+            <label>Defectos (Q)</label>
+            <input type="number" id="q_def" oninput="recalc()">
+        </div>
+    </div>
+
+    <div class="row">
+        <div>
+            <label>Cantidad OK</label>
+            <input id="q_ok" class="calc-box" readonly>
+        </div>
+        <div>
+            <label>% Defecto</label>
+            <input id="p_def" class="calc-box" readonly>
+        </div>
+    </div>
+
+    <label>Tipo de Defecto</label>
+    <select id="defecto_id"><option value="">Ninguno / Sin defectos</option></select>
+
+    <label>Destino de Material</label>
+    <select id="destino">
+        <option value="OK">LIBERADO</option>
+        <option value="RETRABAJO">RETRABAJO</option>
+        <option value="SCRAP">SCRAP</option>
+    </select>
+
+    <button class="btn-save" onclick="guardar()">
+        <i class="fas fa-check-circle"></i> REGISTRAR PRODUCCIÓN
+    </button>
+</div>
+
+<script>
+    // Tu cliente de Supabase
+    const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+    let selPartId = null;
+    let cacheParts = [];
+
+    async function init() {
+        // Cargar Operadores de tu tabla RH
+        const { data: ops } = await _client.from('personal').select('id, nombre_completo').eq('activo', true).order('nombre_completo');
+        ops.forEach(o => operador_id.innerHTML += `<option value="${o.id}">${o.nombre_completo}</option>`);
+
+        // Cargar Defectos del catálogo
+        const { data: defs } = await _client.from('catalogo_defectos').select('*').eq('activo', true);
+        defs.forEach(d => defecto_id.innerHTML += `<option value="${d.id}">${d.nombre_defecto}</option>`);
+
+        // Cargar partes para búsqueda rápida
+        const { data: pts } = await _client.from('parts').select('id, part_number, part_name').limit(1000);
+        cacheParts = pts || [];
+    }
+
+    // Buscador de partes idéntico al que ya usas
+    part_search.oninput = (e) => {
+        const val = e.target.value.toUpperCase();
+        part_results.innerHTML = '';
+        if(val.length < 2) return part_results.style.display = 'none';
+        
+        const matches = cacheParts.filter(p => p.part_number.includes(val)).slice(0, 5);
+        matches.forEach(m => {
+            const div = document.createElement('div');
+            div.innerHTML = `<b>${m.part_number}</b> - ${m.part_name || ''}`;
+            div.onclick = () => {
+                part_search.value = m.part_number;
+                part_name.value = m.part_name || 'N/A';
+                selPartId = m.id;
+                part_results.style.display = 'none';
+            };
+            part_results.appendChild(div);
+        });
+        part_results.style.display = matches.length ? 'block' : 'none';
+    };
+
+    function recalc() {
+        const i = parseInt(q_insp.value) || 0;
+        const d = parseInt(q_def.value) || 0;
+        q_ok.value = i - d;
+        p_def.value = i > 0 ? ((d/i)*100).toFixed(2) + "%" : "0%";
+    }
+
+    async function guardar() {
+        const { data: { session } } = await _client.auth.getSession();
+        
+        const datos = {
+            turno: parseInt(turno.value),
+            maquina_id: maquina.value,
+            operador_id: parseInt(operador_id.value),
+            part_id: selPartId,
+            cantidad_inspeccionada: parseInt(q_insp.value),
+            cantidad_defectuosa: parseInt(q_def.value),
+            cantidad_ok: parseInt(q_ok.value),
+            porcentaje_defecto: parseFloat(p_def.value),
+            defecto_id: defecto_id.value || null,
+            destino: destino.value,
+            inspector_id: session?.user?.id
+        };
+
+        if(!datos.operador_id || !datos.part_id) return alert("Falta Operador o Parte");
+
+        const { error } = await _client.from('inspeccion_produccion').insert([datos]);
+        if(error) alert(error.message);
+        else { alert("Guardado"); location.reload(); }
+    }
+
+    init();
+</script>
+</body>
+</html>
