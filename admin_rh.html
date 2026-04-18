@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administración de Personal - KRAEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        .container { max-width: 800px; margin: auto; }
+        .form-card { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 5px; color: #64748b; text-transform: uppercase; }
+        input, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
+        .btn-save { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
+        
+        /* Vista previa de foto */
+        .photo-upload { text-align: center; margin-bottom: 20px; }
+        #preview { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); display: none; margin: 10px auto; }
+        .upload-label { background: #eff6ff; color: var(--primary); padding: 10px; border-radius: 8px; cursor: pointer; display: inline-block; font-size: 13px; border: 1px dashed var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button onclick="location.href='admin.html'" style="border:none; background:none; cursor:pointer;"><i class="fas fa-arrow-left"></i> Volver</button>
+    <h2>👥 Registro de Personal</h2>
+
+    <div class="form-card">
+        <div class="photo-upload">
+            <img id="preview" src="" alt="Vista previa">
+            <br>
+            <label class="upload-label" for="foto_input">
+                <i class="fas fa-camera"></i> Subir Foto del Operador
+            </label>
+            <input type="file" id="foto_input" accept="image/*" style="display:none" onchange="mostrarPreview(this)">
+        </div>
+
+        <label>Nombre Completo</label>
+        <input type="text" id="nombre" placeholder="Ej. Juan Pérez">
+
+        <label>Dirección</label>
+        <input type="text" id="direccion" placeholder="Calle, Colonia, Municipio">
+
+        <div class="grid">
+            <div>
+                <label>Transporte</label>
+                <select id="transporte">
+                    <option value="Privado">Privado / Propio</option>
+                    <option value="Ruta Personal">Ruta de Personal</option>
+                    <option value="Público">Transporte Público</option>
+                </select>
+            </div>
+            <div>
+                <label>Turno</label>
+                <select id="turno">
+                    <option value="1">Turno 1</option>
+                    <option value="2">Turno 2</option>
+                    <option value="3">Turno 3</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn-save" onclick="guardarEmpleado()">
+            <i class="fas fa-user-plus"></i> REGISTRAR EMPLEADO
+        </button>
+    </div>
+</div>
+
+<script>
+    // Usa las credenciales que ya tienes en tus otros archivos
+    const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+    function mostrarPreview(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = document.getElementById('preview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    async function guardarEmpleado() {
+        const file = document.getElementById('foto_input').files[0];
+        const nombre = document.getElementById('nombre').value;
+        let foto_url = "";
+
+        if (!nombre) return alert("El nombre es obligatorio");
+
+        // 1. Subir imagen a Storage si existe
+        if (file) {
+            const fileName = `${Date.now()}_${file.name}`;
+            const { data: uploadData, error: uploadError } = await _client.storage
+                .from('fotos_personal')
+                .upload(fileName, file);
+
+            if (uploadError) return alert("Error al subir foto: " + uploadError.message);
+            
+            // Obtener URL pública
+            const { data: publicUrl } = _client.storage.from('fotos_personal').getPublicUrl(fileName);
+            foto_url = publicUrl.publicUrl;
+        }
+
+        // 2. Guardar en Tabla Personal
+        const { error } = await _client.from('personal').insert([{
+            nombre_completo: nombre,
+            direccion: document.getElementById('direccion').value,
+            transporte: document.getElementById('transporte').value,
+            turno: parseInt(document.getElementById('turno').value),
+            foto_url: foto_url
+        }]);
+
+        if (error) {
+            alert("Error al guardar: " + error.message);
+        } else {
+            alert("Empleado registrado con éxito");
+            location.reload();
+        }
+    }
+</script>
+</body>
+</html>
