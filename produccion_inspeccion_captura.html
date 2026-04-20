@@ -115,7 +115,7 @@
     <div class="form-group">
         <label>Tipo de Defecto</label>
         <select id="tipo_defecto">
-            <option value="">Cargando lista...</option>
+            <option value="">Cargando defectos...</option>
         </select>
     </div>
 
@@ -142,28 +142,33 @@
     let listaPartes = [];
     let selPartId = null;
 
+    // Inicialización de la página
     async function init() {
-        // 1. Cargar Defectos con manejo de mayúsculas exactas (Defect_name)
+        // 1. Cargar Defectos desde la tabla 'defects'
         try {
             const { data: defs, error: errDef } = await client
                 .from('defects')
                 .select('Defect_name')
-                .order('Defect_name');
-            
+                .order('Defect_name', { ascending: true });
+
             const selectDef = document.getElementById('tipo_defecto');
-            
+
+            if (errDef) throw errDef;
+
             if (defs && defs.length > 0) {
                 selectDef.innerHTML = '<option value="NINGUNO">Ninguno / OK</option>';
                 defs.forEach(d => {
-                    // Usamos d.Defect_name respetando la D mayúscula
-                    selectDef.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`;
+                    const opt = document.createElement('option');
+                    opt.value = d.Defect_name;
+                    opt.textContent = d.Defect_name;
+                    selectDef.appendChild(opt);
                 });
             } else {
-                selectDef.innerHTML = '<option value="NINGUNO">Sin defectos registrados</option>';
+                selectDef.innerHTML = '<option value="NINGUNO">Sin defectos en DB</option>';
             }
         } catch (e) { 
-            console.error("Error en lista de defectos:", e);
-            document.getElementById('tipo_defecto').innerHTML = '<option value="">Error al cargar</option>';
+            console.error("Error al cargar defectos:", e);
+            document.getElementById('tipo_defecto').innerHTML = '<option value="">Error al conectar</option>';
         }
 
         // 2. Cargar Partes para el Autocomplete
@@ -199,6 +204,7 @@
         partResults.style.display = filtered.length ? 'block' : 'none';
     };
 
+    // Cálculos automáticos
     function calcularOk() {
         const insp = parseInt(document.getElementById('cant_insp').value) || 0;
         const def = parseInt(document.getElementById('cant_def').value) || 0;
@@ -206,6 +212,7 @@
         document.getElementById('porcentaje').value = insp > 0 ? ((def / insp) * 100).toFixed(2) + "%" : "0%";
     }
 
+    // Guardar en la tabla 'inspecciones_calidad'
     async function guardarInspeccion() {
         const btn = document.getElementById('btn_guardar');
         const datos = {
@@ -238,6 +245,19 @@
         } else {
             alert("✅ Registro guardado correctamente");
             location.reload();
+        }
+    }
+
+    // Tema oscuro/claro
+    function toggleTheme() {
+        const body = document.body;
+        const icon = document.getElementById('themeIcon');
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            icon.className = 'fas fa-moon';
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            icon.className = 'fas fa-sun';
         }
     }
 
