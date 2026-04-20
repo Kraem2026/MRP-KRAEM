@@ -65,19 +65,22 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Área</label>
-            <select id="area">
-                <option value="NISSEI">NISSEI</option>
-                <option value="LS">LS</option>
-                <option value="HDL">HDL</option>
-            </select>
+            <label>Máquina</label>
+            <input type="text" id="maquina" placeholder="Ej. #13">
         </div>
     </div>
 
     <div class="form-group">
-        <label>Máquina</label>
-        <input type="text" id="maquina" placeholder="Ej. #13">
+        <label>Inspector Interno</label>
+        <input type="text" id="inspector_interno" placeholder="Nombre del inspector">
     </div>
+
+    <div class="form-group">
+        <label>Operador</label>
+        <input type="text" id="operador" placeholder="Nombre del operador">
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
 
     <div class="form-group" style="position:relative;">
         <label>Número de Parte</label>
@@ -107,16 +110,11 @@
             <input type="number" id="cant_ok" class="readonly-box" readonly>
         </div>
         <div class="form-group">
-            <label>% Defecto</label>
-            <input type="text" id="porcentaje" class="readonly-box" readonly>
+            <label>Tipo de Defecto</label>
+            <select id="tipo_defecto">
+                <option value="">Cargando defectos...</option>
+            </select>
         </div>
-    </div>
-
-    <div class="form-group">
-        <label>Tipo de Defecto</label>
-        <select id="tipo_defecto">
-            <option value="">Cargando defectos...</option>
-        </select>
     </div>
 
     <div class="form-group">
@@ -134,15 +132,21 @@
     </div>
 
     <button class="btn-save" id="btn_guardar" onclick="guardarInspeccion()">
-        <i class="fas fa-save"></i> GUARDAR LIBERACIÓN
+        <i class="fas fa-save"></i> GUARDAR INSPECCIÓN
     </button>
 </div>
 
 <script>
     let listaPartes = [];
-    let selPartId = null;
 
-    // Inicialización de la página
+    // Función para obtener el número de semana
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+
     async function init() {
         // 1. Cargar Defectos desde la tabla 'defects'
         try {
@@ -152,33 +156,25 @@
                 .order('Defect_name', { ascending: true });
 
             const selectDef = document.getElementById('tipo_defecto');
-
-            if (errDef) throw errDef;
-
-            if (defs && defs.length > 0) {
-                selectDef.innerHTML = '<option value="NINGUNO">Ninguno / OK</option>';
+            if (defs) {
+                selectDef.innerHTML = '<option value="NINGUNO">N/A - OK</option>';
                 defs.forEach(d => {
-                    const opt = document.createElement('option');
+                    let opt = document.createElement('option');
                     opt.value = d.Defect_name;
                     opt.textContent = d.Defect_name;
                     selectDef.appendChild(opt);
                 });
-            } else {
-                selectDef.innerHTML = '<option value="NINGUNO">Sin defectos en DB</option>';
             }
-        } catch (e) { 
-            console.error("Error al cargar defectos:", e);
-            document.getElementById('tipo_defecto').innerHTML = '<option value="">Error al conectar</option>';
-        }
+        } catch (e) { console.error(e); }
 
-        // 2. Cargar Partes para el Autocomplete
+        // 2. Cargar Partes para Autocomplete
         try {
-            const { data: pts } = await client.from('parts').select('id, part_number, part_name').limit(2000);
+            const { data: pts } = await client.from('parts').select('part_number, part_name');
             if (pts) listaPartes = pts;
-        } catch (e) { console.error("Error en lista de partes:", e); }
+        } catch (e) { console.error(e); }
     }
 
-    // Autocomplete de Partes
+    // Lógica de Autocomplete
     const partSearch = document.getElementById('partSearch');
     const partResults = document.getElementById('partResults');
     const nombrePiezaInput = document.getElementById('nombre_pieza');
@@ -187,16 +183,13 @@
         const v = partSearch.value.toUpperCase();
         partResults.innerHTML = '';
         if (!v) { partResults.style.display = 'none'; return; }
-
         const filtered = listaPartes.filter(p => p.part_number.includes(v)).slice(0, 10);
-        
         filtered.forEach(p => {
             const d = document.createElement('div');
             d.textContent = p.part_number;
             d.onclick = () => {
                 partSearch.value = p.part_number;
                 nombrePiezaInput.value = p.part_name;
-                selPartId = p.id;
                 partResults.style.display = 'none';
             };
             partResults.appendChild(d);
@@ -204,61 +197,57 @@
         partResults.style.display = filtered.length ? 'block' : 'none';
     };
 
-    // Cálculos automáticos
     function calcularOk() {
         const insp = parseInt(document.getElementById('cant_insp').value) || 0;
         const def = parseInt(document.getElementById('cant_def').value) || 0;
         document.getElementById('cant_ok').value = Math.max(0, insp - def);
-        document.getElementById('porcentaje').value = insp > 0 ? ((def / insp) * 100).toFixed(2) + "%" : "0%";
     }
 
-    // Guardar en la tabla 'inspecciones_calidad'
+    // --- GUARDAR EN inspeccion_produccion ---
     async function guardarInspeccion() {
         const btn = document.getElementById('btn_guardar');
+        const ahora = new Date();
+
         const datos = {
-            turno: document.getElementById('turno').value,
-            area: document.getElementById('area').value,
+            fecha: ahora.toISOString().split('T')[0], // YYYY-MM-DD
+            semana: getWeekNumber(ahora),
+            turno: parseInt(document.getElementById('turno').value),
+            inspector_interno: document.getElementById('inspector_interno').value,
             maquina: document.getElementById('maquina').value,
-            part_number: partSearch.value,
-            part_name: nombrePiezaInput.value,
-            qty_inspected: parseInt(document.getElementById('cant_insp').value) || 0,
-            qty_defective: parseInt(document.getElementById('cant_def').value) || 0,
-            defect_type: document.getElementById('tipo_defecto').value,
-            comments: document.getElementById('comentarios').value,
-            disposition: document.getElementById('destino').value,
-            created_at: new Date().toISOString()
+            hora: ahora.toTimeString().split(' ')[0], // HH:MM:SS
+            operador: document.getElementById('operador').value,
+            num_parte: partSearch.value,
+            nombre_pieza: nombrePiezaInput.value,
+            cant_inspeccionada: parseInt(document.getElementById('cant_insp').value) || 0,
+            cant_defectuosa: parseInt(document.getElementById('cant_def').value) || 0,
+            cant_ok: parseInt(document.getElementById('cant_ok').value) || 0,
+            tipo_defecto: document.getElementById('tipo_defecto').value,
+            destino: document.getElementById('destino').value,
+            comentarios: document.getElementById('comentarios').value
         };
 
-        if (!datos.part_number || isNaN(datos.qty_inspected) || datos.qty_inspected <= 0) {
-            return alert("Verifica el Número de Parte y que la Cantidad Inspeccionada sea válida.");
+        // Validación simple
+        if (!datos.num_parte || !datos.inspector_interno) {
+            return alert("Por favor llena el Número de Parte y el nombre del Inspector.");
         }
 
         btn.disabled = true;
         btn.innerText = "Guardando...";
 
-        const { error } = await client.from('inspecciones_calidad').insert([datos]);
+        const { error } = await client.from('inspeccion_produccion').insert([datos]);
 
         if (error) {
             alert("Error al guardar: " + error.message);
             btn.disabled = false;
-            btn.innerText = "GUARDAR LIBERACIÓN";
+            btn.innerText = "GUARDAR INSPECCIÓN";
         } else {
-            alert("✅ Registro guardado correctamente");
+            alert("✅ Registro guardado en Producción");
             location.reload();
         }
     }
 
-    // Tema oscuro/claro
     function toggleTheme() {
-        const body = document.body;
-        const icon = document.getElementById('themeIcon');
-        if (body.getAttribute('data-theme') === 'dark') {
-            body.removeAttribute('data-theme');
-            icon.className = 'fas fa-moon';
-        } else {
-            body.setAttribute('data-theme', 'dark');
-            icon.className = 'fas fa-sun';
-        }
+        document.body.toggleAttribute('data-theme');
     }
 
     document.addEventListener('DOMContentLoaded', init);
