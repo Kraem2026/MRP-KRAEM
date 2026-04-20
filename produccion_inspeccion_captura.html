@@ -72,17 +72,19 @@
 
     <div class="form-group">
         <label>Inspector Interno</label>
-        <input type="text" id="inspector_interno" placeholder="Nombre del inspector">
+        <input type="text" id="inspector_search" placeholder="Buscar inspector..." autocomplete="off">
+        <div id="inspectorResults" class="autobox"></div>
     </div>
 
     <div class="form-group">
         <label>Operador</label>
-        <input type="text" id="operador" placeholder="Nombre del operador">
+        <input type="text" id="operador_search" placeholder="Buscar operador..." autocomplete="off">
+        <div id="operadorResults" class="autobox"></div>
     </div>
 
     <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
 
-    <div class="form-group" style="position:relative;">
+    <div class="form-group">
         <label>Número de Parte</label>
         <input type="text" id="partSearch" placeholder="Escriba N/P..." autocomplete="off">
         <div id="partResults" class="autobox"></div>
@@ -138,8 +140,8 @@
 
 <script>
     let listaPartes = [];
+    let listaPersonal = []; // Preparado para módulo RH
 
-    // Función para obtener el número de semana
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
         d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
@@ -148,54 +150,86 @@
     }
 
     async function init() {
-        // 1. Cargar Defectos desde la tabla 'defects'
+        // 1. Cargar Defectos
         try {
-            const { data: defs, error: errDef } = await client
-                .from('defects')
-                .select('Defect_name')
-                .order('Defect_name', { ascending: true });
-
+            const { data: defs } = await client.from('defects').select('Defect_name').order('Defect_name');
             const selectDef = document.getElementById('tipo_defecto');
             if (defs) {
                 selectDef.innerHTML = '<option value="NINGUNO">N/A - OK</option>';
                 defs.forEach(d => {
                     let opt = document.createElement('option');
-                    opt.value = d.Defect_name;
-                    opt.textContent = d.Defect_name;
+                    opt.value = d.Defect_name; opt.textContent = d.Defect_name;
                     selectDef.appendChild(opt);
                 });
             }
         } catch (e) { console.error(e); }
 
-        // 2. Cargar Partes para Autocomplete
+        // 2. Cargar Partes
         try {
             const { data: pts } = await client.from('parts').select('part_number, part_name');
             if (pts) listaPartes = pts;
         } catch (e) { console.error(e); }
+
+        // 3. Cargar Personal (Simulado hasta que RH esté listo)
+        // Cuando tengas la tabla de RH, descomenta lo de abajo:
+        /*
+        try {
+            const { data: per } = await client.from('personal').select('nombre_completo');
+            if (per) listaPersonal = per;
+        } catch (e) { console.error(e); }
+        */
     }
 
-    // Lógica de Autocomplete
-    const partSearch = document.getElementById('partSearch');
-    const partResults = document.getElementById('partResults');
-    const nombrePiezaInput = document.getElementById('nombre_pieza');
+    // --- Lógica Genérica de Autocompletado ---
+    function setupAutocomplete(inputEl, resultsEl, data, fieldName, callback) {
+        inputEl.oninput = () => {
+            const v = inputEl.value.toUpperCase();
+            resultsEl.innerHTML = '';
+            if (!v) { resultsEl.style.display = 'none'; return; }
+            const filtered = data.filter(item => item[fieldName].toUpperCase().includes(v)).slice(0, 10);
+            filtered.forEach(item => {
+                const d = document.createElement('div');
+                d.textContent = item[fieldName];
+                d.onclick = () => {
+                    inputEl.value = item[fieldName];
+                    resultsEl.style.display = 'none';
+                    if (callback) callback(item);
+                };
+                resultsEl.appendChild(d);
+            });
+            resultsEl.style.display = filtered.length ? 'block' : 'none';
+        };
+    }
 
-    partSearch.oninput = () => {
-        const v = partSearch.value.toUpperCase();
-        partResults.innerHTML = '';
-        if (!v) { partResults.style.display = 'none'; return; }
-        const filtered = listaPartes.filter(p => p.part_number.includes(v)).slice(0, 10);
-        filtered.forEach(p => {
-            const d = document.createElement('div');
-            d.textContent = p.part_number;
-            d.onclick = () => {
-                partSearch.value = p.part_number;
-                nombrePiezaInput.value = p.part_name;
-                partResults.style.display = 'none';
-            };
-            partResults.appendChild(d);
-        });
-        partResults.style.display = filtered.length ? 'block' : 'none';
-    };
+    // Inicializar autocompletados
+    document.addEventListener('DOMContentLoaded', async () => {
+        await init();
+        
+        // Autocomplete Partes
+        setupAutocomplete(
+            document.getElementById('partSearch'), 
+            document.getElementById('partResults'), 
+            listaPartes, 
+            'part_number', 
+            (item) => { document.getElementById('nombre_pieza').value = item.part_name; }
+        );
+
+        // Autocomplete Inspector (Preparado)
+        setupAutocomplete(
+            document.getElementById('inspector_search'), 
+            document.getElementById('inspectorResults'), 
+            listaPersonal, 
+            'nombre_completo'
+        );
+
+        // Autocomplete Operador (Preparado)
+        setupAutocomplete(
+            document.getElementById('operador_search'), 
+            document.getElementById('operadorResults'), 
+            listaPersonal, 
+            'nombre_completo'
+        );
+    });
 
     function calcularOk() {
         const insp = parseInt(document.getElementById('cant_insp').value) || 0;
@@ -203,32 +237,30 @@
         document.getElementById('cant_ok').value = Math.max(0, insp - def);
     }
 
-    // --- GUARDAR EN inspeccion_produccion ---
     async function guardarInspeccion() {
         const btn = document.getElementById('btn_guardar');
         const ahora = new Date();
 
         const datos = {
-            fecha: ahora.toISOString().split('T')[0], // YYYY-MM-DD
+            fecha: ahora.toISOString().split('T')[0],
             semana: getWeekNumber(ahora),
             turno: parseInt(document.getElementById('turno').value),
-            inspector_interno: document.getElementById('inspector_interno').value,
+            inspector_interno: document.getElementById('inspector_search').value,
             maquina: document.getElementById('maquina').value,
-            hora: ahora.toTimeString().split(' ')[0], // HH:MM:SS
-            operador: document.getElementById('operador').value,
-            num_parte: partSearch.value,
-            nombre_pieza: nombrePiezaInput.value,
+            hora: ahora.toTimeString().split(' ')[0],
+            operador: document.getElementById('operador_search').value,
+            num_parte: document.getElementById('partSearch').value,
+            nombre_pieza: document.getElementById('nombre_pieza').value,
             cant_inspeccionada: parseInt(document.getElementById('cant_insp').value) || 0,
             cant_defectuosa: parseInt(document.getElementById('cant_def').value) || 0,
-            cant_ok: parseInt(document.getElementById('cant_ok').value) || 0,
+            // cant_ok NO SE ENVÍA porque es calculada por la DB
             tipo_defecto: document.getElementById('tipo_defecto').value,
             destino: document.getElementById('destino').value,
             comentarios: document.getElementById('comentarios').value
         };
 
-        // Validación simple
         if (!datos.num_parte || !datos.inspector_interno) {
-            return alert("Por favor llena el Número de Parte y el nombre del Inspector.");
+            return alert("Falta Número de Parte o Inspector.");
         }
 
         btn.disabled = true;
@@ -237,20 +269,16 @@
         const { error } = await client.from('inspeccion_produccion').insert([datos]);
 
         if (error) {
-            alert("Error al guardar: " + error.message);
+            alert("Error: " + error.message);
             btn.disabled = false;
             btn.innerText = "GUARDAR INSPECCIÓN";
         } else {
-            alert("✅ Registro guardado en Producción");
+            alert("✅ Registro guardado");
             location.reload();
         }
     }
 
-    function toggleTheme() {
-        document.body.toggleAttribute('data-theme');
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
+    function toggleTheme() { document.body.toggleAttribute('data-theme'); }
 </script>
 </body>
 </html>
