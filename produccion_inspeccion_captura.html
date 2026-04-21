@@ -3,98 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnóstico KRAEM</title>
+    <title>Captura KRAEM - Producción</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; }
-        .form-container { max-width: 500px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .form-group { margin-bottom: 15px; }
+        [data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .form-container { max-width: 480px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .form-group { margin-bottom: 15px; position: relative; }
         label { display: block; font-size: 11px; font-weight: 800; margin-bottom: 5px; color: #64748b; text-transform: uppercase; }
-        select, input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        .debug-msg { font-size: 10px; color: #ef4444; margin-top: 5px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--bg); color: var(--text); box-sizing: border-box; }
+        .autobox { background: var(--card); border: 1px solid var(--border); position: absolute; width: 100%; z-index: 100; max-height: 150px; overflow-y: auto; display: none; }
+        .autobox div { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--border); }
+        .autobox div:hover { background: var(--primary); color: white; }
+        .btn-save { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="form-container">
-    <h3 style="text-align:center;">Captura (Modo Diagnóstico)</h3>
-    
-    <div class="form-group">
-        <label>Área</label>
-        <select id="area"><option value="">Esperando datos...</option></select>
-        <div id="debug_area" class="debug-msg"></div>
-    </div>
+    <h2 style="text-align: center; margin-top: 0;">Captura de Calidad</h2>
 
     <div class="form-group">
-        <label>Tipo de Defecto</label>
-        <select id="tipo_defecto"><option value="">Esperando datos...</option></select>
-        <div id="debug_defect" class="debug-msg"></div>
+        <label>Área</label>
+        <select id="area_select"><option value="">Cargando áreas...</option></select>
     </div>
 
     <div class="form-group">
         <label>Número de Parte</label>
-        <input type="text" id="partSearch" placeholder="Escribe N/P para probar...">
-        <div id="debug_parts" class="debug-msg"></div>
+        <input type="text" id="part_input" placeholder="Buscar N/P..." autocomplete="off">
+        <div id="part_results" class="autobox"></div>
     </div>
 
-    <p style="font-size: 12px; color: #64748b;">Si las listas siguen vacías, revisa la consola (F12).</p>
+    <div class="form-group">
+        <label>Nombre de Pieza</label>
+        <input type="text" id="name_display" readonly style="background: #e2e8f0; color: #475569;">
+    </div>
+
+    <div class="form-group">
+        <label>Tipo de Defecto</label>
+        <select id="defect_select"><option value="">Cargando defectos...</option></select>
+    </div>
+
+    <div class="form-group">
+        <label>Cantidad Defectuosa</label>
+        <input type="number" id="cant_def" value="0">
+    </div>
+
+    <button class="btn-save" onclick="guardar()">GUARDAR REGISTRO</button>
 </div>
 
 <script>
-    async function init() {
-        console.log("Iniciando conexión con Supabase...");
+    let db_parts = [];
 
-        // --- PRUEBA ÁREAS ---
-        try {
-            const { data, error } = await client.from('areas').select('*');
-            const select = document.getElementById('area');
-            if (error) {
-                document.getElementById('debug_area').innerText = "Error: " + error.message;
-            } else if (data.length === 0) {
-                document.getElementById('debug_area').innerText = "Tabla 'areas' está vacía.";
-            } else {
-                select.innerHTML = '<option value="">Seleccione Área...</option>';
-                data.forEach(a => {
-                    let opt = document.createElement('option');
-                    opt.value = a.area_name; opt.textContent = a.area_name;
-                    select.appendChild(opt);
-                });
-                console.log("Áreas cargadas:", data);
-            }
-        } catch (e) { console.error(e); }
+    async function cargarDatos() {
+        console.log("Iniciando carga...");
 
-        // --- PRUEBA DEFECTOS ---
-        try {
-            // Intentamos con 'defect' (singular) como dijiste antes
-            const { data, error } = await client.from('defect').select('*');
-            const select = document.getElementById('tipo_defecto');
-            if (error) {
-                document.getElementById('debug_defect').innerText = "Error: " + error.message + " (¿La tabla se llama 'defect' o 'defects'?)";
-            } else if (data.length === 0) {
-                document.getElementById('debug_defect').innerText = "Tabla 'defect' vacía.";
-            } else {
-                select.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
-                data.forEach(d => {
-                    let opt = document.createElement('option');
-                    opt.value = d.Defect_name; opt.textContent = d.Defect_name;
-                    select.appendChild(opt);
-                });
-                console.log("Defectos cargados:", data);
-            }
-        } catch (e) { console.error(e); }
+        // 1. Cargar Áreas
+        const { data: areas } = await client.from('areas').select('*');
+        const sArea = document.getElementById('area_select');
+        if (areas) {
+            sArea.innerHTML = '<option value="">Seleccione Área</option>';
+            areas.forEach(a => {
+                let val = a.area_name || a.Area_Name || Object.values(a)[1]; // Busca por nombre o segunda columna
+                sArea.innerHTML += `<option value="${val}">${val}</option>`;
+            });
+            console.log("Áreas listas");
+        }
 
-        // --- PRUEBA PARTES ---
-        try {
-            const { data, error } = await client.from('parts').select('part_number');
-            if (error) document.getElementById('debug_parts').innerText = "Error en partes: " + error.message;
-            if (data) console.log("Partes listas:", data.length);
-        } catch (e) { console.error(e); }
+        // 2. Cargar Defectos (Tabla: defect)
+        const { data: defects } = await client.from('defect').select('*');
+        const sDef = document.getElementById('defect_select');
+        if (defects) {
+            sDef.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
+            defects.forEach(d => {
+                let val = d.Defect_name || d.defect_name || Object.values(d)[1];
+                sDef.innerHTML += `<option value="${val}">${val}</option>`;
+            });
+            console.log("Defectos listos");
+        }
+
+        // 3. Cargar Partes (Basado en tu SQL)
+        const { data: parts } = await client.from('parts').select('part_number, part_name');
+        if (parts) {
+            db_parts = parts;
+            console.log("Partes cargadas:", db_parts.length);
+        }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    // Lógica de Autocompletado de Partes
+    const pInput = document.getElementById('part_input');
+    const pResults = document.getElementById('part_results');
+    const nDisplay = document.getElementById('name_display');
+
+    pInput.oninput = () => {
+        const busqueda = pInput.value.toUpperCase();
+        pResults.innerHTML = '';
+        if (!busqueda) { pResults.style.display = 'none'; return; }
+
+        const filtrados = db_parts.filter(p => p.part_number.includes(busqueda)).slice(0, 10);
+        
+        filtrados.forEach(p => {
+            const div = document.createElement('div');
+            div.textContent = `${p.part_number} | ${p.part_name}`;
+            div.onclick = () => {
+                pInput.value = p.part_number;
+                nDisplay.value = p.part_name;
+                pResults.style.display = 'none';
+            };
+            pResults.appendChild(div);
+        });
+        pResults.style.display = filtrados.length ? 'block' : 'none';
+    };
+
+    async function guardar() {
+        const datos = {
+            area: document.getElementById('area_select').value,
+            num_parte: pInput.value,
+            nombre_pieza: nDisplay.value,
+            tipo_defecto: document.getElementById('defect_select').value,
+            cant_defectuosa: parseInt(document.getElementById('cant_def').value) || 0,
+            fecha: new Date().toISOString().split('T')[0]
+        };
+
+        if(!datos.area || !datos.num_parte) return alert("Llena los campos obligatorios");
+
+        const { error } = await client.from('inspeccion_produccion').insert([datos]);
+        if (error) alert("Error: " + error.message);
+        else { alert("Guardado!"); location.reload(); }
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarDatos);
 </script>
 </body>
 </html>
