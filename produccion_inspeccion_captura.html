@@ -58,16 +58,23 @@
 <div class="form-container">
     <div class="grid-2">
         <div class="form-group">
+            <label>Área</label>
+            <select id="area">
+                <option value="">Cargando áreas...</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label>Turno</label>
             <select id="turno">
                 <option value="1">Turno 1</option>
                 <option value="2">Turno 2</option>
             </select>
         </div>
-        <div class="form-group">
-            <label>Máquina</label>
-            <input type="text" id="maquina" placeholder="Ej. #13">
-        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Máquina</label>
+        <input type="text" id="maquina" placeholder="Ej. #13">
     </div>
 
     <div class="form-group">
@@ -140,7 +147,7 @@
 
 <script>
     let listaPartes = [];
-    let listaPersonal = []; // Preparado para módulo RH
+    let listaPersonal = [];
 
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -150,7 +157,21 @@
     }
 
     async function init() {
-        // 1. Cargar Defectos
+        // 1. Cargar Áreas (Desde tu tabla 'areas')
+        try {
+            const { data: areasData } = await client.from('areas').select('area_name').eq('active', true).order('area_name');
+            const selectArea = document.getElementById('area');
+            if (areasData) {
+                selectArea.innerHTML = '<option value="">Seleccione Área...</option>';
+                areasData.forEach(a => {
+                    let opt = document.createElement('option');
+                    opt.value = a.area_name; opt.textContent = a.area_name;
+                    selectArea.appendChild(opt);
+                });
+            }
+        } catch (e) { console.error("Error áreas:", e); }
+
+        // 2. Cargar Defectos
         try {
             const { data: defs } = await client.from('defects').select('Defect_name').order('Defect_name');
             const selectDef = document.getElementById('tipo_defecto');
@@ -164,23 +185,13 @@
             }
         } catch (e) { console.error(e); }
 
-        // 2. Cargar Partes
+        // 3. Cargar Partes
         try {
             const { data: pts } = await client.from('parts').select('part_number, part_name');
             if (pts) listaPartes = pts;
         } catch (e) { console.error(e); }
-
-        // 3. Cargar Personal (Simulado hasta que RH esté listo)
-        // Cuando tengas la tabla de RH, descomenta lo de abajo:
-        /*
-        try {
-            const { data: per } = await client.from('personal').select('nombre_completo');
-            if (per) listaPersonal = per;
-        } catch (e) { console.error(e); }
-        */
     }
 
-    // --- Lógica Genérica de Autocompletado ---
     function setupAutocomplete(inputEl, resultsEl, data, fieldName, callback) {
         inputEl.oninput = () => {
             const v = inputEl.value.toUpperCase();
@@ -201,34 +212,12 @@
         };
     }
 
-    // Inicializar autocompletados
     document.addEventListener('DOMContentLoaded', async () => {
         await init();
         
-        // Autocomplete Partes
-        setupAutocomplete(
-            document.getElementById('partSearch'), 
-            document.getElementById('partResults'), 
-            listaPartes, 
-            'part_number', 
-            (item) => { document.getElementById('nombre_pieza').value = item.part_name; }
-        );
-
-        // Autocomplete Inspector (Preparado)
-        setupAutocomplete(
-            document.getElementById('inspector_search'), 
-            document.getElementById('inspectorResults'), 
-            listaPersonal, 
-            'nombre_completo'
-        );
-
-        // Autocomplete Operador (Preparado)
-        setupAutocomplete(
-            document.getElementById('operador_search'), 
-            document.getElementById('operadorResults'), 
-            listaPersonal, 
-            'nombre_completo'
-        );
+        setupAutocomplete(document.getElementById('partSearch'), document.getElementById('partResults'), listaPartes, 'part_number', (item) => { document.getElementById('nombre_pieza').value = item.part_name; });
+        setupAutocomplete(document.getElementById('inspector_search'), document.getElementById('inspectorResults'), listaPersonal, 'nombre_completo');
+        setupAutocomplete(document.getElementById('operador_search'), document.getElementById('operadorResults'), listaPersonal, 'nombre_completo');
     });
 
     function calcularOk() {
@@ -244,6 +233,7 @@
         const datos = {
             fecha: ahora.toISOString().split('T')[0],
             semana: getWeekNumber(ahora),
+            area: document.getElementById('area').value, // <--- CAMPO AGREGADO
             turno: parseInt(document.getElementById('turno').value),
             inspector_interno: document.getElementById('inspector_search').value,
             maquina: document.getElementById('maquina').value,
@@ -253,14 +243,13 @@
             nombre_pieza: document.getElementById('nombre_pieza').value,
             cant_inspeccionada: parseInt(document.getElementById('cant_insp').value) || 0,
             cant_defectuosa: parseInt(document.getElementById('cant_def').value) || 0,
-            // cant_ok NO SE ENVÍA porque es calculada por la DB
             tipo_defecto: document.getElementById('tipo_defecto').value,
             destino: document.getElementById('destino').value,
             comentarios: document.getElementById('comentarios').value
         };
 
-        if (!datos.num_parte || !datos.inspector_interno) {
-            return alert("Falta Número de Parte o Inspector.");
+        if (!datos.num_parte || !datos.area) {
+            return alert("Falta Número de Parte o Área.");
         }
 
         btn.disabled = true;
