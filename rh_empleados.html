@@ -12,39 +12,29 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
         .container { max-width: 1300px; margin: auto; }
         
-        /* Navegación */
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
 
-        /* Card Principal */
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 20px; }
         
-        /* Layout Flex para Foto y Formulario */
         .form-container { display: flex; gap: 30px; }
-        
         .foto-seccion { display: flex; flex-direction: column; align-items: center; min-width: 150px; border-right: 1px solid #eee; padding-right: 25px; }
         .foto-perfil { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #e2e8f0; background: #f1f5f9; cursor: pointer; }
 
-        /* Grid de Inputs: En PC se ve espacioso, en Móvil se ajusta */
-        .inputs-grid { 
-            flex: 1;
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
-            gap: 15px; 
-        }
-
+        .inputs-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
         .group { display: flex; flex-direction: column; }
         .group.full-width { grid-column: 1 / -1; }
         
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select, textarea { padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
+        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
 
-        .btn-save { background: var(--accent); color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 14px; margin-top: 10px; }
+        /* Barra de Filtros */
+        .filter-bar { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
 
         /* Tabla */
         .table-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
         .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
         th { background: #f8fafc; padding: 12px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         tr:hover { background: #f1f5f9; cursor: pointer; }
@@ -53,12 +43,10 @@
         .status-activo { background: #dcfce7; color: #166534; }
         .status-baja { background: #fee2e2; color: #991b1b; }
 
-        /* Responsivo para Celular */
         @media (max-width: 768px) {
             .form-container { flex-direction: column; }
-            .foto-seccion { border-right: none; border-bottom: 1px solid #eee; padding-right: 0; padding-bottom: 20px; }
+            .foto-seccion { border-right: none; border-bottom: 1px solid #eee; padding-bottom: 20px; }
             .inputs-grid { grid-template-columns: 1fr 1fr; }
-            body { padding: 10px; }
         }
     </style>
 </head>
@@ -117,22 +105,40 @@
         </div>
     </div>
 
+    <div class="filter-bar">
+        <label style="display:block; margin-bottom:10px; font-size:11px; color:var(--accent); font-weight:bold;"><i class="fas fa-filter"></i> FILTRAR LISTADO</label>
+        <div class="inputs-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+            <input type="text" id="f_nombre" placeholder="Buscar por nombre..." oninput="aplicarFiltros()">
+            <select id="f_area" onchange="aplicarFiltros()"><option value="">Todas las Áreas</option></select>
+            <select id="f_puesto" onchange="aplicarFiltros()"><option value="">Todos los Puestos</option></select>
+            <select id="f_ruta" onchange="aplicarFiltros()"><option value="">Todas las Rutas</option></select>
+            <select id="f_turno" onchange="aplicarFiltros()">
+                <option value="">Todos los Turnos</option>
+                <option value="1">Turno 1</option>
+                <option value="2">Turno 2</option>
+            </select>
+            <div style="display:flex; gap:5px;">
+                <input type="date" id="f_desde" onchange="aplicarFiltros()" title="Ingreso Desde">
+                <input type="date" id="f_hasta" onchange="aplicarFiltros()" title="Ingreso Hasta">
+            </div>
+        </div>
+    </div>
+
     <div class="table-card">
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Nombre del Colaborador</th>
+                        <th>Nombre</th>
                         <th>Área</th>
                         <th>Puesto</th>
                         <th>Ruta</th>
+                        <th>Turno</th>
                         <th>Ingreso</th>
                         <th>Estatus</th>
                     </tr>
                 </thead>
-                <tbody id="lista_empleados">
-                    <tr><td colspan="6" style="text-align:center; padding:20px;">Cargando personal...</td></tr>
-                </tbody>
+                <tbody id="lista_empleados"></tbody>
             </table>
         </div>
     </div>
@@ -142,56 +148,81 @@
     let db_empleados = [];
 
     async function init() {
-        try {
-            // Cargar Catálogos
-            const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
-            const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
-            const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
+        // Catálogos
+        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
+        const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
+        const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
 
-            const fillSelect = (id, data) => {
-                const s = document.getElementById(id);
-                s.innerHTML = '<option value="">Seleccione...</option>';
-                data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
-            };
+        const fill = (id, data, esFiltro = false) => {
+            const s = document.getElementById(id);
+            const textoInicial = esFiltro ? s.options[0].text : 'Seleccione...';
+            s.innerHTML = `<option value="">${textoInicial}</option>`;
+            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
+        };
 
-            fillSelect('sel_area', areas);
-            fillSelect('sel_puesto', puestos);
-            fillSelect('sel_ruta', rutas);
+        fill('sel_area', areas); fill('sel_puesto', puestos); fill('sel_ruta', rutas);
+        fill('f_area', areas, true); fill('f_puesto', puestos, true); fill('f_ruta', rutas, true);
 
-            await listarEmpleados();
-        } catch (e) {
-            console.error("Error inicializando:", e);
-        }
+        await listarEmpleados();
     }
 
     async function listarEmpleados() {
-        // Hacemos el fetch de empleados
-        const { data: emps, error } = await client
+        // Consulta simplificada para evitar el error "Object"
+        const { data, error } = await client
             .from('rh_empleados')
-            .select('*, rh_areas(nombre), rh_puestos(nombre), rh_rutas(nombre)')
+            .select(`
+                *,
+                rh_areas (nombre),
+                rh_puestos (nombre),
+                rh_rutas (nombre)
+            `)
             .order('nombre_completo');
 
         if (error) {
-            console.error("Error al cargar empleados:", error);
+            console.error("Error Supabase:", error);
+            alert("Error al cargar datos. Revisa la consola.");
             return;
         }
 
-        db_empleados = emps || [];
-        renderTabla();
+        db_empleados = data || [];
+        aplicarFiltros();
     }
 
-    function renderTabla() {
+    function aplicarFiltros() {
+        const fNombre = document.getElementById('f_nombre').value.toLowerCase();
+        const fArea = document.getElementById('f_area').value;
+        const fPuesto = document.getElementById('f_puesto').value;
+        const fRuta = document.getElementById('f_ruta').value;
+        const fTurno = document.getElementById('f_turno').value;
+        const fDesde = document.getElementById('f_desde').value;
+        const fHasta = document.getElementById('f_hasta').value;
+
+        const filtrados = db_empleados.filter(e => {
+            const matchNombre = e.nombre_completo.toLowerCase().includes(fNombre);
+            const matchArea = !fArea || e.area_id === fArea;
+            const matchPuesto = !fPuesto || e.puesto_id === fPuesto;
+            const matchRuta = !fRuta || e.ruta_transporte === fRuta;
+            const matchTurno = !fTurno || String(e.turno_id) === fTurno;
+            
+            let matchFecha = true;
+            if(fDesde && e.fecha_ingreso < fDesde) matchFecha = false;
+            if(fHasta && e.fecha_ingreso > fHasta) matchFecha = false;
+
+            return matchNombre && matchArea && matchPuesto && matchRuta && matchTurno && matchFecha;
+        });
+
         const tbody = document.getElementById('lista_empleados');
         tbody.innerHTML = '';
 
-        db_empleados.forEach(e => {
+        filtrados.forEach(e => {
             const statusClass = e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja';
             tbody.innerHTML += `
                 <tr onclick="cargarEdicion('${e.id}')">
                     <td><b>${e.nombre_completo}</b></td>
-                    <td>${e.rh_areas?.nombre || 'N/A'}</td>
-                    <td>${e.rh_puestos?.nombre || 'N/A'}</td>
-                    <td>${e.rh_rutas?.nombre || 'N/A'}</td>
+                    <td>${e.rh_areas?.nombre || '-'}</td>
+                    <td>${e.rh_puestos?.nombre || '-'}</td>
+                    <td>${e.rh_rutas?.nombre || '-'}</td>
+                    <td>Turno ${e.turno_id}</td>
                     <td>${e.fecha_ingreso || '-'}</td>
                     <td><span class="status-badge ${statusClass}">${e.estatus}</span></td>
                 </tr>`;
@@ -208,7 +239,7 @@
         document.getElementById('sel_puesto').value = emp.puesto_id || "";
         document.getElementById('sel_turno').value = emp.turno_id || "1";
         document.getElementById('sel_ruta').value = emp.ruta_transporte || "";
-        document.getElementById('sel_estatus').value = emp.estatus || "ACTIVO";
+        document.getElementById('sel_estatus').value = emp.estatus;
         document.getElementById('telefono').value = emp.telefono || '';
         document.getElementById('sel_talla').value = emp.talla_playera || '';
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || '';
@@ -217,7 +248,7 @@
 
         document.getElementById('btn_main').innerText = "ACTUALIZAR DATOS";
         document.getElementById('btn_cancel').style.display = "block";
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
     async function guardarEmpleado() {
@@ -235,19 +266,13 @@
             fecha_ingreso: document.getElementById('fecha_ingreso').value || null
         };
 
-        if(!datos.nombre_completo) return alert("El nombre es obligatorio");
+        if(!datos.nombre_completo) return alert("Nombre obligatorio");
 
-        let res;
-        if(id) {
-            res = await client.from('rh_empleados').update(datos).eq('id', id);
-        } else {
-            res = await client.from('rh_empleados').insert([datos]);
-        }
+        const { error } = id ? await client.from('rh_empleados').update(datos).eq('id', id) : await client.from('rh_empleados').insert([datos]);
 
-        if(res.error) {
-            alert("Error: " + res.error.message);
-        } else {
-            alert("✅ ¡Éxito!");
+        if(error) alert("Error al guardar: " + error.message);
+        else {
+            alert("✅ Guardado correctamente");
             resetForm();
             await listarEmpleados();
         }
@@ -258,35 +283,25 @@
         document.getElementById('btn_main').innerText = "GUARDAR EMPLEADO";
         document.getElementById('btn_cancel').style.display = "none";
         document.getElementById('img_preview').src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        
-        const inputs = ['nombre', 'telefono', 'direccion', 'fecha_ingreso'];
-        const selects = ['sel_area', 'sel_puesto', 'sel_ruta', 'sel_talla'];
-        
-        inputs.forEach(id => document.getElementById(id).value = "");
-        selects.forEach(id => document.getElementById(id).value = "");
-        document.getElementById('sel_turno').value = "1";
-        document.getElementById('sel_estatus').value = "ACTIVO";
+        document.querySelectorAll('.inputs-grid input, .inputs-grid select').forEach(el => {
+            if(!el.id.startsWith('f_')) el.value = "";
+        });
     }
 
     async function subirFoto() {
         const id = document.getElementById('edit_id').value;
-        if(!id) return alert("Guarda o selecciona un empleado antes de subir foto");
-        
+        if(!id) return alert("Primero guarda al empleado");
         const file = document.getElementById('input_foto').files[0];
-        const fileName = `perfil_${id}_${Date.now()}`;
-        
-        const { data, error } = await client.storage.from('empleados').upload(fileName, file);
-        if(error) return alert("Error al subir imagen");
-
-        const { data: urlData } = client.storage.from('empleados').getPublicUrl(fileName);
-        await client.from('rh_empleados').update({ foto_url: urlData.publicUrl }).eq('id', id);
-        
-        document.getElementById('img_preview').src = urlData.publicUrl;
+        const name = `perfil_${id}_${Date.now()}`;
+        const { error } = await client.storage.from('empleados').upload(name, file);
+        if(error) return alert("Error subir foto");
+        const { data } = client.storage.from('empleados').getPublicUrl(name);
+        await client.from('rh_empleados').update({ foto_url: data.publicUrl }).eq('id', id);
+        document.getElementById('img_preview').src = data.publicUrl;
         listarEmpleados();
     }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
-
 </body>
 </html>
