@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Reporte Mensual</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; }
+        select, input { padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f1f5f9; padding: 12px; text-align: center; font-size: 11px; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: center; font-size: 12px; }
+        
+        .asistencia { color: #22c55e; font-weight: bold; }
+        .falta { color: #ef4444; font-weight: bold; }
+        .vacaciones { color: #2563eb; font-weight: bold; }
+        .resumen-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div style="display:flex; justify-content: space-between; align-items: center;">
+        <h2>Reporte Mensual de Asistencia</h2>
+        <button onclick="window.print()" class="btn-nav" style="padding: 10px; cursor:pointer;"><i class="fas fa-print"></i> Imprimir Reporte</button>
+    </div>
+
+    <div class="controls">
+        <label>Mes:</label>
+        <select id="mes_filtro" onchange="generarReporte()">
+            <option value="0">Enero</option><option value="1">Febrero</option>
+            <option value="2">Marzo</option><option value="3" selected>Abril</option>
+            <option value="4">Mayo</option><option value="5">Junio</option>
+            <option value="6">Julio</option><option value="7">Agosto</option>
+            <option value="8">Septiembre</option><option value="9">Octubre</option>
+            <option value="10">Noviembre</option><option value="11">Diciembre</option>
+        </select>
+        <label>Año:</label>
+        <input type="number" id="anio_filtro" value="2026" onchange="generarReporte()" style="width: 80px;">
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table id="tabla_reporte">
+            <thead>
+                <tr id="headers_fechas">
+                    </tr>
+            </thead>
+            <tbody id="cuerpo_reporte">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function generarReporte() {
+        const mes = parseInt(document.getElementById('mes_filtro').value);
+        const anio = parseInt(document.getElementById('anio_filtro').value);
+        
+        // Calcular días del mes
+        const ultimoDia = new Date(anio, mes + 1, 0).getDate();
+        const headerRow = document.getElementById('headers_fechas');
+        headerRow.innerHTML = '<th>Empleado</th>';
+        
+        for(let i=1; i<=ultimoDia; i++) {
+            headerRow.innerHTML += `<th>${i}</th>`;
+        }
+        headerRow.innerHTML += '<th>Tot. Faltas</th>';
+
+        // Traer Empleados Activos
+        const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO');
+        
+        // Traer Asistencias del mes
+        const inicioMes = `${anio}-${(mes+1).toString().padStart(2,'0')}-01`;
+        const finMes = `${anio}-${(mes+1).toString().padStart(2,'0')}-${ultimoDia}`;
+        
+        const { data: asist } = await client.from('rh_asistencias')
+            .select('empleado_id, fecha, estado')
+            .gte('fecha', inicioMes)
+            .lte('fecha', finMes);
+
+        const tbody = document.getElementById('cuerpo_reporte');
+        tbody.innerHTML = '';
+
+        emps.forEach(e => {
+            let fila = `<tr><td style="text-align:left; font-weight:bold;">${e.nombre_completo}</td>`;
+            let contadorFaltas = 0;
+
+            for(let d=1; d<=ultimoDia; d++) {
+                const fechaStr = `${anio}-${(mes+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+                const registro = asist.find(a => a.empleado_id === e.id && a.fecha === fechaStr);
+                
+                if(!registro) {
+                    fila += '<td>-</td>';
+                } else {
+                    let icon = '';
+                    if(registro.estado === 'ASISTENCIA') icon = '<span class="asistencia">A</span>';
+                    if(registro.estado === 'FALTA') { icon = '<span class="falta">F</span>'; contadorFaltas++; }
+                    if(registro.estado === 'VACACIONES') icon = '<span class="vacaciones">V</span>';
+                    fila += `<td>${icon}</td>`;
+                }
+            }
+            fila += `<td style="background:#fff1f2; font-weight:bold; color:#e11d48;">${contadorFaltas}</td></tr>`;
+            tbody.innerHTML += fila;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', generarReporte);
+</script>
+</body>
+</html>
