@@ -3,289 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Captura de Inspección - KRAEM</title>
+    <title>Diagnóstico KRAEM</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a;
-            --border: #e2e8f0; --success: #22c55e;
-        }
-        [data-theme="dark"] { 
-            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; 
-        }
-
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; transition: 0.3s; }
-        
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--border); }
-        .btn-back { border: none; background: none; font-size: 1.1rem; cursor: pointer; color: var(--primary); font-weight: 600; }
-
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 10px; }
         .form-container { max-width: 500px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .form-group { margin-bottom: 15px; position: relative; }
+        .form-group { margin-bottom: 15px; }
         label { display: block; font-size: 11px; font-weight: 800; margin-bottom: 5px; color: #64748b; text-transform: uppercase; }
-        
-        input, select, textarea {
-            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
-            font-size: 16px; box-sizing: border-box; outline: none; background: var(--bg); color: var(--text);
-            appearance: none; -webkit-appearance: none; /* Mejora en móviles */
-        }
-
-        /* Flecha personalizada para select en móviles */
-        select {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em;
-        }
-
-        .autobox { 
-            background: var(--card); border: 1px solid var(--border); position: absolute; 
-            width: 100%; z-index: 1000; max-height: 200px; overflow-y: auto; display: none; 
-            border-radius: 0 0 8px 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); 
-        }
-        .autobox div { padding: 12px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 14px; }
-        .autobox div:hover { background: var(--bg); color: var(--primary); }
-
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-save {
-            width: 100%; padding: 16px; background: var(--primary); color: white;
-            border: none; border-radius: 12px; font-weight: bold; font-size: 16px;
-            cursor: pointer; margin-top: 10px; transition: 0.3s; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-        }
-        .btn-save:active { transform: scale(0.98); }
-        .readonly-box { background: rgba(0,0,0,0.03); font-weight: bold; color: var(--primary); border-style: dashed; }
+        select, input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .debug-msg { font-size: 10px; color: #ef4444; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-<header class="header">
-    <button class="btn-back" onclick="location.href='dashboard.html'"><i class="fas fa-chevron-left"></i> Menú</button>
-    <div style="font-weight: bold; font-size: 0.9rem;">CAPTURA DE CALIDAD</div>
-    <button class="btn-back" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
-</header>
-
 <div class="form-container">
-    <div class="grid-2">
-        <div class="form-group">
-            <label>Área de Producción</label>
-            <select id="area"><option value="">Cargando...</option></select>
-        </div>
-        <div class="form-group">
-            <label>Turno</label>
-            <select id="turno">
-                <option value="1">Turno 1</option>
-                <option value="2">Turno 2</option>
-            </select>
-        </div>
+    <h3 style="text-align:center;">Captura (Modo Diagnóstico)</h3>
+    
+    <div class="form-group">
+        <label>Área</label>
+        <select id="area"><option value="">Esperando datos...</option></select>
+        <div id="debug_area" class="debug-msg"></div>
     </div>
 
     <div class="form-group">
-        <label>Máquina / Estación</label>
-        <input type="text" id="maquina" placeholder="Ej: M-15">
+        <label>Tipo de Defecto</label>
+        <select id="tipo_defecto"><option value="">Esperando datos...</option></select>
+        <div id="debug_defect" class="debug-msg"></div>
     </div>
-
-    <div class="form-group">
-        <label>Inspector</label>
-        <input type="text" id="inspector_search" placeholder="Nombre del inspector..." autocomplete="off">
-        <div id="inspectorResults" class="autobox"></div>
-    </div>
-
-    <div class="form-group">
-        <label>Operador</label>
-        <input type="text" id="operador_search" placeholder="Nombre del operador..." autocomplete="off">
-        <div id="operadorResults" class="autobox"></div>
-    </div>
-
-    <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
 
     <div class="form-group">
         <label>Número de Parte</label>
-        <input type="text" id="partSearch" placeholder="Escriba N/P..." autocomplete="off">
-        <div id="partResults" class="autobox"></div>
+        <input type="text" id="partSearch" placeholder="Escribe N/P para probar...">
+        <div id="debug_parts" class="debug-msg"></div>
     </div>
 
-    <div class="form-group">
-        <label>Descripción de Pieza</label>
-        <input type="text" id="nombre_pieza" class="readonly-box" readonly placeholder="Se llenará solo...">
-    </div>
-
-    <div class="grid-2">
-        <div class="form-group">
-            <label>Piezas Inspeccionadas</label>
-            <input type="number" id="cant_insp" oninput="calcularOk()" placeholder="0">
-        </div>
-        <div class="form-group">
-            <label>Piezas Defectuosas</label>
-            <input type="number" id="cant_def" oninput="calcularOk()" placeholder="0">
-        </div>
-    </div>
-
-    <div class="grid-2">
-        <div class="form-group">
-            <label>Total OK</label>
-            <input type="number" id="cant_ok" class="readonly-box" readonly value="0">
-        </div>
-        <div class="form-group">
-            <label>Tipo de Defecto</label>
-            <select id="tipo_defecto"><option value="">Cargando...</option></select>
-        </div>
-    </div>
-
-    <div class="form-group">
-        <label>Destino de Material</label>
-        <select id="destino">
-            <option value="LIBERADO">LIBERADO (OK)</option>
-            <option value="RETRABAJO">RETRABAJO</option>
-            <option value="SCRAP">SCRAP / DESECHO</option>
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label>Comentarios Adicionales</label>
-        <textarea id="comentarios" rows="2" placeholder="Opcional..."></textarea>
-    </div>
-
-    <button class="btn-save" id="btn_guardar" onclick="guardarInspeccion()">
-        <i class="fas fa-check-circle"></i> GUARDAR REGISTRO
-    </button>
+    <p style="font-size: 12px; color: #64748b;">Si las listas siguen vacías, revisa la consola (F12).</p>
 </div>
 
 <script>
-    let listaPartes = [];
-    let listaPersonal = [];
-
-    // Helper para número de semana
-    function getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    }
-
     async function init() {
-        // CARGAR ÁREAS
+        console.log("Iniciando conexión con Supabase...");
+
+        // --- PRUEBA ÁREAS ---
         try {
-            const { data: areasData } = await client.from('areas').select('area_name').eq('active', true).order('area_name');
-            const selectArea = document.getElementById('area');
-            if (areasData) {
-                selectArea.innerHTML = '<option value="">Seleccione Área...</option>';
-                areasData.forEach(a => {
+            const { data, error } = await client.from('areas').select('*');
+            const select = document.getElementById('area');
+            if (error) {
+                document.getElementById('debug_area').innerText = "Error: " + error.message;
+            } else if (data.length === 0) {
+                document.getElementById('debug_area').innerText = "Tabla 'areas' está vacía.";
+            } else {
+                select.innerHTML = '<option value="">Seleccione Área...</option>';
+                data.forEach(a => {
                     let opt = document.createElement('option');
                     opt.value = a.area_name; opt.textContent = a.area_name;
-                    selectArea.appendChild(opt);
+                    select.appendChild(opt);
                 });
+                console.log("Áreas cargadas:", data);
             }
-        } catch (e) { console.error("Error Áreas:", e); }
+        } catch (e) { console.error(e); }
 
-        // CARGAR DEFECTOS (Tabla: defect)
+        // --- PRUEBA DEFECTOS ---
         try {
-            const { data: defs } = await client.from('defect').select('Defect_name').order('Defect_name');
-            const selectDef = document.getElementById('tipo_defecto');
-            if (defs) {
-                selectDef.innerHTML = '<option value="NINGUNO">NINGUNO (TODO OK)</option>';
-                defs.forEach(d => {
+            // Intentamos con 'defect' (singular) como dijiste antes
+            const { data, error } = await client.from('defect').select('*');
+            const select = document.getElementById('tipo_defecto');
+            if (error) {
+                document.getElementById('debug_defect').innerText = "Error: " + error.message + " (¿La tabla se llama 'defect' o 'defects'?)";
+            } else if (data.length === 0) {
+                document.getElementById('debug_defect').innerText = "Tabla 'defect' vacía.";
+            } else {
+                select.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
+                data.forEach(d => {
                     let opt = document.createElement('option');
                     opt.value = d.Defect_name; opt.textContent = d.Defect_name;
-                    selectDef.appendChild(opt);
+                    select.appendChild(opt);
                 });
+                console.log("Defectos cargados:", data);
             }
-        } catch (e) { console.error("Error Defectos:", e); }
+        } catch (e) { console.error(e); }
 
-        // CARGAR PARTES
+        // --- PRUEBA PARTES ---
         try {
-            const { data: pts } = await client.from('parts').select('part_number, part_name');
-            if (pts) listaPartes = pts;
-        } catch (e) { console.error("Error Partes:", e); }
+            const { data, error } = await client.from('parts').select('part_number');
+            if (error) document.getElementById('debug_parts').innerText = "Error en partes: " + error.message;
+            if (data) console.log("Partes listas:", data.length);
+        } catch (e) { console.error(e); }
     }
 
-    // Autocompletado genérico
-    function setupAutocomplete(inputEl, resultsEl, data, fieldName, callback) {
-        inputEl.oninput = () => {
-            const v = inputEl.value.toUpperCase();
-            resultsEl.innerHTML = '';
-            if (!v) { resultsEl.style.display = 'none'; return; }
-            const filtered = data.filter(item => item[fieldName].toUpperCase().includes(v)).slice(0, 8);
-            filtered.forEach(item => {
-                const d = document.createElement('div');
-                d.textContent = item[fieldName];
-                d.onclick = () => {
-                    inputEl.value = item[fieldName];
-                    resultsEl.style.display = 'none';
-                    if (callback) callback(item);
-                };
-                resultsEl.appendChild(d);
-            });
-            resultsEl.style.display = filtered.length ? 'block' : 'none';
-        };
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        await init();
-        
-        // Setup Autocomplete para Partes
-        setupAutocomplete(
-            document.getElementById('partSearch'), 
-            document.getElementById('partResults'), 
-            listaPartes, 
-            'part_number', 
-            (item) => { document.getElementById('nombre_pieza').value = item.part_name; }
-        );
-
-        // Los autocompletados de Personal se activarán cuando llenes la tabla 'personal'
-    });
-
-    function calcularOk() {
-        const insp = parseInt(document.getElementById('cant_insp').value) || 0;
-        const def = parseInt(document.getElementById('cant_def').value) || 0;
-        document.getElementById('cant_ok').value = Math.max(0, insp - def);
-    }
-
-    async function guardarInspeccion() {
-        const btn = document.getElementById('btn_guardar');
-        const ahora = new Date();
-
-        const datos = {
-            fecha: ahora.toISOString().split('T')[0],
-            semana: getWeekNumber(ahora),
-            area: document.getElementById('area').value,
-            turno: parseInt(document.getElementById('turno').value),
-            inspector_interno: document.getElementById('inspector_search').value,
-            maquina: document.getElementById('maquina').value,
-            hora: ahora.toTimeString().split(' ')[0],
-            operador: document.getElementById('operador_search').value,
-            num_parte: document.getElementById('partSearch').value,
-            nombre_pieza: document.getElementById('nombre_pieza').value,
-            cant_inspeccionada: parseInt(document.getElementById('cant_insp').value) || 0,
-            cant_defectuosa: parseInt(document.getElementById('cant_def').value) || 0,
-            tipo_defecto: document.getElementById('tipo_defecto').value,
-            destino: document.getElementById('destino').value,
-            comentarios: document.getElementById('comentarios').value
-        };
-
-        if (!datos.num_parte || !datos.area || !datos.inspector_interno) {
-            return alert("⚠️ Por favor llena: Área, Inspector y N/P.");
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GUARDANDO...';
-
-        const { error } = await client.from('inspeccion_produccion').insert([datos]);
-
-        if (error) {
-            alert("Error al guardar: " + error.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> GUARDAR REGISTRO';
-        } else {
-            alert("✅ Registro guardado correctamente");
-            location.reload();
-        }
-    }
-
-    function toggleTheme() {
-        document.body.toggleAttribute('data-theme');
-        const icon = document.getElementById('themeIcon');
-        icon.classList.toggle('fa-moon');
-        icon.classList.toggle('fa-sun');
-    }
+    document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
