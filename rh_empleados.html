@@ -12,11 +12,9 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
         .container { max-width: 1300px; margin: auto; }
         
-        /* Navegación y Encabezado */
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
 
-        /* Card Formulario */
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); margin-bottom: 20px; }
         .form-container { display: flex; gap: 30px; }
         
@@ -30,13 +28,15 @@
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
         input, select { padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
 
-        /* Filtros */
+        /* Historial / Trayectoria */
+        .historial-box { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0; }
+        .timeline-item { padding: 10px; border-left: 3px solid var(--accent); background: #f8fafc; margin-bottom: 10px; border-radius: 0 8px 8px 0; font-size: 13px; }
+
         .filter-bar { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
 
-        /* Tabla Estilo PC */
         .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
         .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
         th { background: #f8fafc; padding: 12px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         tr:hover { background: #f1f5f9; cursor: pointer; }
@@ -48,7 +48,6 @@
         @media (max-width: 768px) {
             .form-container { flex-direction: column; }
             .foto-seccion { border-right: none; border-bottom: 1px solid #eee; padding-bottom: 20px; padding-right: 0; }
-            .inputs-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
@@ -74,50 +73,34 @@
                     <div class="group"><label>Nombre Completo</label><input type="text" id="nombre"></div>
                     <div class="group"><label>Área</label><select id="sel_area"></select></div>
                     <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
-                    <div class="group"><label>Turno</label>
-                        <select id="sel_turno">
-                            <option value="1">Turno 1</option>
-                            <option value="2">Turno 2</option>
-                        </select>
-                    </div>
+                    <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
                     <div class="group"><label>Ruta Transporte</label><select id="sel_ruta"></select></div>
-                    <div class="group"><label>Estatus</label>
-                        <select id="sel_estatus">
-                            <option value="ACTIVO">ACTIVO</option>
-                            <option value="BAJA">BAJA</option>
-                        </select>
-                    </div>
+                    <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
                     <div class="group"><label>Teléfono</label><input type="tel" id="telefono"></div>
-                    <div class="group"><label>Talla Playera</label>
-                        <select id="sel_talla">
-                            <option value="">Seleccione...</option>
-                            <option value="XS">XS</option><option value="S">S</option><option value="M">M</option>
-                            <option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option>
-                        </select>
-                    </div>
+                    <div class="group"><label>Talla Playera</label><select id="sel_talla"><option value="">Seleccione...</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
                     <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
                     <div class="group full-width"><label>Dirección Particular</label><input type="text" id="direccion"></div>
                 </div>
+                
+                <div id="seccion_historial" class="historial-box" style="display:none;">
+                    <label style="color:var(--accent); font-size:12px;"><i class="fas fa-history"></i> Trayectoria en la Empresa</label>
+                    <div id="linea_tiempo" style="margin-top:10px;"></div>
+                </div>
+
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="btn-save" style="background:var(--accent); color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; flex:1; font-weight:bold;" id="btn_main" onclick="guardarEmpleado()">GUARDAR EMPLEADO</button>
-                    <button id="btn_cancel" style="display:none; background:#64748b; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="resetForm()">CANCELAR EDICIÓN</button>
+                    <button id="btn_cancel" style="display:none; background:#64748b; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="resetForm()">CANCELAR</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="filter-bar">
-        <label style="display:block; margin-bottom:10px; font-size:11px; color:var(--accent); font-weight:bold;"><i class="fas fa-filter"></i> BUSCAR EN EL LISTADO</label>
         <div class="inputs-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
-            <input type="text" id="f_nombre" placeholder="Por nombre..." oninput="aplicarFiltros()">
-            <select id="f_area" onchange="aplicarFiltros()"><option value="">Áreas (Todas)</option></select>
-            <select id="f_puesto" onchange="aplicarFiltros()"><option value="">Puestos (Todos)</option></select>
-            <select id="f_ruta" onchange="aplicarFiltros()"><option value="">Rutas (Todas)</option></select>
-            <select id="f_turno" onchange="aplicarFiltros()">
-                <option value="">Turnos (Todos)</option>
-                <option value="1">Turno 1</option>
-                <option value="2">Turno 2</option>
-            </select>
+            <input type="text" id="f_nombre" placeholder="Buscar nombre..." oninput="aplicarFiltros()">
+            <select id="f_area" onchange="aplicarFiltros()"><option value="">Todas las Áreas</option></select>
+            <select id="f_puesto" onchange="aplicarFiltros()"><option value="">Todos los Puestos</option></select>
+            <select id="f_ruta" onchange="aplicarFiltros()"><option value="">Todas las Rutas</option></select>
         </div>
     </div>
 
@@ -127,10 +110,10 @@
                 <thead>
                     <tr>
                         <th>Colaborador</th>
-                        <th>Área</th>
-                        <th>Puesto</th>
-                        <th>Ruta</th>
-                        <th>Turno</th>
+                        <th>Área / Puesto</th>
+                        <th>Ingreso</th>
+                        <th>Antigüedad</th>
+                        <th>Ruta / Turno</th>
                         <th>Estatus</th>
                     </tr>
                 </thead>
@@ -149,14 +132,12 @@
             const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
             const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
             const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
-
             cat_rutas = rutas || [];
 
             const fill = (id, data, esFiltro = false) => {
                 const s = document.getElementById(id);
                 if(!s) return;
-                const texto = esFiltro ? s.options[0].text : 'Seleccione...';
-                s.innerHTML = `<option value="">${texto}</option>`;
+                s.innerHTML = `<option value="">${esFiltro ? s.options[0].text : 'Seleccione...'}</option>`;
                 data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
             };
 
@@ -164,25 +145,34 @@
             fill('f_area', areas, true); fill('f_puesto', puestos, true); fill('f_ruta', rutas, true);
 
             await listarEmpleados();
-        } catch (e) { console.error("Error init:", e); }
+        } catch (e) { console.error(e); }
+    }
+
+    function calcularAntiguedad(fecha) {
+        if(!fecha) return "-";
+        const inicio = new Date(fecha);
+        const hoy = new Date();
+        let anos = hoy.getFullYear() - inicio.getFullYear();
+        let meses = hoy.getMonth() - inicio.getMonth();
+        if (meses < 0) { anos--; meses += 12; }
+        
+        let texto = "";
+        if(anos > 0) texto += `${anos} ${anos === 1 ? 'año' : 'años'} `;
+        if(meses > 0) texto += `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+        return texto || "Recién ingreso";
     }
 
     async function listarEmpleados() {
-        // Consultamos solo lo que tiene relación probada (áreas y puestos)
         const { data: emps, error } = await client
             .from('rh_empleados')
             .select('*, rh_areas(nombre), rh_puestos(nombre)')
             .order('nombre_completo');
 
-        if (error) {
-            console.error("Error:", error);
-            return;
-        }
+        if (error) return console.error(error);
 
-        // Mapeo manual de rutas para evitar el error PGRST200
         db_empleados = emps.map(e => {
             const r = cat_rutas.find(ruta => ruta.id == e.ruta_transporte);
-            return { ...e, ruta_nombre: r ? r.nombre : '-' };
+            return { ...e, ruta_nombre: r ? r.nombre : '-', antiguedad: calcularAntiguedad(e.fecha_ingreso) };
         });
 
         aplicarFiltros();
@@ -193,14 +183,12 @@
         const a = document.getElementById('f_area').value;
         const p = document.getElementById('f_puesto').value;
         const r = document.getElementById('f_ruta').value;
-        const t = document.getElementById('f_turno').value;
 
         const filtrados = db_empleados.filter(e => {
             return (!n || e.nombre_completo.toLowerCase().includes(n)) &&
                    (!a || e.area_id === a) &&
                    (!p || e.puesto_id === p) &&
-                   (!r || String(e.ruta_transporte) === r) &&
-                   (!t || String(e.turno_id) === t);
+                   (!r || String(e.ruta_transporte) === r);
         });
 
         const tbody = document.getElementById('lista_empleados');
@@ -210,16 +198,16 @@
             tbody.innerHTML += `
                 <tr onclick="cargarEdicion('${e.id}')">
                     <td><b>${e.nombre_completo}</b></td>
-                    <td>${e.rh_areas?.nombre || '-'}</td>
-                    <td>${e.rh_puestos?.nombre || '-'}</td>
-                    <td>${e.ruta_nombre}</td>
-                    <td>Turno ${e.turno_id}</td>
+                    <td><div style="font-size:11px; color:#64748b">${e.rh_areas?.nombre || '-'}</div>${e.rh_puestos?.nombre || '-'}</td>
+                    <td>${e.fecha_ingreso || '-'}</td>
+                    <td style="font-weight:bold; color:var(--accent)">${e.antiguedad}</td>
+                    <td>${e.ruta_nombre} / T${e.turno_id}</td>
                     <td><span class="status-badge ${statusClass}">${e.estatus}</span></td>
                 </tr>`;
         });
     }
 
-    function cargarEdicion(id) {
+    async function cargarEdicion(id) {
         const emp = db_empleados.find(e => e.id === id);
         if(!emp) return;
 
@@ -235,6 +223,15 @@
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || '';
         document.getElementById('direccion').value = emp.direccion || '';
         document.getElementById('img_preview').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+        // Cargar Historial
+        document.getElementById('seccion_historial').style.display = "block";
+        const { data: historial } = await client.from('rh_historial_puestos').select('*').eq('empleado_id', id).order('fecha_cambio', { ascending: false });
+        const linea = document.getElementById('linea_tiempo');
+        linea.innerHTML = historial?.length ? '' : '<p style="font-size:12px; color:#94a3b8;">Sin movimientos registrados.</p>';
+        historial?.forEach(h => {
+            linea.innerHTML += `<div class="timeline-item"><b>${h.fecha_cambio}:</b> ${h.puesto_anterior} ➜ ${h.puesto_nuevo} <br><small>${h.motivo || ''}</small></div>`;
+        });
 
         document.getElementById('btn_main').innerText = "ACTUALIZAR DATOS";
         document.getElementById('btn_cancel').style.display = "block";
@@ -256,15 +253,13 @@
             fecha_ingreso: document.getElementById('fecha_ingreso').value || null
         };
 
-        if(!datos.nombre_completo) return alert("Nombre Requerido");
-
         const { error } = id ? await client.from('rh_empleados').update(datos).eq('id', id) : await client.from('rh_empleados').insert([datos]);
 
         if(error) alert("Error: " + error.message);
         else {
-            alert("✅ Cambios guardados con éxito");
+            alert("✅ Guardado");
             resetForm();
-            await listarEmpleados();
+            listarEmpleados();
         }
     }
 
@@ -272,23 +267,23 @@
         document.getElementById('edit_id').value = "";
         document.getElementById('btn_main').innerText = "GUARDAR EMPLEADO";
         document.getElementById('btn_cancel').style.display = "none";
+        document.getElementById('seccion_historial').style.display = "none";
         document.getElementById('img_preview').src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        document.querySelectorAll('.inputs-grid input, .inputs-grid select').forEach(el => {
-            if(!el.id.startsWith('f_')) el.value = "";
-        });
+        document.querySelectorAll('.inputs-grid input, .inputs-grid select').forEach(el => el.value = "");
     }
 
     async function subirFoto() {
         const id = document.getElementById('edit_id').value;
-        if(!id) return alert("Selecciona un empleado para asignar la foto");
+        if(!id) return alert("Selecciona un empleado");
         const file = document.getElementById('input_foto').files[0];
         const path = `perfiles/${id}_${Date.now()}`;
         const { error } = await client.storage.from('empleados').upload(path, file);
-        if(error) return alert("Error al subir");
-        const { data } = client.storage.from('empleados').getPublicUrl(path);
-        await client.from('rh_empleados').update({ foto_url: data.publicUrl }).eq('id', id);
-        document.getElementById('img_preview').src = data.publicUrl;
-        listarEmpleados();
+        if(!error) {
+            const { data } = client.storage.from('empleados').getPublicUrl(path);
+            await client.from('rh_empleados').update({ foto_url: data.publicUrl }).eq('id', id);
+            document.getElementById('img_preview').src = data.publicUrl;
+            listarEmpleados();
+        }
     }
 
     document.addEventListener('DOMContentLoaded', init);
