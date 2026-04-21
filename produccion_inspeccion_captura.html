@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Captura KRAEM - Producción</title>
+    <title>Captura de Calidad - KRAEM</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,35 +11,38 @@
         :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
         [data-theme="dark"] { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        .form-container { max-width: 480px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .form-container { max-width: 480px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         .form-group { margin-bottom: 15px; position: relative; }
         label { display: block; font-size: 11px; font-weight: 800; margin-bottom: 5px; color: #64748b; text-transform: uppercase; }
-        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--bg); color: var(--text); box-sizing: border-box; }
-        .autobox { background: var(--card); border: 1px solid var(--border); position: absolute; width: 100%; z-index: 100; max-height: 150px; overflow-y: auto; display: none; }
-        .autobox div { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--border); }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; background: var(--bg); color: var(--text); box-sizing: border-box; outline: none; }
+        input:focus, select:focus { border-color: var(--primary); ring: 2px var(--primary); }
+        .autobox { background: var(--card); border: 1px solid var(--border); position: absolute; width: 100%; z-index: 100; max-height: 150px; overflow-y: auto; display: none; border-radius: 8px; margin-top: 2px; }
+        .autobox div { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--border); font-size: 14px; }
         .autobox div:hover { background: var(--primary); color: white; }
-        .btn-save { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-save { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background 0.2s; }
+        .btn-save:hover { background: #1d4ed8; }
+        .readonly-field { background: #f1f5f9; color: #475569; font-weight: 600; }
     </style>
 </head>
 <body>
 
 <div class="form-container">
-    <h2 style="text-align: center; margin-top: 0;">Captura de Calidad</h2>
+    <h2 style="text-align: center; margin-bottom: 20px;">Registro de Inspección</h2>
 
     <div class="form-group">
-        <label>Área</label>
+        <label>Área de Producción</label>
         <select id="area_select"><option value="">Cargando áreas...</option></select>
     </div>
 
     <div class="form-group">
-        <label>Número de Parte</label>
-        <input type="text" id="part_input" placeholder="Buscar N/P..." autocomplete="off">
+        <label>Número de Parte (N/P)</label>
+        <input type="text" id="part_input" placeholder="Escriba para buscar..." autocomplete="off">
         <div id="part_results" class="autobox"></div>
     </div>
 
     <div class="form-group">
-        <label>Nombre de Pieza</label>
-        <input type="text" id="name_display" readonly style="background: #e2e8f0; color: #475569;">
+        <label>Descripción de la Pieza</label>
+        <input type="text" id="name_display" class="readonly-field" readonly placeholder="Automático...">
     </div>
 
     <div class="form-group">
@@ -49,93 +52,117 @@
 
     <div class="form-group">
         <label>Cantidad Defectuosa</label>
-        <input type="number" id="cant_def" value="0">
+        <input type="number" id="cant_def" value="0" min="0">
     </div>
 
-    <button class="btn-save" onclick="guardar()">GUARDAR REGISTRO</button>
+    <button class="btn-save" onclick="guardarRegistro()">
+        <i class="fas fa-save"></i> GUARDAR DATOS
+    </button>
 </div>
 
 <script>
     let db_parts = [];
 
-    async function cargarDatos() {
-        console.log("Iniciando carga...");
+    async function inicializarApp() {
+        console.log("Conectando con Supabase...");
 
         // 1. Cargar Áreas
-        const { data: areas } = await client.from('areas').select('*');
-        const sArea = document.getElementById('area_select');
-        if (areas) {
-            sArea.innerHTML = '<option value="">Seleccione Área</option>';
-            areas.forEach(a => {
-                let val = a.area_name || a.Area_Name || Object.values(a)[1]; // Busca por nombre o segunda columna
-                sArea.innerHTML += `<option value="${val}">${val}</option>`;
-            });
-            console.log("Áreas listas");
-        }
+        try {
+            const { data: areas, error: errA } = await client.from('areas').select('*');
+            const selArea = document.getElementById('area_select');
+            if (areas) {
+                selArea.innerHTML = '<option value="">Seleccione Área</option>';
+                areas.forEach(a => {
+                    const nombre = a.area_name || a.Area_Name || Object.values(a)[1];
+                    let opt = document.createElement('option');
+                    opt.value = nombre; opt.textContent = nombre;
+                    selArea.appendChild(opt);
+                });
+            }
+            if (errA) console.error("Error Áreas:", errA);
+        } catch (e) { console.error("Fallo Áreas:", e); }
 
-        // 2. Cargar Defectos (Tabla: defect)
-        const { data: defects } = await client.from('defect').select('*');
-        const sDef = document.getElementById('defect_select');
-        if (defects) {
-            sDef.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
-            defects.forEach(d => {
-                let val = d.Defect_name || d.defect_name || Object.values(d)[1];
-                sDef.innerHTML += `<option value="${val}">${val}</option>`;
-            });
-            console.log("Defectos listos");
-        }
+        // 2. Cargar Defectos (Usando 'defects')
+        try {
+            const { data: defects, error: errD } = await client.from('defects').select('*');
+            const selDef = document.getElementById('defect_select');
+            if (defects) {
+                selDef.innerHTML = '<option value="NINGUNO">OK - SIN DEFECTOS</option>';
+                defects.forEach(d => {
+                    const nombre = d.Defect_name || d.defect_name || d.name || Object.values(d)[1];
+                    let opt = document.createElement('option');
+                    opt.value = nombre; opt.textContent = nombre;
+                    selDef.appendChild(opt);
+                });
+                console.log("Lista de defectos cargada.");
+            }
+            if (errD) console.error("Error en tabla defects:", errD);
+        } catch (e) { console.error("Fallo Defectos:", e); }
 
-        // 3. Cargar Partes (Basado en tu SQL)
-        const { data: parts } = await client.from('parts').select('part_number, part_name');
-        if (parts) {
-            db_parts = parts;
-            console.log("Partes cargadas:", db_parts.length);
-        }
+        // 3. Cargar Partes (Columnas confirmadas: part_number, part_name)
+        try {
+            const { data: parts, error: errP } = await client.from('parts').select('part_number, part_name');
+            if (parts) {
+                db_parts = parts;
+                console.log("Catálogo de partes listo:", db_parts.length);
+            }
+            if (errP) console.error("Error Partes:", errP);
+        } catch (e) { console.error("Fallo Partes:", e); }
     }
 
-    // Lógica de Autocompletado de Partes
-    const pInput = document.getElementById('part_input');
-    const pResults = document.getElementById('part_results');
-    const nDisplay = document.getElementById('name_display');
+    // Lógica de Autocompletado
+    const inputNP = document.getElementById('part_input');
+    const cajaResultados = document.getElementById('part_results');
+    const displayNombre = document.getElementById('name_display');
 
-    pInput.oninput = () => {
-        const busqueda = pInput.value.toUpperCase();
-        pResults.innerHTML = '';
-        if (!busqueda) { pResults.style.display = 'none'; return; }
+    inputNP.oninput = () => {
+        const query = inputNP.value.toUpperCase();
+        cajaResultados.innerHTML = '';
+        if (!query) { cajaResultados.style.display = 'none'; return; }
 
-        const filtrados = db_parts.filter(p => p.part_number.includes(busqueda)).slice(0, 10);
+        const coincidencias = db_parts.filter(p => 
+            p.part_number.toUpperCase().includes(query)
+        ).slice(0, 12);
         
-        filtrados.forEach(p => {
-            const div = document.createElement('div');
-            div.textContent = `${p.part_number} | ${p.part_name}`;
-            div.onclick = () => {
-                pInput.value = p.part_number;
-                nDisplay.value = p.part_name;
-                pResults.style.display = 'none';
+        coincidencias.forEach(p => {
+            const item = document.createElement('div');
+            item.textContent = `${p.part_number} | ${p.part_name}`;
+            item.onclick = () => {
+                inputNP.value = p.part_number;
+                displayNombre.value = p.part_name;
+                cajaResultados.style.display = 'none';
             };
-            pResults.appendChild(div);
+            cajaResultados.appendChild(item);
         });
-        pResults.style.display = filtrados.length ? 'block' : 'none';
+        cajaResultados.style.display = coincidencias.length ? 'block' : 'none';
     };
 
-    async function guardar() {
-        const datos = {
+    async function guardarRegistro() {
+        const payload = {
             area: document.getElementById('area_select').value,
-            num_parte: pInput.value,
-            nombre_pieza: nDisplay.value,
+            num_parte: inputNP.value,
+            nombre_pieza: displayNombre.value,
             tipo_defecto: document.getElementById('defect_select').value,
             cant_defectuosa: parseInt(document.getElementById('cant_def').value) || 0,
-            fecha: new Date().toISOString().split('T')[0]
+            fecha_registro: new Date().toLocaleString()
         };
 
-        if(!datos.area || !datos.num_parte) return alert("Llena los campos obligatorios");
+        if(!payload.area || !payload.num_parte) {
+            alert("⚠️ Por favor selecciona el Área y el Número de Parte.");
+            return;
+        }
 
-        const { error } = await client.from('inspeccion_produccion').insert([datos]);
-        if (error) alert("Error: " + error.message);
-        else { alert("Guardado!"); location.reload(); }
+        const { error } = await client.from('inspeccion_produccion').insert([payload]);
+        
+        if (error) {
+            alert("Error al guardar: " + error.message);
+        } else {
+            alert("✅ Registro guardado exitosamente.");
+            location.reload();
+        }
     }
 
-    document.addEventListener('DOMContentLoaded', cargarDatos);
+    document.addEventListener('DOMContentLoaded', inicializarApp);
 </script>
 </body>
 </html>
