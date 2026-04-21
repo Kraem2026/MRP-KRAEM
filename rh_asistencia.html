@@ -1,164 +1,103 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Control de Asistencia</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; }
-        .container { max-width: 1000px; margin: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 15px; }
-        
-        .area-badge { background: var(--primary); color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 10px; display: inline-block; }
-        
-        /* Controles de Asistencia */
-        .emp-row { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9; }
-        .emp-info b { display: block; font-size: 14px; }
-        .emp-info span { font-size: 11px; color: #64748b; }
-        
-        .btn-group { display: flex; gap: 8px; }
-        .btn-check { width: 40px; height: 40px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: 0.2s; background: white; }
-        
-        .btn-asist.active { background: var(--success); color: white; border-color: var(--success); }
-        .btn-falta.active { background: var(--danger); color: white; border-color: var(--danger); }
-        .btn-vacas.active { background: var(--accent); color: white; border-color: var(--accent); }
+  <meta charset="UTF-8">
+  <title>KRAEM - Pase de Lista</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root { 
+        --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --primary: #2563eb; 
+        --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; --border: #e2e8f0;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .btn-back { text-decoration: none; color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 8px; }
 
-        .vaca-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #dbeafe; color: #1e40af; font-weight: bold; margin-left: 5px; }
-    </style>
+    .attendance-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    
+    .emp-info { display: flex; align-items: center; gap: 15px; }
+    .emp-img { width: 50px; height: 50px; border-radius: 50%; background: #eee; object-fit: cover; }
+    .emp-details h4 { margin: 0; font-size: 1rem; }
+    .emp-details p { margin: 2px 0 0; font-size: 0.8rem; color: #64748b; }
+
+    .status-actions { display: flex; gap: 8px; }
+    .btn-status { border: 1px solid var(--border); background: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.9rem; font-weight: 600; }
+    
+    /* Colores de estados seleccionados */
+    .btn-status.presente.active { background: var(--success); color: white; border-color: var(--success); }
+    .btn-status.retardo.active { background: var(--warning); color: white; border-color: var(--warning); }
+    .btn-status.falta.active { background: var(--danger); color: white; border-color: var(--danger); }
+
+    .footer-actions { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); padding: 20px; border-top: 1px solid var(--border); display: flex; justify-content: center; }
+    .btn-save { background: var(--primary); color: white; border: none; padding: 12px 40px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; width: 100%; max-width: 400px; }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <a href="dashboard.html" style="text-decoration:none; color:var(--text)"><i class="fas fa-chevron-left"></i> Regresar</a>
-        <h2 style="margin:0; font-size:18px;">Pase de Lista - <span id="fecha_hoy"></span></h2>
-    </div>
+<header>
+  <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
+  <div style="text-align: right;">
+    <h2 style="margin:0; color: var(--primary);">Pase de Lista</h2>
+    <span id="fecha-actual" style="color: #64748b; font-size: 0.9rem;"></span>
+  </div>
+</header>
 
-    <div class="card">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <select id="f_area" onchange="cargarLista()">
-                <option value="">Todas las Áreas</option>
-            </select>
-            <input type="date" id="f_fecha" onchange="cargarLista()">
-        </div>
+<main style="padding-bottom: 100px;">
+  <div class="attendance-card">
+    <div class="emp-info">
+      <img src="https://via.placeholder.com/50" class="emp-img" alt="Empleado">
+      <div class="emp-details">
+        <h4>Juan Pérez</h4>
+        <p>Operador de Inyección - Turno A</p>
+      </div>
     </div>
+    <div class="status-actions">
+      <button class="btn-status presente" onclick="setStatus(this, 'active')">P</button>
+      <button class="btn-status retardo" onclick="setStatus(this, 'active')">R</button>
+      <button class="btn-status falta" onclick="setStatus(this, 'active')">F</button>
+    </div>
+  </div>
 
-    <div id="lista_contenedor">
-        </div>
+  <div class="attendance-card">
+    <div class="emp-info">
+      <img src="https://via.placeholder.com/50" class="emp-img" alt="Empleado">
+      <div class="emp-details">
+        <h4>Maria Garcia</h4>
+        <p>Líder de Línea - Turno A</p>
+      </div>
+    </div>
+    <div class="status-actions">
+      <button class="btn-status presente" onclick="setStatus(this, 'active')">P</button>
+      <button class="btn-status retardo" onclick="setStatus(this, 'active')">R</button>
+      <button class="btn-status falta" onclick="setStatus(this, 'active')">F</button>
+    </div>
+  </div>
+</main>
+
+<div class="footer-actions">
+  <button class="btn-save" onclick="guardarAsistencia()">FINALIZAR PASE DE LISTA</button>
 </div>
 
 <script>
-    let db_empleados = [];
-    let asistencias_hoy = [];
+  // Pone la fecha de hoy automáticamente
+  const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('fecha-actual').innerText = new Date().toLocaleDateString('es-MX', opciones);
 
-    async function init() {
-        document.getElementById('f_fecha').valueAsDate = new Date();
-        document.getElementById('fecha_hoy').innerText = new Date().toLocaleDateString();
+  // Lógica para marcar botones
+  function setStatus(btn, className) {
+    const parent = btn.parentElement;
+    // Quita la clase 'active' de los hermanos
+    parent.querySelectorAll('.btn-status').forEach(b => b.classList.remove('active'));
+    // Pon la clase al botón clicado
+    btn.classList.add('active');
+  }
 
-        // Cargar Áreas
-        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
-        const selArea = document.getElementById('f_area');
-        areas.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
-
-        cargarLista();
-    }
-
-    function calcularVacaciones(fechaIngreso) {
-        if(!fechaIngreso) return { liberados: 0, acumulados: 0 };
-        const inicio = new Date(fechaIngreso);
-        const hoy = new Date();
-        const antiguedad = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24 * 365.25));
-        
-        // Función rápida simulando la ley
-        const obtenerDiasPorAño = (a) => {
-            if(a < 1) return 0;
-            if(a == 1) return 12;
-            if(a == 2) return 14;
-            if(a == 3) return 16;
-            return 18 + (a-4)*2;
-        };
-
-        const liberados = obtenerDiasPorAño(antiguedad);
-        // Proporcional del año actual
-        const diasAñoActual = Math.floor((hoy - new Date(hoy.getFullYear(), inicio.getMonth(), inicio.getDate())) / (1000 * 60 * 60 * 24));
-        const acumulados = antiguedad > 0 ? (obtenerDiasPorAño(antiguedad + 1) * (diasAñoActual / 365)).toFixed(1) : 0;
-
-        return { liberados, acumulados: Math.max(0, acumulados) };
-    }
-
-    async function cargarLista() {
-        const areaId = document.getElementById('f_area').value;
-        const fecha = document.getElementById('f_fecha').value;
-
-        // Traer empleados
-        let query = client.from('rh_empleados').select('*, rh_areas(nombre)').eq('estatus', 'ACTIVO');
-        if(areaId) query = query.eq('area_id', areaId);
-        const { data: emps } = await query.order('nombre_completo');
-        
-        // Traer asistencias ya marcadas
-        const { data: asist } = await client.from('rh_asistencias').eq('fecha', fecha);
-        asistencias_hoy = asist || [];
-
-        renderLista(emps);
-    }
-
-    function renderLista(emps) {
-        const cont = document.getElementById('lista_contenedor');
-        cont.innerHTML = '';
-
-        // Agrupar por área
-        const areas = [...new Set(emps.map(e => e.rh_areas.nombre))];
-
-        areas.forEach(area => {
-            let html = `<div class="area-badge">${area}</div><div class="card" style="padding:0; margin-bottom:20px;">`;
-            
-            emps.filter(e => e.rh_areas.nombre === area).forEach(e => {
-                const vaca = calcularVacaciones(e.fecha_ingreso);
-                const registro = asistencias_hoy.find(a => a.empleado_id === e.id);
-                const estado = registro ? registro.estado : '';
-
-                html += `
-                <div class="emp-row">
-                    <div class="emp-info">
-                        <b>${e.nombre_completo}</b>
-                        <span>Antigüedad: ${calcularAntiguedad(e.fecha_ingreso)} <span class="vaca-tag">Vac: ${vaca.liberados} (+${vaca.acumulados})</span></span>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn-check btn-asist ${estado === 'ASISTENCIA' ? 'active' : ''}" onclick="marcar('${e.id}', 'ASISTENCIA')"><i class="fas fa-check"></i></button>
-                        <button class="btn-check btn-falta ${estado === 'FALTA' ? 'active' : ''}" onclick="marcar('${e.id}', 'FALTA')"><i class="fas fa-times"></i></button>
-                        <button class="btn-check btn-vacas ${estado === 'VACACIONES' ? 'active' : ''}" onclick="marcar('${e.id}', 'VACACIONES')"><i class="fas fa-umbrella-beach"></i></button>
-                    </div>
-                </div>`;
-            });
-            html += `</div>`;
-            cont.innerHTML += html;
-        });
-    }
-
-    async function marcar(empId, estado) {
-        const fecha = document.getElementById('f_fecha').value;
-        
-        const { error } = await client.from('rh_asistencias').upsert({
-            empleado_id: empId,
-            fecha: fecha,
-            estado: estado
-        }, { onConflict: 'empleado_id, fecha' });
-
-        if(!error) cargarLista();
-    }
-
-    function calcularAntiguedad(f) {
-        if(!f) return '-';
-        const años = Math.floor((new Date() - new Date(f)) / (1000*60*60*24*365.25));
-        return años + (años === 1 ? ' año' : ' años');
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
+  function guardarAsistencia() {
+    alert("Asistencia registrada localmente. Próximo paso: Conectar a Supabase.");
+  }
 </script>
+
 </body>
 </html>
