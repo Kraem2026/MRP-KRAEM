@@ -11,7 +11,7 @@
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        .container { max-width: 1400px; margin: auto; }
+        .container { max-width: 1450px; margin: auto; }
         
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
@@ -27,21 +27,21 @@
         .group.full-width { grid-column: 1 / -1; }
         
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select { padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; }
+        input, select { padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; background: white; }
 
         /* Historial */
         .historial-box { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0; }
         .timeline-item { padding: 10px; border-left: 3px solid var(--accent); background: #f8fafc; margin-bottom: 10px; border-radius: 0 8px 8px 0; font-size: 13px; }
 
-        /* Filtros y Exportar */
-        .filter-bar { background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
-        .btn-excel { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s; }
-        .btn-excel:hover { background: #16a34a; transform: translateY(-2px); }
+        /* Filtros */
+        .filter-bar { background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; align-items: flex-end; }
+        .btn-excel { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; }
 
         /* Tabla */
         .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
         .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1300px; }
         th { background: #f8fafc; padding: 12px; text-align: left; font-size: 10px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         tr:hover { background: #f1f5f9; cursor: pointer; }
@@ -50,10 +50,7 @@
         .status-activo { background: #dcfce7; color: #166534; }
         .status-baja { background: #fee2e2; color: #991b1b; }
 
-        @media (max-width: 768px) {
-            .form-container { flex-direction: column; }
-            .foto-seccion { border-right: none; border-bottom: 1px solid #eee; padding-bottom: 20px; padding-right: 0; }
-        }
+        @media (max-width: 768px) { .form-container { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -93,7 +90,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn-save" style="background:var(--accent); color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; flex:1; font-weight:bold;" id="btn_main" onclick="guardarEmpleado()">GUARDAR CAMBIOS</button>
+                    <button class="btn-save" style="background:var(--accent); color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; flex:1; font-weight:bold;" id="btn_main" onclick="guardarEmpleado()">GUARDAR DATOS</button>
                     <button id="btn_cancel" style="display:none; background:#64748b; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="resetForm()">CANCELAR</button>
                 </div>
             </div>
@@ -101,14 +98,17 @@
     </div>
 
     <div class="filter-bar">
-        <div style="flex:1; display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
-            <div class="group"><label>Filtrar Nombre</label><input type="text" id="f_nombre" oninput="aplicarFiltros()"></div>
+        <label style="display:block; margin-bottom:15px; font-size:11px; color:var(--accent); font-weight:800;"><i class="fas fa-filter"></i> PANEL DE FILTROS</label>
+        <div class="filter-grid">
+            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()"></div>
             <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"><option value="">Todas</option></select></div>
+            <div class="group"><label>Puesto</label><select id="f_puesto" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
+            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
             <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"><option value="">Todas</option></select></div>
+            <div class="group"><label>Desde (Ingreso)</label><input type="date" id="f_desde" onchange="aplicarFiltros()"></div>
+            <div class="group"><label>Hasta (Ingreso)</label><input type="date" id="f_hasta" onchange="aplicarFiltros()"></div>
+            <div class="group"><button class="btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXCEL</button></div>
         </div>
-        <button class="btn-excel" onclick="exportarExcel()">
-            <i class="fas fa-file-excel"></i> EXPORTAR A EXCEL
-        </button>
     </div>
 
     <div class="table-card">
@@ -146,12 +146,12 @@
             const fill = (id, data, esFiltro = false) => {
                 const s = document.getElementById(id);
                 if(!s) return;
-                s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
+                s.innerHTML = `<option value="">${esFiltro ? 'Todas/os' : 'Seleccione...'}</option>`;
                 data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
             };
 
             fill('sel_area', areas); fill('sel_puesto', puestos); fill('sel_ruta', rutas);
-            fill('f_area', areas, true); fill('f_ruta', rutas, true);
+            fill('f_area', areas, true); fill('f_puesto', puestos, true); fill('f_ruta', rutas, true);
 
             await listarEmpleados();
         } catch (e) { console.error(e); }
@@ -188,19 +188,27 @@
                 antiguedad: calcularAntiguedad(e.fecha_ingreso) 
             };
         });
-
         aplicarFiltros();
     }
 
     function aplicarFiltros() {
         const n = document.getElementById('f_nombre').value.toLowerCase();
         const a = document.getElementById('f_area').value;
+        const p = document.getElementById('f_puesto').value;
+        const t = document.getElementById('f_turno').value;
         const r = document.getElementById('f_ruta').value;
+        const d = document.getElementById('f_desde').value;
+        const h = document.getElementById('f_hasta').value;
 
         const filtrados = db_empleados.filter(e => {
+            const fechaEmp = e.fecha_ingreso || "";
             return (!n || e.nombre_completo.toLowerCase().includes(n)) &&
                    (!a || e.area_id === a) &&
-                   (!r || String(e.ruta_transporte) === r);
+                   (!p || e.puesto_id === p) &&
+                   (!t || String(e.turno_id) === t) &&
+                   (!r || String(e.ruta_transporte) === r) &&
+                   (!d || fechaEmp >= d) &&
+                   (!h || fechaEmp <= h);
         });
 
         const tbody = document.getElementById('lista_empleados');
@@ -265,12 +273,12 @@
             fecha_ingreso: document.getElementById('fecha_ingreso').value || null
         };
         const { error } = id ? await client.from('rh_empleados').update(datos).eq('id', id) : await client.from('rh_empleados').insert([datos]);
-        if(!error) { alert("¡Éxito!"); resetForm(); listarEmpleados(); }
+        if(!error) { alert("¡Guardado!"); resetForm(); listarEmpleados(); }
     }
 
     function resetForm() {
         document.getElementById('edit_id').value = "";
-        document.getElementById('btn_main').innerText = "GUARDAR EMPLEADO";
+        document.getElementById('btn_main').innerText = "GUARDAR DATOS";
         document.getElementById('btn_cancel').style.display = "none";
         document.getElementById('seccion_historial').style.display = "none";
         document.getElementById('img_preview').src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -278,29 +286,47 @@
     }
 
     function exportarExcel() {
-        const dataParaExcel = db_empleados.map(e => ({
-            "Nombre Completo": e.nombre_completo,
+        const n = document.getElementById('f_nombre').value.toLowerCase();
+        const a = document.getElementById('f_area').value;
+        const p = document.getElementById('f_puesto').value;
+        const t = document.getElementById('f_turno').value;
+        const r = document.getElementById('f_ruta').value;
+        const d = document.getElementById('f_desde').value;
+        const h = document.getElementById('f_hasta').value;
+
+        // Exportamos solo lo que está filtrado actualmente en pantalla
+        const filtradosExcel = db_empleados.filter(e => {
+            const fechaEmp = e.fecha_ingreso || "";
+            return (!n || e.nombre_completo.toLowerCase().includes(n)) &&
+                   (!a || e.area_id === a) &&
+                   (!p || e.puesto_id === p) &&
+                   (!t || String(e.turno_id) === t) &&
+                   (!r || String(e.ruta_transporte) === r) &&
+                   (!d || fechaEmp >= d) &&
+                   (!h || fechaEmp <= h);
+        }).map(e => ({
+            "Nombre": e.nombre_completo,
             "Área": e.area_txt,
             "Puesto": e.puesto_txt,
             "Turno": e.turno_id,
             "Ruta": e.ruta_txt,
             "Estatus": e.estatus,
-            "Teléfono": e.telefono || 'N/A',
-            "Talla": e.talla_playera || 'N/A',
-            "Fecha Ingreso": e.fecha_ingreso || 'N/A',
+            "Ingreso": e.fecha_ingreso,
             "Antigüedad": e.antiguedad,
-            "Dirección": e.direccion || 'N/A'
+            "Teléfono": e.telefono || '',
+            "Talla": e.talla_playera || '',
+            "Dirección": e.direccion || ''
         }));
 
-        const ws = XLSX.utils.json_to_sheet(dataParaExcel);
+        const ws = XLSX.utils.json_to_sheet(filtradosExcel);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Personal");
-        XLSX.writeFile(wb, `Plantilla_Kraem_${new Date().toLocaleDateString()}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Personal Filtrado");
+        XLSX.writeFile(wb, `Reporte_Personal_Kraem.xlsx`);
     }
 
     async function subirFoto() {
         const id = document.getElementById('edit_id').value;
-        if(!id) return alert("Selecciona un empleado");
+        if(!id) return alert("Selecciona un empleado primero");
         const file = document.getElementById('input_foto').files[0];
         const path = `perfiles/${id}_${Date.now()}`;
         const { error } = await client.storage.from('empleados').upload(path, file);
