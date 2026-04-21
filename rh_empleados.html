@@ -77,6 +77,17 @@
                     <div class="group"><label>Ruta Transporte</label><select id="sel_ruta"></select></div>
                     <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
                     <div class="group"><label>Teléfono</label><input type="tel" id="telefono"></div>
+                    <div class="group"><label>Talla Playera</label>
+                        <select id="sel_talla">
+                            <option value="">Seleccione...</option>
+                            <option value="XS">XS (Extra Chica)</option>
+                            <option value="S">S (Chica)</option>
+                            <option value="M">M (Mediana)</option>
+                            <option value="L">L (Grande)</option>
+                            <option value="XL">XL (Extra Grande)</option>
+                            <option value="XXL">XXL</option>
+                        </select>
+                    </div>
                     <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
                 </div>
                 <div class="group"><label>Dirección Particular</label><textarea id="direccion" rows="1"></textarea></div>
@@ -125,7 +136,7 @@
 
 <script>
     let db_empleados = [];
-    let puestoAnteriorId = ""; // Para detectar cambios de puesto
+    let puestoAnteriorId = ""; 
 
     function calcularAntiguedad(fecha) {
         if (!fecha) return "-";
@@ -212,11 +223,12 @@
         document.getElementById('sel_ruta').value = emp.ruta_transporte;
         document.getElementById('sel_estatus').value = emp.estatus;
         document.getElementById('telefono').value = emp.telefono || '';
+        document.getElementById('sel_talla').value = emp.talla_playera || '';
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || '';
         document.getElementById('direccion').value = emp.direccion || '';
         document.getElementById('img_preview').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
         
-        puestoAnteriorId = emp.puesto_id; // Guardamos puesto actual para comparar después
+        puestoAnteriorId = emp.puesto_id; 
         document.getElementById('btn_main').innerText = "ACTUALIZAR DATOS";
         document.getElementById('btn_cancel').style.display = "block";
         
@@ -271,6 +283,7 @@
             ruta_transporte: document.getElementById('sel_ruta').value,
             estatus: document.getElementById('sel_estatus').value,
             telefono: document.getElementById('telefono').value,
+            talla_playera: document.getElementById('sel_talla').value,
             direccion: document.getElementById('direccion').value,
             fecha_ingreso: document.getElementById('fecha_ingreso').value
         };
@@ -281,7 +294,6 @@
 
         if(error) alert(error.message);
         else {
-            // Si es edición y el puesto cambió, registrar en historial
             if(id && puestoAnteriorId !== datos.puesto_id) {
                 await client.from('rh_historial_puestos').insert([{
                     empleado_id: id,
@@ -305,9 +317,9 @@
     }
 
     function exportarExcel() {
-        let csv = "\uFEFFNombre,Area,Puesto,Turno,Ruta,Estatus,Telefono,Ingreso,Antiguedad,Direccion\n";
+        let csv = "\uFEFFNombre,Area,Puesto,Turno,Ruta,Estatus,Telefono,Talla,Ingreso,Antiguedad,Direccion\n";
         db_empleados.forEach(e => {
-            csv += `"${e.nombre_completo}","${e.rh_areas?.nombre}","${e.rh_puestos?.nombre}","${e.turno_id}","${e.ruta_transporte}","${e.estatus}","${e.telefono || ''}","${e.fecha_ingreso || ''}","${calcularAntiguedad(e.fecha_ingreso)}","${(e.direccion || '').replace(/\n/g, ' ')}"\n`;
+            csv += `"${e.nombre_completo}","${e.rh_areas?.nombre}","${e.rh_puestos?.nombre}","${e.turno_id}","${e.ruta_transporte}","${e.estatus}","${e.telefono || ''}","${e.talla_playera || ''}","${e.fecha_ingreso || ''}","${calcularAntiguedad(e.fecha_ingreso)}","${(e.direccion || '').replace(/\n/g, ' ')}"\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
