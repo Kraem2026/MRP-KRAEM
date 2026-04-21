@@ -3,78 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Captura de Producción</title>
+    <title>KRAEM | Control de Calidad</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --text: #0f172a; --border: #e2e8f0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 15px; }
-        .card { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .group { margin-bottom: 15px; position: relative; }
-        label { display: block; font-size: 10px; font-weight: 800; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
-        input, select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-        .autobox { position: absolute; width: 100%; background: white; border: 1px solid var(--border); z-index: 10; max-height: 150px; overflow-y: auto; display: none; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .autobox div { padding: 8px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
+        .form-card { max-width: 550px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .group { margin-bottom: 12px; position: relative; }
+        label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; box-sizing: border-box; background: #fff; color: var(--text); }
+        .readonly { background: #f1f5f9; font-weight: bold; color: var(--primary); }
+        .autobox { position: absolute; width: 100%; background: white; border: 1px solid var(--border); z-index: 100; max-height: 150px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .autobox div { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
         .autobox div:hover { background: var(--primary); color: white; }
-        .btn-main { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-save { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        hr { border: 0; border-top: 1px solid var(--border); margin: 15px 0; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h3 style="margin-top:0;">Registro de Inspección</h3>
-    
-    <div class="group">
-        <label>Área</label>
-        <select id="area_select"></select>
+<div class="form-card">
+    <h3 style="text-align: center; color: var(--primary); margin-top: 0;">Inspección de Producción</h3>
+
+    <div class="grid">
+        <div class="group">
+            <label>Área</label>
+            <select id="area_select"></select>
+        </div>
+        <div class="group">
+            <label>Turno</label>
+            <select id="turno">
+                <option value="1">Turno 1</option>
+                <option value="2">Turno 2</option>
+            </select>
+        </div>
     </div>
+
+    <div class="grid">
+        <div class="group">
+            <label>Inspector</label>
+            <input type="text" id="inspector" placeholder="Nombre...">
+        </div>
+        <div class="group">
+            <label>Operador</label>
+            <input type="text" id="operador" placeholder="Nombre...">
+        </div>
+    </div>
+
+    <hr>
 
     <div class="group">
         <label>Número de Parte</label>
-        <input type="text" id="part_input" placeholder="Buscar..." autocomplete="off">
+        <input type="text" id="part_input" placeholder="Buscar N/P..." autocomplete="off">
         <div id="part_box" class="autobox"></div>
     </div>
 
     <div class="group">
         <label>Descripción</label>
-        <input type="text" id="desc_display" readonly style="background:#f1f5f9;">
+        <input type="text" id="desc_display" class="readonly" readonly>
+    </div>
+
+    <hr>
+
+    <div class="grid">
+        <div class="group">
+            <label>Cant. Contada (Total)</label>
+            <input type="number" id="cant_total" value="0" oninput="calcular()">
+        </div>
+        <div class="group">
+            <label>Cant. Defectuosa</label>
+            <input type="number" id="cant_def" value="0" oninput="calcular()">
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="group">
+            <label>Piezas OK</label>
+            <input type="number" id="cant_ok" class="readonly" readonly value="0">
+        </div>
+        <div class="group">
+            <label>% Defecto</label>
+            <input type="text" id="porcentaje_def" class="readonly" readonly value="0%">
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="group">
+            <label>Tipo de Defecto</label>
+            <select id="defect_select"></select>
+        </div>
+        <div class="group">
+            <label>Disposición</label>
+            <select id="destino">
+                <option value="LIBERADO">LIBERADO (OK)</option>
+                <option value="RETRABAJO">RETRABAJO</option>
+                <option value="SCRAP">SCRAP / DESECHO</option>
+            </select>
+        </div>
     </div>
 
     <div class="group">
-        <label>Tipo de Defecto</label>
-        <select id="defect_select"></select>
+        <label>Notas / Comentarios</label>
+        <textarea id="notas" rows="2"></textarea>
     </div>
 
-    <div class="group">
-        <label>Cantidad Defectuosa</label>
-        <input type="number" id="cant_def" value="0">
-    </div>
-
-    <button class="btn-main" onclick="guardar()">GUARDAR REGISTRO</button>
+    <button class="btn-save" onclick="guardar()">GUARDAR REGISTRO</button>
 </div>
 
 <script>
     let db_parts = [];
 
     async function init() {
-        // 1. Cargar Áreas
+        // Cargar Áreas
         const { data: areas } = await client.from('areas').select('area_name').eq('active', true);
         const sArea = document.getElementById('area_select');
+        sArea.innerHTML = '<option value="">Seleccione Área...</option>';
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.area_name}">${a.area_name}</option>`);
 
-        // 2. Cargar Defectos (Ya confirmamos que funciona con 'defects')
+        // Cargar Defectos (Ya confirmamos que es 'defects')
         const { data: defs } = await client.from('defects').select('Defect_name');
         const sDef = document.getElementById('defect_select');
         sDef.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
         defs?.forEach(d => sDef.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`);
 
-        // 3. Cargar Partes para Autocompletado
+        // Cargar Partes para Autocompletado
         const { data: parts } = await client.from('parts').select('part_number, part_name');
         db_parts = parts || [];
     }
 
-    // Lógica Autocompletado (Optimizado para N/P)
+    function calcular() {
+        const total = parseFloat(document.getElementById('cant_total').value) || 0;
+        const def = parseFloat(document.getElementById('cant_def').value) || 0;
+        const ok = total - def;
+        const pct = total > 0 ? ((def / total) * 100).toFixed(2) : 0;
+
+        document.getElementById('cant_ok').value = ok < 0 ? 0 : ok;
+        document.getElementById('porcentaje_def').value = pct + "%";
+    }
+
+    // Autocompletado de Partes
     const pInput = document.getElementById('part_input');
     const pBox = document.getElementById('part_box');
     const pDesc = document.getElementById('desc_display');
@@ -83,11 +153,10 @@
         const val = pInput.value.toUpperCase();
         pBox.innerHTML = '';
         if (!val) { pBox.style.display = 'none'; return; }
-        
-        const filtered = db_parts.filter(p => p.part_number.includes(val)).slice(0, 8);
+        const filtered = db_parts.filter(p => p.part_number.includes(val)).slice(0, 10);
         filtered.forEach(p => {
             const div = document.createElement('div');
-            div.textContent = p.part_number;
+            div.textContent = `${p.part_number} | ${p.part_name}`;
             div.onclick = () => {
                 pInput.value = p.part_number;
                 pDesc.value = p.part_name;
@@ -99,18 +168,31 @@
     };
 
     async function guardar() {
-        const payload = {
+        const datos = {
             area: document.getElementById('area_select').value,
+            turno: document.getElementById('turno').value,
+            inspector: document.getElementById('inspector').value,
+            operador: document.getElementById('operador').value,
             num_parte: pInput.value,
             nombre_pieza: pDesc.value,
+            cantidad_total: parseFloat(document.getElementById('cant_total').value) || 0,
+            cantidad_defectuosa: parseFloat(document.getElementById('cant_def').value) || 0,
+            cantidad_ok: parseFloat(document.getElementById('cant_ok').value) || 0,
+            porcentaje_defecto: parseFloat(document.getElementById('porcentaje_def').value) || 0,
             tipo_defecto: document.getElementById('defect_select').value,
-            cant_defectuosa: parseInt(document.getElementById('cant_def').value) || 0,
-            fecha: new Date().toISOString().split('T')[0]
+            disposicion: document.getElementById('destino').value,
+            comentarios: document.getElementById('notas').value,
+            fecha: new Date().toISOString()
         };
 
-        const { error } = await client.from('inspeccion_produccion').insert([payload]);
+        if(!datos.area || !datos.num_parte || !datos.inspector) {
+            alert("Completa los campos obligatorios (Área, N/P, Inspector)");
+            return;
+        }
+
+        const { error } = await client.from('inspeccion_produccion').insert([datos]);
         if (error) alert("Error: " + error.message);
-        else { alert("Guardado!"); location.reload(); }
+        else { alert("Registro guardado con éxito"); location.reload(); }
     }
 
     document.addEventListener('DOMContentLoaded', init);
