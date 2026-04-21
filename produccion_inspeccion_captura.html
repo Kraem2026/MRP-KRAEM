@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Control de Calidad</title>
+    <title>KRAEM | Sistema de Inspección Final</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -14,7 +14,7 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .group { margin-bottom: 12px; position: relative; }
         label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; box-sizing: border-box; background: #fff; color: var(--text); }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; box-sizing: border-box; background: #fff; }
         .readonly { background: #f1f5f9; font-weight: bold; color: var(--primary); }
         .autobox { position: absolute; width: 100%; background: white; border: 1px solid var(--border); z-index: 100; max-height: 150px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .autobox div { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
@@ -26,7 +26,7 @@
 <body>
 
 <div class="form-card">
-    <h3 style="text-align: center; color: var(--primary); margin-top: 0;">Inspección de Producción</h3>
+    <h3 style="text-align: center; color: var(--primary); margin-top: 0;">Captura de Inspección KRAEM</h3>
 
     <div class="grid">
         <div class="group">
@@ -39,6 +39,17 @@
                 <option value="1">Turno 1</option>
                 <option value="2">Turno 2</option>
             </select>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="group">
+            <label>Máquina / Estación</label>
+            <input type="text" id="maquina" placeholder="Ej. 25">
+        </div>
+        <div class="group">
+            <label>Semana</label>
+            <input type="number" id="semana" class="readonly" readonly>
         </div>
     </div>
 
@@ -70,7 +81,7 @@
 
     <div class="grid">
         <div class="group">
-            <label>Cant. Contada (Total)</label>
+            <label>Cant. Inspeccionada</label>
             <input type="number" id="cant_total" value="0" oninput="calcular()">
         </div>
         <div class="group">
@@ -96,7 +107,7 @@
             <select id="defect_select"></select>
         </div>
         <div class="group">
-            <label>Disposición</label>
+            <label>Destino / Disposición</label>
             <select id="destino">
                 <option value="LIBERADO">LIBERADO (OK)</option>
                 <option value="RETRABAJO">RETRABAJO</option>
@@ -106,8 +117,8 @@
     </div>
 
     <div class="group">
-        <label>Notas / Comentarios</label>
-        <textarea id="notas" rows="2"></textarea>
+        <label>Comentarios</label>
+        <textarea id="notas" rows="2" placeholder="Notas sobre el defecto..."></textarea>
     </div>
 
     <button class="btn-save" onclick="guardar()">GUARDAR REGISTRO</button>
@@ -116,20 +127,32 @@
 <script>
     let db_parts = [];
 
+    // Función para obtener el número de semana actual
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
+    }
+
     async function init() {
+        // Cargar Semana
+        document.getElementById('semana').value = getWeekNumber(new Date());
+
         // Cargar Áreas
         const { data: areas } = await client.from('areas').select('area_name').eq('active', true);
         const sArea = document.getElementById('area_select');
         sArea.innerHTML = '<option value="">Seleccione Área...</option>';
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.area_name}">${a.area_name}</option>`);
 
-        // Cargar Defectos (Ya confirmamos que es 'defects')
+        // Cargar Defectos
         const { data: defs } = await client.from('defects').select('Defect_name');
         const sDef = document.getElementById('defect_select');
         sDef.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
         defs?.forEach(d => sDef.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`);
 
-        // Cargar Partes para Autocompletado
+        // Cargar Partes
         const { data: parts } = await client.from('parts').select('part_number, part_name');
         db_parts = parts || [];
     }
@@ -144,7 +167,6 @@
         document.getElementById('porcentaje_def').value = pct + "%";
     }
 
-    // Autocompletado de Partes
     const pInput = document.getElementById('part_input');
     const pBox = document.getElementById('part_box');
     const pDesc = document.getElementById('desc_display');
@@ -168,31 +190,53 @@
     };
 
     async function guardar() {
+        const total = parseFloat(document.getElementById('cant_total').value) || 0;
+        const def = parseFloat(document.getElementById('cant_def').value) || 0;
+        const ok = total - def;
+        const pct = total > 0 ? ((def / total) * 100).toFixed(2) : 0;
+
         const datos = {
-            area: document.getElementById('area_select').value,
+            // MAPEO A COLUMNAS ORIGINALES (Para gráficas)
+            fecha: new Date().toISOString().split('T')[0],
+            hora: new Date().toLocaleTimeString('en-GB'),
+            semana: parseInt(document.getElementById('semana').value),
             turno: document.getElementById('turno').value,
-            inspector: document.getElementById('inspector').value,
+            inspector_interno: document.getElementById('inspector').value,
+            maquina: document.getElementById('maquina').value,
             operador: document.getElementById('operador').value,
             num_parte: pInput.value,
             nombre_pieza: pDesc.value,
-            cantidad_total: parseFloat(document.getElementById('cant_total').value) || 0,
-            cantidad_defectuosa: parseFloat(document.getElementById('cant_def').value) || 0,
-            cantidad_ok: parseFloat(document.getElementById('cant_ok').value) || 0,
-            porcentaje_defecto: parseFloat(document.getElementById('porcentaje_def').value) || 0,
+            cant_inspeccionada: total,
+            cant_defectuosa: def,
+            cant_ok: ok,
             tipo_defecto: document.getElementById('defect_select').value,
-            disposicion: document.getElementById('destino').value,
+            destino: document.getElementById('destino').value,
             comentarios: document.getElementById('notas').value,
-            fecha: new Date().toISOString()
+            area: document.getElementById('area_select').value,
+
+            // MAPEO A COLUMNAS NUEVAS (Para historial limpio)
+            inspector: document.getElementById('inspector').value,
+            cantidad_total: total,
+            cantidad_defectuosa: def,
+            cantidad_ok: ok,
+            porcentaje_defecto: pct,
+            disposicion: document.getElementById('destino').value
         };
 
-        if(!datos.area || !datos.num_parte || !datos.inspector) {
-            alert("Completa los campos obligatorios (Área, N/P, Inspector)");
+        if(!datos.area || !datos.num_parte || !datos.inspector_interno) {
+            alert("⚠️ Falta Área, N/P o Inspector");
             return;
         }
 
         const { error } = await client.from('inspeccion_produccion').insert([datos]);
-        if (error) alert("Error: " + error.message);
-        else { alert("Registro guardado con éxito"); location.reload(); }
+        
+        if (error) {
+            alert("Error: " + error.message);
+            console.error(error);
+        } else {
+            alert("✅ Registro guardado exitosamente");
+            location.reload();
+        }
     }
 
     document.addEventListener('DOMContentLoaded', init);
