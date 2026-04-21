@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Sistema de Inspección Final</title>
+    <title>KRAEM | Captura de Inspección Final</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -44,7 +44,7 @@
 
     <div class="grid">
         <div class="group">
-            <label>Máquina / Estación</label>
+            <label>Máquina</label>
             <input type="text" id="maquina" placeholder="Ej. 25">
         </div>
         <div class="group">
@@ -92,8 +92,8 @@
 
     <div class="grid">
         <div class="group">
-            <label>Piezas OK</label>
-            <input type="number" id="cant_ok" class="readonly" readonly value="0">
+            <label>Piezas OK (Previsualización)</label>
+            <input type="number" id="preview_ok" class="readonly" readonly value="0">
         </div>
         <div class="group">
             <label>% Defecto</label>
@@ -118,7 +118,7 @@
 
     <div class="group">
         <label>Comentarios</label>
-        <textarea id="notas" rows="2" placeholder="Notas sobre el defecto..."></textarea>
+        <textarea id="notas" rows="2"></textarea>
     </div>
 
     <button class="btn-save" onclick="guardar()">GUARDAR REGISTRO</button>
@@ -127,32 +127,26 @@
 <script>
     let db_parts = [];
 
-    // Función para obtener el número de semana actual
     function getWeekNumber(d) {
         d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
         d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
         var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        return weekNo;
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
 
     async function init() {
-        // Cargar Semana
         document.getElementById('semana').value = getWeekNumber(new Date());
 
-        // Cargar Áreas
         const { data: areas } = await client.from('areas').select('area_name').eq('active', true);
         const sArea = document.getElementById('area_select');
         sArea.innerHTML = '<option value="">Seleccione Área...</option>';
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.area_name}">${a.area_name}</option>`);
 
-        // Cargar Defectos
         const { data: defs } = await client.from('defects').select('Defect_name');
         const sDef = document.getElementById('defect_select');
         sDef.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
         defs?.forEach(d => sDef.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`);
 
-        // Cargar Partes
         const { data: parts } = await client.from('parts').select('part_number, part_name');
         db_parts = parts || [];
     }
@@ -160,11 +154,8 @@
     function calcular() {
         const total = parseFloat(document.getElementById('cant_total').value) || 0;
         const def = parseFloat(document.getElementById('cant_def').value) || 0;
-        const ok = total - def;
-        const pct = total > 0 ? ((def / total) * 100).toFixed(2) : 0;
-
-        document.getElementById('cant_ok').value = ok < 0 ? 0 : ok;
-        document.getElementById('porcentaje_def').value = pct + "%";
+        document.getElementById('preview_ok').value = (total - def) < 0 ? 0 : (total - def);
+        document.getElementById('porcentaje_def').value = total > 0 ? ((def / total) * 100).toFixed(2) + "%" : "0%";
     }
 
     const pInput = document.getElementById('part_input');
@@ -192,37 +183,32 @@
     async function guardar() {
         const total = parseFloat(document.getElementById('cant_total').value) || 0;
         const def = parseFloat(document.getElementById('cant_def').value) || 0;
-        const ok = total - def;
         const pct = total > 0 ? ((def / total) * 100).toFixed(2) : 0;
 
         const datos = {
-            // MAPEO A COLUMNAS ORIGINALES (Para gráficas)
             fecha: new Date().toISOString().split('T')[0],
             hora: new Date().toLocaleTimeString('en-GB'),
             semana: parseInt(document.getElementById('semana').value),
             turno: document.getElementById('turno').value,
-            inspector_interno: document.getElementById('inspector').value,
+            area: document.getElementById('area_select').value,
             maquina: document.getElementById('maquina').value,
+            inspector_interno: document.getElementById('inspector').value,
+            inspector: document.getElementById('inspector').value,
             operador: document.getElementById('operador').value,
             num_parte: pInput.value,
             nombre_pieza: pDesc.value,
             cant_inspeccionada: total,
+            cantidad_total: total,
             cant_defectuosa: def,
-            cant_ok: ok,
+            cantidad_defectuosa: def,
+            porcentaje_defecto: pct,
             tipo_defecto: document.getElementById('defect_select').value,
             destino: document.getElementById('destino').value,
-            comentarios: document.getElementById('notas').value,
-            area: document.getElementById('area_select').value,
-
-            // MAPEO A COLUMNAS NUEVAS (Para historial limpio)
-            inspector: document.getElementById('inspector').value,
-            cantidad_total: total,
-            cantidad_defectuosa: def,
-            cantidad_ok: ok,
-            porcentaje_defecto: pct,
-            disposicion: document.getElementById('destino').value
+            disposicion: document.getElementById('destino').value,
+            comentarios: document.getElementById('notas').value
         };
 
+        // NO enviamos cant_ok ni cantidad_ok para dejar que la DB lo calcule sola
         if(!datos.area || !datos.num_parte || !datos.inspector_interno) {
             alert("⚠️ Falta Área, N/P o Inspector");
             return;
@@ -232,7 +218,6 @@
         
         if (error) {
             alert("Error: " + error.message);
-            console.error(error);
         } else {
             alert("✅ Registro guardado exitosamente");
             location.reload();
