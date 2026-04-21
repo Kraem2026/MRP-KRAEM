@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Gestión de Personal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .group { margin-bottom: 10px; }
+        label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        .btn { padding: 12px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-primary { background: var(--accent); color: white; width: 100%; }
+        .btn-primary:hover { background: #1d4ed8; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 13px; }
+        th { background: var(--primary); color: white; padding: 12px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        tr:hover { background: #f8fafc; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .bg-active { background: #dcfce7; color: #166534; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2><i class="fas fa-users"></i> Control de Personal KRAEM</h2>
+        <span id="contador" class="badge bg-active">Cargando...</span>
+    </div>
+
+    <div class="card">
+        <h4 style="margin-top:0;">Nuevo Registro</h4>
+        <div class="grid">
+            <div class="group">
+                <label>Num. Empleado</label>
+                <input type="text" id="num_emp" placeholder="Ej: 1025">
+            </div>
+            <div class="group">
+                <label>Nombre Completo</label>
+                <input type="text" id="nombre" placeholder="Nombre Apellido">
+            </div>
+            <div class="group">
+                <label>Área</label>
+                <select id="sel_area"></select>
+            </div>
+            <div class="group">
+                <label>Puesto</label>
+                <select id="sel_puesto"></select>
+            </div>
+            <div class="group">
+                <label>Turno</label>
+                <select id="sel_turno"></select>
+            </div>
+            <div class="group">
+                <label>Fecha Ingreso</label>
+                <input type="date" id="fecha_ingreso">
+            </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:15px;" onclick="guardarEmpleado()">
+            <i class="fas fa-user-plus"></i> DAR DE ALTA EMPLEADO
+        </button>
+    </div>
+
+    <div class="card" style="padding:0;">
+        <table>
+            <thead>
+                <tr>
+                    <th># Emp</th>
+                    <th>Nombre</th>
+                    <th>Área</th>
+                    <th>Puesto</th>
+                    <th>Turno</th>
+                    <th>Estatus</th>
+                </tr>
+            </thead>
+            <tbody id="lista_empleados"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function init() {
+        // Cargar Catálogos
+        const { data: areas } = await client.from('rh_areas').select('*').eq('activo', true);
+        const { data: puestos } = await client.from('rh_puestos').select('*');
+        const { data: turnos } = await client.from('rh_turnos').select('*');
+
+        const sArea = document.getElementById('sel_area');
+        const sPuesto = document.getElementById('sel_puesto');
+        const sTurno = document.getElementById('sel_turno');
+
+        areas?.forEach(a => sArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
+        puestos?.forEach(p => sPuesto.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
+        turnos?.forEach(t => sTurno.innerHTML += `<option value="${t.id}">${t.nombre}</option>`);
+
+        listarEmpleados();
+    }
+
+    async function listarEmpleados() {
+        // Hacemos un Join para traer los nombres de las áreas y puestos
+        const { data: emps, error } = await client
+            .from('rh_empleados')
+            .select(`
+                num_empleado, nombre_completo, estatus,
+                rh_areas(nombre), rh_puestos(nombre), rh_turnos(nombre)
+            `)
+            .order('created_at', { ascending: false });
+
+        const tbody = document.getElementById('lista_empleados');
+        tbody.innerHTML = '';
+        document.getElementById('contador').textContent = `${emps?.length || 0} Empleados Activos`;
+
+        emps?.forEach(e => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><b>${e.num_empleado}</b></td>
+                    <td>${e.nombre_completo}</td>
+                    <td>${e.rh_areas?.nombre || '-'}</td>
+                    <td>${e.rh_puestos?.nombre || '-'}</td>
+                    <td>${e.rh_turnos?.nombre || '-'}</td>
+                    <td><span class="badge bg-active">${e.estatus}</span></td>
+                </tr>
+            `;
+        });
+    }
+
+    async function guardarEmpleado() {
+        const nuevo = {
+            num_empleado: document.getElementById('num_emp').value,
+            nombre_completo: document.getElementById('nombre').value,
+            area_id: document.getElementById('sel_area').value,
+            puesto_id: document.getElementById('sel_puesto').value,
+            turno_id: document.getElementById('sel_turno').value,
+            fecha_ingreso: document.getElementById('fecha_ingreso').value || new Date().toISOString().split('T')[0]
+        };
+
+        if(!nuevo.num_empleado || !nuevo.nombre_completo) {
+            alert("⚠️ Número y Nombre son obligatorios");
+            return;
+        }
+
+        const { error } = await client.from('rh_empleados').insert([nuevo]);
+
+        if(error) {
+            alert("Error: " + error.message);
+        } else {
+            alert("✅ Empleado registrado");
+            location.reload();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
