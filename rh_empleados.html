@@ -10,26 +10,28 @@
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --success: #22c55e; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-        .container { max-width: 1200px; margin: auto; }
+        .container { max-width: 1300px; margin: auto; }
         
-        /* Navegación */
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
         .btn-excel { background: var(--success); color: white; border: none; }
 
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 25px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .group { margin-bottom: 15px; }
-        label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .group { margin-bottom: 10px; }
+        label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
         
-        .btn-save { background: var(--accent); color: white; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
+        .btn-save { background: var(--accent); color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 14px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 900px; }
-        th { background: #f1f5f9; color: #475569; padding: 12px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        /* Estilos de Filtros */
+        .filter-bar { background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        th { background: #f8fafc; color: #475569; padding: 12px; text-align: left; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
-        tr:hover { background: #f8fafc; cursor: pointer; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+        tr:hover { background: #f1f5f9; cursor: pointer; }
+        .status-badge { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
         .status-activo { background: #dcfce7; color: #166534; }
         .status-baja { background: #fee2e2; color: #991b1b; }
     </style>
@@ -38,70 +40,50 @@
 
 <div class="container">
     <div class="nav-header">
-        <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
-        <button onclick="exportarExcel()" class="btn-nav btn-excel"><i class="fas fa-file-excel"></i> Exportar Todo a Excel</button>
+        <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Panel Principal</a>
+        <button onclick="exportarExcel()" class="btn-nav btn-excel"><i class="fas fa-file-excel"></i> Exportar CSV</button>
     </div>
 
     <div class="card">
-        <h2 id="form_title" style="margin-top:0; color: var(--primary);">Gestión de Personal KRAEM</h2>
+        <h3 id="form_title" style="margin-top:0; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 10px;">Registro de Personal</h3>
         <input type="hidden" id="edit_id">
-
         <div class="grid">
-            <div class="group">
-                <label>Nombre Completo</label>
-                <input type="text" id="nombre">
-            </div>
-            <div class="group">
-                <label>Área</label>
-                <select id="sel_area"><option value="">Cargando...</option></select>
-            </div>
-            <div class="group">
-                <label>Puesto</label>
-                <select id="sel_puesto"><option value="">Cargando...</option></select>
-            </div>
-            <div class="group">
-                <label>Turno</label>
-                <select id="sel_turno">
-                    <option value="1">Turno 1</option>
-                    <option value="2">Turno 2</option>
-                </select>
-            </div>
-            <div class="group">
-                <label>Ruta de Transporte</label>
-                <select id="sel_ruta"><option value="">Cargando...</option></select>
-            </div>
-            <div class="group">
-                <label>Estatus</label>
-                <select id="sel_estatus">
-                    <option value="ACTIVO">ACTIVO</option>
-                    <option value="BAJA">BAJA</option>
-                </select>
-            </div>
-            <div class="group">
-                <label>Teléfono</label>
-                <input type="tel" id="telefono">
-            </div>
-            <div class="group">
-                <label>Fecha de Ingreso</label>
-                <input type="date" id="fecha_ingreso">
+            <div class="group"><label>Nombre</label><input type="text" id="nombre"></div>
+            <div class="group"><label>Área</label><select id="sel_area"></select></div>
+            <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
+            <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
+            <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
+            <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
+            <div class="group"><label>Teléfono</label><input type="tel" id="telefono"></div>
+            <div class="group"><label>Ingreso</label><input type="date" id="fecha_ingreso"></div>
+        </div>
+        <div class="group"><label>Dirección</label><textarea id="direccion" rows="1"></textarea></div>
+        <button class="btn-save" id="btn_main" onclick="guardarEmpleado()">GUARDAR EMPLEADO</button>
+        <button id="btn_cancel" style="display:none; width:100%; margin-top:5px; background:#64748b; color:white; border:none; padding:8px; border-radius:8px;" onclick="resetForm()">CANCELAR</button>
+    </div>
+
+    <div class="filter-bar">
+        <label style="margin-bottom:10px; display:block; color:var(--accent)"><i class="fas fa-filter"></i> Filtros de Búsqueda</label>
+        <div class="grid">
+            <input type="text" id="f_nombre" placeholder="Buscar por nombre..." oninput="aplicarFiltros()">
+            <select id="f_area" onchange="aplicarFiltros()"><option value="">Todas las Áreas</option></select>
+            <select id="f_puesto" onchange="aplicarFiltros()"><option value="">Todos los Puestos</option></select>
+            <select id="f_ruta" onchange="aplicarFiltros()"><option value="">Todas las Rutas</option></select>
+            <div style="display:flex; gap:5px; align-items:center;">
+                <input type="date" id="f_desde" onchange="aplicarFiltros()" title="Desde">
+                <span style="font-size:10px">A</span>
+                <input type="date" id="f_hasta" onchange="aplicarFiltros()" title="Hasta">
             </div>
         </div>
-
-        <div class="group">
-            <label>Dirección</label>
-            <textarea id="direccion" rows="2"></textarea>
-        </div>
-
-        <button class="btn-save" id="btn_main" onclick="guardarEmpleado()">GUARDAR CAMBIOS</button>
-        <button id="btn_cancel" style="display:none; width:100%; margin-top:5px; padding:10px; border-radius:8px; border:none; cursor:pointer;" onclick="resetForm()">CANCELAR EDICIÓN</button>
     </div>
 
     <div class="card" style="padding:0; overflow-x:auto;">
-        <table id="tabla_personal">
+        <table>
             <thead>
                 <tr>
                     <th>Nombre</th>
-                    <th>Área / Puesto</th>
+                    <th>Área</th>
+                    <th>Puesto</th>
                     <th>Turno</th>
                     <th>Ruta</th>
                     <th>Ingreso</th>
@@ -121,20 +103,13 @@
         if (!fecha) return "-";
         const inicio = new Date(fecha);
         const hoy = new Date();
-        
         let años = hoy.getFullYear() - inicio.getFullYear();
         let meses = hoy.getMonth() - inicio.getMonth();
-
-        if (meses < 0) {
-            años--;
-            meses += 12;
-        }
-
+        if (meses < 0) { años--; meses += 12; }
         let result = "";
-        if (años > 0) result += `${años} ${años === 1 ? 'año' : 'años'}`;
-        if (meses > 0) result += `${años > 0 ? ', ' : ''}${meses} ${meses === 1 ? 'mes' : 'meses'}`;
-        
-        return result || "Menos de 1 mes";
+        if (años > 0) result += `${años}a `;
+        if (meses > 0) result += `${meses}m`;
+        return result || "< 1 mes";
     }
 
     async function init() {
@@ -142,37 +117,64 @@
         const { data: puestos } = await client.from('rh_puestos').select('*');
         const { data: rutas } = await client.from('rh_rutas').select('*');
 
-        const sArea = document.getElementById('sel_area');
-        const sPuesto = document.getElementById('sel_puesto');
-        const sRuta = document.getElementById('sel_ruta');
+        const fillSelect = (id, data, isFilter = false) => {
+            const s = document.getElementById(id);
+            s.innerHTML = isFilter ? `<option value="">${s.options[0].text}</option>` : '<option value="">Seleccione...</option>';
+            data?.forEach(d => s.innerHTML += `<option value="${d.id || d.nombre}">${d.nombre}</option>`);
+        };
 
-        sArea.innerHTML = '<option value="">Seleccione...</option>';
-        sPuesto.innerHTML = '<option value="">Seleccione...</option>';
-        sRuta.innerHTML = '<option value="">Seleccione...</option>';
-
-        areas?.forEach(a => sArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
-        puestos?.forEach(p => sPuesto.innerHTML += `<option value="${p.id}">${p.nombre}</option>`);
-        rutas?.forEach(r => sRuta.innerHTML += `<option value="${r.nombre}">${r.nombre}</option>`);
+        fillSelect('sel_area', areas);
+        fillSelect('sel_puesto', puestos);
+        fillSelect('sel_ruta', rutas);
+        
+        // Llenar filtros
+        fillSelect('f_area', areas, true);
+        fillSelect('f_puesto', puestos, true);
+        fillSelect('f_ruta', rutas, true);
 
         listarEmpleados();
     }
 
     async function listarEmpleados() {
-        const { data: emps } = await client
-            .from('rh_empleados')
-            .select('*, rh_areas(nombre), rh_puestos(nombre)')
-            .order('nombre_completo', { ascending: true });
-
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre), rh_puestos(nombre)').order('nombre_completo', { ascending: true });
         db_empleados = emps || [];
+        aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+        const fNombre = document.getElementById('f_nombre').value.toLowerCase();
+        const fArea = document.getElementById('f_area').value;
+        const fPuesto = document.getElementById('f_puesto').value;
+        const fRuta = document.getElementById('f_ruta').value;
+        const fDesde = document.getElementById('f_desde').value;
+        const fHasta = document.getElementById('f_hasta').value;
+
+        const filtrados = db_empleados.filter(e => {
+            const matchNombre = e.nombre_completo.toLowerCase().includes(fNombre);
+            const matchArea = fArea === "" || e.area_id === fArea;
+            const matchPuesto = fPuesto === "" || e.puesto_id === fPuesto;
+            const matchRuta = fRuta === "" || e.ruta_transporte === fRuta;
+            
+            let matchFecha = true;
+            if(fDesde && e.fecha_ingreso < fDesde) matchFecha = false;
+            if(fHasta && e.fecha_ingreso > fHasta) matchFecha = false;
+
+            return matchNombre && matchArea && matchPuesto && matchRuta && matchFecha;
+        });
+
+        renderTabla(filtrados);
+    }
+
+    function renderTabla(datos) {
         const tbody = document.getElementById('lista_empleados');
         tbody.innerHTML = '';
-
-        db_empleados.forEach(e => {
+        datos.forEach(e => {
             const statusClass = e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja';
             tbody.innerHTML += `
                 <tr onclick="cargarEdicion('${e.id}')">
                     <td><b>${e.nombre_completo}</b></td>
-                    <td>${e.rh_areas?.nombre || '-'} / ${e.rh_puestos?.nombre || '-'}</td>
+                    <td>${e.rh_areas?.nombre || '-'}</td>
+                    <td>${e.rh_puestos?.nombre || '-'}</td>
                     <td>T${e.turno_id}</td>
                     <td>${e.ruta_transporte || '-'}</td>
                     <td>${e.fecha_ingreso || '-'}</td>
@@ -193,9 +195,9 @@
         document.getElementById('sel_turno').value = emp.turno_id;
         document.getElementById('sel_ruta').value = emp.ruta_transporte;
         document.getElementById('sel_estatus').value = emp.estatus;
-        document.getElementById('telefono').value = emp.telefono;
-        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso;
-        document.getElementById('direccion').value = emp.direccion;
+        document.getElementById('telefono').value = emp.telefono || '';
+        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || '';
+        document.getElementById('direccion').value = emp.direccion || '';
         document.getElementById('btn_main').innerText = "ACTUALIZAR DATOS";
         document.getElementById('btn_cancel').style.display = "block";
         window.scrollTo(0,0);
@@ -205,7 +207,7 @@
         document.getElementById('edit_id').value = "";
         document.getElementById('btn_main').innerText = "GUARDAR EMPLEADO";
         document.getElementById('btn_cancel').style.display = "none";
-        document.querySelectorAll('input, select, textarea').forEach(el => el.value = "");
+        document.querySelectorAll('input, select, textarea').forEach(el => { if(!el.id.startsWith('f_')) el.value = ""; });
     }
 
     async function guardarEmpleado() {
@@ -221,42 +223,19 @@
             direccion: document.getElementById('direccion').value,
             fecha_ingreso: document.getElementById('fecha_ingreso').value
         };
-
-        const { error } = id 
-            ? await client.from('rh_empleados').update(datos).eq('id', id)
-            : await client.from('rh_empleados').insert([datos]);
-
-        if(error) alert("Error: " + error.message);
-        else { alert("Guardado correctamente"); resetForm(); listarEmpleados(); }
+        const { error } = id ? await client.from('rh_empleados').update(datos).eq('id', id) : await client.from('rh_empleados').insert([datos]);
+        if(error) alert(error.message); else { resetForm(); listarEmpleados(); }
     }
 
     function exportarExcel() {
-        if(db_empleados.length === 0) return alert("No hay datos para exportar");
-        
-        // Encabezados del CSV
-        let csv = "Nombre,Area,Puesto,Turno,Ruta,Estatus,Telefono,Fecha Ingreso,Antiguedad,Direccion\n";
-        
+        let csv = "\uFEFFNombre,Area,Puesto,Turno,Ruta,Estatus,Telefono,Fecha Ingreso,Antiguedad,Direccion\n";
         db_empleados.forEach(e => {
-            const antiguedad = calcularAntiguedad(e.fecha_ingreso).replace(",", ""); // Limpiar comas para CSV
-            const fila = [
-                `"${e.nombre_completo}"`,
-                `"${e.rh_areas?.nombre || ''}"`,
-                `"${e.rh_puestos?.nombre || ''}"`,
-                `"${e.turno_id}"`,
-                `"${e.ruta_transporte}"`,
-                `"${e.estatus}"`,
-                `"${e.telefono || ''}"`,
-                `"${e.fecha_ingreso}"`,
-                `"${antiguedad}"`,
-                `"${(e.direccion || '').replace(/\n/g, " ")}"` // Quitar saltos de línea de la dirección
-            ];
-            csv += fila.join(",") + "\n";
+            csv += `"${e.nombre_completo}","${e.rh_areas?.nombre}","${e.rh_puestos?.nombre}","${e.turno_id}","${e.ruta_transporte}","${e.estatus}","${e.telefono}","${e.fecha_ingreso}","${calcularAntiguedad(e.fecha_ingreso)}","${(e.direccion || '').replace(/\n/g, ' ')}"\n`;
         });
-
-        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = "Personal_KRAEM_" + new Date().toISOString().split('T')[0] + ".csv";
+        link.download = "Personal_Kraem.csv";
         link.click();
     }
 
