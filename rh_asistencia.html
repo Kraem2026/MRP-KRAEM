@@ -1,103 +1,167 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>KRAEM - Pase de Lista</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <style>
-    :root { 
-        --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --primary: #2563eb; 
-        --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; --border: #e2e8f0;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-    
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .btn-back { text-decoration: none; color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Pase de Lista Diario</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .container { max-width: 800px; margin: auto; padding-bottom: 100px; }
+        
+        .header-asistencia { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
 
-    .attendance-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    
-    .emp-info { display: flex; align-items: center; gap: 15px; }
-    .emp-img { width: 50px; height: 50px; border-radius: 50%; background: #eee; object-fit: cover; }
-    .emp-details h4 { margin: 0; font-size: 1rem; }
-    .emp-details p { margin: 2px 0 0; font-size: 0.8rem; color: #64748b; }
+        .attendance-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .emp-row { display: flex; align-items: center; justify-content: space-between; }
+        .emp-info { display: flex; align-items: center; gap: 12px; }
+        .emp-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #f1f5f9; border: 1px solid #e2e8f0; }
+        .emp-details h4 { margin: 0; font-size: 14px; color: var(--primary); }
+        .emp-details p { margin: 2px 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; }
 
-    .status-actions { display: flex; gap: 8px; }
-    .btn-status { border: 1px solid var(--border); background: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.9rem; font-weight: 600; }
-    
-    /* Colores de estados seleccionados */
-    .btn-status.presente.active { background: var(--success); color: white; border-color: var(--success); }
-    .btn-status.retardo.active { background: var(--warning); color: white; border-color: var(--warning); }
-    .btn-status.falta.active { background: var(--danger); color: white; border-color: var(--danger); }
+        .status-buttons { display: flex; gap: 6px; }
+        .btn-status { width: 40px; height: 40px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 800; transition: 0.2s; color: #64748b; }
+        
+        .btn-status.active-P { background: var(--success) !important; color: white !important; border-color: var(--success); }
+        .btn-status.active-R { background: var(--warning) !important; color: white !important; border-color: var(--warning); }
+        .btn-status.active-F { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
 
-    .footer-actions { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); padding: 20px; border-top: 1px solid var(--border); display: flex; justify-content: center; }
-    .btn-save { background: var(--primary); color: white; border: none; padding: 12px 40px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; width: 100%; max-width: 400px; }
-  </style>
+        .reason-select { width: 100%; margin-top: 12px; padding: 8px; border-radius: 6px; border: 1px solid var(--danger); background: #fff5f5; font-size: 12px; display: none; }
+        .show-reason { display: block; animation: slideDown 0.3s ease; }
+
+        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid #e2e8f0; text-align: center; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
+        .btn-final { background: var(--accent); color: white; border: none; padding: 15px 50px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; max-width: 500px; font-size: 15px; }
+
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body>
 
-<header>
-  <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-left"></i> Volver al Dashboard</a>
-  <div style="text-align: right;">
-    <h2 style="margin:0; color: var(--primary);">Pase de Lista</h2>
-    <span id="fecha-actual" style="color: #64748b; font-size: 0.9rem;"></span>
-  </div>
-</header>
+<div class="container">
+    <div class="header-asistencia">
+        <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Volver</a>
+        <div style="text-align: right;">
+            <h3 style="margin:0; font-size: 16px;">Pase de Lista Kraem</h3>
+            <span id="fecha-hoy" style="font-size: 12px; color: #64748b; font-weight: bold;"></span>
+        </div>
+    </div>
 
-<main style="padding-bottom: 100px;">
-  <div class="attendance-card">
-    <div class="emp-info">
-      <img src="https://via.placeholder.com/50" class="emp-img" alt="Empleado">
-      <div class="emp-details">
-        <h4>Juan Pérez</h4>
-        <p>Operador de Inyección - Turno A</p>
-      </div>
+    <div id="lista-asistencia">
+        <p style="text-align:center; color:#94a3b8;">Cargando personal activo...</p>
     </div>
-    <div class="status-actions">
-      <button class="btn-status presente" onclick="setStatus(this, 'active')">P</button>
-      <button class="btn-status retardo" onclick="setStatus(this, 'active')">R</button>
-      <button class="btn-status falta" onclick="setStatus(this, 'active')">F</button>
-    </div>
-  </div>
+</div>
 
-  <div class="attendance-card">
-    <div class="emp-info">
-      <img src="https://via.placeholder.com/50" class="emp-img" alt="Empleado">
-      <div class="emp-details">
-        <h4>Maria Garcia</h4>
-        <p>Líder de Línea - Turno A</p>
-      </div>
-    </div>
-    <div class="status-actions">
-      <button class="btn-status presente" onclick="setStatus(this, 'active')">P</button>
-      <button class="btn-status retardo" onclick="setStatus(this, 'active')">R</button>
-      <button class="btn-status falta" onclick="setStatus(this, 'active')">F</button>
-    </div>
-  </div>
-</main>
-
-<div class="footer-actions">
-  <button class="btn-save" onclick="guardarAsistencia()">FINALIZAR PASE DE LISTA</button>
+<div class="footer-save">
+    <button class="btn-final" onclick="enviarAsistencia()">
+        <i class="fas fa-cloud-upload-alt"></i> GUARDAR ASISTENCIA DEL DÍA
+    </button>
 </div>
 
 <script>
-  // Pone la fecha de hoy automáticamente
-  const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  document.getElementById('fecha-actual').innerText = new Date().toLocaleDateString('es-MX', opciones);
+    let asistenciaData = {}; // Para guardar temporalmente lo que seleccionas
 
-  // Lógica para marcar botones
-  function setStatus(btn, className) {
-    const parent = btn.parentElement;
-    // Quita la clase 'active' de los hermanos
-    parent.querySelectorAll('.btn-status').forEach(b => b.classList.remove('active'));
-    // Pon la clase al botón clicado
-    btn.classList.add('active');
-  }
+    async function init() {
+        // Poner fecha actual
+        const hoy = new Date();
+        document.getElementById('fecha-hoy').innerText = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  function guardarAsistencia() {
-    alert("Asistencia registrada localmente. Próximo paso: Conectar a Supabase.");
-  }
+        // Jalar solo empleados ACTIVOS de tu tabla rh_empleados
+        const { data: empleados, error } = await client
+            .from('rh_empleados')
+            .select('id, nombre_completo, foto_url, rh_puestos(nombre)')
+            .eq('estatus', 'ACTIVO')
+            .order('nombre_completo');
+
+        if (error) return console.error(error);
+
+        const lista = document.getElementById('lista-asistencia');
+        lista.innerHTML = '';
+
+        empleados.forEach(emp => {
+            asistenciaData[emp.id] = { estado: 'P', motivo: '' }; // Default Presente
+
+            const card = document.createElement('div');
+            card.className = 'attendance-card';
+            card.innerHTML = `
+                <div class="emp-row">
+                    <div class="emp-info">
+                        <img src="${emp.foto_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="emp-img">
+                        <div class="emp-details">
+                            <h4>${emp.nombre_completo}</h4>
+                            <p>${emp.rh_puestos?.nombre || 'Puesto no asignado'}</p>
+                        </div>
+                    </div>
+                    <div class="status-buttons">
+                        <button class="btn-status active-P" id="btn-P-${emp.id}" onclick="updateStatus('${emp.id}', 'P')">P</button>
+                        <button class="btn-status" id="btn-R-${emp.id}" onclick="updateStatus('${emp.id}', 'R')">R</button>
+                        <button class="btn-status" id="btn-F-${emp.id}" onclick="updateStatus('${emp.id}', 'F')">F</button>
+                    </div>
+                </div>
+                <select class="reason-select" id="select-${emp.id}" onchange="updateMotivo('${emp.id}', this.value)">
+                    <option value="Injustificada">⚠️ Falta Injustificada</option>
+                    <option value="Vacaciones">🌴 Vacaciones</option>
+                    <option value="Incapacidad">🏥 Incapacidad (IMSS)</option>
+                    <option value="Permiso Sin Goce">💸 Permiso Sin Goce</option>
+                    <option value="Permiso Con Goce">✅ Permiso Con Goce</option>
+                    <option value="Justificante">📄 Justificante Médico</option>
+                </select>
+            `;
+            lista.appendChild(card);
+        });
+    }
+
+    function updateStatus(empId, status) {
+        // Limpiar botones
+        document.getElementById(`btn-P-${empId}`).className = 'btn-status';
+        document.getElementById(`btn-R-${empId}`).className = 'btn-status';
+        document.getElementById(`btn-F-${empId}`).className = 'btn-status';
+
+        // Activar el seleccionado
+        document.getElementById(`btn-${status}-${empId}`).classList.add(`active-${status}`);
+
+        // Guardar en nuestro objeto temporal
+        asistenciaData[empId].estado = status;
+
+        // Mostrar/Ocultar motivos de falta
+        const select = document.getElementById(`select-${empId}`);
+        if (status === 'F') {
+            select.classList.add('show-reason');
+            asistenciaData[empId].motivo = select.value;
+        } else {
+            select.classList.remove('show-reason');
+            asistenciaData[empId].motivo = '';
+        }
+    }
+
+    function updateMotivo(empId, motivo) {
+        asistenciaData[empId].motivo = motivo;
+    }
+
+    async function enviarAsistencia() {
+        const confirmacion = confirm("¿Deseas guardar el pase de lista de hoy?");
+        if (!confirmacion) return;
+
+        const records = Object.keys(asistenciaData).map(empId => ({
+            empleado_id: empId,
+            fecha: new Date().toISOString().split('T')[0],
+            estado: asistenciaData[empId].estado,
+            motivo: asistenciaData[empId].motivo
+        }));
+
+        // Aquí se registra en una tabla nueva que podrías llamar 'rh_asistencia_diaria'
+        const { error } = await client.from('rh_asistencia_diaria').insert(records);
+
+        if (error) alert("Error al guardar: " + error.message);
+        else {
+            alert("✅ Asistencia guardada correctamente.");
+            location.href = "dashboard.html";
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
 </script>
-
 </body>
 </html>
