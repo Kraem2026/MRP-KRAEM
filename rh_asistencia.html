@@ -3,37 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Pase de Lista Diario</title>
+    <title>KRAEM | Pase de Lista</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        .container { max-width: 800px; margin: auto; padding-bottom: 100px; }
+        :root { 
+            --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; 
+            --text: #1e293b; --success: #22c55e; --warning: #f59e0b; 
+            --danger: #ef4444; --border: #e2e8f0;
+        }
         
-        .header-asistencia { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; padding-bottom: 120px; }
 
-        .attendance-card { background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        /* Encabezado */
+        .header-asistencia { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 15px; background: white; padding: 15px; 
+            border-radius: 12px; border: 1px solid var(--border); 
+        }
+        .btn-nav { 
+            padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); 
+            background: white; cursor: pointer; text-decoration: none; 
+            color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; 
+        }
+
+        /* Barra de Filtro */
+        .filter-bar { 
+            background: white; padding: 12px; border-radius: 12px; 
+            border: 1px solid var(--border); margin-bottom: 20px; 
+            display: flex; gap: 10px; align-items: center; 
+        }
+        select.f-select { 
+            flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; 
+            font-size: 14px; outline: none; 
+        }
+
+        /* Tarjetas de Empleado */
+        .attendance-card { 
+            background: white; border-radius: 12px; border: 1px solid var(--border); 
+            padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
+        }
         .emp-row { display: flex; align-items: center; justify-content: space-between; }
         .emp-info { display: flex; align-items: center; gap: 12px; }
-        .emp-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #f1f5f9; border: 1px solid #e2e8f0; }
+        .emp-img { 
+            width: 50px; height: 50px; border-radius: 50%; 
+            object-fit: cover; background: #f1f5f9; border: 1px solid var(--border); 
+        }
         .emp-details h4 { margin: 0; font-size: 14px; color: var(--primary); }
-        .emp-details p { margin: 2px 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; }
+        .emp-details p { margin: 2px 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; }
 
-        .status-buttons { display: flex; gap: 6px; }
-        .btn-status { width: 40px; height: 40px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 800; transition: 0.2s; color: #64748b; }
+        /* Botones de Estado */
+        .status-buttons { display: flex; gap: 8px; }
+        .btn-status { 
+            width: 42px; height: 42px; border-radius: 10px; 
+            border: 1px solid #cbd5e1; background: white; 
+            cursor: pointer; font-weight: 800; transition: 0.2s; color: #64748b; 
+        }
         
-        .btn-status.active-P { background: var(--success) !important; color: white !important; border-color: var(--success); }
-        .btn-status.active-R { background: var(--warning) !important; color: white !important; border-color: var(--warning); }
-        .btn-status.active-F { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
+        .btn-status.active-P { background: var(--success) !important; color: white !important; border-color: var(--success); box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3); }
+        .btn-status.active-R { background: var(--warning) !important; color: white !important; border-color: var(--warning); box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); }
+        .btn-status.active-F { background: var(--danger) !important; color: white !important; border-color: var(--danger); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3); }
 
-        .reason-select { width: 100%; margin-top: 12px; padding: 8px; border-radius: 6px; border: 1px solid var(--danger); background: #fff5f5; font-size: 12px; display: none; }
+        /* Selector de Motivos */
+        .reason-select { 
+            width: 100%; margin-top: 12px; padding: 10px; border-radius: 8px; 
+            border: 1px solid var(--danger); background: #fff5f5; 
+            font-size: 13px; display: none; outline: none;
+        }
         .show-reason { display: block; animation: slideDown 0.3s ease; }
 
-        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid #e2e8f0; text-align: center; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
-        .btn-final { background: var(--accent); color: white; border: none; padding: 15px 50px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; max-width: 500px; font-size: 15px; }
+        /* Footer Fijo */
+        .footer-save { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: white; padding: 20px; border-top: 1px solid var(--border); 
+            text-align: center; box-shadow: 0 -4px 15px rgba(0,0,0,0.08); 
+        }
+        .btn-final { 
+            background: var(--accent); color: white; border: none; 
+            padding: 16px; border-radius: 12px; font-weight: bold; 
+            cursor: pointer; width: 100%; max-width: 500px; font-size: 16px; 
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
 
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -42,47 +94,87 @@
 
 <div class="container">
     <div class="header-asistencia">
-        <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Volver</a>
+        <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Panel</a>
         <div style="text-align: right;">
-            <h3 style="margin:0; font-size: 16px;">Pase de Lista Kraem</h3>
-            <span id="fecha-hoy" style="font-size: 12px; color: #64748b; font-weight: bold;"></span>
+            <h3 style="margin:0; font-size: 18px; color: var(--primary);">Pase de Lista</h3>
+            <span id="fecha-hoy" style="font-size: 12px; color: var(--accent); font-weight: bold; text-transform: capitalize;"></span>
         </div>
     </div>
 
+    <div class="filter-bar">
+        <i class="fas fa-filter" style="color: #64748b; margin-left: 5px;"></i>
+        <select id="filtro-area" class="f-select" onchange="filtrarPorArea()">
+            <option value="TODAS">Todas las Áreas de Planta</option>
+        </select>
+    </div>
+
     <div id="lista-asistencia">
-        <p style="text-align:center; color:#94a3b8;">Cargando personal activo...</p>
+        <div style="text-align:center; padding:40px; color:#94a3b8;">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Cargando personal activo de Kraem...</p>
+        </div>
     </div>
 </div>
 
 <div class="footer-save">
     <button class="btn-final" onclick="enviarAsistencia()">
-        <i class="fas fa-cloud-upload-alt"></i> GUARDAR ASISTENCIA DEL DÍA
+        <i class="fas fa-check-circle"></i> GUARDAR ASISTENCIA DEL DÍA
     </button>
 </div>
 
 <script>
-    let asistenciaData = {}; // Para guardar temporalmente lo que seleccionas
+    let db_empleados_activos = [];
+    let asistenciaData = {}; // Memoria temporal para las marcas
 
     async function init() {
-        // Poner fecha actual
+        // 1. Mostrar fecha
         const hoy = new Date();
         document.getElementById('fecha-hoy').innerText = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 
-        // Jalar solo empleados ACTIVOS de tu tabla rh_empleados
-        const { data: empleados, error } = await client
-            .from('rh_empleados')
-            .select('id, nombre_completo, foto_url, rh_puestos(nombre)')
-            .eq('estatus', 'ACTIVO')
-            .order('nombre_completo');
+        try {
+            // 2. Cargar Áreas para el filtro
+            const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
+            const comboArea = document.getElementById('filtro-area');
+            areas?.forEach(a => {
+                comboArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+            });
 
-        if (error) return console.error(error);
+            // 3. Jalar empleados ACTIVOS (con sus puestos)
+            const { data: empleados, error } = await client
+                .from('rh_empleados')
+                .select('id, nombre_completo, foto_url, area_id, rh_puestos(nombre)')
+                .eq('estatus', 'ACTIVO')
+                .order('nombre_completo');
 
+            if (error) throw error;
+            
+            db_empleados_activos = empleados;
+            
+            // Inicializar memoria de asistencia para todos
+            db_empleados_activos.forEach(emp => {
+                asistenciaData[emp.id] = { estado: 'P', motivo: '' };
+            });
+
+            renderizarLista(db_empleados_activos);
+
+        } catch (err) {
+            console.error("Error en init:", err);
+            document.getElementById('lista-asistencia').innerHTML = `<p style="color:red; text-align:center;">Error de conexión: ${err.message}</p>`;
+        }
+    }
+
+    function renderizarLista(empleados) {
         const lista = document.getElementById('lista-asistencia');
         lista.innerHTML = '';
 
-        empleados.forEach(emp => {
-            asistenciaData[emp.id] = { estado: 'P', motivo: '' }; // Default Presente
+        if(empleados.length === 0) {
+            lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">No se encontró personal en esta área.</div>';
+            return;
+        }
 
+        empleados.forEach(emp => {
+            const dataActual = asistenciaData[emp.id];
+            
             const card = document.createElement('div');
             card.className = 'attendance-card';
             card.innerHTML = `
@@ -91,22 +183,22 @@
                         <img src="${emp.foto_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="emp-img">
                         <div class="emp-details">
                             <h4>${emp.nombre_completo}</h4>
-                            <p>${emp.rh_puestos?.nombre || 'Puesto no asignado'}</p>
+                            <p>${emp.rh_puestos?.nombre || 'General'}</p>
                         </div>
                     </div>
                     <div class="status-buttons">
-                        <button class="btn-status active-P" id="btn-P-${emp.id}" onclick="updateStatus('${emp.id}', 'P')">P</button>
-                        <button class="btn-status" id="btn-R-${emp.id}" onclick="updateStatus('${emp.id}', 'R')">R</button>
-                        <button class="btn-status" id="btn-F-${emp.id}" onclick="updateStatus('${emp.id}', 'F')">F</button>
+                        <button class="btn-status ${dataActual.estado === 'P' ? 'active-P' : ''}" id="btn-P-${emp.id}" onclick="updateStatus('${emp.id}', 'P')">P</button>
+                        <button class="btn-status ${dataActual.estado === 'R' ? 'active-R' : ''}" id="btn-R-${emp.id}" onclick="updateStatus('${emp.id}', 'R')">R</button>
+                        <button class="btn-status ${dataActual.estado === 'F' ? 'active-F' : ''}" id="btn-F-${emp.id}" onclick="updateStatus('${emp.id}', 'F')">F</button>
                     </div>
                 </div>
-                <select class="reason-select" id="select-${emp.id}" onchange="updateMotivo('${emp.id}', this.value)">
-                    <option value="Injustificada">⚠️ Falta Injustificada</option>
-                    <option value="Vacaciones">🌴 Vacaciones</option>
-                    <option value="Incapacidad">🏥 Incapacidad (IMSS)</option>
-                    <option value="Permiso Sin Goce">💸 Permiso Sin Goce</option>
-                    <option value="Permiso Con Goce">✅ Permiso Con Goce</option>
-                    <option value="Justificante">📄 Justificante Médico</option>
+                <select class="reason-select ${dataActual.estado === 'F' ? 'show-reason' : ''}" id="select-${emp.id}" onchange="updateMotivo('${emp.id}', this.value)">
+                    <option value="Injustificada" ${dataActual.motivo === 'Injustificada' ? 'selected' : ''}>⚠️ Falta Injustificada</option>
+                    <option value="Vacaciones" ${dataActual.motivo === 'Vacaciones' ? 'selected' : ''}>🌴 Vacaciones</option>
+                    <option value="Incapacidad" ${dataActual.motivo === 'Incapacidad' ? 'selected' : ''}>🏥 Incapacidad (IMSS)</option>
+                    <option value="Permiso Sin Goce" ${dataActual.motivo === 'Permiso Sin Goce' ? 'selected' : ''}>💸 Permiso Sin Goce</option>
+                    <option value="Permiso Con Goce" ${dataActual.motivo === 'Permiso Con Goce' ? 'selected' : ''}>✅ Permiso Con Goce</option>
+                    <option value="Justificante" ${dataActual.motivo === 'Justificante' ? 'selected' : ''}>📄 Justificante Médico</option>
                 </select>
             `;
             lista.appendChild(card);
@@ -114,18 +206,16 @@
     }
 
     function updateStatus(empId, status) {
-        // Limpiar botones
+        // Actualizar visualmente los botones de esa tarjeta
         document.getElementById(`btn-P-${empId}`).className = 'btn-status';
         document.getElementById(`btn-R-${empId}`).className = 'btn-status';
         document.getElementById(`btn-F-${empId}`).className = 'btn-status';
-
-        // Activar el seleccionado
         document.getElementById(`btn-${status}-${empId}`).classList.add(`active-${status}`);
 
-        // Guardar en nuestro objeto temporal
+        // Actualizar memoria
         asistenciaData[empId].estado = status;
 
-        // Mostrar/Ocultar motivos de falta
+        // Mostrar/Ocultar select de motivos
         const select = document.getElementById(`select-${empId}`);
         if (status === 'F') {
             select.classList.add('show-reason');
@@ -140,28 +230,40 @@
         asistenciaData[empId].motivo = motivo;
     }
 
-    async function enviarAsistencia() {
-        const confirmacion = confirm("¿Deseas guardar el pase de lista de hoy?");
-        if (!confirmacion) return;
+    function filtrarPorArea() {
+        const areaId = document.getElementById('filtro-area').value;
+        if (areaId === "TODAS") {
+            renderizarLista(db_empleados_activos);
+        } else {
+            const filtrados = db_empleados_activos.filter(e => e.area_id == areaId);
+            renderizarLista(filtrados);
+        }
+    }
 
-        const records = Object.keys(asistenciaData).map(empId => ({
-            empleado_id: empId,
-            fecha: new Date().toISOString().split('T')[0],
-            estado: asistenciaData[empId].estado,
-            motivo: asistenciaData[empId].motivo
+    async function enviarAsistencia() {
+        const hoyStr = new Date().toISOString().split('T')[0];
+        
+        if (!confirm(`¿Confirmas el pase de lista para hoy ${hoyStr}?`)) return;
+
+        const insertData = Object.keys(asistenciaData).map(id => ({
+            empleado_id: id,
+            fecha: hoyStr,
+            estado: asistenciaData[id].estado,
+            motivo: asistenciaData[id].motivo
         }));
 
-        // Aquí se registra en una tabla nueva que podrías llamar 'rh_asistencia_diaria'
-        const { error } = await client.from('rh_asistencia_diaria').insert(records);
+        const { error } = await client.from('rh_asistencia_diaria').insert(insertData);
 
-        if (error) alert("Error al guardar: " + error.message);
-        else {
-            alert("✅ Asistencia guardada correctamente.");
-            location.href = "dashboard.html";
+        if (error) {
+            alert("Error al guardar: " + error.message);
+        } else {
+            alert("✅ ¡Asistencia guardada exitosamente!");
+            location.href = 'dashboard.html';
         }
     }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
+
 </body>
 </html>
