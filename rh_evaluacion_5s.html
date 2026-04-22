@@ -3,197 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Auditoría 5'S Móvil</title>
+    <title>KRAEM | Auditoría 5'S</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --card: #ffffff; --success: #22c55e; --danger: #ef4444; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 80px; }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --success: #22c55e; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--primary); }
         
-        .header { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        h2 { margin: 0; font-size: 1.2rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .wizard-container { max-width: 500px; margin: auto; background: var(--card); min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Encabezado */
+        .step-header { padding: 20px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; background: white; z-index: 10; }
+        .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: 0.3s; }
+        
+        /* Pantallas (Pasos) */
+        .step-content { padding: 20px; flex-grow: 1; display: none; }
+        .step-content.active { display: block; animation: fadeIn 0.3s; }
 
-        /* Selector de área y máquina */
-        .selector-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .group { display: flex; flex-direction: column; }
-        label { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        select, input { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: white; }
+        h2 { font-size: 1.4rem; margin-bottom: 5px; }
+        .subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 20px; }
 
-        /* Categorías 5S */
-        .s-category { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
-        .s-category h3 { margin: 0 0 15px 0; font-size: 0.9rem; color: var(--accent); text-transform: uppercase; }
+        /* Formulario de Inicio */
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
+        select, input, textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
 
-        /* Item de inspección */
-        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-        .check-item:last-child { border: none; }
-        .item-text { flex: 1; font-size: 13px; color: #334155; padding-right: 10px; }
+        /* Preguntas */
+        .question-card { background: #f1f5f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .question-text { font-size: 14px; margin-bottom: 12px; line-height: 1.4; }
+        .options { display: flex; gap: 10px; }
+        .btn-opt { flex: 1; padding: 10px; border: 2px solid #cbd5e1; background: white; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-opt.active-yes { background: var(--success); color: white; border-color: var(--success); }
+        .btn-opt.active-no { background: var(--danger); color: white; border-color: var(--danger); }
 
-        /* Switch tipo botón */
-        .btn-group { display: flex; gap: 5px; }
-        .btn-check { border: 2px solid #e2e8f0; background: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: bold; font-size: 12px; }
-        .btn-check.active-yes { background: var(--success); color: white; border-color: var(--success); }
-        .btn-check.active-no { background: var(--danger); color: white; border-color: var(--danger); }
+        /* Observaciones */
+        .obs-area { background: #fffbeb; border: 1px solid #fef3c7; padding: 10px; border-radius: 8px; margin-top: 10px; }
 
-        /* Barra Inferior Fija */
-        .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .score-display { font-size: 1.2rem; font-weight: 800; color: var(--primary); }
-        .btn-send { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        /* Navegación */
+        .nav-footer { padding: 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; }
+        .btn-nav { flex: 1; padding: 15px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; font-size: 16px; }
+        .btn-prev { background: #e2e8f0; color: #475569; }
+        .btn-next { background: var(--primary); color: white; }
+        .btn-save { background: var(--success); color: white; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <a href="dashboard.html" style="text-decoration:none; color:inherit; font-size: 12px; color: var(--accent);"><i class="fas fa-arrow-left"></i> Volver al Panel</a>
-    <h2 style="margin-top:10px;"><i class="fas fa-broom"></i> Auditoría 5'S Piso</h2>
-    
-    <div class="selector-box">
-        <div class="group">
-            <label>Área</label>
-            <select id="area" onchange="toggleMaquina()">
-                <option value="INYECCION">Inyección</option>
-                <option value="ENSAMBLE">Ensamble</option>
+<div class="wizard-container">
+    <div class="step-header">
+        <div id="step-title" style="font-weight: bold; color: var(--accent);">DATOS GENERALES</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    </div>
+
+    <div class="step-content active" id="step0">
+        <h2>Nueva Auditoría</h2>
+        <p class="subtitle">Seleccione el área y responsable para comenzar.</p>
+        
+        <div class="input-group">
+            <label>Área / Celda</label>
+            <select id="area">
+                <option value="LS">LS (Inyección)</option>
+                <option value="NISSEI">NISSEI (Inyección)</option>
+                <option value="HDL">HDL (Inyección)</option>
                 <option value="ALMACEN">Almacén</option>
-                <option value="CALIDAD">Calidad / Lab</option>
-                <option value="ADMIN">Administrativo</option>
+                <option value="CALIDAD">Calidad</option>
             </select>
         </div>
-        <div class="group" id="box_maquina">
+        <div class="input-group">
             <label>Máquina / Estación</label>
-            <input type="text" id="maquina" placeholder="Ej. MAQ-10">
+            <input type="text" id="maquina" placeholder="Ej: NISSEI-01">
         </div>
-        <div class="group" style="grid-column: span 2; margin-top:10px;">
-            <label>Operador / Responsable</label>
+        <div class="input-group">
+            <label>Operador Responsable</label>
             <select id="operador"></select>
         </div>
     </div>
-</div>
 
-<div id="contenedor_preguntas">
-    <div class="s-category">
-        <h3>1. Selección (Seiri)</h3>
-        <div class="check-item" data-puntos="20">
-            <div class="item-text">¿Se tienen artículos innecesarios, empaques vacíos o basura en el área?</div>
-            <div class="btn-group">
-                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
-                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
-            </div>
-        </div>
-        <div class="check-item" data-puntos="20">
-            <div class="item-text">¿La estación está libre de cartón o papel innecesario?</div>
-            <div class="btn-group">
-                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
-                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
-            </div>
-        </div>
+    <div id="dynamic-steps"></div>
+
+    <div class="step-content" id="step-final">
+        <h2>Resultado Final</h2>
+        <div id="score-circle" style="font-size: 3rem; font-weight: 900; text-align: center; margin: 40px 0; color: var(--accent);">0%</div>
+        <p class="subtitle" style="text-align: center;">La información se guardará en el historial de RH para análisis de mejora continua.</p>
     </div>
 
-    <div class="s-category">
-        <h3>2. Orden (Seiton)</h3>
-        <div class="check-item" data-puntos="20">
-            <div class="item-text">¿Herramientas y dispositivos están en su lugar designado?</div>
-            <div class="btn-group">
-                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
-                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
-            </div>
-        </div>
-        <div class="check-item" data-puntos="20">
-            <div class="item-text">¿Pasillos y delimitaciones están libres de obstáculos?</div>
-            <div class="btn-group">
-                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
-                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
-            </div>
-        </div>
+    <div class="nav-footer">
+        <button class="btn-nav btn-prev" id="btnPrev" onclick="changeStep(-1)" style="display:none;">Atrás</button>
+        <button class="btn-nav btn-next" id="btnNext" onclick="changeStep(1)">Siguiente</button>
     </div>
-
-    <div class="s-category">
-        <h3>3. Limpieza (Seiso)</h3>
-        <div class="check-item" data-puntos="20">
-            <div class="item-text">¿Máquina y alrededores están libres de aceite, grasa o purgas?</div>
-            <div class="btn-group">
-                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
-                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="footer-action">
-    <div>
-        <div style="font-size: 10px; color: #64748b;">RESULTADO ACTUAL</div>
-        <div class="score-display" id="total_score">0%</div>
-    </div>
-    <button class="btn-send" onclick="finalizarAuditoria()">GUARDAR</button>
 </div>
 
 <script>
-    let respuestas = {};
+    let currentStep = 0;
+    const totalSteps = 6; // 0 (Inicio) + 5 (S's) + 1 (Final)
+    let auditData = { 
+        respuestas: {}, 
+        observaciones: {} 
+    };
 
-    async function init() {
-        // Cargar operadores
-        const { data } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
-        const select = document.getElementById('operador');
-        data.forEach(emp => {
-            select.innerHTML += `<option value="${emp.id}">${emp.nombre_completo}</option>`;
-        });
+    const sQuestions = [
+        { title: "SEIRI - CLASIFICAR", color: "#2563eb", questions: ["¿Área libre de objetos innecesarios?", "¿Estación libre de cartón/basura?"] },
+        { title: "SEITON - ORDEN", color: "#7c3aed", questions: ["¿Herramientas en su lugar?", "¿Pasillos libres de obstáculos?", "¿Material identificado?"] },
+        { title: "SEISO - LIMPIEZA", color: "#059669", questions: ["¿Máquina/Piso sin aceite o pellets?", "¿Contenedores de basura vacíos?"] },
+        { title: "SEIKETSU - ESTANDARIZAR", color: "#d97706", questions: ["¿Ayudas visuales presentes?", "¿Operador usa su EPP?"] },
+        { title: "SHITSUKE - DISCIPLINA", color: "#db2777", questions: ["¿Bitácoras al día?", "¿Se respetan reglas de seguridad?"] }
+    ];
+
+    function init() {
+        renderSteps();
+        loadOperadores();
+        updateUI();
     }
 
-    function setCheck(btn, value) {
-        const parent = btn.parentElement;
-        // Limpiar activos
-        parent.querySelectorAll('.btn-check').forEach(b => {
-            b.classList.remove('active-yes', 'active-no');
-        });
-
-        // Activar el seleccionado
-        if(value) btn.classList.add('active-yes');
-        else btn.classList.add('active-no');
-
-        calcularPuntaje();
-    }
-
-    function calcularPuntaje() {
-        const items = document.querySelectorAll('.check-item');
-        let totalVal = 0;
-        let respondidos = 0;
-
-        items.forEach(item => {
-            const btnSi = item.querySelector('.active-yes');
-            const btnNo = item.querySelector('.active-no');
+    function renderSteps() {
+        const container = document.getElementById('dynamic-steps');
+        sQuestions.forEach((s, index) => {
+            let html = `
+                <div class="step-content" id="step${index + 1}">
+                    <h2 style="color:${s.color}">${s.title}</h2>
+                    <p class="subtitle">Evalúe los puntos de esta sección.</p>
+            `;
             
-            if(btnSi) { totalVal += 1; respondidos++; }
-            else if(btnNo) { respondidos++; }
+            s.questions.forEach((q, qIndex) => {
+                const qKey = `s${index+1}_q${qIndex}`;
+                html += `
+                    <div class="question-card">
+                        <div class="question-text">${q}</div>
+                        <div class="options">
+                            <button class="btn-opt" id="btn-${qKey}-yes" onclick="saveAns('${qKey}', 1)">SÍ</button>
+                            <button class="btn-opt" id="btn-${qKey}-no" onclick="saveAns('${qKey}', 0)">NO</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                <div class="obs-area">
+                    <label>Observaciones de ${s.title}</label>
+                    <textarea id="obs-s${index+1}" placeholder="Ej. Se detectó desorden en el rack lateral..."></textarea>
+                </div>
+            </div>`;
+            container.innerHTML += html;
         });
-
-        const finalScore = respondidos > 0 ? (totalVal / items.length) * 100 : 0;
-        document.getElementById('total_score').innerText = Math.round(finalScore) + '%';
-        return Math.round(finalScore);
     }
 
-    function toggleMaquina() {
-        const area = document.getElementById('area').value;
-        const box = document.getElementById('box_maquina');
-        // Solo mostrar campo máquina si es inyección
-        box.style.display = (area === 'INYECCION') ? 'flex' : 'none';
+    async function loadOperadores() {
+        const { data } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO');
+        const sel = document.getElementById('operador');
+        data.forEach(o => sel.innerHTML += `<option value="${o.id}">${o.nombre_completo}</option>`);
     }
 
-    async function finalizarAuditoria() {
-        const score = calcularPuntaje();
-        const data = {
+    function saveAns(key, val) {
+        auditData.respuestas[key] = val;
+        document.getElementById(`btn-${key}-yes`).className = val === 1 ? 'btn-opt active-yes' : 'btn-opt';
+        document.getElementById(`btn-${key}-no`).className = val === 0 ? 'btn-opt active-no' : 'btn-opt';
+    }
+
+    function changeStep(dir) {
+        // Guardar observaciones de la sección actual antes de pasar
+        if(currentStep >= 1 && currentStep <= 5) {
+            auditData.observaciones[`s${currentStep}`] = document.getElementById(`obs-s${currentStep}`).value;
+        }
+
+        document.getElementById(`step${currentStep}`).classList.remove('active');
+        currentStep += dir;
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        
+        if(currentStep === totalSteps) {
+            calculateFinal();
+        }
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('btnPrev').style.display = currentStep === 0 ? 'none' : 'block';
+        const nextBtn = document.getElementById('btnNext');
+        
+        if (currentStep === totalSteps) {
+            nextBtn.innerText = "FINALIZAR Y GUARDAR";
+            nextBtn.className = "btn-nav btn-save";
+            nextBtn.onclick = finalSave;
+        } else {
+            nextBtn.innerText = "Siguiente";
+            nextBtn.className = "btn-nav btn-next";
+            nextBtn.onclick = () => changeStep(1);
+        }
+
+        const progress = (currentStep / totalSteps) * 100;
+        document.getElementById('progress').style.width = `${progress}%`;
+        
+        if(currentStep > 0 && currentStep <= 5) {
+            document.getElementById('step-title').innerText = sQuestions[currentStep-1].title;
+        } else if(currentStep === 0) {
+            document.getElementById('step-title').innerText = "DATOS GENERALES";
+        } else {
+            document.getElementById('step-title').innerText = "RESUMEN";
+        }
+    }
+
+    function calculateFinal() {
+        const vals = Object.values(auditData.respuestas);
+        const sum = vals.reduce((a, b) => a + b, 0);
+        const score = vals.length > 0 ? Math.round((sum / vals.length) * 100) : 0;
+        document.getElementById('score-circle').innerText = score + "%";
+        auditData.finalScore = score;
+    }
+
+    async function finalSave() {
+        const payload = {
             empleado_id: document.getElementById('operador').value,
             area: document.getElementById('area').value,
             maquina_id: document.getElementById('maquina').value,
-            puntuacion: score,
+            puntuacion: auditData.finalScore,
+            respuestas_json: auditData.respuestas,
+            observaciones_json: auditData.observaciones,
             fecha: new Date().toISOString()
         };
 
-        const { error } = await client.from('rh_evaluaciones_5s').insert([data]);
-        
+        const { error } = await client.from('rh_evaluaciones_5s').insert([payload]);
         if(!error) {
-            alert("✅ Auditoría guardada con éxito");
-            location.reload();
+            alert("¡Auditoría guardada exitosamente!");
+            location.href = 'dashboard.html';
         } else {
-            alert("❌ Error: " + error.message);
+            alert("Error al guardar: " + error.message);
         }
     }
 
