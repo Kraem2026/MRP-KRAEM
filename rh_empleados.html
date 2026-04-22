@@ -5,340 +5,152 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KRAEM | Gestión de Personal</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        .container { max-width: 1450px; margin: auto; }
+        :root { --primary: #2563eb; --dark: #0f172a; --bg: #f1f5f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); margin-bottom: 20px; }
-        .form-container { display: flex; gap: 30px; }
+        .main-container { display: grid; grid-template-columns: 1fr 400px; gap: 20px; max-width: 1400px; margin: auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         
-        .foto-seccion { display: flex; flex-direction: column; align-items: center; min-width: 150px; border-right: 1px solid #eee; padding-right: 25px; }
-        .foto-perfil { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); background: #f1f5f9; cursor: pointer; }
-
-        .inputs-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
-        .group { display: flex; flex-direction: column; }
-        .group.full-width { grid-column: 1 / -1; }
-        
-        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select { padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; background: white; }
-
-        /* Historial */
-        .historial-box { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0; }
-        .timeline-item { padding: 10px; border-left: 3px solid var(--accent); background: #f8fafc; margin-bottom: 10px; border-radius: 0 8px 8px 0; font-size: 13px; }
-
-        /* Filtros */
-        .filter-bar { background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); }
-        .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; align-items: flex-end; }
-        .btn-excel { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center; }
-
         /* Tabla */
-        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1300px; }
-        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 10px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        tr:hover { background: #f1f5f9; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; padding: 12px; background: #f8fafc; font-size: 12px; color: #64748b; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        tr:hover { background: #eff6ff; }
 
-        .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
-        .status-activo { background: #dcfce7; color: #166534; }
-        .status-baja { background: #fee2e2; color: #991b1b; }
+        /* Ficha de Perfil */
+        .perfil-header { text-align: center; margin-bottom: 20px; }
+        .avatar { width: 80px; height: 80px; background: #e2e8f0; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #94a3b8; }
+        
+        .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .kpi-box { padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; }
+        .kpi-value { font-size: 18px; font-weight: bold; color: var(--primary); }
+        .kpi-label { font-size: 10px; color: #64748b; text-transform: uppercase; }
 
-        @media (max-width: 768px) { .form-container { flex-direction: column; } }
+        .btn-nav { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="nav-header">
-        <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Volver</a>
-        <h2 style="margin:0; font-size: 18px;">Gestión de Personal Kraem</h2>
-    </div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2><i class="fas fa-users"></i> Directorio de Personal KRAEM</h2>
+    <button class="btn-nav" onclick="location.href='dashboard.html'"><i class="fas fa-home"></i> Inicio</button>
+</div>
 
+<div class="main-container">
     <div class="card">
-        <div class="form-container">
-            <div class="foto-seccion">
-                <img id="img_preview" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="foto-perfil" onclick="document.getElementById('input_foto').click()">
-                <input type="file" id="input_foto" hidden accept="image/*" onchange="subirFoto()">
-                <p style="font-size: 10px; color: #94a3b8; font-weight: bold; margin-top: 10px;">FOTO DE PERFIL</p>
-            </div>
-
-            <div style="flex: 1;">
-                <input type="hidden" id="edit_id">
-                <div class="inputs-grid">
-                    <div class="group"><label>Nombre Completo</label><input type="text" id="nombre"></div>
-                    <div class="group"><label>Área</label><select id="sel_area"></select></div>
-                    <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
-                    <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
-                    <div class="group"><label>Ruta Transporte</label><select id="sel_ruta"></select></div>
-                    <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-                    <div class="group"><label>Teléfono</label><input type="tel" id="telefono"></div>
-                    <div class="group"><label>Talla Playera</label><select id="sel_talla"><option value="">Seleccione...</option><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
-                    <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
-                    <div class="group full-width"><label>Dirección Particular</label><input type="text" id="direccion"></div>
-                </div>
-                
-                <div id="seccion_historial" class="historial-box" style="display:none;">
-                    <label style="color:var(--accent); font-size:11px;"><i class="fas fa-history"></i> TRAYECTORIA LABORAL</label>
-                    <div id="linea_tiempo" style="margin-top:10px;"></div>
-                </div>
-
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="btn-save" style="background:var(--accent); color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; flex:1; font-weight:bold;" id="btn_main" onclick="guardarEmpleado()">GUARDAR DATOS</button>
-                    <button id="btn_cancel" style="display:none; background:#64748b; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="resetForm()">CANCELAR</button>
-                </div>
-            </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <input type="text" id="buscador" placeholder="Buscar empleado..." style="padding: 10px; flex: 1; border-radius: 6px; border: 1px solid #ddd;">
         </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre Completo</th>
+                    <th>Área</th>
+                    <th>Estatus</th>
+                </tr>
+            </thead>
+            <tbody id="tabla_empleados"></tbody>
+        </table>
     </div>
 
-    <div class="filter-bar">
-        <label style="display:block; margin-bottom:15px; font-size:11px; color:var(--accent); font-weight:800;"><i class="fas fa-filter"></i> PANEL DE FILTROS</label>
-        <div class="filter-grid">
-            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()"></div>
-            <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"><option value="">Todas</option></select></div>
-            <div class="group"><label>Puesto</label><select id="f_puesto" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
-            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
-            <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"><option value="">Todas</option></select></div>
-            <div class="group"><label>Desde (Ingreso)</label><input type="date" id="f_desde" onchange="aplicarFiltros()"></div>
-            <div class="group"><label>Hasta (Ingreso)</label><input type="date" id="f_hasta" onchange="aplicarFiltros()"></div>
-            <div class="group"><button class="btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXCEL</button></div>
+    <div class="card" id="ficha_evaluacion" style="display: none;">
+        <div class="perfil-header">
+            <div class="avatar"><i class="fas fa-user"></i></div>
+            <h3 id="p_nombre" style="margin:0;">Nombre Apellido</h3>
+            <span id="p_puesto" style="font-size: 12px; color: #64748b;">Operador</span>
         </div>
-    </div>
 
-    <div class="table-card">
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Área</th>
-                        <th>Puesto</th>
-                        <th>Ingreso</th>
-                        <th>Antigüedad</th>
-                        <th>Ruta</th>
-                        <th>Turno</th>
-                        <th>Estatus</th>
-                    </tr>
-                </thead>
-                <tbody id="lista_empleados"></tbody>
-            </table>
+        <div style="height: 250px;">
+            <canvas id="graficaRadar"></canvas>
         </div>
+
+        <div class="metric-grid">
+            <div class="kpi-box">
+                <div class="kpi-label">Yield (Calidad)</div>
+                <div class="kpi-value" id="kpi_yield">0%</div>
+            </div>
+            <div class="kpi-box">
+                <div class="kpi-label">Asistencia</div>
+                <div class="kpi-value" id="kpi_asist">0%</div>
+            </div>
+        </div>
+
+        <h4 style="margin-top: 20px; font-size: 13px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Habilidades</h4>
+        <div id="p_skills" style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px;">
+            </div>
     </div>
 </div>
 
 <script>
-    let db_empleados = [];
-    let cat_rutas = [];
+    let chartRadar;
 
-    async function init() {
-        try {
-            const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
-            const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
-            const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
-            cat_rutas = rutas || [];
+    async function cargarEmpleados() {
+        const { data: emps } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO');
+        const lista = document.getElementById('tabla_empleados');
+        lista.innerHTML = '';
 
-            const fill = (id, data, esFiltro = false) => {
-                const s = document.getElementById(id);
-                if(!s) return;
-                s.innerHTML = `<option value="">${esFiltro ? 'Todas/os' : 'Seleccione...'}</option>`;
-                data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
-            };
-
-            fill('sel_area', areas); fill('sel_puesto', puestos); fill('sel_ruta', rutas);
-            fill('f_area', areas, true); fill('f_puesto', puestos, true); fill('f_ruta', rutas, true);
-
-            await listarEmpleados();
-        } catch (e) { console.error(e); }
-    }
-
-    function calcularAntiguedad(fecha) {
-        if(!fecha) return "-";
-        const inicio = new Date(fecha);
-        const hoy = new Date();
-        let anos = hoy.getFullYear() - inicio.getFullYear();
-        let meses = hoy.getMonth() - inicio.getMonth();
-        if (meses < 0) { anos--; meses += 12; }
-        let texto = "";
-        if(anos > 0) texto += `${anos}a `;
-        if(meses > 0) texto += `${meses}m`;
-        return texto || "Nuevo";
-    }
-
-    async function listarEmpleados() {
-        const { data: emps, error } = await client
-            .from('rh_empleados')
-            .select('*, rh_areas(nombre), rh_puestos(nombre)')
-            .order('nombre_completo');
-
-        if (error) return;
-
-        db_empleados = emps.map(e => {
-            const r = cat_rutas.find(ruta => ruta.id == e.ruta_transporte);
-            return { 
-                ...e, 
-                area_txt: e.rh_areas?.nombre || '-',
-                puesto_txt: e.rh_puestos?.nombre || '-',
-                ruta_txt: r ? r.nombre : '-', 
-                antiguedad: calcularAntiguedad(e.fecha_ingreso) 
-            };
-        });
-        aplicarFiltros();
-    }
-
-    function aplicarFiltros() {
-        const n = document.getElementById('f_nombre').value.toLowerCase();
-        const a = document.getElementById('f_area').value;
-        const p = document.getElementById('f_puesto').value;
-        const t = document.getElementById('f_turno').value;
-        const r = document.getElementById('f_ruta').value;
-        const d = document.getElementById('f_desde').value;
-        const h = document.getElementById('f_hasta').value;
-
-        const filtrados = db_empleados.filter(e => {
-            const fechaEmp = e.fecha_ingreso || "";
-            return (!n || e.nombre_completo.toLowerCase().includes(n)) &&
-                   (!a || e.area_id === a) &&
-                   (!p || e.puesto_id === p) &&
-                   (!t || String(e.turno_id) === t) &&
-                   (!r || String(e.ruta_transporte) === r) &&
-                   (!d || fechaEmp >= d) &&
-                   (!h || fechaEmp <= h);
-        });
-
-        const tbody = document.getElementById('lista_empleados');
-        tbody.innerHTML = '';
-        filtrados.forEach(e => {
-            tbody.innerHTML += `
-                <tr onclick="cargarEdicion('${e.id}')">
+        emps.forEach(e => {
+            lista.innerHTML += `
+                <tr onclick="verDetalle('${e.nombre_completo}', '${e.id}')">
+                    <td>${e.id}</td>
                     <td><b>${e.nombre_completo}</b></td>
-                    <td>${e.area_txt}</td>
-                    <td>${e.puesto_txt}</td>
-                    <td>${e.fecha_ingreso || '-'}</td>
-                    <td style="color:var(--accent); font-weight:bold;">${e.antiguedad}</td>
-                    <td>${e.ruta_txt}</td>
-                    <td style="text-align:center;">T${e.turno_id}</td>
-                    <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
-                </tr>`;
+                    <td>${e.area || 'N/A'}</td>
+                    <td><span style="color: green;">● Activo</span></td>
+                </tr>
+            `;
         });
     }
 
-    async function cargarEdicion(id) {
-        const emp = db_empleados.find(e => e.id === id);
-        if(!emp) return;
+    async function verDetalle(nombre, id) {
+        document.getElementById('ficha_evaluacion').style.display = 'block';
+        document.getElementById('p_nombre').innerText = nombre;
 
-        document.getElementById('edit_id').value = emp.id;
-        document.getElementById('nombre').value = emp.nombre_completo;
-        document.getElementById('sel_area').value = emp.area_id || "";
-        document.getElementById('sel_puesto').value = emp.puesto_id || "";
-        document.getElementById('sel_turno').value = emp.turno_id || "1";
-        document.getElementById('sel_ruta').value = emp.ruta_transporte || "";
-        document.getElementById('sel_estatus').value = emp.estatus;
-        document.getElementById('telefono').value = emp.telefono || '';
-        document.getElementById('sel_talla').value = emp.talla_playera || '';
-        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || '';
-        document.getElementById('direccion').value = emp.direccion || '';
-        document.getElementById('img_preview').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        // 1. Obtener Yield desde 'inspeccion_produccion'
+        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', nombre);
+        let total = 0, def = 0;
+        prod?.forEach(r => { total += r.cant_inspeccionada; def += r.cant_defectuosa; });
+        const yieldVal = total > 0 ? ((1 - (def/total)) * 100).toFixed(1) : 100;
 
-        document.getElementById('seccion_historial').style.display = "block";
-        const { data: historial } = await client.from('rh_historial_puestos').select('*').eq('empleado_id', id).order('fecha_cambio', { ascending: false });
-        const linea = document.getElementById('linea_tiempo');
-        linea.innerHTML = historial?.length ? '' : '<p style="font-size:12px; color:#94a3b8;">Sin movimientos previos.</p>';
-        historial?.forEach(h => {
-            linea.innerHTML += `<div class="timeline-item"><b>${h.fecha_cambio}:</b> ${h.puesto_anterior} ➜ ${h.puesto_nuevo}</div>`;
+        // 2. Obtener Asistencia (Simulado para este ejemplo, conecta a tu tabla)
+        const asistVal = 95; // Aquí harías el query a rh_asistencia_diaria
+
+        // 3. Obtener 5s (Última evaluación)
+        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).order('fecha', {ascending: false}).limit(1);
+        const score5s = fives?.[0]?.puntuacion || 0;
+
+        // Actualizar UI
+        document.getElementById('kpi_yield').innerText = yieldVal + '%';
+        document.getElementById('kpi_asist').innerText = asistVal + '%';
+        
+        renderRadar(yieldVal, asistVal, score5s);
+    }
+
+    function renderRadar(yield, asist, s5s) {
+        const ctx = document.getElementById('graficaRadar').getContext('2d');
+        if(chartRadar) chartRadar.destroy();
+
+        chartRadar = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Calidad', 'Asistencia', '5\'s', 'Versatilidad', 'Puntualidad'],
+                datasets: [{
+                    label: 'Puntaje',
+                    data: [yield, asist, s5s, 70, 90], // Datos reales + demos
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                    borderColor: '#2563eb',
+                    borderWidth: 2
+                }]
+            },
+            options: { scales: { r: { suggestedMin: 0, suggestedMax: 100 } } }
         });
-
-        document.getElementById('btn_main').innerText = "ACTUALIZAR EMPLEADO";
-        document.getElementById('btn_cancel').style.display = "block";
-        window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
-    async function guardarEmpleado() {
-        const id = document.getElementById('edit_id').value;
-        const datos = {
-            nombre_completo: document.getElementById('nombre').value,
-            area_id: document.getElementById('sel_area').value || null,
-            puesto_id: document.getElementById('sel_puesto').value || null,
-            turno_id: document.getElementById('sel_turno').value,
-            ruta_transporte: document.getElementById('sel_ruta').value || null,
-            estatus: document.getElementById('sel_estatus').value,
-            telefono: document.getElementById('telefono').value,
-            talla_playera: document.getElementById('sel_talla').value,
-            direccion: document.getElementById('direccion').value,
-            fecha_ingreso: document.getElementById('fecha_ingreso').value || null
-        };
-        const { error } = id ? await client.from('rh_empleados').update(datos).eq('id', id) : await client.from('rh_empleados').insert([datos]);
-        if(!error) { alert("¡Guardado!"); resetForm(); listarEmpleados(); }
-    }
-
-    function resetForm() {
-        document.getElementById('edit_id').value = "";
-        document.getElementById('btn_main').innerText = "GUARDAR DATOS";
-        document.getElementById('btn_cancel').style.display = "none";
-        document.getElementById('seccion_historial').style.display = "none";
-        document.getElementById('img_preview').src = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        document.querySelectorAll('.inputs-grid input, .inputs-grid select').forEach(el => el.value = "");
-    }
-
-    function exportarExcel() {
-        const n = document.getElementById('f_nombre').value.toLowerCase();
-        const a = document.getElementById('f_area').value;
-        const p = document.getElementById('f_puesto').value;
-        const t = document.getElementById('f_turno').value;
-        const r = document.getElementById('f_ruta').value;
-        const d = document.getElementById('f_desde').value;
-        const h = document.getElementById('f_hasta').value;
-
-        // Exportamos solo lo que está filtrado actualmente en pantalla
-        const filtradosExcel = db_empleados.filter(e => {
-            const fechaEmp = e.fecha_ingreso || "";
-            return (!n || e.nombre_completo.toLowerCase().includes(n)) &&
-                   (!a || e.area_id === a) &&
-                   (!p || e.puesto_id === p) &&
-                   (!t || String(e.turno_id) === t) &&
-                   (!r || String(e.ruta_transporte) === r) &&
-                   (!d || fechaEmp >= d) &&
-                   (!h || fechaEmp <= h);
-        }).map(e => ({
-            "Nombre": e.nombre_completo,
-            "Área": e.area_txt,
-            "Puesto": e.puesto_txt,
-            "Turno": e.turno_id,
-            "Ruta": e.ruta_txt,
-            "Estatus": e.estatus,
-            "Ingreso": e.fecha_ingreso,
-            "Antigüedad": e.antiguedad,
-            "Teléfono": e.telefono || '',
-            "Talla": e.talla_playera || '',
-            "Dirección": e.direccion || ''
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(filtradosExcel);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Personal Filtrado");
-        XLSX.writeFile(wb, `Reporte_Personal_Kraem.xlsx`);
-    }
-
-    async function subirFoto() {
-        const id = document.getElementById('edit_id').value;
-        if(!id) return alert("Selecciona un empleado primero");
-        const file = document.getElementById('input_foto').files[0];
-        const path = `perfiles/${id}_${Date.now()}`;
-        const { error } = await client.storage.from('empleados').upload(path, file);
-        if(!error) {
-            const { data } = client.storage.from('empleados').getPublicUrl(path);
-            await client.from('rh_empleados').update({ foto_url: data.publicUrl }).eq('id', id);
-            document.getElementById('img_preview').src = data.publicUrl;
-            listarEmpleados();
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
+    window.onload = cargarEmpleados;
 </script>
 </body>
 </html>
