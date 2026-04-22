@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>KRAEM | Auditoría 5's</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #f1f5f9; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        select, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .puntos { font-size: 24px; text-align: center; color: #2563eb; font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 style="text-align:center; margin-top:0;">Auditoría 5'S</h2>
+    
+    <div class="group">
+        <label>Empleado a Evaluar</label>
+        <select id="select_emp"></select>
+    </div>
+
+    <div class="group">
+        <label>Puntaje (0 - 100)</label>
+        <input type="range" id="score_range" min="0" max="100" value="80" oninput="document.getElementById('val').innerText = this.value">
+        <div class="puntos"><span id="val">80</span> pts</div>
+    </div>
+
+    <button class="btn" onclick="guardar5s()">GUARDAR EVALUACIÓN</button>
+</div>
+
+<script>
+    async function cargar() {
+        const { data } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO');
+        const sel = document.getElementById('select_emp');
+        data.forEach(e => sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+    }
+
+    async function guardar5s() {
+        const empId = document.getElementById('select_emp').value;
+        const score = document.getElementById('score_range').value;
+
+        const { error } = await client.from('rh_evaluaciones_5s').insert([{
+            empleado_id: empId,
+            puntuacion: score,
+            fecha: new Date().toISOString().split('T')[0]
+        }]);
+
+        if(error) alert("Error: " + error.message);
+        else { alert("✅ Evaluación Guardada"); location.reload(); }
+    }
+    window.onload = cargar;
+</script>
+</body>
+</html>
