@@ -2,59 +2,202 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>KRAEM | Auditoría 5's</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Auditoría 5'S Móvil</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: sans-serif; background: #f1f5f9; padding: 20px; display: flex; justify-content: center; }
-        .card { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        select, input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .puntos { font-size: 24px; text-align: center; color: #2563eb; font-weight: bold; margin: 10px 0; }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --card: #ffffff; --success: #22c55e; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 80px; }
+        
+        .header { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h2 { margin: 0; font-size: 1.2rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+
+        /* Selector de área y máquina */
+        .selector-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .group { display: flex; flex-direction: column; }
+        label { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+        select, input { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; background: white; }
+
+        /* Categorías 5S */
+        .s-category { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--accent); }
+        .s-category h3 { margin: 0 0 15px 0; font-size: 0.9rem; color: var(--accent); text-transform: uppercase; }
+
+        /* Item de inspección */
+        .check-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .check-item:last-child { border: none; }
+        .item-text { flex: 1; font-size: 13px; color: #334155; padding-right: 10px; }
+
+        /* Switch tipo botón */
+        .btn-group { display: flex; gap: 5px; }
+        .btn-check { border: 2px solid #e2e8f0; background: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: bold; font-size: 12px; }
+        .btn-check.active-yes { background: var(--success); color: white; border-color: var(--success); }
+        .btn-check.active-no { background: var(--danger); color: white; border-color: var(--danger); }
+
+        /* Barra Inferior Fija */
+        .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .score-display { font-size: 1.2rem; font-weight: 800; color: var(--primary); }
+        .btn-send { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2 style="text-align:center; margin-top:0;">Auditoría 5'S</h2>
+<div class="header">
+    <a href="dashboard.html" style="text-decoration:none; color:inherit; font-size: 12px; color: var(--accent);"><i class="fas fa-arrow-left"></i> Volver al Panel</a>
+    <h2 style="margin-top:10px;"><i class="fas fa-broom"></i> Auditoría 5'S Piso</h2>
     
-    <div class="group">
-        <label>Empleado a Evaluar</label>
-        <select id="select_emp"></select>
+    <div class="selector-box">
+        <div class="group">
+            <label>Área</label>
+            <select id="area" onchange="toggleMaquina()">
+                <option value="INYECCION">Inyección</option>
+                <option value="ENSAMBLE">Ensamble</option>
+                <option value="ALMACEN">Almacén</option>
+                <option value="CALIDAD">Calidad / Lab</option>
+                <option value="ADMIN">Administrativo</option>
+            </select>
+        </div>
+        <div class="group" id="box_maquina">
+            <label>Máquina / Estación</label>
+            <input type="text" id="maquina" placeholder="Ej. MAQ-10">
+        </div>
+        <div class="group" style="grid-column: span 2; margin-top:10px;">
+            <label>Operador / Responsable</label>
+            <select id="operador"></select>
+        </div>
+    </div>
+</div>
+
+<div id="contenedor_preguntas">
+    <div class="s-category">
+        <h3>1. Selección (Seiri)</h3>
+        <div class="check-item" data-puntos="20">
+            <div class="item-text">¿Se tienen artículos innecesarios, empaques vacíos o basura en el área?</div>
+            <div class="btn-group">
+                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
+                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
+            </div>
+        </div>
+        <div class="check-item" data-puntos="20">
+            <div class="item-text">¿La estación está libre de cartón o papel innecesario?</div>
+            <div class="btn-group">
+                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
+                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
+            </div>
+        </div>
     </div>
 
-    <div class="group">
-        <label>Puntaje (0 - 100)</label>
-        <input type="range" id="score_range" min="0" max="100" value="80" oninput="document.getElementById('val').innerText = this.value">
-        <div class="puntos"><span id="val">80</span> pts</div>
+    <div class="s-category">
+        <h3>2. Orden (Seiton)</h3>
+        <div class="check-item" data-puntos="20">
+            <div class="item-text">¿Herramientas y dispositivos están en su lugar designado?</div>
+            <div class="btn-group">
+                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
+                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
+            </div>
+        </div>
+        <div class="check-item" data-puntos="20">
+            <div class="item-text">¿Pasillos y delimitaciones están libres de obstáculos?</div>
+            <div class="btn-group">
+                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
+                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
+            </div>
+        </div>
     </div>
 
-    <button class="btn" onclick="guardar5s()">GUARDAR EVALUACIÓN</button>
+    <div class="s-category">
+        <h3>3. Limpieza (Seiso)</h3>
+        <div class="check-item" data-puntos="20">
+            <div class="item-text">¿Máquina y alrededores están libres de aceite, grasa o purgas?</div>
+            <div class="btn-group">
+                <button class="btn-check" onclick="setCheck(this, true)">SÍ</button>
+                <button class="btn-check" onclick="setCheck(this, false)">NO</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer-action">
+    <div>
+        <div style="font-size: 10px; color: #64748b;">RESULTADO ACTUAL</div>
+        <div class="score-display" id="total_score">0%</div>
+    </div>
+    <button class="btn-send" onclick="finalizarAuditoria()">GUARDAR</button>
 </div>
 
 <script>
-    async function cargar() {
-        const { data } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO');
-        const sel = document.getElementById('select_emp');
-        data.forEach(e => sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+    let respuestas = {};
+
+    async function init() {
+        // Cargar operadores
+        const { data } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
+        const select = document.getElementById('operador');
+        data.forEach(emp => {
+            select.innerHTML += `<option value="${emp.id}">${emp.nombre_completo}</option>`;
+        });
     }
 
-    async function guardar5s() {
-        const empId = document.getElementById('select_emp').value;
-        const score = document.getElementById('score_range').value;
+    function setCheck(btn, value) {
+        const parent = btn.parentElement;
+        // Limpiar activos
+        parent.querySelectorAll('.btn-check').forEach(b => {
+            b.classList.remove('active-yes', 'active-no');
+        });
 
-        const { error } = await client.from('rh_evaluaciones_5s').insert([{
-            empleado_id: empId,
+        // Activar el seleccionado
+        if(value) btn.classList.add('active-yes');
+        else btn.classList.add('active-no');
+
+        calcularPuntaje();
+    }
+
+    function calcularPuntaje() {
+        const items = document.querySelectorAll('.check-item');
+        let totalVal = 0;
+        let respondidos = 0;
+
+        items.forEach(item => {
+            const btnSi = item.querySelector('.active-yes');
+            const btnNo = item.querySelector('.active-no');
+            
+            if(btnSi) { totalVal += 1; respondidos++; }
+            else if(btnNo) { respondidos++; }
+        });
+
+        const finalScore = respondidos > 0 ? (totalVal / items.length) * 100 : 0;
+        document.getElementById('total_score').innerText = Math.round(finalScore) + '%';
+        return Math.round(finalScore);
+    }
+
+    function toggleMaquina() {
+        const area = document.getElementById('area').value;
+        const box = document.getElementById('box_maquina');
+        // Solo mostrar campo máquina si es inyección
+        box.style.display = (area === 'INYECCION') ? 'flex' : 'none';
+    }
+
+    async function finalizarAuditoria() {
+        const score = calcularPuntaje();
+        const data = {
+            empleado_id: document.getElementById('operador').value,
+            area: document.getElementById('area').value,
+            maquina_id: document.getElementById('maquina').value,
             puntuacion: score,
-            fecha: new Date().toISOString().split('T')[0]
-        }]);
+            fecha: new Date().toISOString()
+        };
 
-        if(error) alert("Error: " + error.message);
-        else { alert("✅ Evaluación Guardada"); location.reload(); }
+        const { error } = await client.from('rh_evaluaciones_5s').insert([data]);
+        
+        if(!error) {
+            alert("✅ Auditoría guardada con éxito");
+            location.reload();
+        } else {
+            alert("❌ Error: " + error.message);
+        }
     }
-    window.onload = cargar;
+
+    document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
