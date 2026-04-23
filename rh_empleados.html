@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión 360 Pro</title>
+    <title>KRAEM | Gestión de Personal 360</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
         .container { max-width: 1600px; margin: auto; }
 
@@ -30,7 +29,7 @@
         .metric-val { font-size: 22px; font-weight: 800; color: var(--accent); }
         .metric-lab { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
 
-        /* TABLA POR COLUMNAS */
+        /* TABLA */
         .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; min-width: 1200px; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
@@ -44,11 +43,11 @@
         .group { display: flex; flex-direction: column; }
         .group.full-width { grid-column: 1 / -1; }
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
+        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
 
-        .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
-        .status-activo { background: #dcfce7; color: #166534; }
-        .status-baja { background: #fee2e2; color: #991b1b; }
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; text-align: center; }
+        .status-ACTIVO { background: #dcfce7; color: #166534; }
+        .status-BAJA { background: #fee2e2; color: #991b1b; }
         .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 15px; color: var(--accent); font-size: 11px; font-weight: bold; }
     </style>
 </head>
@@ -60,37 +59,33 @@
             <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
             <h2 style="margin:0;">Gestión de Personal Kraem</h2>
         </div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
-        </div>
+        <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
     </div>
 
     <div id="dash_analisis" class="dashboard-360">
         <div class="card">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:100px; height:100px; border-radius:50%; border:3px solid var(--accent); object-fit:cover;">
+            <div style="text-align: center; margin-bottom: 15px;">
+                <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:80px; border-radius:50%; border:3px solid var(--accent);">
                 <h3 id="view_nombre" style="margin:10px 0 2px 0;">--</h3>
-                <p id="view_puesto_area" style="font-size:11px; color:#64748b; margin:0; font-weight: bold;">--</p>
+                <p id="view_puesto_area" style="font-size:11px; color:#64748b; font-weight: bold;">--</p>
             </div>
-            <div style="font-size:12px; line-height: 1.8;">
+            <div style="font-size:12px; line-height: 1.6;">
                 <p><strong>Antigüedad:</strong> <span id="view_anti">--</span></p>
-                <p><strong>Fecha Ingreso:</strong> <span id="view_fecha">--</span></p>
-                <p><strong>Talla Playera:</strong> <span id="view_talla">--</span></p>
+                <p><strong>Ingreso:</strong> <span id="view_fecha">--</span></p>
                 <p><strong>Ruta:</strong> <span id="view_ruta">--</span></p>
-                <p><strong>Tipo Sangre:</strong> <span id="view_sangre">--</span></p>
+                <p><strong>Talla:</strong> <span id="view_talla">--</span></p>
+                <p><strong>Sangre:</strong> <span id="view_sangre">--</span></p>
                 <p><strong>Dirección:</strong> <span id="view_direccion">--</span></p>
-                <button class="btn-nav" style="width:100%; justify-content:center; margin-top:15px;" onclick="editarActual()">EDITAR PERFIL</button>
+                <button class="btn-nav" style="width:100%; margin-top:10px;" onclick="editarActual()">EDITAR PERFIL</button>
             </div>
         </div>
 
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <label style="font-weight:bold; color:var(--accent);">DESEMPEÑO EN PERIODO SELECCIONADO</label>
-                <div id="rango_texto" style="font-size:10px; background:#eff6ff; padding:4px 8px; border-radius:5px; color:var(--accent);">Rango: --</div>
+                <label style="font-weight:bold; color:var(--accent);">DESEMPEÑO EN EL PERIODO</label>
+                <div id="rango_texto" style="font-size:10px; background:#eff6ff; padding:4px 8px; border-radius:5px; color:var(--accent);">--</div>
             </div>
-            <div class="radar-box">
-                <canvas id="chartRadar"></canvas>
-            </div>
+            <div class="radar-box"><canvas id="chartRadar"></canvas></div>
         </div>
 
         <div class="card metric-grid">
@@ -98,15 +93,14 @@
             <div class="metric-card"><div class="metric-lab">Asistencia</div><div id="val_asistencia" class="metric-val">0%</div></div>
             <div class="metric-card"><div class="metric-lab">Puntualidad</div><div id="val_puntualidad" class="metric-val">0%</div></div>
             <div class="metric-card"><div class="metric-lab">5'S Promedio</div><div id="val_5s" class="metric-val">0</div></div>
-            <div class="metric-card" style="background:#f0f9ff;"><div class="metric-lab">Versatilidad</div><div id="val_versatilidad" class="metric-val">0%</div></div>
         </div>
     </div>
 
     <div class="card" style="margin-bottom:20px;">
         <div class="inputs-grid">
-            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()"></div>
-            <div class="group"><label>Periodo Desde</label><input type="date" id="f_desde" onchange="actualizarAnalisisSiHaySeleccion()"></div>
-            <div class="group"><label>Periodo Hasta</label><input type="date" id="f_hasta" onchange="actualizarAnalisisSiHaySeleccion()"></div>
+            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" oninput="aplicarFiltros()"></div>
+            <div class="group"><label>Desde</label><input type="date" id="f_desde" onchange="actualizarAnalisisSiHaySeleccion()"></div>
+            <div class="group"><label>Hasta</label><input type="date" id="f_hasta" onchange="actualizarAnalisisSiHaySeleccion()"></div>
             <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
             <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
             <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
@@ -135,32 +129,24 @@
 
 <div id="modalRegistro" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h3 id="modal_titulo" style="margin:0;">Ficha de Personal</h3>
-            <button onclick="cerrarModal()" style="border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
-        </div>
-
+        <h3>Ficha Técnica de Personal</h3>
         <input type="hidden" id="edit_id">
         <div class="inputs-grid">
-            <div class="section-title">CONTRATACIÓN</div>
+            <div class="section-title">DATOS LABORALES</div>
             <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
             <div class="group"><label>Área</label><select id="sel_area"></select></div>
             <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
             <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
-            <div class="group"><label>Ruta de Transporte</label><select id="sel_ruta"></select></div>
-            <div class="group"><label>Fecha de Ingreso</label><input type="date" id="fecha_ingreso"></div>
+            <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
+            <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
             <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-
-            <div class="section-title">PERSONAL Y SALUD</div>
-            <div class="group"><label>Tipo Sanguíneo</label><input type="text" id="tipo_sangre"></div>
+            <div class="section-title">DATOS PERSONALES</div>
+            <div class="group"><label>Tipo Sangre</label><input type="text" id="tipo_sangre"></div>
             <div class="group"><label>Talla Playera</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
             <div class="group full-width"><label>Dirección Particular</label><input type="text" id="direccion"></div>
-            <div class="group"><label>Contacto Emergencia</label><input type="text" id="emergencia_nombre"></div>
-            <div class="group"><label>Teléfono Emergencia</label><input type="tel" id="emergencia_tel"></div>
         </div>
-
         <div style="margin-top:20px; display:flex; gap:10px;">
-            <button class="btn-add" style="flex:1; justify-content:center;" onclick="guardarEmpleado()">GUARDAR DATOS</button>
+            <button class="btn-add" style="flex:1;" onclick="guardarEmpleado()">GUARDAR</button>
             <button class="btn-nav" onclick="cerrarModal()">CANCELAR</button>
         </div>
     </div>
@@ -168,15 +154,14 @@
 
 <script>
     let db_empleados = [];
-    let cat_rutas = [];
     let chartRadar;
     let currentEmpId = null;
 
     async function init() {
+        // Cargar Catálogos
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
-        cat_rutas = rutas || [];
 
         const fill = (id, data, esFiltro = false) => {
             const s = document.getElementById(id);
@@ -193,14 +178,28 @@
     }
 
     async function listarEmpleados() {
-        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre), rh_puestos(nombre), rh_rutas(nombre)').order('nombre_completo');
-        db_empleados = emps.map(e => ({
+        console.log("Cargando empleados...");
+        const { data, error } = await client.from('rh_empleados').select(`
+            *,
+            rh_areas(nombre),
+            rh_puestos(nombre),
+            rh_rutas(nombre)
+        `).order('nombre_completo');
+
+        if (error) {
+            console.error("Error cargando empleados:", error);
+            return;
+        }
+
+        db_empleados = data.map(e => ({
             ...e,
-            area_txt: e.rh_areas?.nombre || '-',
-            puesto_txt: e.rh_puestos?.nombre || '-',
-            ruta_txt: e.rh_rutas?.nombre || '-',
+            area_txt: e.rh_areas?.nombre || 'N/A',
+            puesto_txt: e.rh_puestos?.nombre || 'N/A',
+            ruta_txt: e.rh_rutas?.nombre || 'N/A',
             antiguedad_txt: calcularAntiguedad(e.fecha_ingreso)
         }));
+
+        console.log("Datos procesados:", db_empleados);
         aplicarFiltros();
     }
 
@@ -218,8 +217,8 @@
             (!r || e.ruta_id == r) &&
             (!s || e.estatus == s)
         );
-        
-        document.getElementById('lista_empleados').innerHTML = filtrados.map(e => `
+
+        const html = filtrados.map(e => `
             <tr onclick="cargarAnalisis('${e.id}')">
                 <td><b>${e.nombre_completo}</b></td>
                 <td>${e.area_txt}</td>
@@ -228,63 +227,54 @@
                 <td>Turno ${e.turno_id}</td>
                 <td>${e.fecha_ingreso || '-'}</td>
                 <td>${e.antiguedad_txt}</td>
-                <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
+                <td><span class="status-badge status-${e.estatus}">${e.estatus}</span></td>
             </tr>`).join('');
+        
+        document.getElementById('lista_empleados').innerHTML = html || '<tr><td colspan="8" style="text-align:center;">No se encontraron registros</td></tr>';
     }
 
-    function actualizarAnalisisSiHaySeleccion() { if(currentEmpId) cargarAnalisis(currentEmpId); }
+    function calcularAntiguedad(f) {
+        if(!f) return "-";
+        const ini = new Date(f), hoy = new Date();
+        let anios = hoy.getFullYear() - ini.getFullYear();
+        let meses = hoy.getMonth() - ini.getMonth();
+        if (meses < 0) { anios--; meses += 12; }
+        return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
+    }
 
     async function cargarAnalisis(id) {
         const emp = db_empleados.find(e => e.id == id);
         currentEmpId = id;
         document.getElementById('dash_analisis').style.display = 'grid';
 
-        // Fechas de Filtro
         let fDesde = document.getElementById('f_desde').value;
         let fHasta = document.getElementById('f_hasta').value;
         if(!fDesde) {
-            const d = new Date();
-            fDesde = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+            fDesde = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
             fHasta = new Date().toISOString().split('T')[0];
         }
-        document.getElementById('rango_texto').innerText = `Periodo: ${fDesde} al ${fHasta}`;
+        document.getElementById('rango_texto').innerText = `${fDesde} al ${fHasta}`;
 
-        // Datos Ficha
+        // Llenar Ficha
         document.getElementById('view_nombre').innerText = emp.nombre_completo;
         document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
         document.getElementById('view_anti').innerText = emp.antiguedad_txt;
         document.getElementById('view_fecha').innerText = emp.fecha_ingreso || '--';
-        document.getElementById('view_talla').innerText = emp.talla_playera || '--';
         document.getElementById('view_ruta').innerText = emp.ruta_txt;
+        document.getElementById('view_talla').innerText = emp.talla_playera || '--';
         document.getElementById('view_sangre').innerText = emp.tipo_sangre || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        // 1. Calidad (Yield) - Promedio del tiempo seleccionado
-        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
-        let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
-        const yieldVal = ti > 0 ? ((1 - (td/ti)) * 100).toFixed(1) : 100;
-
-        // 2. Asistencia y Puntualidad - Promedio del tiempo seleccionado
+        // Lógica de promedios
         const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        const totalDias = asistData?.length || 0;
-        const asistencias = asistData?.filter(a => a.estado !== 'FALTA').length || 0;
-        const puntualidadCount = asistData?.filter(a => a.estado === 'ASISTENCIA').length || 0;
+        const total = asistData?.length || 0;
+        const asistPct = total > 0 ? ((asistData.filter(a => a.estado !== 'FALTA').length / total) * 100).toFixed(1) : 0;
+        const puntPct = total > 0 ? ((asistData.filter(a => a.estado === 'ASISTENCIA').length / total) * 100).toFixed(1) : 0;
 
-        const asistPct = totalDias > 0 ? ((asistencias / totalDias) * 100).toFixed(1) : 0;
-        const puntPct = totalDias > 0 ? ((puntualidadCount / totalDias) * 100).toFixed(1) : 0;
-
-        // 3. 5'S Promedio
-        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        const score5s = fives?.length > 0 ? (fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1) : 0;
-
-        document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistPct + '%';
         document.getElementById('val_puntualidad').innerText = puntPct + '%';
-        document.getElementById('val_5s').innerText = score5s;
-        document.getElementById('val_versatilidad').innerText = "85%"; // Ejemplo
-
-        renderRadar(yieldVal, asistPct, (score5s*20), 85, puntPct);
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        
+        renderRadar(100, asistPct, 0, 80, puntPct);
     }
 
     function renderRadar(y, a, s, v, p) {
@@ -294,33 +284,10 @@
             type: 'radar',
             data: {
                 labels: ['Calidad', 'Asistencia', '5\'S', 'Versatilidad', 'Puntualidad'],
-                datasets: [{
-                    label: 'Puntaje %',
-                    data: [y, a, s, v, p],
-                    backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb'
-                }]
+                datasets: [{ data: [y, a, s, v, p], backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb' }]
             },
             options: { scales: { r: { suggestedMin: 0, suggestedMax: 100 } } }
         });
-    }
-
-    function editarActual() {
-        if(!currentEmpId) return;
-        const emp = db_empleados.find(e => e.id == currentEmpId);
-        document.getElementById('edit_id').value = emp.id;
-        document.getElementById('nombre').value = emp.nombre_completo;
-        document.getElementById('sel_area').value = emp.area_id || "";
-        document.getElementById('sel_puesto').value = emp.puesto_id || "";
-        document.getElementById('sel_turno').value = emp.turno_id || "1";
-        document.getElementById('sel_ruta').value = emp.ruta_id || "";
-        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
-        document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
-        document.getElementById('sel_talla').value = emp.talla_playera || "";
-        document.getElementById('direccion').value = emp.direccion || "";
-        document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || "";
-        document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
-        document.getElementById('sel_estatus').value = emp.estatus;
-        document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function abrirModal() {
@@ -331,13 +298,23 @@
 
     function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
 
-    function calcularAntiguedad(f) {
-        if(!f) return "-";
-        const ini = new Date(f), hoy = new Date();
-        let a = hoy.getFullYear() - ini.getFullYear();
-        let m = hoy.getMonth() - ini.getMonth();
-        if (m < 0) { a--; m += 12; }
-        return a > 0 ? `${a}a ${m}m` : `${m} meses`;
+    async function guardarEmpleado() {
+        const id = document.getElementById('edit_id').value;
+        const obj = {
+            nombre_completo: document.getElementById('nombre').value,
+            area_id: document.getElementById('sel_area').value || null,
+            puesto_id: document.getElementById('sel_puesto').value || null,
+            ruta_id: document.getElementById('sel_ruta').value || null,
+            turno_id: document.getElementById('sel_turno').value,
+            fecha_ingreso: document.getElementById('fecha_ingreso').value,
+            tipo_sangre: document.getElementById('tipo_sangre').value,
+            talla_playera: document.getElementById('sel_talla').value,
+            direccion: document.getElementById('direccion').value,
+            estatus: document.getElementById('sel_estatus').value
+        };
+
+        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
+        if(!error) { alert("¡Éxito!"); cerrarModal(); listarEmpleados(); } else { alert("Error al guardar"); console.error(error); }
     }
 
     document.addEventListener('DOMContentLoaded', init);
