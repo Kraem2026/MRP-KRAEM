@@ -86,7 +86,7 @@
             <div class="metric-card"><div class="metric-lab">Calidad</div><div id="val_yield" class="metric-val">0%</div></div>
             <div class="metric-card"><div class="metric-lab">Asistencia</div><div id="val_asistencia" class="metric-val">0%</div></div>
             <div class="metric-card"><div class="metric-lab">Puntualidad</div><div id="val_puntualidad" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">5'S</div><div id="val_5s" class="metric-val">0</div></div>
+            <div class="metric-card"><div class="metric-lab">5'S</div><div id="val_5s" class="metric-val">0%</div></div>
             <div class="metric-card" style="background:#f0f9ff; grid-column: 1/-1;"><div class="metric-lab">Versatilidad</div><div id="val_versatilidad" class="metric-val">0%</div></div>
         </div>
     </div>
@@ -158,7 +158,6 @@
     let currentEmpId = null;
 
     async function init() {
-        // Carga de catálogos
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
@@ -182,7 +181,6 @@
     }
 
     async function listarEmpleados() {
-        // Consulta simplificada para evitar errores de relación nula
         const { data, error } = await client.from('rh_empleados').select(`
             *,
             rh_areas!left(nombre),
@@ -246,7 +244,6 @@
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        // Cálculos
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
         let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? ((1 - (td/ti)) * 100).toFixed(1) : 100;
@@ -257,15 +254,17 @@
         const puntPct = totalDias > 0 ? ((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1) : 0;
 
         const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        // CORRECCIÓN 1: Asegurar que 5'S se maneje como porcentaje 0-100 para la gráfica
         const score5s = fives?.length > 0 ? (fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1) : 0;
 
         document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistPct + '%';
         document.getElementById('val_puntualidad').innerText = puntPct + '%';
-        document.getElementById('val_5s').innerText = score5s;
+        document.getElementById('val_5s').innerText = score5s + '%';
         document.getElementById('val_versatilidad').innerText = "80%"; 
 
-        renderRadar(yieldVal, asistPct, (score5s*20), 80, puntPct);
+        // Enviar score5s directamente ya que ahora es base 100
+        renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
@@ -315,6 +314,7 @@
 
     async function guardarEmpleado() {
         const id = document.getElementById('edit_id').value;
+        // CORRECCIÓN 2: Mapeo de columnas para asegurar que coincidan con la DB y evitar errores de cache
         const obj = {
             nombre_completo: document.getElementById('nombre').value,
             area_id: document.getElementById('sel_area').value || null,
