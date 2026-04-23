@@ -46,10 +46,8 @@
         .status-baja { background: #fee2e2; color: #991b1b; }
         .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
         
-        /* Estilo para los contadores de vacaciones */
-        .vac-counter-box { background: #eff6ff; padding: 15px; border-radius: 10px; display: flex; justify-content: space-around; grid-column: 1/-1; margin-top: 10px; border: 1px solid #dbeafe; }
-        .vac-item { text-align: center; }
-        .vac-item b { display: block; font-size: 18px; color: var(--accent); }
+        /* Estilo para los días disponibles */
+        .vacation-box { background: #f0f9ff; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
@@ -71,6 +69,13 @@
             <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:110px; height:110px; border-radius:50%; border:4px solid var(--accent); object-fit:cover;">
             <h3 id="view_nombre" style="margin:15px 0 5px 0;">--</h3>
             <p id="view_puesto_area" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
+            
+            <div class="vacation-box">
+                <div style="font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase;">Días Disponibles</div>
+                <div id="view_dias_disponibles" style="font-size: 20px; font-weight: 800; color: #0284c7;">--</div>
+                <a href="solicitudes.html" class="btn-nav" style="font-size: 11px; padding: 5px 10px; margin-top: 5px; width: 90%; justify-content: center;">Gestionar Vacaciones</a>
+            </div>
+
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
             <div style="text-align:left; font-size:13px; line-height: 1.6;">
                 <p><strong><i class="fas fa-fingerprint"></i> NSS:</strong> <span id="view_nss">--</span></p>
@@ -81,7 +86,6 @@
                 <button class="btn-nav" style="width:100%; justify-content:center; margin-top:15px; border-color:var(--accent); color:var(--accent);" onclick="editarActual()">EDITAR FICHA</button>
             </div>
         </div>
-
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <label style="font-weight:bold; color:var(--accent);">DESEMPEÑO GLOBAL</label>
@@ -137,9 +141,6 @@
         </div>
         <input type="hidden" id="edit_id">
         <div class="inputs-grid">
-            <div class="section-title">DATOS DE PERFIL (FOTO)</div>
-            <div class="group full-width"><label>URL de la Foto</label><input type="text" id="foto_url" placeholder="Pega el link de la imagen aquí..."></div>
-            
             <div class="section-title">LABORALES</div>
             <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
             <div class="group"><label># Seguro Social (NSS)</label><input type="text" id="nss"></div>
@@ -147,20 +148,8 @@
             <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
             <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
             <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
-            <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso" onchange="calcularVacaciones()"></div>
+            <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
             <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-            
-            <div class="section-title">AJUSTE DE VACACIONES</div>
-            <div class="vac-counter-box">
-                <div class="vac-item"><label>Generadas (Ley)</label><b id="v_ley">0</b></div>
-                <div class="vac-item"><label>Ajuste Manual</label><b id="v_ajuste_show">0</b></div>
-                <div class="vac-item"><label>Ya Tomadas</label><b id="v_tomadas">0</b></div>
-                <div class="vac-item"><label>Disponibles</label><b id="v_total" style="color:green;">0</b></div>
-            </div>
-            <div class="group"><label>Ajuste (+ o - días)</label><input type="number" id="vac_ajuste" value="0" oninput="calcularVacaciones()"></div>
-            <div class="group"><label>Días Gozados</label><input type="number" id="vac_gozadas_manual" value="0" oninput="calcularVacaciones()"></div>
-            <div class="group full-width"><label>Programación Futura e Historial</label><textarea id="vac_notas" rows="2" placeholder="Ej: 5 días del 10 al 15 de Mayo..."></textarea></div>
-
             <div class="section-title">PERSONAL / MÉDICO</div>
             <div class="group"><label>Tipo de Sangre</label><input type="text" id="tipo_sangre"></div>
             <div class="group"><label>Talla</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
@@ -170,7 +159,7 @@
             <div class="group full-width"><label>Alergias</label><textarea id="alergias" rows="2"></textarea></div>
         </div>
         <div style="margin-top:30px; display:flex; gap:15px;">
-            <button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">GUARDAR CAMBIOS</button>
+            <button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">GUARDAR</button>
             <button class="btn-nav" style="flex:1; justify-content:center;" onclick="cerrarModal()">CANCELAR</button>
         </div>
     </div>
@@ -181,32 +170,6 @@
     let db_filtrados = [];
     let chartRadar;
     let currentEmpId = null;
-
-    // --- LÓGICA DE VACACIONES ---
-    function calcularVacaciones() {
-        const f = document.getElementById('fecha_ingreso').value;
-        if(!f) return;
-        const ingreso = new Date(f);
-        const hoy = new Date();
-        const antiguedad = hoy.getFullYear() - ingreso.getFullYear();
-        
-        let porLey = 0;
-        if(antiguedad == 1) porLey = 12;
-        else if(antiguedad == 2) porLey = 14;
-        else if(antiguedad == 3) porLey = 16;
-        else if(antiguedad == 4) porLey = 18;
-        else if(antiguedad == 5) porLey = 20;
-        else if(antiguedad >= 6 && antiguedad <= 10) porLey = 22;
-        else if(antiguedad > 10) porLey = 24;
-
-        const ajuste = parseInt(document.getElementById('vac_ajuste').value) || 0;
-        const tomadas = parseInt(document.getElementById('vac_gozadas_manual').value) || 0;
-
-        document.getElementById('v_ley').innerText = porLey;
-        document.getElementById('v_ajuste_show').innerText = ajuste;
-        document.getElementById('v_tomadas').innerText = tomadas;
-        document.getElementById('v_total').innerText = (porLey + ajuste) - tomadas;
-    }
 
     async function init() {
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
@@ -232,8 +195,14 @@
     }
 
     async function listarEmpleados() {
-        const { data, error } = await client.from('rh_empleados').select(`*, rh_areas!left(nombre), rh_puestos!left(nombre), rh_rutas!left(nombre)`).order('nombre_completo');
-        if (error) return;
+        const { data, error } = await client.from('rh_empleados').select(`
+            *,
+            rh_areas!left(nombre),
+            rh_puestos!left(nombre),
+            rh_rutas!left(nombre)
+        `).order('nombre_completo');
+
+        if (error) { console.error(error); return; }
 
         db_empleados = data.map(e => ({
             ...e,
@@ -276,7 +245,11 @@
         const emp = db_empleados.find(e => e.id == id);
         currentEmpId = id;
         document.getElementById('dash_analisis').style.display = 'grid';
-        document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        
+        const fDesde = document.getElementById('f_desde').value;
+        const fHasta = document.getElementById('f_hasta').value;
+        document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
+
         document.getElementById('view_nombre').innerText = emp.nombre_completo;
         document.getElementById('view_nss').innerText = emp.nss || '--';
         document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
@@ -285,18 +258,33 @@
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        // Lógica de radar (reutilizada de tu original)
-        const fDesde = document.getElementById('f_desde').value;
-        const fHasta = document.getElementById('f_hasta').value;
+        // CARGAR DÍAS DISPONIBLES (Supone que tienes la columna dias_disponibles en rh_empleados)
+        document.getElementById('view_dias_disponibles').innerText = emp.vacaciones_disponibles || '0';
+
+        // Cargar otras métricas (igual que antes)
+        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
+        let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
+        const yieldVal = ti > 0 ? ((1 - (td/ti)) * 100).toFixed(1) : 100;
+
         const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         const totalDias = asistData?.length || 0;
         const asistPct = totalDias > 0 ? ((asistData.filter(a => a.estado !== 'FALTA').length / totalDias) * 100).toFixed(1) : 0;
-        
+        const puntPct = totalDias > 0 ? ((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1) : 0;
+
+        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        const score5s = fives?.length > 0 ? (fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1) : 0;
+
+        document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistPct + '%';
-        renderRadar(100, asistPct, 0, 80, 0); // Ejemplo simplificado
+        document.getElementById('val_puntualidad').innerText = puntPct + '%';
+        document.getElementById('val_5s').innerText = score5s + '%';
+        document.getElementById('val_versatilidad').innerText = "80%"; 
+
+        renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
+    // ... Las funciones de apoyo (renderRadar, exportarExcel, modal, etc.) se mantienen igual ...
     function renderRadar(y, a, s, v, p) {
         const ctx = document.getElementById('chartRadar').getContext('2d');
         if(chartRadar) chartRadar.destroy();
@@ -304,7 +292,10 @@
             type: 'radar',
             data: {
                 labels: ['Calidad', 'Asistencia', '5\'S', 'Versatilidad', 'Puntualidad'],
-                datasets: [{ data: [y, a, s, v, p], backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb' }]
+                datasets: [{
+                    data: [y, a, s, v, p],
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb'
+                }]
             },
             options: { scales: { r: { suggestedMin: 0, suggestedMax: 100 } }, plugins: { legend: { display: false } } }
         });
@@ -314,7 +305,6 @@
         if(!currentEmpId) return;
         const emp = db_empleados.find(e => e.id == currentEmpId);
         document.getElementById('edit_id').value = emp.id;
-        document.getElementById('foto_url').value = emp.foto_url || "";
         document.getElementById('nombre').value = emp.nombre_completo;
         document.getElementById('nss').value = emp.nss || "";
         document.getElementById('sel_area').value = emp.area_id || "";
@@ -329,21 +319,12 @@
         document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
         document.getElementById('alergias').value = emp.alergias || "";
         document.getElementById('sel_estatus').value = emp.estatus;
-        
-        // Cargar vacaciones
-        document.getElementById('vac_ajuste').value = emp.vacaciones_ajuste || 0;
-        document.getElementById('vac_gozadas_manual').value = emp.vacaciones_gozadas || 0;
-        document.getElementById('vac_notas').value = emp.vacaciones_notas || "";
-        
-        calcularVacaciones();
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function abrirModal() {
         document.getElementById('edit_id').value = "";
         document.querySelectorAll('#modalRegistro input, #modalRegistro select, #modalRegistro textarea').forEach(i => i.value = "");
-        document.getElementById('v_ley').innerText = "0";
-        document.getElementById('v_total').innerText = "0";
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
@@ -353,7 +334,6 @@
         const id = document.getElementById('edit_id').value;
         const obj = {
             nombre_completo: document.getElementById('nombre').value,
-            foto_url: document.getElementById('foto_url').value,
             nss: document.getElementById('nss').value,
             area_id: document.getElementById('sel_area').value || null,
             puesto_id: document.getElementById('sel_puesto').value || null,
@@ -366,11 +346,7 @@
             emergencia_nombre: document.getElementById('emergencia_nombre').value,
             emergencia_tel: document.getElementById('emergencia_tel').value,
             alergias: document.getElementById('alergias').value,
-            estatus: document.getElementById('sel_estatus').value,
-            // Columnas nuevas de vacaciones
-            vacaciones_ajuste: parseInt(document.getElementById('vac_ajuste').value) || 0,
-            vacaciones_gozadas: parseInt(document.getElementById('vac_gozadas_manual').value) || 0,
-            vacaciones_notas: document.getElementById('vac_notas').value
+            estatus: document.getElementById('sel_estatus').value
         };
 
         const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
@@ -385,6 +361,30 @@
         let meses = hoy.getMonth() - ini.getMonth();
         if (meses < 0) { anios--; meses += 12; }
         return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
+    }
+
+    function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId); }
+    async function exportarExcel() {
+        if(db_filtrados.length === 0) return alert("No hay datos para exportar");
+        const dataParaExcel = db_filtrados.map(e => ({
+            "Nombre Completo": e.nombre_completo,
+            "NSS": e.nss || '',
+            "Área": e.area_txt,
+            "Puesto": e.puesto_txt,
+            "Antigüedad": e.antiguedad_txt,
+            "Turno": e.turno_id,
+            "Ruta": e.ruta_txt,
+            "Estatus": e.estatus,
+            "Fecha Ingreso": e.fecha_ingreso,
+            "Talla": e.talla_playera,
+            "Tipo Sangre": e.tipo_sangre,
+            "Contacto Emergencia": e.emergencia_nombre,
+            "Tel Emergencia": e.emergencia_tel
+        }));
+        const ws = XLSX.utils.json_to_sheet(dataParaExcel);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Personal");
+        XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     document.addEventListener('DOMContentLoaded', init);
