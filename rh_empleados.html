@@ -29,7 +29,7 @@
 
         /* TABLA */
         .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
         th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
         tr:hover { background: #f8fafc; cursor: pointer; }
@@ -66,7 +66,7 @@
         <div class="card" style="text-align: center;">
             <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:110px; height:110px; border-radius:50%; border:4px solid var(--accent); object-fit:cover;">
             <h3 id="view_nombre" style="margin:15px 0 5px 0;">--</h3>
-            <p id="view_puesto" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
+            <p id="view_puesto_area" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
             <div style="text-align:left; font-size:13px; line-height: 1.6;">
                 <p><strong><i class="fas fa-calendar"></i> Antigüedad:</strong> <span id="view_anti">--</span></p>
@@ -103,7 +103,7 @@
             <div class="group"><label>Hasta (Desempeño)</label><input type="date" id="f_hasta" onchange="actualizarTodo()"></div>
             <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
             <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
-            <div class="group"><label>Ruta</label><input type="text" id="f_ruta" placeholder="Filtrar ruta..." oninput="aplicarFiltros()"></div>
+            <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
             <div class="group"><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()"><option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
         </div>
     </div>
@@ -113,7 +113,8 @@
             <thead>
                 <tr>
                     <th>Nombre del Empleado</th>
-                    <th>Área / Puesto</th>
+                    <th>Área</th>
+                    <th>Puesto</th>
                     <th>Antigüedad</th>
                     <th>Turno</th>
                     <th>Ruta</th>
@@ -139,7 +140,7 @@
             <div class="group"><label>Área</label><select id="sel_area"></select></div>
             <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
             <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
-            <div class="group"><label>Ruta de Transporte</label><input type="text" id="ruta"></div>
+            <div class="group"><label>Ruta de Transporte</label><select id="sel_ruta"></select></div>
             <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
             <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
 
@@ -165,8 +166,10 @@
     let currentEmpId = null;
 
     async function init() {
+        // Cargar catálogos incluyendo rh_rutas
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
+        const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
         
         const fill = (id, data, esFiltro = false) => {
             const s = document.getElementById(id);
@@ -177,8 +180,8 @@
 
         fill('sel_area', areas); fill('f_area', areas, true);
         fill('sel_puesto', puestos);
+        fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
 
-        // Fecha por defecto: Mes actual
         const d = new Date();
         document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('f_hasta').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -187,11 +190,12 @@
     }
 
     async function listarEmpleados() {
-        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre), rh_puestos(nombre)').order('nombre_completo');
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre), rh_puestos(nombre), rh_rutas(nombre)').order('nombre_completo');
         db_empleados = emps.map(e => ({
             ...e,
             area_txt: e.rh_areas?.nombre || '-',
             puesto_txt: e.rh_puestos?.nombre || '-',
+            ruta_txt: e.rh_rutas?.nombre || '-',
             antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
         }));
         aplicarFiltros();
@@ -201,24 +205,25 @@
         const n = document.getElementById('f_nombre').value.toLowerCase();
         const a = document.getElementById('f_area').value;
         const t = document.getElementById('f_turno').value;
-        const r = document.getElementById('f_ruta').value.toLowerCase();
+        const r = document.getElementById('f_ruta').value;
         const s = document.getElementById('f_estatus').value;
 
         const filtrados = db_empleados.filter(e => 
             (!n || e.nombre_completo.toLowerCase().includes(n)) && 
             (!a || e.area_id == a) &&
             (!t || e.turno_id == t) &&
-            (!r || (e.ruta && e.ruta.toLowerCase().includes(r))) &&
+            (!r || e.ruta_id == r) &&
             (!s || e.estatus == s)
         );
         
         document.getElementById('lista_empleados').innerHTML = filtrados.map(e => `
             <tr onclick="cargarAnalisis('${e.id}')">
                 <td><b>${e.nombre_completo}</b></td>
-                <td><small>${e.puesto_txt}</small><br>${e.area_txt}</td>
+                <td>${e.area_txt}</td>
+                <td>${e.puesto_txt}</td>
                 <td>${e.antiguedad_txt}</td>
                 <td>Turno ${e.turno_id}</td>
-                <td>${e.ruta || '-'}</td>
+                <td>${e.ruta_txt}</td>
                 <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
             </tr>`).join('');
     }
@@ -234,32 +239,26 @@
         const fHasta = document.getElementById('f_hasta').value;
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
-        // Llenado de Ficha Lateral
         document.getElementById('view_nombre').innerText = emp.nombre_completo;
-        document.getElementById('view_puesto').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
+        document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
         document.getElementById('view_anti').innerText = emp.antiguedad_txt;
         document.getElementById('view_talla').innerText = emp.talla_playera || '--';
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        // --- CÁLCULOS FILTRADOS POR FECHA ---
-        
-        // 1. Calidad (Yield)
+        // Cálculos...
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
         let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? ((1 - (td/ti)) * 100).toFixed(1) : 100;
 
-        // 2. Asistencia y Puntualidad
         const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         const totalDias = asistData?.length || 0;
         const asistPct = totalDias > 0 ? ((asistData.filter(a => a.estado !== 'FALTA').length / totalDias) * 100).toFixed(1) : 0;
         const puntPct = totalDias > 0 ? ((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1) : 0;
 
-        // 3. 5'S
         const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         const score5s = fives?.length > 0 ? (fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1) : 0;
 
-        // Mostrar en UI
         document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistPct + '%';
         document.getElementById('val_puntualidad').innerText = puntPct + '%';
@@ -295,7 +294,7 @@
         document.getElementById('sel_puesto').value = emp.puesto_id || "";
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
         document.getElementById('sel_turno').value = emp.turno_id || "1";
-        document.getElementById('ruta').value = emp.ruta || "";
+        document.getElementById('sel_ruta').value = emp.ruta_id || ""; // Usando ruta_id
         document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
         document.getElementById('sel_talla').value = emp.talla_playera || "";
         document.getElementById('direccion').value = emp.direccion || "";
@@ -322,7 +321,7 @@
             puesto_id: document.getElementById('sel_puesto').value,
             fecha_ingreso: document.getElementById('fecha_ingreso').value,
             turno_id: document.getElementById('sel_turno').value,
-            ruta: document.getElementById('ruta').value,
+            ruta_id: document.getElementById('sel_ruta').value, // Guardando ruta_id
             tipo_sangre: document.getElementById('tipo_sangre').value,
             talla_playera: document.getElementById('sel_talla').value,
             direccion: document.getElementById('direccion').value,
@@ -333,7 +332,7 @@
         };
 
         const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
-        if(!error) { alert("¡Datos actualizados!"); cerrarModal(); listarEmpleados(); }
+        if(!error) { alert("¡Operación exitosa!"); cerrarModal(); listarEmpleados(); }
     }
 
     function calcularAntiguedadExacta(f) {
