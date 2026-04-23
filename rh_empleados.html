@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión 360</title>
+    <title>KRAEM | Gestión de Personal Pro 360</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,183 +11,202 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
-        .container { max-width: 1400px; margin: auto; }
-        
-        /* Header Responsivo */
-        .nav-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 20px; }
-        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .container { max-width: 1600px; margin: auto; }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
         .btn-add { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-
-        /* Dashboard 360 - Layout adaptable */
-        .dashboard-360 { display: grid; grid-template-columns: 320px 1fr 280px; gap: 15px; margin-bottom: 20px; display: none; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        
+        .dashboard-360 { display: grid; grid-template-columns: 350px 1fr 300px; gap: 20px; margin-bottom: 20px; display: none; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .radar-box { height: 300px; display: flex; align-items: center; justify-content: center; }
         
         .metric-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .metric-card { text-align: center; padding: 12px; border: 1px solid #f1f5f9; border-radius: 10px; background: #fff; }
+        .metric-card { text-align: center; padding: 12px; border: 1px solid #f1f5f9; border-radius: 10px; }
         .metric-val { font-size: 22px; font-weight: 800; color: var(--accent); }
-        .metric-lab { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
+        .metric-lab { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-bottom: 4px; }
 
-        /* Modales */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); }
-        .modal-content { background: white; width: 95%; max-width: 900px; margin: 2vh auto; padding: 20px; border-radius: 15px; max-height: 90vh; overflow-y: auto; }
-        
-        .inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        .modal-content { background: white; width: 95%; max-width: 1000px; margin: 1% auto; padding: 25px; border-radius: 15px; max-height: 95vh; overflow-y: auto; }
+        .inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
         .group { display: flex; flex-direction: column; }
         .group.full-width { grid-column: 1 / -1; }
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; width: 100%; box-sizing: border-box; }
-
-        /* Estilos Tabla */
-        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 10px; color: #64748b; border-bottom: 2px solid var(--border); }
+        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
+        
+        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 10px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-
-        /* RESPONSIVO PARA CELULAR */
-        @media (max-width: 768px) {
-            .dashboard-360 { grid-template-columns: 1fr; } /* Todo en una columna */
-            .nav-header h2 { font-size: 18px; width: 100%; }
-            .metric-grid { grid-template-columns: 1fr 1fr; } /* Métricas de 2 en 2 */
-            .modal-content { width: 100%; height: 100%; margin: 0; border-radius: 0; }
-            .form-flex { flex-direction: column; }
-            .foto-perfil { margin: auto; }
-        }
-
+        tr:hover { background: #f1f5f9; cursor: pointer; }
         .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
         .status-activo { background: #dcfce7; color: #166534; }
-        .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding: 10px 0 5px 0; color: var(--accent); font-size: 11px; font-weight: bold; }
+        .status-baja { background: #fee2e2; color: #991b1b; }
+        .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 15px; color: var(--accent); font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="nav-header">
-        <div style="display:flex; gap:10px; align-items:center;">
-            <a href="dashboard.html" class="btn-nav"><i class="fas fa-home"></i></a>
-            <h2 style="margin:0;">Personal KRAEM</h2>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
+            <h2 style="margin:0;">Gestión de Personal Kraem</h2>
         </div>
-        <div style="display:flex; gap:8px;">
-            <button class="btn-add" onclick="abrirModal()"><i class="fas fa-user-plus"></i> NUEVO</button>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
+            <button class="btn-nav" style="background:var(--success); color:white; border:none;" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXCEL</button>
         </div>
     </div>
 
     <div id="dash_analisis" class="dashboard-360">
         <div class="card" style="text-align: center;">
-            <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid var(--accent);">
-            <h3 id="view_nombre" style="margin:10px 0 2px 0; font-size:16px;">--</h3>
-            <p id="view_puesto" style="font-size:11px; color:#64748b; margin-bottom:15px;">--</p>
-            <div style="text-align:left; font-size:12px; background:#f8fafc; padding:10px; border-radius:10px;">
-                <p style="margin:5px 0;"><strong>Antigüedad:</strong> <span id="view_anti">--</span></p>
-                <p style="margin:5px 0;"><strong>Sangre:</strong> <span id="view_sangre">--</span></p>
-                <p style="margin:5px 0;"><strong>Talla:</strong> <span id="view_talla">--</span></p>
+            <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:100px; height:100px; border-radius:50%; border:3px solid var(--accent); object-fit:cover;">
+            <h3 id="view_nombre" style="margin:10px 0 5px 0;">--</h3>
+            <p id="view_puesto" style="font-size:11px; color:#64748b; margin:0;">--</p>
+            <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
+            <div style="text-align:left; font-size:12px;">
+                <p><strong>Ingreso:</strong> <span id="view_fecha">--</span></p>
+                <p><strong>Antigüedad:</strong> <span id="view_anti">--</span></p>
+                <p><strong>Talla:</strong> <span id="view_talla">--</span></p>
+                <p><strong>RH Sangre:</strong> <span id="view_sangre">--</span></p>
+                <button class="btn-nav" style="width:100%; justify-content:center; margin-top:10px;" onclick="editarActual()">EDITAR PERFIL</button>
             </div>
-            <button class="btn-nav" style="width:100%; margin-top:10px; justify-content:center; border-color:var(--accent); color:var(--accent);" onclick="editarActual()">EDITAR PERFIL</button>
         </div>
 
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <label style="color:var(--accent); font-weight:bold;">DESEMPEÑO 360</label>
-                <span id="rango_label" style="font-size:10px; color:#64748b;">Mes Actual</span>
+                <label style="font-weight:bold; color:var(--accent); font-size:11px;">DESEMPEÑO GLOBAL 360</label>
+                <div style="font-size:10px; background:#eff6ff; padding:4px 8px; border-radius:5px; color:var(--accent);" id="rango_texto">Mes Actual</div>
             </div>
-            <canvas id="chartRadar" style="max-height: 280px;"></canvas>
+            <div class="radar-box">
+                <canvas id="chartRadar"></canvas>
+            </div>
         </div>
 
         <div class="card metric-grid">
-            <div class="metric-card"><div class="metric-lab">Calidad</div><div id="val_yield" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">Asistencia</div><div id="val_asistencia" class="metric-val">0%</div></div>
+            <div class="metric-card"><div class="metric-lab">Calidad (Yield)</div><div id="val_yield" class="metric-val">0%</div></div>
+            <div class="metric-card"><div class="metric-lab">Asistencia Real</div><div id="val_asistencia" class="metric-val">0%</div></div>
             <div class="metric-card"><div class="metric-lab">Puntualidad</div><div id="val_puntualidad" class="metric-val">0%</div></div>
             <div class="metric-card"><div class="metric-lab">5'S Promedio</div><div id="val_5s" class="metric-val">0</div></div>
-            <div class="metric-card" style="grid-column: 1/-1; background:#eff6ff;"><div class="metric-lab">Versatilidad</div><div id="val_versatilidad" class="metric-val">0%</div></div>
+            <div class="metric-card" style="background:#f0f9ff;"><div class="metric-lab">Versatilidad</div><div id="val_versatilidad" class="metric-val">0%</div></div>
         </div>
     </div>
 
-    <div class="card" style="margin-bottom:15px;">
-        <div class="inputs-grid">
+    <div class="card" style="padding: 15px; margin-bottom:20px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:12px;">
             <div class="group"><label>Nombre</label><input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()"></div>
-            <div class="group"><label>Desde</label><input type="date" id="f_desde" onchange="actualizarTodo()"></div>
-            <div class="group"><label>Hasta</label><input type="date" id="f_hasta" onchange="actualizarTodo()"></div>
-            <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
+            <div class="group"><label>Rango Desde</label><input type="date" id="f_desde" onchange="actualizarAnalisisSiHaySeleccion()"></div>
+            <div class="group"><label>Rango Hasta</label><input type="date" id="f_hasta" onchange="actualizarAnalisisSiHaySeleccion()"></div>
+            <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"><option value="">Todas</option></select></div>
+            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+            <div class="group"><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()"><option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
         </div>
     </div>
 
     <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th>Empleado</th>
-                    <th>Área / Puesto</th>
-                    <th>Antigüedad</th>
-                    <th>Turno</th>
-                    <th>Estatus</th>
-                </tr>
-            </thead>
-            <tbody id="lista_empleados"></tbody>
-        </table>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Área</th>
+                        <th>Puesto</th>
+                        <th>Ingreso</th>
+                        <th>Antigüedad</th>
+                        <th>Ruta</th>
+                        <th>Turno</th>
+                        <th>Estatus</th>
+                    </tr>
+                </thead>
+                <tbody id="lista_empleados"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <div id="modalRegistro" class="modal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-            <h3 id="modal_titulo" style="margin:0;">Ficha de Personal</h3>
-            <button onclick="cerrarModal()" style="border:none; background:none; font-size:22px; cursor:pointer;">&times;</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 id="modal_titulo" style="margin:0;">Información del Personal</h3>
+            <button onclick="cerrarModal()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:20px;">
-            <input type="hidden" id="edit_id">
-            
-            <div class="inputs-grid">
-                <div class="section-title">DATOS BÁSICOS</div>
-                <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
-                <div class="group"><label>Área</label><select id="sel_area"></select></div>
-                <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
-                <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
-                <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
+        <div style="display:flex; gap:25px;">
+            <div style="text-align:center; min-width:160px;">
+                <img id="img_preview" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:130px; height:130px; border-radius:50%; object-fit:cover; border:2px solid #ddd;">
+                <button class="btn-nav" style="margin-top:10px; font-size:11px;" onclick="document.getElementById('input_foto').click()">SUBIR FOTO</button>
+                <input type="file" id="input_foto" hidden accept="image/*" onchange="subirFoto()">
                 
-                <div class="section-title">SEGURIDAD Y CONTACTO</div>
-                <div class="group"><label>Sangre</label><input type="text" id="tipo_sangre"></div>
-                <div class="group"><label>Talla</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
-                <div class="group"><label>Teléfono</label><input type="tel" id="telefono"></div>
-                <div class="group"><label>Contacto Emergencia</label><input type="text" id="emergencia_nombre"></div>
-                <div class="group"><label>Tel. Emergencia</label><input type="tel" id="emergencia_tel"></div>
-                <div class="group full-width"><label>Alergias / Notas</label><input type="text" id="alergias"></div>
+                <div id="trayectoria_box" style="margin-top:20px; text-align:left; display:none;">
+                    <label>HISTORIAL/TRAYECTORIA</label>
+                    <div id="historial_lista" style="font-size:10px; color:#64748b; background:#f8fafc; padding:8px; border-radius:8px;"></div>
+                </div>
             </div>
 
-            <button class="btn-add" style="width:100%; justify-content:center; padding:15px;" onclick="guardarEmpleado()">GUARDAR CAMBIOS</button>
+            <div style="flex:1;">
+                <input type="hidden" id="edit_id">
+                <div class="inputs-grid">
+                    <div class="section-title">DATOS DE CONTRATACIÓN</div>
+                    <div class="group"><label>Nombre Completo</label><input type="text" id="nombre"></div>
+                    <div class="group"><label>Área</label><select id="sel_area"></select></div>
+                    <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
+                    <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
+                    <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
+                    <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
+
+                    <div class="section-title">SEGURIDAD Y SALUD</div>
+                    <div class="group"><label>Tipo Sanguíneo</label><input type="text" id="tipo_sangre" placeholder="O+, A-, etc."></div>
+                    <div class="group"><label>Talla Playera</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
+                    <div class="group full-width"><label>Condiciones / Alergias</label><input type="text" id="alergias" placeholder="Describa si tiene alguna alergia o condición especial"></div>
+
+                    <div class="section-title">CONTACTO DE EMERGENCIA</div>
+                    <div class="group"><label>Nombre Contacto</label><input type="text" id="emergencia_nombre"></div>
+                    <div class="group"><label>Teléfono Contacto</label><input type="tel" id="emergencia_tel"></div>
+                    <div class="group full-width"><label>Dirección Particular</label><input type="text" id="direccion"></div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="btn-add" style="flex:1; justify-content:center;" onclick="guardarEmpleado()">GUARDAR INFORMACIÓN</button>
+                    <button class="btn-nav" onclick="cerrarModal()">CERRAR</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
     let db_empleados = [];
+    let cat_rutas = [];
     let chartRadar;
     let currentEmpId = null;
 
     async function init() {
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
-        
-        const fill = (id, data) => {
+        const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
+        cat_rutas = rutas || [];
+
+        const fill = (id, data, esFiltro = false) => {
             const s = document.getElementById(id);
-            if(s) {
-                s.innerHTML = '<option value="">Seleccione...</option>';
-                data.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
-            }
+            if(!s) return;
+            s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
+            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
         };
 
-        fill('sel_area', areas); fill('f_area', areas);
-        fill('sel_puesto', puestos);
+        fill('sel_area', areas); fill('sel_puesto', puestos); fill('sel_ruta', rutas);
+        fill('f_area', areas, true);
+
         await listarEmpleados();
     }
 
     async function listarEmpleados() {
-        const { data } = await client.from('rh_empleados').select('*, rh_areas(nombre), rh_puestos(nombre)').order('nombre_completo');
-        db_empleados = data.map(e => ({
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre), rh_puestos(nombre)').order('nombre_completo');
+        db_empleados = emps.map(e => ({
             ...e,
-            area_txt: e.rh_areas?.nombre || '--',
-            puesto_txt: e.rh_puestos?.nombre || '--',
-            anti: calcularAntiguedad(e.fecha_ingreso)
+            area_txt: e.rh_areas?.nombre || '-',
+            puesto_txt: e.rh_puestos?.nombre || '-',
+            antiguedad: calcularAntiguedad(e.fecha_ingreso)
         }));
         aplicarFiltros();
     }
@@ -195,67 +214,80 @@
     function aplicarFiltros() {
         const n = document.getElementById('f_nombre').value.toLowerCase();
         const a = document.getElementById('f_area').value;
-        const filtrados = db_empleados.filter(e => (!n || e.nombre_completo.toLowerCase().includes(n)) && (!a || e.area_id == a));
+        const s = document.getElementById('f_estatus').value;
+        const filtrados = db_empleados.filter(e => (!n || e.nombre_completo.toLowerCase().includes(n)) && (!a || e.area_id == a) && (!s || e.estatus == s));
         
-        document.getElementById('lista_empleados').innerHTML = filtrados.map(e => `
+        const tbody = document.getElementById('lista_empleados');
+        tbody.innerHTML = filtrados.map(e => `
             <tr onclick="cargarAnalisis('${e.id}')">
                 <td><b>${e.nombre_completo}</b></td>
-                <td>${e.area_txt}<br><small>${e.puesto_txt}</small></td>
-                <td>${e.anti}</td>
+                <td>${e.area_txt}</td>
+                <td>${e.puesto_txt}</td>
+                <td>${e.fecha_ingreso || '-'}</td>
+                <td>${e.antiguedad}</td>
+                <td>${cat_rutas.find(r => r.id == e.ruta_transporte)?.nombre || '-'}</td>
                 <td>T${e.turno_id}</td>
-                <td><span class="status-badge status-activo">${e.estatus}</span></td>
+                <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
             </tr>`).join('');
     }
 
-    function actualizarTodo() {
-        if(currentEmpId) cargarAnalisis(currentEmpId);
-    }
+    function actualizarAnalisisSiHaySeleccion() { if(currentEmpId) cargarAnalisis(currentEmpId); }
 
     async function cargarAnalisis(id) {
         const emp = db_empleados.find(e => e.id == id);
         currentEmpId = id;
         document.getElementById('dash_analisis').style.display = 'grid';
 
-        // Lógica de fechas
-        let desde = document.getElementById('f_desde').value;
-        let hasta = document.getElementById('f_hasta').value;
-        if(!desde) {
+        let fDesde = document.getElementById('f_desde').value;
+        let fHasta = document.getElementById('f_hasta').value;
+        if(!fDesde) {
             const d = new Date();
-            desde = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
-            hasta = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+            fDesde = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+            fHasta = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
         }
-        document.getElementById('rango_label').innerText = `${desde} / ${hasta}`;
 
-        // Cargar Datos Visuales
+        document.getElementById('rango_texto').innerText = `${fDesde} / ${fHasta}`;
         document.getElementById('view_nombre').innerText = emp.nombre_completo;
-        document.getElementById('view_puesto').innerText = emp.puesto_txt;
-        document.getElementById('view_anti').innerText = emp.anti;
-        document.getElementById('view_sangre').innerText = emp.tipo_sangre || 'N/A';
+        document.getElementById('view_puesto').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
+        document.getElementById('view_fecha').innerText = emp.fecha_ingreso || '--';
+        document.getElementById('view_anti').innerText = emp.antiguedad;
         document.getElementById('view_talla').innerText = emp.talla_playera || '--';
+        document.getElementById('view_sangre').innerText = emp.tipo_sangre || '--';
+        document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-        // Cálculos Reales
-        // 1. Asistencia y Puntualidad
-        const { data: asist } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', desde).lte('fecha', hasta);
-        const tot = asist?.length || 0;
-        const asistPct = tot > 0 ? ((asist.filter(a => a.estado !== 'FALTA').length / tot) * 100).toFixed(1) : 0;
-        const puntPct = tot > 0 ? ((asist.filter(a => a.estado === 'ASISTENCIA').length / tot) * 100).toFixed(1) : 0;
+        // 1. Yield (Calidad)
+        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
+        let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
+        const yieldVal = ti > 0 ? ((1 - (td/ti)) * 100).toFixed(1) : 100;
+        document.getElementById('val_yield').innerText = yieldVal + '%';
 
-        // 2. Yield
-        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', desde).lte('fecha', hasta);
-        let ins = 0, def = 0; prod?.forEach(p => { ins += p.cant_inspeccionada; def += p.cant_defectuosa; });
-        const yieldVal = ins > 0 ? ((1 - (def/ins)) * 100).toFixed(1) : 100;
+        // 2. ASISTENCIA Y PUNTUALIDAD REAL
+        // Suponiendo tabla 'rh_asistencia' con columnas: empleado_id, fecha, estado ('ASISTENCIA', 'FALTA', 'RETARDO')
+        const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        
+        const totalDias = asistData?.length || 0;
+        const asistencias = asistData?.filter(a => a.estado !== 'FALTA').length || 0;
+        const puntualidadCount = asistData?.filter(a => a.estado === 'ASISTENCIA').length || 0; // Solo los que no tienen retardo ni falta
 
-        // 3. 5S
-        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', desde).lte('fecha', hasta);
-        const score5s = fives?.length > 0 ? (fives.reduce((a,b) => a + b.puntuacion, 0)/fives.length).toFixed(1) : 0;
+        const asistPct = totalDias > 0 ? ((asistencias / totalDias) * 100).toFixed(1) : 0;
+        const puntPct = asistencias > 0 ? ((puntualidadCount / asistencias) * 100).toFixed(1) : 0;
 
-        // UI
         document.getElementById('val_asistencia').innerText = asistPct + '%';
         document.getElementById('val_puntualidad').innerText = puntPct + '%';
-        document.getElementById('val_yield').innerText = yieldVal + '%';
+
+        // 3. 5'S Promedio
+        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        const score5s = fives?.length > 0 ? (fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1) : 0;
         document.getElementById('val_5s').innerText = score5s;
 
-        renderRadar(yieldVal, asistPct, (score5s*20), 70, puntPct);
+        // 4. Versatilidad (Matriz)
+        const { data: mat } = await client.from('rh_matriz_entrenamiento').select('id').eq('empleado_id', id).eq('nivel', 'EXPERTO');
+        const { count: procTotales } = await client.from('rh_procesos_area').select('*', { count: 'exact', head: true }).eq('area_id', emp.area_id);
+        const versVal = procTotales > 0 ? ((mat.length / procTotales) * 100).toFixed(0) : 0;
+        document.getElementById('val_versatilidad').innerText = versVal + '%';
+
+        renderRadar(yieldVal, asistPct, (score5s*20), versVal, puntPct);
+        window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
     function renderRadar(y, a, s, v, p) {
@@ -266,60 +298,46 @@
             data: {
                 labels: ['Calidad', 'Asistencia', '5\'S', 'Versatilidad', 'Puntualidad'],
                 datasets: [{
+                    label: 'Puntaje %',
                     data: [y, a, s, v, p],
                     backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb'
                 }]
             },
-            options: { plugins: { legend: { display: false } }, scales: { r: { min: 0, max: 100 } } }
+            options: { scales: { r: { suggestedMin: 0, suggestedMax: 100 } } }
         });
     }
 
-    function editarActual() {
-        if(currentEmpId) {
-            const emp = db_empleados.find(e => e.id == currentEmpId);
-            document.getElementById('edit_id').value = emp.id;
-            document.getElementById('nombre').value = emp.nombre_completo;
-            document.getElementById('sel_area').value = emp.area_id || "";
-            document.getElementById('sel_puesto').value = emp.puesto_id || "";
-            document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
-            document.getElementById('alergias').value = emp.alergias || "";
-            document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || "";
-            document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
-            document.getElementById('modalRegistro').style.display = 'block';
-        }
-    }
+    async function cargarFormulario(id) {
+        const emp = db_empleados.find(e => e.id == id);
+        document.getElementById('edit_id').value = emp.id;
+        document.getElementById('nombre').value = emp.nombre_completo;
+        document.getElementById('sel_area').value = emp.area_id || "";
+        document.getElementById('sel_puesto').value = emp.puesto_id || "";
+        document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
+        document.getElementById('alergias').value = emp.alergias || "";
+        document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || "";
+        document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
+        document.getElementById('img_preview').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        
+        // Historial
+        const { data: hist } = await client.from('rh_historial_puestos').select('*').eq('empleado_id', id).order('fecha', {ascending:false});
+        document.getElementById('historial_lista').innerHTML = hist?.length ? hist.map(h => `<div>${h.fecha}: ${h.puesto_nuevo}</div>`).join('') : 'Sin movimientos.';
+        document.getElementById('trayectoria_box').style.display = 'block';
 
-    function abrirModal() {
-        document.getElementById('edit_id').value = "";
-        document.querySelectorAll('#modalRegistro input, #modalRegistro select').forEach(i => i.value = "");
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
-
-    async function guardarEmpleado() {
-        const id = document.getElementById('edit_id').value;
-        const obj = {
-            nombre_completo: document.getElementById('nombre').value,
-            area_id: document.getElementById('sel_area').value,
-            puesto_id: document.getElementById('sel_puesto').value,
-            tipo_sangre: document.getElementById('tipo_sangre').value,
-            alergias: document.getElementById('alergias').value,
-            emergencia_nombre: document.getElementById('emergencia_nombre').value,
-            emergencia_tel: document.getElementById('emergencia_tel').value,
-            estatus: document.getElementById('sel_estatus').value
-        };
-
-        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
-        if(!error) { alert("¡Guardado!"); cerrarModal(); listarEmpleados(); }
-    }
+    function abrirModal() { resetForm(); document.getElementById('modalRegistro').style.display = 'block'; }
+    function resetForm() { document.querySelectorAll('#modalRegistro input, #modalRegistro select').forEach(i => i.value = ""); }
 
     function calcularAntiguedad(f) {
-        if(!f) return "--";
+        if(!f) return "-";
         const ini = new Date(f), hoy = new Date();
         let a = hoy.getFullYear() - ini.getFullYear();
-        if (hoy.getMonth() < ini.getMonth()) a--;
-        return a + " años";
+        let m = hoy.getMonth() - ini.getMonth();
+        if (m < 0) { a--; m += 12; }
+        return a > 0 ? `${a}a ${m}m` : `${m}m`;
     }
 
     document.addEventListener('DOMContentLoaded', init);
