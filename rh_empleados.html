@@ -46,8 +46,14 @@
         .status-baja { background: #fee2e2; color: #991b1b; }
         .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
         
-        /* Estilo para los días disponibles */
         .vacation-box { background: #f0f9ff; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; margin-top: 10px; text-align: center; }
+
+        /* Estilo para el botón de silueta en el modal */
+        .photo-upload-container { display: flex; justify-content: center; margin-bottom: 25px; }
+        .photo-btn { position: relative; width: 120px; height: 120px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px dashed #cbd5e1; cursor: pointer; overflow: hidden; transition: all 0.3s; }
+        .photo-btn:hover { border-color: var(--accent); background: #f1f5f9; }
+        .photo-btn i.fa-user { font-size: 70px; color: #94a3b8; }
+        .photo-overlay { position: absolute; bottom: 0; background: rgba(15, 23, 42, 0.6); width: 100%; text-align: center; padding: 4px 0; }
     </style>
 </head>
 <body>
@@ -86,6 +92,7 @@
                 <button class="btn-nav" style="width:100%; justify-content:center; margin-top:15px; border-color:var(--accent); color:var(--accent);" onclick="editarActual()">EDITAR FICHA</button>
             </div>
         </div>
+
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <label style="font-weight:bold; color:var(--accent);">DESEMPEÑO GLOBAL</label>
@@ -139,6 +146,17 @@
             <h3 id="modal_titulo">Información del Personal</h3>
             <button onclick="cerrarModal()" style="border:none; background:none; font-size:30px; cursor:pointer;">&times;</button>
         </div>
+
+        <div class="photo-upload-container">
+            <div class="photo-btn" onclick="document.getElementById('input_foto').click()">
+                <i class="fas fa-user"></i>
+                <div class="photo-overlay">
+                    <i class="fas fa-camera" style="color: white; font-size: 12px;"></i>
+                </div>
+                <input type="file" id="input_foto" style="display: none;" accept="image/*">
+            </div>
+        </div>
+
         <input type="hidden" id="edit_id">
         <div class="inputs-grid">
             <div class="section-title">LABORALES</div>
@@ -245,7 +263,6 @@
         const emp = db_empleados.find(e => e.id == id);
         currentEmpId = id;
         document.getElementById('dash_analisis').style.display = 'grid';
-        
         const fDesde = document.getElementById('f_desde').value;
         const fHasta = document.getElementById('f_hasta').value;
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
@@ -257,11 +274,8 @@
         document.getElementById('view_talla').innerText = emp.talla_playera || '--';
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
-
-        // CARGAR DÍAS DISPONIBLES (Supone que tienes la columna dias_disponibles en rh_empleados)
         document.getElementById('view_dias_disponibles').innerText = emp.vacaciones_disponibles || '0';
 
-        // Cargar otras métricas (igual que antes)
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
         let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? ((1 - (td/ti)) * 100).toFixed(1) : 100;
@@ -284,7 +298,6 @@
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
-    // ... Las funciones de apoyo (renderRadar, exportarExcel, modal, etc.) se mantienen igual ...
     function renderRadar(y, a, s, v, p) {
         const ctx = document.getElementById('chartRadar').getContext('2d');
         if(chartRadar) chartRadar.destroy();
@@ -363,7 +376,6 @@
         return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
     }
 
-    function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId); }
     async function exportarExcel() {
         if(db_filtrados.length === 0) return alert("No hay datos para exportar");
         const dataParaExcel = db_filtrados.map(e => ({
@@ -387,6 +399,7 @@
         XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
+    function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId); }
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
