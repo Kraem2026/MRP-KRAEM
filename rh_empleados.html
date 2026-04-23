@@ -3,85 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión 360 y Excel</title>
+    <title>KRAEM | Gestión 360 y Transporte</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 15px; color: var(--text); margin: 0; }
         .container { max-width: 1600px; margin: auto; }
 
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-add { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .btn-excel { background: #166534; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btns { display: flex; gap: 10px; }
+        .btn { padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        .btn-excel { background: #166534; color: white; }
+        .btn-add { background: var(--accent); color: white; }
 
-        /* DASHBOARD */
-        .dashboard-360 { display: grid; grid-template-columns: 350px 1fr 300px; gap: 20px; margin-bottom: 20px; display: none; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
-        
-        /* TABLA ORDENADA POR COLUMNAS */
-        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
+        /* Filtros en una fila */
+        .filters-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+        label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; display: block; }
+        select, input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+
+        /* Tabla Estilo Columnas Independientes */
+        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; border-bottom: 2px solid var(--border); text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
         tr:hover { background: #f8fafc; cursor: pointer; }
 
-        /* MODAL */
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-        .modal-content { background: white; width: 95%; max-width: 900px; margin: 2% auto; padding: 25px; border-radius: 15px; max-height: 90vh; overflow-y: auto; }
-        .inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-        .group { display: flex; flex-direction: column; }
-        .group.full-width { grid-column: 1 / -1; }
-        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-        input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
-
-        .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
-        .status-ACTIVO { background: #dcfce7; color: #166534; }
-        .status-BAJA { background: #fee2e2; color: #991b1b; }
+        .status { padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 10px; }
+        .ACTIVO { background: #dcfce7; color: #166534; }
+        .BAJA { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="nav-header">
-        <div style="display:flex; gap:15px; align-items:center;">
-            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
-            <h2 style="margin:0;">Gestión de Personal</h2>
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXPORTAR FILTRADOS</button>
-            <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
+    <div class="header">
+        <h2>Gestión de Personal Kraem</h2>
+        <div class="btns">
+            <button class="btn btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+            <button class="btn btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> Nuevo Empleado</button>
         </div>
     </div>
 
-    <div id="dash_analisis" class="dashboard-360">
-        <div class="card" id="ficha_lateral">
-            </div>
-        <div class="card">
-            <canvas id="chartRadar"></canvas>
-        </div>
-        <div class="card" id="metricas_derecha">
-            </div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px;">
-        <div class="inputs-grid">
-            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" oninput="aplicarFiltros()"></div>
-            <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
-            <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()"><option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-            <div class="group"><label>Desde (Evaluación)</label><input type="date" id="f_desde" onchange="actualizarAnalisisSiHaySeleccion()"></div>
-            <div class="group"><label>Hasta (Evaluación)</label><input type="date" id="f_hasta" onchange="actualizarAnalisisSiHaySeleccion()"></div>
+    <div class="filters-card">
+        <div class="filters-grid">
+            <div><label>Nombre</label><input type="text" id="f_nombre" oninput="aplicarFiltros()"></div>
+            <div><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
+            <div><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
+            <div><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()">
+                <option value="">Todos</option><option value="1">1</option><option value="2">2</option>
+            </select></div>
+            <div><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()">
+                <option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option>
+            </select></div>
         </div>
     </div>
 
     <div class="table-card">
-        <table id="tabla_empleados_datos">
+        <table>
             <thead>
                 <tr>
                     <th>Nombre</th>
@@ -93,66 +76,34 @@
                     <th>Estatus</th>
                 </tr>
             </thead>
-            <tbody id="lista_empleados">
-                <tr><td colspan="7" style="text-align:center;">Cargando datos...</td></tr>
-            </tbody>
+            <tbody id="lista_empleados"></tbody>
         </table>
-    </div>
-</div>
-
-<div id="modalRegistro" class="modal">
-    <div class="modal-content">
-        <h3 id="modal_titulo">Ficha de Empleado</h3>
-        <input type="hidden" id="edit_id">
-        <div class="inputs-grid">
-            <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
-            <div class="group"><label>Área</label><select id="sel_area"></select></div>
-            <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
-            <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
-            <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
-            <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
-            <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-            <div class="group"><label>Talla Playera</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
-            <div class="group"><label>Tipo Sangre</label><input type="text" id="tipo_sangre"></div>
-            <div class="group full-width"><label>Dirección Particular</label><input type="text" id="direccion"></div>
-        </div>
-        <div style="margin-top:20px; display:flex; gap:10px;">
-            <button class="btn-add" style="flex:1;" onclick="guardarEmpleado()">GUARDAR</button>
-            <button class="btn-nav" onclick="cerrarModal()">CANCELAR</button>
-        </div>
     </div>
 </div>
 
 <script>
     let db_empleados = [];
     let filtrados_global = [];
-    let currentEmpId = null;
 
     async function init() {
-        try {
-            const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
-            const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
-            const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
+        // Cargar Áreas y Rutas para los selects
+        const { data: a } = await client.from('rh_areas').select('*').order('nombre');
+        const { data: r } = await client.from('rh_rutas').select('*').order('nombre');
 
-            const fill = (id, data, esFiltro = false) => {
-                const s = document.getElementById(id);
-                if(!s) return;
-                s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
-                data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
-            };
+        const fill = (id, data) => {
+            const s = document.getElementById(id);
+            s.innerHTML = '<option value="">Todos</option>';
+            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
+        };
 
-            fill('sel_area', areas); fill('f_area', areas, true);
-            fill('sel_puesto', puestos);
-            fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
+        fill('f_area', a);
+        fill('f_ruta', r);
 
-            await listarEmpleados();
-        } catch (e) {
-            alert("Error de conexión: " + e.message);
-        }
+        await listarEmpleados();
     }
 
     async function listarEmpleados() {
-        // Traemos datos básicos y nombres de las tablas relacionadas
+        // Consultamos incluyendo las relaciones de nombres
         const { data, error } = await client.from('rh_empleados').select(`
             *,
             rh_areas(nombre),
@@ -161,49 +112,54 @@
         `).order('nombre_completo');
 
         if (error) {
-            console.error(error);
-            document.getElementById('lista_empleados').innerHTML = `<tr><td colspan="7" style="color:red">Error: ${error.message}</td></tr>`;
-            return;
+            console.error("Error RLS o Relación:", error);
+            // Si falla la relación por RLS, traemos los datos planos para no bloquear la app
+            const { data: dataPlana } = await client.from('rh_empleados').select('*');
+            db_empleados = dataPlana.map(e => procesarEmpleado(e));
+        } else {
+            db_empleados = data.map(e => procesarEmpleado(e));
         }
-
-        db_empleados = data.map(e => ({
-            ...e,
-            area_txt: e.rh_areas?.nombre || 'N/A',
-            puesto_txt: e.rh_puestos?.nombre || 'N/A',
-            ruta_txt: e.rh_rutas?.nombre || 'N/A',
-            antiguedad_txt: calcularAntiguedad(e.fecha_ingreso)
-        }));
-
+        
         aplicarFiltros();
+    }
+
+    function procesarEmpleado(e) {
+        return {
+            ...e,
+            area_n: e.rh_areas?.nombre || 'N/A',
+            puesto_n: e.rh_puestos?.nombre || 'N/A',
+            ruta_n: e.rh_rutas?.nombre || 'N/A',
+            anti_n: calcularAntiguedad(e.fecha_ingreso)
+        };
     }
 
     function aplicarFiltros() {
         const n = document.getElementById('f_nombre').value.toLowerCase();
         const a = document.getElementById('f_area').value;
-        const t = document.getElementById('f_turno').value;
         const r = document.getElementById('f_ruta').value;
+        const t = document.getElementById('f_turno').value;
         const s = document.getElementById('f_estatus').value;
 
         filtrados_global = db_empleados.filter(e => 
             (!n || e.nombre_completo.toLowerCase().includes(n)) &&
             (!a || e.area_id == a) &&
-            (!t || e.turno_id == t) &&
             (!r || e.ruta_id == r) &&
+            (!t || e.turno_id == t) &&
             (!s || e.estatus == s)
         );
 
-        const html = filtrados_global.map(e => `
-            <tr onclick="cargarAnalisis('${e.id}')">
+        const tbody = document.getElementById('lista_empleados');
+        tbody.innerHTML = filtrados_global.map(e => `
+            <tr>
                 <td><b>${e.nombre_completo}</b></td>
-                <td>${e.area_txt}</td>
-                <td>${e.puesto_txt}</td>
-                <td>${e.ruta_txt}</td>
+                <td>${e.area_n}</td>
+                <td>${e.puesto_n}</td>
+                <td>${e.ruta_n}</td>
                 <td>Turno ${e.turno_id}</td>
-                <td>${e.antiguedad_txt}</td>
-                <td><span class="status-badge status-${e.estatus}">${e.estatus}</span></td>
-            </tr>`).join('');
-        
-        document.getElementById('lista_empleados').innerHTML = html || '<tr><td colspan="7">No hay resultados</td></tr>';
+                <td>${e.anti_n}</td>
+                <td><span class="status ${e.estatus}">${e.estatus}</span></td>
+            </tr>
+        `).join('');
     }
 
     function calcularAntiguedad(f) {
@@ -212,62 +168,26 @@
         let a = hoy.getFullYear() - ini.getFullYear();
         let m = hoy.getMonth() - ini.getMonth();
         if (m < 0) { a--; m += 12; }
-        if (a > 0) return `${a} años y ${m} m`;
-        return `${m} meses`;
+        return a > 0 ? `${a} años, ${m} m` : `${m} meses`;
     }
 
     function exportarExcel() {
-        if(filtrados_global.length === 0) return alert("No hay datos para exportar");
-        
-        const datosExcel = filtrados_global.map(e => ({
-            Nombre: e.nombre_completo,
-            Area: e.area_txt,
-            Puesto: e.puesto_txt,
-            Ruta: e.ruta_txt,
+        const dataReporte = filtrados_global.map(e => ({
+            Empleado: e.nombre_completo,
+            Area: e.area_n,
+            Puesto: e.puesto_n,
+            Ruta: e.ruta_n,
             Turno: e.turno_id,
-            Ingreso: e.fecha_ingreso,
-            Antiguedad: e.antiguedad_txt,
+            Antigüedad: e.anti_n,
             Estatus: e.estatus,
-            Direccion: e.direccion || '',
-            Talla: e.talla_playera || '',
-            Sangre: e.tipo_sangre || ''
+            Ingreso: e.fecha_ingreso
         }));
 
-        const ws = XLSX.utils.json_to_sheet(datosExcel);
+        const ws = XLSX.utils.json_to_sheet(dataReporte);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Personal");
         XLSX.writeFile(wb, "Reporte_Personal_Kraem.xlsx");
     }
-
-    function abrirModal() {
-        document.getElementById('edit_id').value = "";
-        document.querySelectorAll('#modalRegistro input, #modalRegistro select').forEach(i => i.value = "");
-        document.getElementById('modalRegistro').style.display = 'block';
-    }
-
-    function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
-
-    async function guardarEmpleado() {
-        const id = document.getElementById('edit_id').value;
-        const obj = {
-            nombre_completo: document.getElementById('nombre').value,
-            area_id: document.getElementById('sel_area').value || null,
-            puesto_id: document.getElementById('sel_puesto').value || null,
-            ruta_id: document.getElementById('sel_ruta').value || null,
-            turno_id: document.getElementById('sel_turno').value,
-            fecha_ingreso: document.getElementById('fecha_ingreso').value,
-            tipo_sangre: document.getElementById('tipo_sangre').value,
-            talla_playera: document.getElementById('sel_talla').value,
-            direccion: document.getElementById('direccion').value,
-            estatus: document.getElementById('sel_estatus').value
-        };
-
-        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
-        if(!error) { alert("Guardado"); cerrarModal(); listarEmpleados(); } else alert("Error: " + error.message);
-    }
-
-    // El resto de funciones (cargarAnalisis, renderRadar) se mantienen igual que en la versión anterior.
-    // Solo asegúrate de copiar también la lógica de cargarAnalisis si quieres el dashboard 360 funcional.
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
