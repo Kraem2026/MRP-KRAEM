@@ -16,6 +16,7 @@
         .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
         .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
         .btn-add { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .btn-excel { background: #166534; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 
         .dashboard-360 { display: grid; grid-template-columns: 350px 1fr 300px; gap: 20px; margin-bottom: 20px; display: none; }
         @media (max-width: 1100px) { .dashboard-360 { grid-template-columns: 1fr; } }
@@ -55,6 +56,7 @@
             <h2 style="margin:0;">Gestión de Personal Kraem</h2>
         </div>
         <div style="display:flex; gap:10px;">
+            <button class="btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXPORTAR</button>
             <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
         </div>
     </div>
@@ -66,6 +68,7 @@
             <p id="view_puesto_area" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
             <div style="text-align:left; font-size:13px; line-height: 1.6;">
+                <p><strong><i class="fas fa-fingerprint"></i> NSS:</strong> <span id="view_nss">--</span></p>
                 <p><strong><i class="fas fa-calendar"></i> Antigüedad:</strong> <span id="view_anti">--</span></p>
                 <p><strong><i class="fas fa-tshirt"></i> Talla:</strong> <span id="view_talla">--</span></p>
                 <p><strong><i class="fas fa-clock"></i> Ingreso:</strong> <span id="view_ingreso">--</span></p>
@@ -131,6 +134,7 @@
         <div class="inputs-grid">
             <div class="section-title">LABORALES</div>
             <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
+            <div class="group"><label># Seguro Social (NSS)</label><input type="text" id="nss"></div>
             <div class="group"><label>Área</label><select id="sel_area"></select></div>
             <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
             <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
@@ -154,6 +158,7 @@
 
 <script>
     let db_empleados = [];
+    let db_filtrados = []; // Para saber qué exportar
     let chartRadar;
     let currentEmpId = null;
 
@@ -207,7 +212,7 @@
         const r = document.getElementById('f_ruta').value;
         const s = document.getElementById('f_estatus').value;
 
-        const filtrados = db_empleados.filter(e => 
+        db_filtrados = db_empleados.filter(e => 
             (!n || e.nombre_completo.toLowerCase().includes(n)) && 
             (!a || e.area_id == a) &&
             (!t || e.turno_id == t) &&
@@ -215,7 +220,7 @@
             (!s || e.estatus == s)
         );
         
-        document.getElementById('lista_empleados').innerHTML = filtrados.map(e => `
+        document.getElementById('lista_empleados').innerHTML = db_filtrados.map(e => `
             <tr onclick="cargarAnalisis('${e.id}')">
                 <td><b>${e.nombre_completo}</b></td>
                 <td>${e.area_txt}</td>
@@ -225,6 +230,31 @@
                 <td>${e.ruta_txt}</td>
                 <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus || 'N/A'}</span></td>
             </tr>`).join('');
+    }
+
+    async function exportarExcel() {
+        if(db_filtrados.length === 0) return alert("No hay datos para exportar");
+        
+        const dataParaExcel = db_filtrados.map(e => ({
+            "Nombre Completo": e.nombre_completo,
+            "NSS": e.nss || '',
+            "Área": e.area_txt,
+            "Puesto": e.puesto_txt,
+            "Antigüedad": e.antiguedad_txt,
+            "Turno": e.turno_id,
+            "Ruta": e.ruta_txt,
+            "Estatus": e.estatus,
+            "Fecha Ingreso": e.fecha_ingreso,
+            "Talla": e.talla_playera,
+            "Tipo Sangre": e.tipo_sangre,
+            "Contacto Emergencia": e.emergencia_nombre,
+            "Tel Emergencia": e.emergencia_tel
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataParaExcel);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Personal");
+        XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId); }
@@ -238,6 +268,7 @@
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
         document.getElementById('view_nombre').innerText = emp.nombre_completo;
+        document.getElementById('view_nss').innerText = emp.nss || '--';
         document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
         document.getElementById('view_anti').innerText = emp.antiguedad_txt;
         document.getElementById('view_talla').innerText = emp.talla_playera || '--';
@@ -254,7 +285,6 @@
         const puntPct = totalDias > 0 ? ((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1) : 0;
 
         const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        // CORRECCIÓN 1: Asegurar que 5'S se maneje como porcentaje 0-100 para la gráfica
         const score5s = fives?.length > 0 ? (fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1) : 0;
 
         document.getElementById('val_yield').innerText = yieldVal + '%';
@@ -263,7 +293,6 @@
         document.getElementById('val_5s').innerText = score5s + '%';
         document.getElementById('val_versatilidad').innerText = "80%"; 
 
-        // Enviar score5s directamente ya que ahora es base 100
         renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
@@ -289,6 +318,7 @@
         const emp = db_empleados.find(e => e.id == currentEmpId);
         document.getElementById('edit_id').value = emp.id;
         document.getElementById('nombre').value = emp.nombre_completo;
+        document.getElementById('nss').value = emp.nss || "";
         document.getElementById('sel_area').value = emp.area_id || "";
         document.getElementById('sel_puesto').value = emp.puesto_id || "";
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
@@ -314,9 +344,9 @@
 
     async function guardarEmpleado() {
         const id = document.getElementById('edit_id').value;
-        // CORRECCIÓN 2: Mapeo de columnas para asegurar que coincidan con la DB y evitar errores de cache
         const obj = {
             nombre_completo: document.getElementById('nombre').value,
+            nss: document.getElementById('nss').value,
             area_id: document.getElementById('sel_area').value || null,
             puesto_id: document.getElementById('sel_puesto').value || null,
             fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
