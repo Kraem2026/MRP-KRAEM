@@ -3,57 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Reporte Mensual</title>
+    <title>KRAEM | Reporte Mensual Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .controls { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; }
-        select, input { padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; }
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; align-items: center; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        select, input { padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background: #f1f5f9; padding: 12px; text-align: center; font-size: 11px; }
-        td { padding: 10px; border-bottom: 1px solid #f1f5f9; text-align: center; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th { background: #f8fafc; padding: 10px 5px; text-align: center; font-size: 10px; border: 1px solid #e2e8f0; color: #64748b; }
+        td { padding: 8px 4px; border: 1px solid #f1f5f9; text-align: center; font-size: 11px; }
+        
+        .domingo { background: #f1f5f9; color: #94a3b8; }
+        .emp-name { text-align: left; font-weight: bold; padding-left: 10px; position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid #e2e8f0; }
         
         .asistencia { color: #22c55e; font-weight: bold; }
         .falta { color: #ef4444; font-weight: bold; }
-        .vacaciones { color: #2563eb; font-weight: bold; }
-        .resumen-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .vacaciones { color: #2563eb; font-weight: bold; background: #eff6ff; display: block; border-radius: 4px; }
+        
+        .btn-nav { background: white; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        @media print { .controls { display: none; } .card { border: none; box-shadow: none; } }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="display:flex; justify-content: space-between; align-items: center;">
-        <h2>Reporte Mensual de Asistencia</h2>
-        <button onclick="window.print()" class="btn-nav" style="padding: 10px; cursor:pointer;"><i class="fas fa-print"></i> Imprimir Reporte</button>
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2 style="margin:0;">Reporte Mensual de Asistencia</h2>
+            <p style="font-size: 12px; color: #64748b; margin: 5px 0 0 0;">Gestión de incidencias y vacaciones KRAEM</p>
+        </div>
+        <button onclick="window.print()" class="btn-nav"><i class="fas fa-print"></i> Imprimir</button>
     </div>
 
     <div class="controls">
-        <label>Mes:</label>
-        <select id="mes_filtro" onchange="generarReporte()">
-            <option value="0">Enero</option><option value="1">Febrero</option>
-            <option value="2">Marzo</option><option value="3" selected>Abril</option>
-            <option value="4">Mayo</option><option value="5">Junio</option>
-            <option value="6">Julio</option><option value="7">Agosto</option>
-            <option value="8">Septiembre</option><option value="9">Octubre</option>
-            <option value="10">Noviembre</option><option value="11">Diciembre</option>
-        </select>
-        <label>Año:</label>
-        <input type="number" id="anio_filtro" value="2026" onchange="generarReporte()" style="width: 80px;">
+        <div class="group"><label>Mes: </label>
+            <select id="mes_filtro" onchange="generarReporte()">
+                <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
+                <option value="3" selected>Abril</option><option value="4">Mayo</option><option value="5">Junio</option>
+                <option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option>
+                <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+            </select>
+        </div>
+        <div class="group"><label>Año: </label>
+            <input type="number" id="anio_filtro" value="2026" onchange="generarReporte()" style="width: 80px;">
+        </div>
     </div>
 
-    <div style="overflow-x: auto;">
+    <div style="overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0;">
         <table id="tabla_reporte">
             <thead>
-                <tr id="headers_fechas">
-                    </tr>
+                <tr id="headers_fechas"></tr>
             </thead>
-            <tbody id="cuerpo_reporte">
-                </tbody>
+            <tbody id="cuerpo_reporte"></tbody>
         </table>
     </div>
 </div>
@@ -62,51 +68,64 @@
     async function generarReporte() {
         const mes = parseInt(document.getElementById('mes_filtro').value);
         const anio = parseInt(document.getElementById('anio_filtro').value);
-        
-        // Calcular días del mes
         const ultimoDia = new Date(anio, mes + 1, 0).getDate();
+        
+        // 1. Generar Encabezados con día de la semana
         const headerRow = document.getElementById('headers_fechas');
-        headerRow.innerHTML = '<th>Empleado</th>';
-        
+        headerRow.innerHTML = '<th class="emp-name">Empleado</th>';
         for(let i=1; i<=ultimoDia; i++) {
-            headerRow.innerHTML += `<th>${i}</th>`;
+            const fecha = new Date(anio, mes, i);
+            const diaSem = fecha.getDay() === 0 ? 'D' : 
+                         fecha.getDay() === 6 ? 'S' : i;
+            headerRow.innerHTML += `<th class="${fecha.getDay() === 0 ? 'domingo' : ''}">${diaSem}<br><small>${i}</small></th>`;
         }
-        headerRow.innerHTML += '<th>Tot. Faltas</th>';
+        headerRow.innerHTML += '<th>Faltas</th>';
 
-        // Traer Empleados Activos
-        const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO');
-        
-        // Traer Asistencias del mes
+        // 2. Cargar Datos en paralelo
         const inicioMes = `${anio}-${(mes+1).toString().padStart(2,'0')}-01`;
         const finMes = `${anio}-${(mes+1).toString().padStart(2,'0')}-${ultimoDia}`;
-        
-        const { data: asist } = await client.from('rh_asistencias')
-            .select('empleado_id, fecha, estado')
-            .gte('fecha', inicioMes)
-            .lte('fecha', finMes);
 
+        const [resEmps, resAsist, resVacas] = await Promise.all([
+            client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo'),
+            client.from('rh_asistencia').select('empleado_id, fecha, estado').gte('fecha', inicioMes).lte('fecha', finMes),
+            client.from('rh_vacaciones').select('empleado_id, fecha_inicio, fecha_fin').or(`fecha_inicio.lte.${finMes},fecha_fin.gte.${inicioMes}`)
+        ]);
+
+        const emps = resEmps.data || [];
+        const asist = resAsist.data || [];
+        const vacas = resVacas.data || [];
+
+        // 3. Renderizar Tabla
         const tbody = document.getElementById('cuerpo_reporte');
         tbody.innerHTML = '';
 
         emps.forEach(e => {
-            let fila = `<tr><td style="text-align:left; font-weight:bold;">${e.nombre_completo}</td>`;
+            let fila = `<tr><td class="emp-name">${e.nombre_completo}</td>`;
             let contadorFaltas = 0;
 
             for(let d=1; d<=ultimoDia; d++) {
+                const fechaActual = new Date(anio, mes, d);
                 const fechaStr = `${anio}-${(mes+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+                
+                // Buscar si está en periodo de vacaciones
+                const esVacacion = vacas.some(v => v.empleado_id === e.id && fechaStr >= v.fecha_inicio && fechaStr <= v.fecha_fin);
+                
+                // Buscar registro de asistencia
                 const registro = asist.find(a => a.empleado_id === e.id && a.fecha === fechaStr);
                 
-                if(!registro) {
-                    fila += '<td>-</td>';
-                } else {
-                    let icon = '';
-                    if(registro.estado === 'ASISTENCIA') icon = '<span class="asistencia">A</span>';
-                    if(registro.estado === 'FALTA') { icon = '<span class="falta">F</span>'; contadorFaltas++; }
-                    if(registro.estado === 'VACACIONES') icon = '<span class="vacaciones">V</span>';
-                    fila += `<td>${icon}</td>`;
+                let celda = '-';
+                let claseExtra = fechaActual.getDay() === 0 ? 'domingo' : '';
+
+                if (esVacacion) {
+                    celda = '<span class="vacaciones">V</span>';
+                } else if (registro) {
+                    if(registro.estado === 'ASISTENCIA') celda = '<span class="asistencia">A</span>';
+                    if(registro.estado === 'FALTA') { celda = '<span class="falta">F</span>'; contadorFaltas++; }
                 }
+
+                fila += `<td class="${claseExtra}">${celda}</td>`;
             }
-            fila += `<td style="background:#fff1f2; font-weight:bold; color:#e11d48;">${contadorFaltas}</td></tr>`;
+            fila += `<td style="font-weight:bold; color:#e11d48; background:#fff1f2;">${contadorFaltas}</td></tr>`;
             tbody.innerHTML += fila;
         });
     }
