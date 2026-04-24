@@ -3,35 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Captura de Inspección Final</title>
+    <title>KRAEM | Sistema de Inspección de Calidad</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
-        .form-card { max-width: 550px; margin: auto; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .group { margin-bottom: 12px; position: relative; }
-        label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; box-sizing: border-box; background: #fff; }
-        .readonly { background: #f1f5f9; font-weight: bold; color: var(--primary); }
-        .autobox { position: absolute; width: 100%; background: white; border: 1px solid var(--border); z-index: 100; max-height: 150px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 0 0 8px 8px; }
-        .autobox div { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .autobox div:hover { background: var(--primary); color: white; }
-        .btn-save { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
-        hr { border: 0; border-top: 1px solid var(--border); margin: 15px 0; }
-        .badge-info { font-size: 10px; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+        :root { 
+            --primary: #1e40af; 
+            --accent: #2563eb; 
+            --bg: #f1f5f9; 
+            --card: #ffffff; 
+            --text: #0f172a; 
+            --border: #e2e8f0; 
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+        
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        
+        /* Contenedor Pro */
+        .form-card { 
+            max-width: 600px; margin: 40px auto; background: var(--card); 
+            padding: 30px; border-radius: 16px; border: 1px solid var(--border); 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+        }
+
+        /* Botón Regreso */
+        .nav-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .btn-back { 
+            text-decoration: none; color: #64748b; font-size: 14px; font-weight: 600; 
+            display: flex; align-items: center; gap: 8px; transition: color 0.2s;
+        }
+        .btn-back:hover { color: var(--primary); }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .group { margin-bottom: 15px; position: relative; }
+        
+        label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+        
+        input, select, textarea { 
+            width: 100%; padding: 12px; border: 1px solid var(--border); 
+            border-radius: 8px; font-size: 14px; box-sizing: border-box; 
+            background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        .readonly { background: #f8fafc; font-weight: bold; color: var(--primary); border-color: #cbd5e1; }
+        
+        /* Buscador de partes */
+        .autobox { 
+            position: absolute; width: 100%; background: white; border: 1px solid var(--border); 
+            z-index: 100; max-height: 200px; overflow-y: auto; display: none; 
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1); border-radius: 8px; margin-top: 5px;
+        }
+        .autobox div { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; display: flex; justify-content: space-between; }
+        .autobox div:hover { background: #eff6ff; color: var(--primary); }
+        .autobox b { color: var(--primary); }
+
+        .btn-save { 
+            width: 100%; padding: 16px; background: var(--primary); color: white; 
+            border: none; border-radius: 10px; font-weight: bold; font-size: 16px; 
+            cursor: pointer; margin-top: 20px; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-save:hover { background: #1e3a8a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2); }
+        
+        .section-title { 
+            font-size: 12px; font-weight: 900; color: var(--primary); 
+            margin: 25px 0 15px 0; border-bottom: 1px solid var(--border); padding-bottom: 5px;
+            display: flex; align-items: center; gap: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="form-card">
-    <h3 style="text-align: center; color: var(--primary); margin-top: 0;">Captura de Inspección KRAEM</h3>
+    <div class="nav-top">
+        <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-left"></i> VOLVER AL DASHBOARD</a>
+        <div style="font-size: 12px; font-weight: bold; color: var(--accent);">ID: PRODUCCIÓN-INS</div>
+    </div>
 
+    <h2 style="margin: 0 0 5px 0; color: var(--primary);">Registro de Inspección</h2>
+    <p style="margin: 0 0 25px 0; font-size: 14px; color: #64748b;">Asegura la calidad del producto y el desempeño del operador.</p>
+
+    <div class="section-title"><i class="fas fa-info-circle"></i> DATOS GENERALES</div>
     <div class="grid">
         <div class="group">
-            <label>Área</label>
+            <label>Área de Origen</label>
             <select id="area_select"></select>
         </div>
         <div class="group">
@@ -46,10 +104,10 @@
     <div class="grid">
         <div class="group">
             <label>Máquina</label>
-            <input type="text" id="maquina" placeholder="Ej. 25">
+            <input type="text" id="maquina" placeholder="Ej. INY-05">
         </div>
         <div class="group">
-            <label>Semana</label>
+            <label>Semana Fiscal</label>
             <input type="number" id="semana" class="readonly" readonly>
         </div>
     </div>
@@ -65,64 +123,64 @@
         </div>
     </div>
 
-    <hr>
-
+    <div class="section-title"><i class="fas fa-component-style"></i> PRODUCTO Y CANTIDADES</div>
     <div class="group">
-        <label>Buscar Producto (N/P o Nombre)</label>
-        <input type="text" id="part_input" placeholder="Ej: 12345 o 'Cover'..." autocomplete="off">
+        <label>Buscar por N/P o Descripción</label>
+        <input type="text" id="part_input" placeholder="Escriba el número de parte o nombre..." autocomplete="off">
         <div id="part_box" class="autobox"></div>
     </div>
 
     <div class="group">
-        <label>Descripción Confirmada</label>
+        <label>Descripción del Producto</label>
         <input type="text" id="desc_display" class="readonly" readonly>
     </div>
 
-    <hr>
-
     <div class="grid">
         <div class="group">
-            <label>Cant. Inspeccionada</label>
+            <label>Piezas Inspeccionadas</label>
             <input type="number" id="cant_total" value="0" oninput="calcular()">
         </div>
         <div class="group">
-            <label>Cant. Defectuosa</label>
-            <input type="number" id="cant_def" value="0" oninput="calcular()">
+            <label style="color: var(--danger);">Piezas Defectuosas</label>
+            <input type="number" id="cant_def" value="0" oninput="calcular()" style="border-color: #fecaca;">
         </div>
     </div>
 
-    <div class="grid">
-        <div class="group">
-            <label>Piezas OK</label>
-            <input type="number" id="preview_ok" class="readonly" readonly value="0">
+    <div class="grid" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+        <div class="group" style="margin:0">
+            <label>Previsualización OK</label>
+            <input type="number" id="preview_ok" class="readonly" readonly value="0" style="background:transparent; border:none; padding:0;">
         </div>
-        <div class="group">
+        <div class="group" style="margin:0">
             <label>% Rechazo</label>
-            <input type="text" id="porcentaje_def" class="readonly" readonly value="0%">
+            <input type="text" id="porcentaje_def" class="readonly" readonly value="0%" style="background:transparent; border:none; padding:0;">
         </div>
     </div>
 
+    <div class="section-title"><i class="fas fa-exclamation-triangle"></i> DEFECTO Y DISPOSICIÓN</div>
     <div class="grid">
         <div class="group">
             <label>Tipo de Defecto</label>
-            <select id="defect_select"></select>
+            <select id="defect_select" style="border-left: 4px solid var(--danger);"></select>
         </div>
         <div class="group">
-            <label>Disposición</label>
+            <label>Disposición Final</label>
             <select id="destino">
-                <option value="LIBERADO">LIBERADO (OK)</option>
-                <option value="RETRABAJO">RETRABAJO</option>
-                <option value="SCRAP">SCRAP / DESECHO</option>
+                <option value="LIBERADO">✅ LIBERADO</option>
+                <option value="RETRABAJO">🔄 RETRABAJO</option>
+                <option value="SCRAP">🗑️ SCRAP / DESECHO</option>
             </select>
         </div>
     </div>
 
     <div class="group">
-        <label>Comentarios</label>
-        <textarea id="notas" rows="2"></textarea>
+        <label>Comentarios de Calidad</label>
+        <textarea id="notas" rows="2" placeholder="Describa el hallazgo..."></textarea>
     </div>
 
-    <button class="btn-save" onclick="guardar()">GUARDAR REGISTRO</button>
+    <button class="btn-save" onclick="guardar()">
+        <i class="fas fa-check-circle"></i> GUARDAR REGISTRO DE CALIDAD
+    </button>
 </div>
 
 <script>
@@ -138,42 +196,36 @@
     async function init() {
         document.getElementById('semana').value = getWeekNumber(new Date());
 
-        // 1. CARGAR ÁREAS
+        // 1. Cargar Áreas
         const { data: areas } = await client.from('rh_areas').select('nombre').order('nombre');
         const sArea = document.getElementById('area_select');
-        sArea.innerHTML = '<option value="">Seleccione Área...</option>';
+        sArea.innerHTML = '<option value="">-- Seleccione --</option>';
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
 
-        // 2. CARGAR PERSONAL (DE TU MÓDULO RH)
+        // 2. Cargar Personal de RH
         const { data: personal } = await client.from('rh_empleados').select('nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
         const sInspector = document.getElementById('inspector_select');
         const sOperador = document.getElementById('operador_select');
-        
-        const personalOptions = '<option value="">Seleccione...</option>' + 
-            personal?.map(p => `<option value="${p.nombre_completo}">${p.nombre_completo}</option>`).join('');
-        
-        sInspector.innerHTML = personalOptions;
-        sOperador.innerHTML = personalOptions;
+        const personalHtml = '<option value="">-- Seleccione --</option>' + personal?.map(p => `<option value="${p.nombre_completo}">${p.nombre_completo}</option>`).join('');
+        sInspector.innerHTML = personalHtml;
+        sOperador.innerHTML = personalHtml;
 
-        // 3. CARGAR DEFECTOS (CON SOLUCIÓN DE VISIBILIDAD)
-        // Intentamos cargar de 'defects' o la tabla que uses para el listado
-        const { data: defs, error: errD } = await client.from('defects').select('*');
-        if(errD) console.error("Error en defectos:", errD);
-        
+        // 3. Cargar Defectos (CORRECCIÓN SEGÚN SQL)
+        const { data: defs, error } = await client.from('defects').select('Defect_name').order('Defect_name');
+        if(error) console.error("Error en tabla defects:", error);
+
         const sDef = document.getElementById('defect_select');
-        sDef.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
+        sDef.innerHTML = '<option value="NINGUNO">NINGUNO (PRODUCTO OK)</option>';
         defs?.forEach(d => {
-            // Buscamos la columna que tenga el nombre (ajustar si es necesario)
-            const nombreDefecto = d.Defect_name || d.nombre || d.defect_name;
-            if(nombreDefecto) sDef.innerHTML += `<option value="${nombreDefecto}">${nombreDefecto}</option>`;
+            sDef.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`;
         });
 
-        // 4. CARGAR NÚMEROS DE PARTE
+        // 4. Cargar Partes
         const { data: parts } = await client.from('parts').select('part_number, part_name');
         db_parts = parts || [];
     }
 
-    // LÓGICA DE BÚSQUEDA MEJORADA (N/P o Nombre)
+    // Buscador Pro (N/P o Descripción)
     const pInput = document.getElementById('part_input');
     const pBox = document.getElementById('part_box');
     const pDesc = document.getElementById('desc_display');
@@ -181,21 +233,19 @@
     pInput.oninput = () => {
         const val = pInput.value.toUpperCase();
         pBox.innerHTML = '';
-        if (!val) { pBox.style.display = 'none'; return; }
+        if (val.length < 1) { pBox.style.display = 'none'; return; }
 
-        // Filtra si el valor está contenido en el Número de Parte O en el Nombre del producto
         const filtered = db_parts.filter(p => 
             p.part_number.toUpperCase().includes(val) || 
-            p.part_name.toUpperCase().includes(val)
-        ).slice(0, 15);
+            (p.part_name && p.part_name.toUpperCase().includes(val))
+        ).slice(0, 12);
 
         filtered.forEach(p => {
             const div = document.createElement('div');
-            // Resaltamos el número de parte y el nombre para que el usuario sepa qué está eligiendo
-            div.innerHTML = `<b>${p.part_number}</b> <span class="badge-info">${p.part_name}</span>`;
+            div.innerHTML = `<span><b>${p.part_number}</b></span> <span style="color:#64748b">${p.part_name || ''}</span>`;
             div.onclick = () => {
                 pInput.value = p.part_number;
-                pDesc.value = p.part_name;
+                pDesc.value = p.part_name || '';
                 pBox.style.display = 'none';
             };
             pBox.appendChild(div);
@@ -206,14 +256,12 @@
     function calcular() {
         const total = parseFloat(document.getElementById('cant_total').value) || 0;
         const def = parseFloat(document.getElementById('cant_def').value) || 0;
-        document.getElementById('preview_ok').value = (total - def) < 0 ? 0 : (total - def);
+        document.getElementById('preview_ok').value = Math.max(0, total - def);
         document.getElementById('porcentaje_def').value = total > 0 ? ((def / total) * 100).toFixed(2) + "%" : "0%";
     }
 
     async function guardar() {
-        const total = parseFloat(document.getElementById('cant_total').value) || 0;
-        const def = parseFloat(document.getElementById('cant_def').value) || 0;
-
+        const btn = document.querySelector('.btn-save');
         const datos = {
             fecha: new Date().toISOString().split('T')[0],
             hora: new Date().toLocaleTimeString('en-GB'),
@@ -225,31 +273,35 @@
             operador: document.getElementById('operador_select').value,
             num_parte: pInput.value,
             nombre_pieza: pDesc.value,
-            cant_inspeccionada: total,
-            cant_defectuosa: def,
-            porcentaje_defecto: total > 0 ? ((def / total) * 100).toFixed(2) : 0,
+            cant_inspeccionada: parseFloat(document.getElementById('cant_total').value) || 0,
+            cant_defectuosa: parseFloat(document.getElementById('cant_def').value) || 0,
+            porcentaje_defecto: parseFloat(document.getElementById('porcentaje_def').value) || 0,
             tipo_defecto: document.getElementById('defect_select').value,
             destino: document.getElementById('destino').value,
             comentarios: document.getElementById('notas').value
         };
 
         if(!datos.area || !datos.num_parte || !datos.inspector || !datos.operador) {
-            alert("⚠️ Por favor completa: Área, N/P, Inspector y Operador");
+            alert("⚠️ Campos obligatorios faltantes.");
             return;
         }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> GUARDANDO...';
 
         const { error } = await client.from('inspeccion_produccion').insert([datos]);
         
         if (error) {
             alert("Error: " + error.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> GUARDAR REGISTRO';
         } else {
-            alert("✅ Registro guardado exitosamente");
+            alert("✅ Registro guardado y vinculado al historial del operador.");
             location.reload();
         }
     }
 
     document.addEventListener('DOMContentLoaded', init);
-    // Cerrar el buscador si se hace click fuera
     document.addEventListener('click', (e) => { if(e.target !== pInput) pBox.style.display = 'none'; });
 </script>
 </body>
