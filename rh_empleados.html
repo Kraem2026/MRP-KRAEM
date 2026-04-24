@@ -160,7 +160,7 @@
 
         <input type="hidden" id="edit_id">
         <div class="inputs-grid">
-            <div class="section-title">DATOS LABORALES</div>
+            <div class="section-title">LABORALES</div>
             <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
             <div class="group"><label># Seguro Social (NSS)</label><input type="text" id="nss"></div>
             <div class="group"><label>Área</label><select id="sel_area"></select></div>
@@ -170,18 +170,18 @@
             <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
             <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
             
-            <div class="section-title">DATOS PERSONALES Y MÉDICOS</div>
+            <div class="section-title">PERSONAL / MÉDICO</div>
             <div class="group"><label>Teléfono Personal</label><input type="tel" id="telefono_personal"></div>
             <div class="group"><label>Tipo de Sangre</label><input type="text" id="tipo_sangre"></div>
-            <div class="group"><label>Talla de Playera</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option></select></div>
-            <div class="group full-width"><label>Dirección Completa</label><input type="text" id="direccion"></div>
+            <div class="group"><label>Talla</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
+            <div class="group full-width"><label>Dirección</label><input type="text" id="direccion"></div>
             <div class="group"><label>Contacto Emergencia</label><input type="text" id="emergencia_nombre"></div>
             <div class="group"><label>Parentesco</label><input type="text" id="emergencia_parentesco"></div>
             <div class="group"><label>Tel. Emergencia</label><input type="tel" id="emergencia_tel"></div>
             <div class="group full-width"><label>Alergias / Padecimientos</label><textarea id="alergias" rows="2"></textarea></div>
         </div>
         <div style="margin-top:30px; display:flex; gap:15px;">
-            <button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">GUARDAR CAMBIOS</button>
+            <button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">GUARDAR</button>
             <button class="btn-nav" style="flex:1; justify-content:center;" onclick="cerrarModal()">CANCELAR</button>
         </div>
     </div>
@@ -194,6 +194,7 @@
     let currentEmpId = null;
 
     async function init() {
+        // Carga de Selects
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
@@ -209,6 +210,7 @@
         fill('sel_puesto', puestos);
         fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
 
+        // Fechas por defecto (mes actual)
         const d = new Date();
         document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('f_hasta').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -270,20 +272,40 @@
         
         document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
         document.getElementById('view_nombre').innerText = emp.nombre_completo;
-        document.getElementById('view_nss').innerText = emp.nss || '--';
         document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
+        document.getElementById('view_nss').innerText = emp.nss || '--';
         document.getElementById('view_anti').innerText = emp.antiguedad_txt;
         document.getElementById('view_talla').innerText = emp.talla_playera || '--';
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
         document.getElementById('view_dias_disponibles').innerText = emp.vacaciones_disponibles || '0';
 
-        // Lógica de métricas (Simplificada para ejemplo)
         const fDesde = document.getElementById('f_desde').value;
         const fHasta = document.getElementById('f_hasta').value;
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
-        renderRadar(95, 90, 85, 80, 92); // Valores demo
+        // CALIDAD REAL
+        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
+        let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
+        const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
+
+        // ASISTENCIA REAL
+        const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        const totalDias = asistData?.length || 0;
+        const asistPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado !== 'FALTA').length / totalDias) * 100).toFixed(1)) : 0;
+        const puntPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1)) : 0;
+
+        // 5'S REAL
+        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        const score5s = fives?.length > 0 ? parseFloat((fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1)) : 0;
+
+        document.getElementById('val_yield').innerText = yieldVal + '%';
+        document.getElementById('val_asistencia').innerText = asistPct + '%';
+        document.getElementById('val_puntualidad').innerText = puntPct + '%';
+        document.getElementById('val_5s').innerText = score5s + '%';
+        document.getElementById('val_versatilidad').innerText = "80%"; 
+
+        renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
         window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
@@ -307,32 +329,25 @@
         const reader = new FileReader();
         const file = event.target.files[0];
         if(!file) return;
-
-        reader.onload = function(){
+        reader.onload = () => {
             const output = document.getElementById('img_preview');
-            const icon = document.getElementById('modal_icon_user');
             output.src = reader.result;
             output.style.display = 'block';
-            icon.style.display = 'none';
+            document.getElementById('modal_icon_user').style.display = 'none';
         };
         reader.readAsDataURL(file);
     }
 
     async function subirFoto(archivo, id) {
         try {
-            const extension = archivo.name.split('.').pop();
-            const fileName = `${id || 'temp'}_${Date.now()}.${extension}`;
-            
-            const { data, error } = await client.storage
-                .from('empleados')
-                .upload(fileName, archivo, { upsert: true });
-
+            const ext = archivo.name.split('.').pop();
+            const fileName = `foto_${id || 'new'}_${Date.now()}.${ext}`;
+            const { data, error } = await client.storage.from('empleados').upload(fileName, archivo);
             if(error) throw error;
-
             const { data: url } = client.storage.from('empleados').getPublicUrl(fileName);
             return url.publicUrl;
         } catch (e) {
-            console.error("Error subiendo foto:", e);
+            console.error(e);
             return null;
         }
     }
@@ -342,12 +357,9 @@
         const fotoInput = document.getElementById('input_foto');
         let fotoUrl = null;
 
-        // Mostrar indicador de carga si fuera necesario
         if(fotoInput.files[0]) {
             fotoUrl = await subirFoto(fotoInput.files[0], id);
-            if(!fotoUrl) {
-                alert("Error al subir la imagen. Verifica el bucket 'empleados' en Supabase.");
-            }
+            if(!fotoUrl) return alert("Error al subir imagen. Revisa el Bucket 'empleados' y sus políticas.");
         }
 
         const obj = {
@@ -371,27 +383,15 @@
 
         if(fotoUrl) obj.foto_url = fotoUrl;
 
-        let res;
-        if(id) {
-            res = await client.from('rh_empleados').update(obj).eq('id', id);
-        } else {
-            res = await client.from('rh_empleados').insert([obj]);
-        }
-
-        if(!res.error) { 
-            alert("¡Datos guardados con éxito!"); 
-            cerrarModal(); 
-            await listarEmpleados(); 
-            if(id) cargarAnalisis(id);
-        } else { 
-            alert("Error base de datos: " + res.error.message); 
-        }
+        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
+        
+        if(!error) { alert("¡Guardado!"); cerrarModal(); await listarEmpleados(); }
+        else { alert("Error: " + error.message); }
     }
 
     function editarActual() {
         if(!currentEmpId) return;
         const emp = db_empleados.find(e => e.id == currentEmpId);
-        
         document.getElementById('edit_id').value = emp.id;
         document.getElementById('nombre').value = emp.nombre_completo || "";
         document.getElementById('nss').value = emp.nss || "";
@@ -418,14 +418,11 @@
             document.getElementById('img_preview').style.display = 'none';
             document.getElementById('modal_icon_user').style.display = 'block';
         }
-
-        document.getElementById('modal_titulo').innerText = "Editar Personal";
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function abrirModal() {
         document.getElementById('edit_id').value = "";
-        document.getElementById('modal_titulo').innerText = "Nuevo Registro de Personal";
         document.querySelectorAll('#modalRegistro input, #modalRegistro select, #modalRegistro textarea').forEach(i => i.value = "");
         document.getElementById('img_preview').style.display = 'none';
         document.getElementById('modal_icon_user').style.display = 'block';
@@ -444,11 +441,11 @@
     }
 
     async function exportarExcel() {
-        if(db_filtrados.length === 0) return alert("No hay datos para exportar");
+        if(db_filtrados.length === 0) return alert("No hay datos");
         const ws = XLSX.utils.json_to_sheet(db_filtrados);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Personal");
-        XLSX.writeFile(wb, `Personal_Kraem.xlsx`);
+        XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId); }
