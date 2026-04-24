@@ -3,112 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Sistema de Inspección de Calidad</title>
+    <title>KRAEM | Calidad 360</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
-            --primary: #1e40af; 
-            --accent: #2563eb; 
-            --bg: #f1f5f9; 
-            --card: #ffffff; 
-            --text: #0f172a; 
-            --border: #e2e8f0; 
-            --danger: #ef4444;
-            --success: #22c55e;
+            --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; 
+            --card: #ffffff; --text: #1e293b; --border: #e2e8f0; 
+            --danger: #ef4444; --success: #22c55e;
         }
         
-        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        /* Contenedor Pro */
         .form-card { 
-            max-width: 600px; margin: 40px auto; background: var(--card); 
-            padding: 30px; border-radius: 16px; border: 1px solid var(--border); 
+            max-width: 650px; margin: 20px auto; background: var(--card); 
+            padding: 25px; border-radius: 16px; border: 1px solid var(--border); 
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
         }
 
-        /* Botón Regreso */
-        .nav-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-back { 
-            text-decoration: none; color: #64748b; font-size: 14px; font-weight: 600; 
-            display: flex; align-items: center; gap: 8px; transition: color 0.2s;
+            text-decoration: none; color: #64748b; font-size: 13px; font-weight: bold; 
+            display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+            border-radius: 8px; border: 1px solid var(--border); background: white;
         }
-        .btn-back:hover { color: var(--primary); }
+        .btn-back:hover { background: #f8fafc; color: var(--accent); }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .group { margin-bottom: 15px; position: relative; }
         
-        label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px; }
+        label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px; }
         
         input, select, textarea { 
             width: 100%; padding: 12px; border: 1px solid var(--border); 
             border-radius: 8px; font-size: 14px; box-sizing: border-box; 
-            background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fff;
         }
-        input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
-        .readonly { background: #f8fafc; font-weight: bold; color: var(--primary); border-color: #cbd5e1; }
+        .readonly { background: #f8fafc; font-weight: bold; color: var(--accent); border: 1px solid #e2e8f0; }
         
-        /* Buscador de partes */
+        /* Buscadores dinámicos */
         .autobox { 
             position: absolute; width: 100%; background: white; border: 1px solid var(--border); 
-            z-index: 100; max-height: 200px; overflow-y: auto; display: none; 
-            box-shadow: 0 10px 15px rgba(0,0,0,0.1); border-radius: 8px; margin-top: 5px;
+            z-index: 100; max-height: 180px; overflow-y: auto; display: none; 
+            box-shadow: 0 10px 15px rgba(0,0,0,0.1); border-radius: 8px; margin-top: 2px;
         }
-        .autobox div { padding: 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; display: flex; justify-content: space-between; }
-        .autobox div:hover { background: #eff6ff; color: var(--primary); }
-        .autobox b { color: var(--primary); }
+        .autobox div { padding: 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .autobox div:hover { background: #eff6ff; color: var(--accent); }
 
         .btn-save { 
-            width: 100%; padding: 16px; background: var(--primary); color: white; 
+            width: 100%; padding: 16px; background: var(--accent); color: white; 
             border: none; border-radius: 10px; font-weight: bold; font-size: 16px; 
-            cursor: pointer; margin-top: 20px; transition: all 0.3s;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 10px;
         }
-        .btn-save:hover { background: #1e3a8a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2); }
-        
-        .section-title { 
-            font-size: 12px; font-weight: 900; color: var(--primary); 
-            margin: 25px 0 15px 0; border-bottom: 1px solid var(--border); padding-bottom: 5px;
-            display: flex; align-items: center; gap: 8px;
+        .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .section-tag { 
+            font-size: 11px; font-weight: 900; color: var(--accent); 
+            margin: 20px 0 10px 0; display: flex; align-items: center; gap: 8px;
         }
     </style>
 </head>
 <body>
 
 <div class="form-card">
-    <div class="nav-top">
-        <a href="dashboard.html" class="btn-back"><i class="fas fa-arrow-left"></i> VOLVER AL DASHBOARD</a>
-        <div style="font-size: 12px; font-weight: bold; color: var(--accent);">ID: PRODUCCIÓN-INS</div>
+    <div class="header-nav">
+        <a href="dashboard.html" class="btn-back"><i class="fas fa-th-large"></i> DASHBOARD</a>
+        <span style="font-size: 12px; color: #94a3b8; font-weight: bold;">MÓDULO DE INSPECCIÓN</span>
     </div>
 
-    <h2 style="margin: 0 0 5px 0; color: var(--primary);">Registro de Inspección</h2>
-    <p style="margin: 0 0 25px 0; font-size: 14px; color: #64748b;">Asegura la calidad del producto y el desempeño del operador.</p>
+    <h2 style="margin: 0; color: var(--primary);">Captura de Calidad</h2>
+    <p style="margin: 5px 0 20px 0; font-size: 13px; color: #64748b;">Complete los datos para el reporte de rendimiento.</p>
 
-    <div class="section-title"><i class="fas fa-info-circle"></i> DATOS GENERALES</div>
+    <div class="section-tag"><i class="fas fa-user-shield"></i> PERSONAL Y UBICACIÓN</div>
     <div class="grid">
         <div class="group">
-            <label>Área de Origen</label>
+            <label>Área</label>
             <select id="area_select"></select>
         </div>
         <div class="group">
             <label>Turno</label>
-            <select id="turno">
-                <option value="1">Turno 1</option>
-                <option value="2">Turno 2</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="grid">
-        <div class="group">
-            <label>Máquina</label>
-            <input type="text" id="maquina" placeholder="Ej. INY-05">
-        </div>
-        <div class="group">
-            <label>Semana Fiscal</label>
-            <input type="number" id="semana" class="readonly" readonly>
+            <select id="turno"><option value="1">Turno 1</option><option value="2">Turno 2</option></select>
         </div>
     </div>
 
@@ -123,186 +99,171 @@
         </div>
     </div>
 
-    <div class="section-title"><i class="fas fa-component-style"></i> PRODUCTO Y CANTIDADES</div>
+    <div class="section-tag"><i class="fas fa-box"></i> INFORMACIÓN DEL PRODUCTO</div>
     <div class="group">
-        <label>Buscar por N/P o Descripción</label>
-        <input type="text" id="part_input" placeholder="Escriba el número de parte o nombre..." autocomplete="off">
+        <label>Buscar Pieza (N/P o Nombre)</label>
+        <input type="text" id="part_input" placeholder="Ej: CV-100 o 'Cover'..." autocomplete="off">
         <div id="part_box" class="autobox"></div>
     </div>
 
     <div class="group">
         <label>Descripción del Producto</label>
-        <input type="text" id="desc_display" class="readonly" readonly>
+        <input type="text" id="desc_display" class="readonly" readonly placeholder="Seleccione una pieza...">
     </div>
 
     <div class="grid">
         <div class="group">
-            <label>Piezas Inspeccionadas</label>
+            <label>Inspeccionado (Pzs)</label>
             <input type="number" id="cant_total" value="0" oninput="calcular()">
         </div>
         <div class="group">
-            <label style="color: var(--danger);">Piezas Defectuosas</label>
-            <input type="number" id="cant_def" value="0" oninput="calcular()" style="border-color: #fecaca;">
+            <label style="color: var(--danger);">Defectuoso (Pzs)</label>
+            <input type="number" id="cant_def" value="0" oninput="calcular()">
         </div>
     </div>
 
-    <div class="grid" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1;">
-        <div class="group" style="margin:0">
-            <label>Previsualización OK</label>
-            <input type="number" id="preview_ok" class="readonly" readonly value="0" style="background:transparent; border:none; padding:0;">
-        </div>
-        <div class="group" style="margin:0">
-            <label>% Rechazo</label>
-            <input type="text" id="porcentaje_def" class="readonly" readonly value="0%" style="background:transparent; border:none; padding:0;">
-        </div>
-    </div>
-
-    <div class="section-title"><i class="fas fa-exclamation-triangle"></i> DEFECTO Y DISPOSICIÓN</div>
+    <div class="section-tag"><i class="fas fa-microscope"></i> DETALLE DE DEFECTO</div>
     <div class="grid">
         <div class="group">
-            <label>Tipo de Defecto</label>
-            <select id="defect_select" style="border-left: 4px solid var(--danger);"></select>
+            <label>Tipo de Defecto (Escriba para buscar)</label>
+            <input type="text" id="defect_input" placeholder="Ej: Rayon, Rebabas..." autocomplete="off">
+            <div id="defect_box" class="autobox"></div>
+            <input type="hidden" id="defect_val_final" value="NINGUNO">
         </div>
         <div class="group">
-            <label>Disposición Final</label>
+            <label>Disposición</label>
             <select id="destino">
                 <option value="LIBERADO">✅ LIBERADO</option>
                 <option value="RETRABAJO">🔄 RETRABAJO</option>
-                <option value="SCRAP">🗑️ SCRAP / DESECHO</option>
+                <option value="SCRAP">🗑️ SCRAP</option>
             </select>
         </div>
     </div>
 
     <div class="group">
-        <label>Comentarios de Calidad</label>
-        <textarea id="notas" rows="2" placeholder="Describa el hallazgo..."></textarea>
+        <label>Comentarios adicionales</label>
+        <textarea id="notas" rows="2" placeholder="Opcional..."></textarea>
+    </div>
+
+    <div class="grid" style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-top: 10px;">
+        <div style="text-align: center; border-right: 1px solid #e2e8f0;">
+            <label>Piezas OK</label>
+            <span id="preview_ok" style="font-size: 20px; font-weight: 800; color: var(--success);">0</span>
+        </div>
+        <div style="text-align: center;">
+            <label>% de Rechazo</label>
+            <span id="porcentaje_def" style="font-size: 20px; font-weight: 800; color: var(--danger);">0%</span>
+        </div>
     </div>
 
     <button class="btn-save" onclick="guardar()">
-        <i class="fas fa-check-circle"></i> GUARDAR REGISTRO DE CALIDAD
+        <i class="fas fa-save"></i> GUARDAR INSPECCIÓN
     </button>
 </div>
 
 <script>
     let db_parts = [];
+    let db_defects = [];
 
-    function getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    }
-
+    // Carga inicial
     async function init() {
-        document.getElementById('semana').value = getWeekNumber(new Date());
-
-        // 1. Cargar Áreas
+        // 1. Áreas
         const { data: areas } = await client.from('rh_areas').select('nombre').order('nombre');
         const sArea = document.getElementById('area_select');
-        sArea.innerHTML = '<option value="">-- Seleccione --</option>';
+        sArea.innerHTML = '<option value="">-- Seleccionar --</option>';
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
 
-        // 2. Cargar Personal de RH
+        // 2. Personal (Inspectores y Operadores)
         const { data: personal } = await client.from('rh_empleados').select('nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
-        const sInspector = document.getElementById('inspector_select');
-        const sOperador = document.getElementById('operador_select');
-        const personalHtml = '<option value="">-- Seleccione --</option>' + personal?.map(p => `<option value="${p.nombre_completo}">${p.nombre_completo}</option>`).join('');
-        sInspector.innerHTML = personalHtml;
-        sOperador.innerHTML = personalHtml;
+        const personalHtml = '<option value="">-- Seleccionar --</option>' + personal?.map(p => `<option value="${p.nombre_completo}">${p.nombre_completo}</option>`).join('');
+        document.getElementById('inspector_select').innerHTML = personalHtml;
+        document.getElementById('operador_select').innerHTML = personalHtml;
 
-        // 3. Cargar Defectos (CORRECCIÓN SEGÚN SQL)
-        const { data: defs, error } = await client.from('defects').select('Defect_name').order('Defect_name');
-        if(error) console.error("Error en tabla defects:", error);
-
-        const sDef = document.getElementById('defect_select');
-        sDef.innerHTML = '<option value="NINGUNO">NINGUNO (PRODUCTO OK)</option>';
-        defs?.forEach(d => {
-            sDef.innerHTML += `<option value="${d.Defect_name}">${d.Defect_name}</option>`;
-        });
-
-        // 4. Cargar Partes
+        // 3. Partes (Para buscador 1)
         const { data: parts } = await client.from('parts').select('part_number, part_name');
         db_parts = parts || [];
+
+        // 4. Defectos (Para buscador 2 - Tabla 'defects' columna 'Defect_name')
+        const { data: defs } = await client.from('defects').select('Defect_name').order('Defect_name');
+        db_defects = defs || [];
     }
 
-    // Buscador Pro (N/P o Descripción)
+    // --- LÓGICA BUSCADOR PIEZAS ---
     const pInput = document.getElementById('part_input');
     const pBox = document.getElementById('part_box');
-    const pDesc = document.getElementById('desc_display');
-
     pInput.oninput = () => {
         const val = pInput.value.toUpperCase();
         pBox.innerHTML = '';
-        if (val.length < 1) { pBox.style.display = 'none'; return; }
-
-        const filtered = db_parts.filter(p => 
-            p.part_number.toUpperCase().includes(val) || 
-            (p.part_name && p.part_name.toUpperCase().includes(val))
-        ).slice(0, 12);
-
-        filtered.forEach(p => {
-            const div = document.createElement('div');
-            div.innerHTML = `<span><b>${p.part_number}</b></span> <span style="color:#64748b">${p.part_name || ''}</span>`;
-            div.onclick = () => {
-                pInput.value = p.part_number;
-                pDesc.value = p.part_name || '';
-                pBox.style.display = 'none';
-            };
-            pBox.appendChild(div);
+        if(!val) { pBox.style.display = 'none'; return; }
+        const fil = db_parts.filter(p => p.part_number.toUpperCase().includes(val) || (p.part_name && p.part_name.toUpperCase().includes(val))).slice(0,10);
+        fil.forEach(p => {
+            const d = document.createElement('div');
+            d.innerHTML = `<b>${p.part_number}</b> - ${p.part_name || ''}`;
+            d.onclick = () => { pInput.value = p.part_number; document.getElementById('desc_display').value = p.part_name; pBox.style.display='none'; };
+            pBox.appendChild(d);
         });
-        pBox.style.display = filtered.length ? 'block' : 'none';
+        pBox.style.display = fil.length ? 'block' : 'none';
+    };
+
+    // --- LÓGICA BUSCADOR DEFECTOS ---
+    const dInput = document.getElementById('defect_input');
+    const dBox = document.getElementById('defect_box');
+    dInput.oninput = () => {
+        const val = dInput.value.toUpperCase();
+        dBox.innerHTML = '';
+        if(!val) { dBox.style.display = 'none'; return; }
+        const fil = db_defects.filter(d => d.Defect_name.toUpperCase().includes(val)).slice(0,10);
+        fil.forEach(d => {
+            const div = document.createElement('div');
+            div.innerHTML = d.Defect_name;
+            div.onclick = () => { 
+                dInput.value = d.Defect_name; 
+                document.getElementById('defect_val_final').value = d.Defect_name;
+                dBox.style.display = 'none'; 
+            };
+            dBox.appendChild(div);
+        });
+        dBox.style.display = fil.length ? 'block' : 'none';
     };
 
     function calcular() {
         const total = parseFloat(document.getElementById('cant_total').value) || 0;
         const def = parseFloat(document.getElementById('cant_def').value) || 0;
-        document.getElementById('preview_ok').value = Math.max(0, total - def);
-        document.getElementById('porcentaje_def').value = total > 0 ? ((def / total) * 100).toFixed(2) + "%" : "0%";
+        document.getElementById('preview_ok').innerText = Math.max(0, total - def);
+        document.getElementById('porcentaje_def').innerText = total > 0 ? ((def / total) * 100).toFixed(1) + "%" : "0%";
     }
 
     async function guardar() {
         const btn = document.querySelector('.btn-save');
-        const datos = {
+        const data = {
             fecha: new Date().toISOString().split('T')[0],
             hora: new Date().toLocaleTimeString('en-GB'),
-            semana: parseInt(document.getElementById('semana').value),
             turno: document.getElementById('turno').value,
             area: document.getElementById('area_select').value,
-            maquina: document.getElementById('maquina').value,
             inspector: document.getElementById('inspector_select').value,
             operador: document.getElementById('operador_select').value,
             num_parte: pInput.value,
-            nombre_pieza: pDesc.value,
+            nombre_pieza: document.getElementById('desc_display').value,
             cant_inspeccionada: parseFloat(document.getElementById('cant_total').value) || 0,
             cant_defectuosa: parseFloat(document.getElementById('cant_def').value) || 0,
-            porcentaje_defecto: parseFloat(document.getElementById('porcentaje_def').value) || 0,
-            tipo_defecto: document.getElementById('defect_select').value,
+            tipo_defecto: document.getElementById('defect_val_final').value,
             destino: document.getElementById('destino').value,
             comentarios: document.getElementById('notas').value
         };
 
-        if(!datos.area || !datos.num_parte || !datos.inspector || !datos.operador) {
-            alert("⚠️ Campos obligatorios faltantes.");
-            return;
-        }
+        if(!data.area || !data.num_parte || !data.operador) return alert("Faltan datos obligatorios");
 
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> GUARDANDO...';
-
-        const { error } = await client.from('inspeccion_produccion').insert([datos]);
-        
-        if (error) {
-            alert("Error: " + error.message);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> GUARDAR REGISTRO';
-        } else {
-            alert("✅ Registro guardado y vinculado al historial del operador.");
-            location.reload();
-        }
+        const { error } = await client.from('inspeccion_produccion').insert([data]);
+        if(error) { alert("Error: " + error.message); btn.disabled = false; }
+        else { alert("¡Guardado!"); location.reload(); }
     }
 
     document.addEventListener('DOMContentLoaded', init);
-    document.addEventListener('click', (e) => { if(e.target !== pInput) pBox.style.display = 'none'; });
+    document.addEventListener('click', (e) => { 
+        if(e.target !== pInput) pBox.style.display = 'none'; 
+        if(e.target !== dInput) dBox.style.display = 'none';
+    });
 </script>
 </body>
 </html>
