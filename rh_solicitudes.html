@@ -3,39 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Control de Solicitudes</title>
+    <title>KRAEM | Sistema Pro de Incidencias y Vacaciones</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .container { max-width: 1400px; margin: auto; }
+        :root { 
+            --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; 
+            --text: #1e293b; --border: #e2e8f0; --success: #10b981; 
+            --warning: #f59e0b; --danger: #ef4444;
+        }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1500px; margin: auto; }
         
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-        
-        .grid-layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
-        @media (max-width: 1000px) { .grid-layout { grid-template-columns: 1fr; } }
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn-nav { padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .btn-nav:hover { background: #f8fafc; border-color: var(--accent); }
+        .btn-primary { background: var(--accent); color: white; border: none; }
+        .btn-primary:hover { background: #1d4ed8; }
 
-        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .form-group { margin-bottom: 15px; }
-        label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        .layout { display: grid; grid-template-columns: 400px 1fr; gap: 25px; }
+        @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
 
-        .badge { padding: 5px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; }
+        /* Card Styles */
+        .card { background: white; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden; }
+        .card-header { padding: 15px 20px; border-bottom: 1px solid var(--border); background: #fafafa; display: flex; justify-content: space-between; align-items: center; }
+        .card-body { padding: 20px; }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 18px; }
+        label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 6px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box; outline: none; transition: 0.2s; }
+        input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        /* Status & Badges */
+        .badge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
         .badge-pendiente { background: #fef3c7; color: #92400e; }
         .badge-aprobado { background: #dcfce7; color: #166534; }
         .badge-rechazado { background: #fee2e2; color: #991b1b; }
 
+        /* Table */
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 15px; font-size: 11px; color: #64748b; border-bottom: 2px solid var(--border); }
+        th { text-align: left; padding: 15px; font-size: 11px; color: #64748b; background: #f8fafc; text-transform: uppercase; }
         td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        
-        .btn-action { width: 30px; height: 30px; border-radius: 6px; border: none; cursor: pointer; margin-left: 4px; }
-        .btn-approve { background: #dcfce7; color: #166534; }
-        .btn-reject { background: #fee2e2; color: #991b1b; }
-        .info-saldo { background: #eff6ff; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 15px; display: none; border-left: 4px solid var(--accent); }
+        tr:hover { background: #fcfcfc; }
+
+        .info-panel { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 5px solid var(--accent); margin-bottom: 20px; display: none; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .stat-item { background: white; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #dbeafe; }
+
+        .type-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #f1f5f9; color: #475569; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -43,77 +62,122 @@
 <div class="container">
     <div class="header">
         <div style="display:flex; gap:15px; align-items:center;">
-            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Panel Principal</a>
-            <h2 style="margin:0;">Control de Solicitudes</h2>
+            <a href="dashboard.html" class="btn-nav"><i class="fas fa-home"></i> Dashboard</a>
+            <h2 style="margin:0; letter-spacing: -1px;">Gestión de Incidencias y Ausencias</h2>
         </div>
+        <button onclick="exportarExcelCompleto()" class="btn-nav" style="background: #166534; color: white; border: none;">
+            <i class="fas fa-file-excel"></i> Exportar Reporte
+        </button>
     </div>
 
-    <div class="grid-layout">
+    <div class="layout">
         <div class="card">
-            <h3 style="margin-top:0;"><i class="fas fa-paper-plane"></i> Nueva Solicitud</h3>
-            
-            <div class="form-group">
-                <label>Empleado</label>
-                <select id="sol_empleado" onchange="mostrarSaldo()"></select>
+            <div class="card-header">
+                <h3 style="margin:0; font-size: 16px;"><i class="fas fa-plus-circle"></i> Nueva Solicitud</h3>
             </div>
-
-            <div id="box_saldo" class="info-saldo">
-                Saldo disponible: <b id="val_saldo">0</b> días.
-            </div>
-            
-            <div class="form-group">
-                <label>Tipo</label>
-                <select id="sol_tipo">
-                    <option value="VACACIONES">Vacaciones</option>
-                    <option value="PERMISO">Permiso</option>
-                    <option value="INCAPACIDAD">Incapacidad</option>
-                </select>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div class="card-body">
                 <div class="form-group">
-                    <label>Desde</label>
-                    <input type="date" id="sol_desde" onchange="calcularDias()">
+                    <label>Colaborador</label>
+                    <select id="sol_empleado" onchange="actualizarInfoEmpleado()"></select>
                 </div>
+
+                <div id="panel_empleado" class="info-panel">
+                    <div style="font-weight: bold; color: var(--accent); margin-bottom: 5px;">Resumen del Empleado</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div style="font-size: 10px; color: #64748b;">DISPONIBLE</div>
+                            <div id="stat_vacaciones" style="font-size: 18px; font-weight: 800;">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div style="font-size: 10px; color: #64748b;">ESTATUS</div>
+                            <div id="stat_estatus" style="font-size: 11px; font-weight: bold; color: var(--success);">ACTIVO</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label>Hasta</label>
-                    <input type="date" id="sol_hasta" onchange="calcularDias()">
+                    <label>Tipo de Permiso / Incidencia</label>
+                    <select id="sol_tipo">
+                        <optgroup label="Descuenta de Vacaciones">
+                            <option value="VACACIONES">Vacaciones Anuales</option>
+                        </optgroup>
+                        <optgroup label="Permisos con Goce (Derechos)">
+                            <option value="MATRIMONIO">Matrimonio (Ley)</option>
+                            <option value="NACIMIENTO">Nacimiento (Paternidad)</option>
+                            <option value="DEFUNCION">Duelo / Defunción</option>
+                            <option value="DIA_FESTIVO">Día Festivo Trabajado</option>
+                        </optgroup>
+                        <optgroup label="Incapacidades Médicas">
+                            <option value="INCAPACIDAD_ENFERMEDAD">Enfermedad General (IMSS)</option>
+                            <option value="INCAPACIDAD_MATERNIDAD">Maternidad / Paternidad</option>
+                            <option value="RIESGO_TRABAJO">Riesgo de Trabajo</option>
+                        </optgroup>
+                        <optgroup label="Otros">
+                            <option value="PERMISO_SIN_GOCE">Permiso SIN Goce de Sueldo</option>
+                            <option value="FALTA_JUSTIFICADA">Falta Justificada</option>
+                        </optgroup>
+                    </select>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label>Días Totales</label>
-                <input type="number" id="sol_dias" readonly style="background:#f1f5f9;">
-            </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div class="form-group">
+                        <label>Desde</label>
+                        <input type="date" id="sol_desde" onchange="calcularDias()">
+                    </div>
+                    <div class="form-group">
+                        <label>Hasta</label>
+                        <input type="date" id="sol_hasta" onchange="calcularDias()">
+                    </div>
+                </div>
 
-            <div class="form-group">
-                <label>Motivo</label>
-                <textarea id="sol_motivo" rows="2"></textarea>
-            </div>
+                <div class="form-group">
+                    <label>Días Totales (Calendario)</label>
+                    <input type="number" id="sol_dias" readonly style="background:#f8fafc; font-weight: bold; color: var(--accent);">
+                </div>
 
-            <button onclick="enviarSolicitud()" class="btn-nav" style="width:100%; justify-content:center; background:var(--accent); color:white; border:none; padding:15px;">
-                REGISTRAR
-            </button>
+                <div class="form-group">
+                    <label>Observaciones y Motivo</label>
+                    <textarea id="sol_motivo" rows="3" placeholder="Detalles importantes de la ausencia..."></textarea>
+                </div>
+
+                <button onclick="guardarSolicitud()" class="btn-nav btn-primary" style="width:100%; justify-content:center; padding:15px;">
+                    <i class="fas fa-check-double"></i> REGISTRAR SOLICITUD
+                </button>
+            </div>
         </div>
 
         <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <h3 style="margin:0;">Historial</h3>
-                <button onclick="listarSolicitudes('TODO')" class="btn-nav" style="font-size:11px;">VER TODO</button>
+            <div class="card-header" style="background: white;">
+                <div style="display:flex; gap:10px; flex:1;">
+                    <input type="text" id="f_nombre" placeholder="🔍 Buscar por colaborador..." style="max-width: 250px;" oninput="aplicarFiltros()">
+                    <select id="f_tipo" style="max-width: 180px;" onchange="aplicarFiltros()">
+                        <option value="TODO">Todos los tipos</option>
+                        <option value="VACACIONES">Vacaciones</option>
+                        <option value="INCAPACIDAD">Incapacidades</option>
+                        <option value="PERMISO">Permisos</option>
+                    </select>
+                    <select id="f_estatus" style="max-width: 150px;" onchange="aplicarFiltros()">
+                        <option value="TODO">Estatus: Todos</option>
+                        <option value="PENDIENTE">Pendientes</option>
+                        <option value="APROBADO">Aprobados</option>
+                    </select>
+                </div>
             </div>
-            <div style="overflow-x:auto;">
+            
+            <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
                             <th>Colaborador</th>
-                            <th>Tipo</th>
+                            <th>Incidencia</th>
                             <th>Periodo</th>
                             <th>Días</th>
                             <th>Estatus</th>
                             <th style="text-align:right;">Acción</th>
                         </tr>
                     </thead>
-                    <tbody id="tabla_solicitudes"></tbody>
+                    <tbody id="tabla_solicitudes">
+                        </tbody>
                 </table>
             </div>
         </div>
@@ -122,99 +186,154 @@
 
 <script>
     let db_empleados = [];
+    let db_solicitudes = [];
 
     async function init() {
-        // 1. Cargar Empleados
-        const { data, error } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
+        // Cargar empleados activos para el select
+        const { data: emps, error } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
+        if (error) return console.error(error);
         
-        if (error) {
-            console.error("Error:", error);
-            return;
-        }
+        db_empleados = emps;
+        const select = document.getElementById('sol_empleado');
+        select.innerHTML = '<option value="">-- Seleccionar Persona --</option>';
+        emps.forEach(e => select.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
 
-        db_empleados = data;
-        const sel = document.getElementById('sol_empleado');
-        sel.innerHTML = '<option value="">-- Seleccionar --</option>';
-        data.forEach(e => {
-            sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
-        });
-
-        listarSolicitudes('PENDIENTE');
+        await listarSolicitudes();
     }
 
-    function mostrarSaldo() {
+    function actualizarInfoEmpleado() {
         const id = document.getElementById('sol_empleado').value;
-        const box = document.getElementById('box_saldo');
-        if(!id) { box.style.display = 'none'; return; }
+        const panel = document.getElementById('panel_empleado');
+        if(!id) { panel.style.display = 'none'; return; }
+
         const emp = db_empleados.find(e => e.id == id);
-        document.getElementById('val_saldo').innerText = emp.vacaciones_disponibles || 0;
-        box.style.display = 'block';
+        document.getElementById('stat_vacaciones').innerText = emp.vacaciones_disponibles || 0;
+        document.getElementById('stat_estatus').innerText = emp.estatus;
+        panel.style.display = 'block';
     }
 
     function calcularDias() {
         const d = document.getElementById('sol_desde').value;
         const h = document.getElementById('sol_hasta').value;
         if(d && h) {
-            let inicio = new Date(d + 'T00:00:00');
-            let fin = new Date(h + 'T00:00:00');
-            let diff = (fin - inicio) / (1000 * 60 * 60 * 24) + 1;
+            const start = new Date(d + 'T00:00:00');
+            const end = new Date(h + 'T00:00:00');
+            const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
             document.getElementById('sol_dias').value = diff > 0 ? diff : 0;
         }
     }
 
-    async function enviarSolicitud() {
-        const id = document.getElementById('sol_empleado').value;
-        if(!id) return alert("Selecciona un empleado");
+    async function guardarSolicitud() {
+        const empId = document.getElementById('sol_empleado').value;
+        const tipo = document.getElementById('sol_tipo').value;
+        const dias = parseInt(document.getElementById('sol_dias').value);
+        
+        if(!empId || isNaN(dias) || dias <= 0) return alert("Por favor complete todos los campos correctamente.");
 
-        const payload = {
-            empleado_id: id,
-            tipo: document.getElementById('sol_tipo').value,
+        // Validación de saldo de vacaciones
+        if(tipo === 'VACACIONES') {
+            const emp = db_empleados.find(e => e.id == empId);
+            if(dias > (emp.vacaciones_disponibles || 0)) {
+                if(!confirm("El empleado no tiene suficientes días. ¿Desea registrarlo de todos modos como saldo negativo?")) return;
+            }
+        }
+
+        const { error } = await client.from('rh_solicitudes').insert([{
+            empleado_id: empId,
+            tipo: tipo,
             fecha_inicio: document.getElementById('sol_desde').value,
             fecha_fin: document.getElementById('sol_hasta').value,
-            dias_solicitados: parseInt(document.getElementById('sol_dias').value),
+            dias_solicitados: dias,
             motivo: document.getElementById('sol_motivo').value,
             estatus: 'PENDIENTE'
-        };
+        }]);
 
-        const { error } = await client.from('rh_solicitudes').insert([payload]);
-        if(!error) { alert("¡Enviado!"); location.reload(); }
-        else { alert("Error al guardar: " + error.message); }
+        if(!error) {
+            alert("Solicitud registrada con éxito.");
+            location.reload();
+        } else {
+            alert("Error: " + error.message);
+        }
     }
 
-    async function listarSolicitudes(f) {
-        let q = client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
-        if(f !== 'TODO') q = q.eq('estatus', f);
-        
-        const { data } = await q;
+    async function listarSolicitudes() {
+        const { data, error } = await client
+            .from('rh_solicitudes')
+            .select('*, rh_empleados(nombre_completo)')
+            .order('created_at', {ascending: false});
+
+        if (error) return;
+        db_solicitudes = data;
+        aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+        const nombre = document.getElementById('f_nombre').value.toLowerCase();
+        const tipo = document.getElementById('f_tipo').value;
+        const estatus = document.getElementById('f_estatus').value;
+
+        const filtrados = db_solicitudes.filter(s => {
+            const mNombre = s.rh_empleados?.nombre_completo.toLowerCase().includes(nombre);
+            const mTipo = tipo === 'TODO' || s.tipo.includes(tipo);
+            const mEstatus = estatus === 'TODO' || s.estatus === estatus;
+            return mNombre && mTipo && mEstatus;
+        });
+
         const tbody = document.getElementById('tabla_solicitudes');
-        tbody.innerHTML = (data || []).map(s => `
+        tbody.innerHTML = filtrados.map(s => `
             <tr>
-                <td><b>${s.rh_empleados?.nombre_completo || 'N/A'}</b></td>
-                <td>${s.tipo}</td>
-                <td>${s.fecha_inicio} / ${s.fecha_fin}</td>
-                <td>${s.dias_solicitados}</td>
+                <td>
+                    <div style="font-weight:bold;">${s.rh_empleados?.nombre_completo || 'N/A'}</div>
+                    <div style="font-size:10px; color:gray;">Creado: ${new Date(s.created_at).toLocaleDateString()}</div>
+                </td>
+                <td>
+                    <span class="type-tag">${s.tipo.replace(/_/g, ' ')}</span>
+                    <div style="font-size:11px; margin-top:4px; color:#64748b;">${s.motivo || ''}</div>
+                </td>
+                <td>${s.fecha_inicio} <i class="fas fa-long-arrow-alt-right"></i> ${s.fecha_fin}</td>
+                <td style="font-weight:bold; color:var(--accent);">${s.dias_solicitados} d</td>
                 <td><span class="badge badge-${s.estatus.toLowerCase()}">${s.estatus}</span></td>
                 <td style="text-align:right;">
                     ${s.estatus === 'PENDIENTE' ? `
-                        <button class="btn-action btn-approve" onclick="procesar('${s.id}', 'APROBADO', '${s.empleado_id}', ${s.dias_solicitados}, '${s.tipo}')"><i class="fas fa-check"></i></button>
-                        <button class="btn-action btn-reject" onclick="procesar('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i></button>
-                    ` : '-'}
+                        <button class="btn-nav" style="padding:5px 8px; color:var(--success);" onclick="procesarSolicitud('${s.id}', 'APROBADO', '${s.empleado_id}', ${s.dias_solicitados}, '${s.tipo}')"><i class="fas fa-check"></i></button>
+                        <button class="btn-nav" style="padding:5px 8px; color:var(--danger);" onclick="procesarSolicitud('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i></button>
+                    ` : '<i class="fas fa-lock" style="color:#cbd5e1" title="Registro Cerrado"></i>'}
                 </td>
             </tr>
         `).join('');
     }
 
-    async function procesar(id, decision, empId, dias, tipo) {
-        if(!confirm("¿Confirmar acción?")) return;
+    async function procesarSolicitud(id, decision, empId, dias, tipo) {
+        if(!confirm(`¿Desea marcar como ${decision}?`)) return;
 
         const { error } = await client.from('rh_solicitudes').update({ estatus: decision }).eq('id', id);
 
+        // Si se aprueba y es tipo VACACIONES, descontamos del saldo
         if(!error && decision === 'APROBADO' && tipo === 'VACACIONES') {
-            const emp = db_empleados.find(e => e.id == empId);
-            const nuevoSaldo = (emp.vacaciones_disponibles || 0) - dias;
+            const { data: empData } = await client.from('rh_empleados').select('vacaciones_disponibles').eq('id', empId).single();
+            const nuevoSaldo = (empData.vacaciones_disponibles || 0) - dias;
             await client.from('rh_empleados').update({ vacaciones_disponibles: nuevoSaldo }).eq('id', empId);
         }
-        listarSolicitudes('PENDIENTE');
+
+        listarSolicitudes();
+    }
+
+    function exportarExcelCompleto() {
+        const dataParaExcel = db_solicitudes.map(s => ({
+            Empleado: s.rh_empleados?.nombre_completo,
+            Tipo: s.tipo,
+            Inicio: s.fecha_inicio,
+            Fin: s.fecha_fin,
+            Dias: s.dias_solicitados,
+            Motivo: s.motivo,
+            Estatus: s.estatus,
+            Fecha_Registro: new Date(s.created_at).toLocaleString()
+        }));
+        
+        const ws = XLSX.utils.json_to_sheet(dataParaExcel);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Incidencias");
+        XLSX.writeFile(wb, "Reporte_RH_Incidencias.xlsx");
     }
 
     document.addEventListener('DOMContentLoaded', init);
