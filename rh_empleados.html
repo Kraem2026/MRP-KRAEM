@@ -48,11 +48,11 @@
         
         .vacation-box { background: #f0f9ff; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; margin-top: 10px; text-align: center; }
 
-        /* Estilo para el botón de silueta en el modal */
         .photo-upload-container { display: flex; justify-content: center; margin-bottom: 25px; }
         .photo-btn { position: relative; width: 120px; height: 120px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px dashed #cbd5e1; cursor: pointer; overflow: hidden; transition: all 0.3s; }
         .photo-btn:hover { border-color: var(--accent); background: #f1f5f9; }
         .photo-btn i.fa-user { font-size: 70px; color: #94a3b8; }
+        .photo-btn img { width: 100%; height: 100%; object-fit: cover; }
         .photo-overlay { position: absolute; bottom: 0; background: rgba(15, 23, 42, 0.6); width: 100%; text-align: center; padding: 4px 0; }
     </style>
 </head>
@@ -79,7 +79,7 @@
             <div class="vacation-box">
                 <div style="font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase;">Días Disponibles</div>
                 <div id="view_dias_disponibles" style="font-size: 20px; font-weight: 800; color: #0284c7;">--</div>
-                <a href="solicitudes.html" class="btn-nav" style="font-size: 11px; padding: 5px 10px; margin-top: 5px; width: 90%; justify-content: center;">Gestionar Vacaciones</a>
+                <a href="rh_solicitudes.html" class="btn-nav" style="font-size: 11px; padding: 5px 10px; margin-top: 5px; width: 90%; justify-content: center;">Gestionar Vacaciones</a>
             </div>
 
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
@@ -149,11 +149,12 @@
 
         <div class="photo-upload-container">
             <div class="photo-btn" onclick="document.getElementById('input_foto').click()">
-                <i class="fas fa-user"></i>
+                <i class="fas fa-user" id="modal_icon_user"></i>
+                <img id="img_preview" style="display:none;">
                 <div class="photo-overlay">
                     <i class="fas fa-camera" style="color: white; font-size: 12px;"></i>
                 </div>
-                <input type="file" id="input_foto" style="display: none;" accept="image/*">
+                <input type="file" id="input_foto" style="display: none;" accept="image/*" onchange="previewImage(event)">
             </div>
         </div>
 
@@ -168,11 +169,14 @@
             <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
             <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
             <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
+            
             <div class="section-title">PERSONAL / MÉDICO</div>
+            <div class="group"><label>Teléfono Personal</label><input type="tel" id="telefono_personal"></div>
             <div class="group"><label>Tipo de Sangre</label><input type="text" id="tipo_sangre"></div>
             <div class="group"><label>Talla</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
             <div class="group full-width"><label>Dirección</label><input type="text" id="direccion"></div>
-            <div class="group"><label>Contacto Emergencia</label><input type="text" id="emergencia_nombre"></div>
+            <div class="group"><label>Contacto Emergencia (Nombre)</label><input type="text" id="emergencia_nombre"></div>
+            <div class="group"><label>Parentesco</label><input type="text" id="emergencia_parentesco"></div>
             <div class="group"><label>Teléfono Emergencia</label><input type="tel" id="emergencia_tel"></div>
             <div class="group full-width"><label>Alergias</label><textarea id="alergias" rows="2"></textarea></div>
         </div>
@@ -263,10 +267,8 @@
         const emp = db_empleados.find(e => e.id == id);
         currentEmpId = id;
         document.getElementById('dash_analisis').style.display = 'grid';
-        const fDesde = document.getElementById('f_desde').value;
-        const fHasta = document.getElementById('f_hasta').value;
-        document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
-
+        
+        document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
         document.getElementById('view_nombre').innerText = emp.nombre_completo;
         document.getElementById('view_nss').innerText = emp.nss || '--';
         document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
@@ -275,6 +277,10 @@
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
         document.getElementById('view_dias_disponibles').innerText = emp.vacaciones_disponibles || '0';
+
+        const fDesde = document.getElementById('f_desde').value;
+        const fHasta = document.getElementById('f_hasta').value;
+        document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
         let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
@@ -314,6 +320,62 @@
         });
     }
 
+    function previewImage(event) {
+        const reader = new FileReader();
+        reader.onload = function(){
+            const output = document.getElementById('img_preview');
+            const icon = document.getElementById('modal_icon_user');
+            output.src = reader.result;
+            output.style.display = 'block';
+            icon.style.display = 'none';
+        };
+        reader.readAsDataURL(event.target.files[0]);
+    }
+
+    async function subirFoto(archivo, id) {
+        const extension = archivo.name.split('.').pop();
+        const fileName = `${id}_${Date.now()}.${extension}`;
+        const { data, error } = await client.storage.from('empleados').upload(fileName, archivo);
+        if(error) return null;
+        const { data: url } = client.storage.from('empleados').getPublicUrl(fileName);
+        return url.publicUrl;
+    }
+
+    async function guardarEmpleado() {
+        const id = document.getElementById('edit_id').value;
+        const fotoInput = document.getElementById('input_foto');
+        let fotoUrl = null;
+
+        if(fotoInput.files[0]) {
+            fotoUrl = await subirFoto(fotoInput.files[0], id || 'nuevo');
+        }
+
+        const obj = {
+            nombre_completo: document.getElementById('nombre').value,
+            nss: document.getElementById('nss').value,
+            area_id: document.getElementById('sel_area').value || null,
+            puesto_id: document.getElementById('sel_puesto').value || null,
+            fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
+            turno_id: document.getElementById('sel_turno').value || null,
+            ruta_id: document.getElementById('sel_ruta').value || null,
+            tipo_sangre: document.getElementById('tipo_sangre').value,
+            talla_playera: document.getElementById('sel_talla').value,
+            direccion: document.getElementById('direccion').value,
+            telefono_personal: document.getElementById('telefono_personal').value,
+            emergencia_nombre: document.getElementById('emergencia_nombre').value,
+            emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
+            emergencia_tel: document.getElementById('emergencia_tel').value,
+            alergias: document.getElementById('alergias').value,
+            estatus: document.getElementById('sel_estatus').value
+        };
+
+        if(fotoUrl) obj.foto_url = fotoUrl;
+
+        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
+        if(!error) { alert("¡Guardado!"); cerrarModal(); listarEmpleados(); }
+        else { alert("Error al guardar: " + error.message); }
+    }
+
     function editarActual() {
         if(!currentEmpId) return;
         const emp = db_empleados.find(e => e.id == currentEmpId);
@@ -328,44 +390,34 @@
         document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
         document.getElementById('sel_talla').value = emp.talla_playera || "";
         document.getElementById('direccion').value = emp.direccion || "";
+        document.getElementById('telefono_personal').value = emp.telefono_personal || "";
         document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || "";
+        document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
         document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
         document.getElementById('alergias').value = emp.alergias || "";
         document.getElementById('sel_estatus').value = emp.estatus;
+
+        if(emp.foto_url) {
+            document.getElementById('img_preview').src = emp.foto_url;
+            document.getElementById('img_preview').style.display = 'block';
+            document.getElementById('modal_icon_user').style.display = 'none';
+        } else {
+            document.getElementById('img_preview').style.display = 'none';
+            document.getElementById('modal_icon_user').style.display = 'block';
+        }
+
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function abrirModal() {
         document.getElementById('edit_id').value = "";
         document.querySelectorAll('#modalRegistro input, #modalRegistro select, #modalRegistro textarea').forEach(i => i.value = "");
+        document.getElementById('img_preview').style.display = 'none';
+        document.getElementById('modal_icon_user').style.display = 'block';
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
-
-    async function guardarEmpleado() {
-        const id = document.getElementById('edit_id').value;
-        const obj = {
-            nombre_completo: document.getElementById('nombre').value,
-            nss: document.getElementById('nss').value,
-            area_id: document.getElementById('sel_area').value || null,
-            puesto_id: document.getElementById('sel_puesto').value || null,
-            fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
-            turno_id: document.getElementById('sel_turno').value || null,
-            ruta_id: document.getElementById('sel_ruta').value || null,
-            tipo_sangre: document.getElementById('tipo_sangre').value,
-            talla_playera: document.getElementById('sel_talla').value,
-            direccion: document.getElementById('direccion').value,
-            emergencia_nombre: document.getElementById('emergencia_nombre').value,
-            emergencia_tel: document.getElementById('emergencia_tel').value,
-            alergias: document.getElementById('alergias').value,
-            estatus: document.getElementById('sel_estatus').value
-        };
-
-        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
-        if(!error) { alert("¡Guardado!"); cerrarModal(); listarEmpleados(); }
-        else { alert("Error al guardar: " + error.message); }
-    }
 
     function calcularAntiguedadExacta(f) {
         if(!f) return "-";
@@ -388,9 +440,11 @@
             "Ruta": e.ruta_txt,
             "Estatus": e.estatus,
             "Fecha Ingreso": e.fecha_ingreso,
+            "Tel Personal": e.telefono_personal || '',
             "Talla": e.talla_playera,
             "Tipo Sangre": e.tipo_sangre,
             "Contacto Emergencia": e.emergencia_nombre,
+            "Parentesco": e.emergencia_parentesco,
             "Tel Emergencia": e.emergencia_tel
         }));
         const ws = XLSX.utils.json_to_sheet(dataParaExcel);
