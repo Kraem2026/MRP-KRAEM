@@ -2,240 +2,195 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>KRAEM | Reporte Maestro de Asistencia</title>
+    <title>KRAEM | Reporte Maestro de Asistencia y Extra</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --border: #e2e8f0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         
-        /* Panel de Control */
         .controls-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-            gap: 15px; background: #fff; padding: 20px; 
-            border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+            gap: 12px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;
         }
         
-        .control-group { display: flex; flex-direction: column; gap: 5px; }
-        .control-group label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; }
-        select, input { padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 13px; }
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
+        select, input { padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; }
 
-        /* Estilos Tabla */
         .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); max-height: 70vh; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; }
-        th { position: sticky; top: 0; background: #f8fafc; padding: 12px 5px; text-align: center; font-size: 10px; border: 1px solid var(--border); z-index: 20; }
-        td { padding: 8px 4px; border: 1px solid #f1f5f9; text-align: center; font-size: 11px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { position: sticky; top: 0; background: #f8fafc; padding: 10px 5px; font-size: 10px; border: 1px solid var(--border); z-index: 10; }
+        td { padding: 6px 4px; border: 1px solid #f1f5f9; text-align: center; font-size: 11px; }
         
         .emp-name { 
             text-align: left; font-weight: bold; padding-left: 10px; 
-            position: sticky; left: 0; background: white; z-index: 30; 
+            position: sticky; left: 0; background: white; z-index: 11; 
             border-right: 2px solid var(--border); min-width: 180px; 
         }
         
-        /* Estados */
-        .asistencia { color: #22c55e; font-weight: bold; }
-        .retardo { color: #f59e0b; font-weight: bold; }
-        .falta { color: #ef4444; font-weight: bold; }
-        .festivo { background: #fee2e2 !important; color: #991b1b; font-weight: bold; } /* Día de descanso/festivo */
-        .solicitud { color: #2563eb; font-weight: bold; background: #eff6ff; display: block; border-radius: 4px; }
-        .domingo { background: #f1f5f9; color: #94a3b8; }
-
-        /* Botones */
-        .btn { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; }
+        /* Indicadores */
+        .badge-p { color: #22c55e; font-weight: bold; }
+        .badge-f { color: #ef4444; font-weight: bold; }
+        .badge-r { color: #f59e0b; font-weight: bold; }
+        .extra-val { color: #7c3aed; font-weight: bold; font-size: 10px; background: #f5f3ff; border-radius: 4px; padding: 1px 3px; }
+        .domingo { background: #f1f5f9 !important; color: #94a3b8; }
+        
+        .btn { padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 5px; }
         .btn-excel { background: #166534; color: white; }
-        .btn-outline { background: white; border: 1px solid var(--border); }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
-        @media print { .controls-grid, .btn-nav, .no-print { display: none !important; } }
+        .btn-primary { background: var(--accent); color: white; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <a href="dashboard.html" class="btn btn-outline"><i class="fas fa-arrow-left"></i></a>
-            <h2 style="margin:0;">Master de Asistencia Kraem</h2>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Excel</button>
-            <button class="btn btn-primary" onclick="generarReporte()"><i class="fas fa-sync"></i> Actualizar</button>
+    <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:15px;">
+        <h2 style="margin:0;"><i class="fas fa-calendar-check"></i> Monitor Maestro de Operaciones</h2>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Exportar</button>
+            <button class="btn btn-primary" onclick="cargarData()"><i class="fas fa-sync"></i> Refrescar</button>
         </div>
     </div>
 
     <div class="controls-grid">
         <div class="control-group">
-            <label>Tipo Vista</label>
-            <select id="tipo_vista" onchange="toggleFiltros()">
-                <option value="mensual">Mensual Completo</option>
-                <option value="rango">Rango de Fechas / Semanal</option>
+            <label>Vista</label>
+            <select id="v_tipo" onchange="toggleVistas()">
+                <option value="mes">Mes Completo</option>
+                <option value="rango">Rango Semanal</option>
             </select>
         </div>
-        
-        <div id="div_mensual" class="control-group">
-            <label>Mes y Año</label>
-            <div style="display:flex; gap:5px;">
-                <select id="mes_filtro" style="flex:2;">
-                    <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
-                    <option value="3" selected>Abril</option><option value="4">Mayo</option>
-                    </select>
-                <input type="number" id="anio_filtro" value="2026" style="flex:1;">
+        <div id="c_mes" class="control-group">
+            <label>Mes</label>
+            <select id="v_mes">
+                <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
+                <option value="3" selected>Abril</option><option value="4">Mayo</option>
+            </select>
+        </div>
+        <div id="c_rango" class="control-group" style="display:none;">
+            <label>Desde / Hasta</label>
+            <div style="display:flex; gap:2px;">
+                <input type="date" id="v_desde">
+                <input type="date" id="v_hasta">
             </div>
         </div>
-
-        <div id="div_rango" class="control-group" style="display:none;">
-            <label>Rango Personalizado</label>
-            <div style="display:flex; gap:5px;">
-                <input type="date" id="fecha_desde">
-                <input type="date" id="fecha_hasta">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label>Área</label>
-            <select id="filtro_area">
-                <option value="TODAS">Todas las áreas</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>Turno</label>
-            <select id="filtro_turno">
-                <option value="TODOS">Todos los turnos</option>
-                <option value="1">Turno 1</option>
-                <option value="2">Turno 2</option>
-                <option value="3">Turno 3</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label>Buscar Nombre</label>
-            <input type="text" id="filtro_nombre" placeholder="Escribe para buscar..." onkeyup="filtrarTablaLocal()">
-        </div>
+        <div class="control-group"><label>Área</label><select id="v_area"><option value="">Todas</option></select></div>
+        <div class="control-group"><label>Turno</label><select id="v_turno"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+        <div class="control-group"><label>Nombre</label><input type="text" id="v_nombre" placeholder="Buscar..." onkeyup="filtrarLocal()"></div>
     </div>
 
     <div class="table-wrapper">
-        <table id="tabla_master">
-            <thead id="thead_master"></thead>
-            <tbody id="tbody_master"></tbody>
+        <table id="master_table">
+            <thead id="master_head"></thead>
+            <tbody id="master_body"></tbody>
         </table>
     </div>
 </div>
 
 <script>
-    function toggleFiltros() {
-        const vista = document.getElementById('tipo_vista').value;
-        document.getElementById('div_mensual').style.display = vista === 'mensual' ? 'block' : 'none';
-        document.getElementById('div_rango').style.display = vista === 'rango' ? 'block' : 'none';
+    let rawData = [];
+
+    async function init() {
+        // Cargar áreas igual que en tu registro
+        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
+        const selArea = document.getElementById('v_area');
+        areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
+        
+        // Default fechas
+        const hoy = new Date();
+        document.getElementById('v_desde').value = hoy.toISOString().split('T')[0];
+        document.getElementById('v_hasta').value = hoy.toISOString().split('T')[0];
+        
+        cargarData();
     }
 
-    async function generarReporte() {
-        const vista = document.getElementById('tipo_vista').value;
-        let fechaInicio, fechaFin;
+    function toggleVistas() {
+        const v = document.getElementById('v_tipo').value;
+        document.getElementById('c_mes').style.display = v === 'mes' ? 'flex' : 'none';
+        document.getElementById('c_rango').style.display = v === 'rango' ? 'flex' : 'none';
+    }
 
-        if(vista === 'mensual') {
-            const mes = parseInt(document.getElementById('mes_filtro').value);
-            const anio = parseInt(document.getElementById('anio_filtro').value);
-            fechaInicio = new Date(anio, mes, 1);
-            fechaFin = new Date(anio, mes + 1, 0);
+    async function cargarData() {
+        const tipo = document.getElementById('v_tipo').value;
+        let inicio, fin;
+
+        if(tipo === 'mes') {
+            const m = document.getElementById('v_mes').value;
+            inicio = new Date(2026, m, 1);
+            fin = new Date(2026, parseInt(m) + 1, 0);
         } else {
-            fechaInicio = new Date(document.getElementById('fecha_desde').value);
-            fechaFin = new Date(document.getElementById('fecha_hasta').value);
+            inicio = new Date(document.getElementById('v_desde').value);
+            fin = new Date(document.getElementById('v_hasta').value);
         }
 
-        const diasDiff = Math.ceil((fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
-        
-        // 1. Construir Encabezados
-        const thead = document.getElementById('thead_master');
-        let headerHTML = `<tr><th class="emp-name">Empleado</th>`;
-        
-        for(let i=0; i<diasDiff; i++) {
-            let d = new Date(fechaInicio);
-            d.setDate(d.getDate() + i);
-            const diaSem = ['D','L','M','M','J','V','S'][d.getDay()];
-            headerHTML += `<th class="${d.getDay() === 0 ? 'domingo' : ''}">${diaSem}<br>${d.getDate()}</th>`;
-        }
-        headerHTML += `<th>Faltas</th><th>Extras (Hrs)</th></tr>`;
-        thead.innerHTML = headerHTML;
+        const diasDiff = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+        const iniStr = inicio.toISOString().split('T')[0];
+        const finStr = fin.toISOString().split('T')[0];
 
-        // 2. Fetch Data
-        const inicioISO = fechaInicio.toISOString().split('T')[0];
-        const finISO = fechaFin.toISOString().split('T')[0];
-
-        const [resEmps, resAsist, resSolics] = await Promise.all([
-            client.from('rh_empleados').select('id, nombre_completo, area_id, turno').eq('estatus', 'ACTIVO'),
-            client.from('rh_asistencia_diaria').select('*').gte('fecha', inicioISO).lte('fecha', finISO),
-            client.from('rh_solicitudes').select('*').eq('estatus', 'APROBADO').or(`fecha_inicio.lte.${finISO},fecha_fin.gte.${inicioISO}`)
+        // Fetch
+        const [resEmp, resAsi, resSol] = await Promise.all([
+            client.from('rh_empleados').select('id, nombre_completo, area_id, turno_id').eq('estatus','ACTIVO'),
+            client.from('rh_asistencia_diaria').select('*').gte('fecha', iniStr).lte('fecha', finStr),
+            client.from('rh_solicitudes').select('*').eq('estatus','APROBADO').or(`fecha_inicio.lte.${finStr},fecha_fin.gte.${iniStr}`)
         ]);
 
-        const areaFiltro = document.getElementById('filtro_area').value;
-        const turnoFiltro = document.getElementById('filtro_turno').value;
+        // Render Head
+        let headHTML = `<tr><th class="emp-name">Colaborador</th>`;
+        for(let i=0; i<diasDiff; i++) {
+            let d = new Date(inicio); d.setDate(d.getDate() + i);
+            headHTML += `<th class="${d.getDay()===0?'domingo':''}">${['D','L','M','M','J','V','S'][d.getDay()]}<br>${d.getDate()}</th>`;
+        }
+        headHTML += `<th>Faltas</th><th>Total Horas Extra</th></tr>`;
+        document.getElementById('master_head').innerHTML = headHTML;
+
+        // Render Body
+        const areaF = document.getElementById('v_area').value;
+        const turnoF = document.getElementById('v_turno').value;
         
-        let emps = resEmps.data.filter(e => {
-            return (areaFiltro === 'TODAS' || e.area_id == areaFiltro) && 
-                   (turnoFiltro === 'TODOS' || e.turno == turnoFiltro);
-        });
-
-        const tbody = document.getElementById('tbody_master');
-        tbody.innerHTML = '';
-
-        emps.forEach(emp => {
-            let fila = `<tr class="fila-empleado"><td class="emp-name">${emp.nombre_completo}</td>`;
-            let faltas = 0;
-            let extras = 0;
-
+        const emps = resEmp.data.filter(e => (!areaF || e.area_id == areaF) && (!turnoF || e.turno_id == turnoF));
+        
+        document.getElementById('master_body').innerHTML = emps.map(emp => {
+            let faltas = 0, extras = 0;
+            let fila = `<tr class="row-emp"><td class="emp-name">${emp.nombre_completo}</td>`;
+            
             for(let i=0; i<diasDiff; i++) {
-                let d = new Date(fechaInicio);
-                d.setDate(d.getDate() + i);
+                let d = new Date(inicio); d.setDate(d.getDate() + i);
                 const fStr = d.toISOString().split('T')[0];
                 
-                const sol = resSolics.data.find(s => s.empleado_id === emp.id && fStr >= s.fecha_inicio && fStr <= s.fecha_fin);
-                const asi = resAsist.data.find(a => a.empleado_id === emp.id && a.fecha === fStr);
+                const sol = resSol.data.find(s => s.empleado_id === emp.id && fStr >= s.fecha_inicio && fStr <= s.fecha_fin);
+                const asi = resAsi.data.find(a => a.empleado_id === emp.id && a.fecha === fStr);
                 
-                let content = '-';
-                let clase = d.getDay() === 0 ? 'domingo' : '';
-
-                if(sol) {
-                    content = `<span class="solicitud">${sol.tipo.charAt(0)}</span>`;
-                } else if(asi) {
-                    if(asi.estado === 'P') content = '<span class="asistencia">P</span>';
-                    if(asi.estado === 'R') content = '<span class="retardo">R</span>';
-                    if(asi.estado === 'F') { content = '<span class="falta">F</span>'; faltas++; }
-                    // extras += asi.horas_extra || 0; // Si añades esta columna a la tabla
+                let celda = '-';
+                if(sol) celda = `<small style="color:blue">${sol.tipo.charAt(0)}</small>`;
+                else if(asi) {
+                    let txt = asi.estado === 'P' ? '<span class="badge-p">P</span>' : (asi.estado === 'R' ? '<span class="badge-r">R</span>' : '<span class="badge-f">F</span>');
+                    if(asi.estado === 'F') faltas++;
+                    let hex = asi.horas_extra > 0 ? `<div class="extra-val">+${asi.horas_extra}h</div>` : '';
+                    celda = txt + hex;
+                    extras += parseFloat(asi.horas_extra || 0);
                 }
-                
-                fila += `<td class="${clase}">${content}</td>`;
+                fila += `<td class="${d.getDay()===0?'domingo':''}">${celda}</td>`;
             }
-            fila += `<td>${faltas}</td><td>${extras}</td></tr>`;
-            tbody.innerHTML += fila;
+            return fila + `<td style="color:red; font-weight:bold">${faltas}</td><td style="color:purple; font-weight:bold">${extras}h</td></tr>`;
+        }).join('');
+    }
+
+    function filtrarLocal() {
+        const busqueda = document.getElementById('v_nombre').value.toLowerCase();
+        document.querySelectorAll('.row-emp').forEach(row => {
+            row.style.display = row.querySelector('.emp-name').innerText.toLowerCase().includes(busqueda) ? '' : 'none';
         });
     }
 
     function exportarExcel() {
-        const table = document.getElementById("tabla_master");
-        const wb = XLSX.utils.table_to_book(table, { sheet: "Asistencia" });
-        XLSX.writeFile(wb, "Reporte_Asistencia_Kraem.xlsx");
+        const wb = XLSX.utils.table_to_book(document.getElementById("master_table"));
+        XLSX.writeFile(wb, "Reporte_General_Kraem.xlsx");
     }
 
-    function filtrarTablaLocal() {
-        const input = document.getElementById("filtro_nombre").value.toUpperCase();
-        const filas = document.querySelectorAll(".fila-empleado");
-        filas.forEach(f => {
-            const nombre = f.querySelector(".emp-name").innerText.toUpperCase();
-            f.style.display = nombre.includes(input) ? "" : "none";
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        // Cargar áreas en el combo...
-        generarReporte();
-    });
+    document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
