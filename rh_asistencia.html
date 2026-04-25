@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Pase de Lista</title>
+    <title>KRAEM | Control Diario</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -11,203 +11,213 @@
         :root { 
             --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; 
             --text: #1e293b; --success: #22c55e; --warning: #f59e0b; 
-            --danger: #ef4444; --border: #e2e8f0;
+            --danger: #ef4444; --border: #e2e8f0; --purple: #7c3aed;
         }
         
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: auto; padding-bottom: 120px; }
 
         .header-asistencia { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 15px; background: white; padding: 15px; 
-            border-radius: 12px; border: 1px solid var(--border); 
+            background: white; padding: 15px; border-radius: 12px 12px 0 0; border: 1px solid var(--border); border-bottom: none;
         }
-        .btn-nav { 
-            padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); 
-            background: white; cursor: pointer; text-decoration: none; 
-            color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; 
-        }
+        
+        /* Pestañas de Navegación */
+        .tabs-container { display: flex; background: white; border: 1px solid var(--border); border-bottom: 2px solid var(--border); margin-bottom: 15px; border-radius: 0 0 12px 12px; overflow: hidden; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; font-size: 13px; color: #64748b; transition: 0.3s; border-bottom: 3px solid transparent; }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); background: #eff6ff; }
+        .tab i { display: block; margin-bottom: 4px; font-size: 18px; }
 
         .attendance-card { 
             background: white; border-radius: 12px; border: 1px solid var(--border); 
             padding: 15px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            transition: 0.3s;
         }
         
-        /* Estilo para tarjetas bloqueadas */
         .attendance-card.locked { background: #f1f5f9; opacity: 0.8; border-style: dashed; }
-        .lock-badge { background: #e2e8f0; color: #475569; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
-
         .emp-row { display: flex; align-items: center; justify-content: space-between; }
         .emp-info { display: flex; align-items: center; gap: 12px; }
-        .emp-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #f1f5f9; border: 1px solid var(--border); }
-        .emp-details h4 { margin: 0; font-size: 14px; color: var(--primary); }
+        .emp-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; background: #f1f5f9; }
+        .emp-details h4 { margin: 0; font-size: 14px; }
         .emp-details p { margin: 2px 0 0; font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 600; }
 
+        /* Estilos Asistencia */
         .status-buttons { display: flex; gap: 8px; }
-        .btn-status { 
-            width: 42px; height: 42px; border-radius: 10px; 
-            border: 1px solid #cbd5e1; background: white; 
-            cursor: pointer; font-weight: 800; transition: 0.2s; color: #64748b; 
-        }
-        
-        .btn-status.active-P { background: var(--success) !important; color: white !important; border-color: var(--success); }
-        .btn-status.active-R { background: var(--warning) !important; color: white !important; border-color: var(--warning); }
-        .btn-status.active-F { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
+        .btn-status { width: 42px; height: 42px; border-radius: 10px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 800; }
+        .btn-status.active-P { background: var(--success) !important; color: white !important; }
+        .btn-status.active-R { background: var(--warning) !important; color: white !important; }
+        .btn-status.active-F { background: var(--danger) !important; color: white !important; }
 
-        .reason-select { width: 100%; margin-top: 12px; padding: 10px; border-radius: 8px; border: 1px solid var(--danger); background: #fff5f5; font-size: 13px; display: none; outline: none; }
+        /* Estilos Tiempo Extra */
+        .extra-input-group { display: flex; align-items: center; gap: 10px; }
+        .input-extra { width: 70px; padding: 10px; border-radius: 8px; border: 2px solid var(--purple); text-align: center; font-weight: bold; font-size: 16px; }
+        
+        .reason-select { width: 100%; margin-top: 12px; padding: 10px; border-radius: 8px; border: 1px solid var(--danger); background: #fff5f5; display: none; }
         .show-reason { display: block; }
 
-        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; }
-        .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 500px; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; z-index: 100; }
+        .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 500px; font-size: 16px; }
+        .btn-final.extra { background: var(--purple); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header-asistencia">
-        <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Panel</a>
-        <div style="text-align: right;">
-            <h3 style="margin:0; font-size: 18px; color: var(--primary);">Pase de Lista</h3>
-            <span id="fecha-hoy" style="font-size: 12px; color: var(--accent); font-weight: bold; text-transform: capitalize;"></span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <a href="dashboard.html" class="btn-nav" style="text-decoration:none; color:var(--text); font-weight:bold;"><i class="fas fa-arrow-left"></i> Panel</a>
+            <div style="text-align: right;">
+                <h3 style="margin:0; font-size: 16px;">Control Diario Kraem</h3>
+                <span id="fecha-hoy" style="font-size: 11px; color: var(--accent); font-weight: bold; text-transform: uppercase;"></span>
+            </div>
         </div>
     </div>
 
-    <div id="lista-asistencia">
-        <div style="text-align:center; padding:40px; color:#94a3b8;">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
-            <p>Verificando permisos y personal...</p>
+    <div class="tabs-container">
+        <div class="tab active" id="tab-asistencia" onclick="cambiarTab('asistencia')">
+            <i class="fas fa-clipboard-list"></i> ASISTENCIA
+        </div>
+        <div class="tab" id="tab-extra" onclick="cambiarTab('extra')">
+            <i class="fas fa-clock"></i> TIEMPO EXTRA
         </div>
     </div>
+
+    <div id="lista-contenedor">
+        </div>
 </div>
 
 <div class="footer-save">
-    <button class="btn-final" onclick="enviarAsistencia()">
-        <i class="fas fa-check-circle"></i> GUARDAR ASISTENCIA DEL DÍA
+    <button id="btn-principal" class="btn-final" onclick="guardarTodo()">
+        <i class="fas fa-check-circle"></i> GUARDAR ASISTENCIA
     </button>
 </div>
 
 <script>
-    let db_empleados_activos = [];
-    let db_solicitudes_hoy = [];
+    let modoActual = 'asistencia'; // 'asistencia' o 'extra'
+    let db_empleados = [];
+    let db_solicitudes = [];
+    let db_asistencias_existentes = []; // Para saber si ya se tomó lista
     let asistenciaData = {}; 
 
     async function init() {
-        const hoy = new Date();
-        const hoyISO = hoy.toISOString().split('T')[0];
-        document.getElementById('fecha-hoy').innerText = hoy.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+        const hoy = new Date().toISOString().split('T')[0];
+        document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
-        try {
-            // 1. Cargar Empleados Activos
-            const { data: empleados } = await client.from('rh_empleados').select('id, nombre_completo, foto_url, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
-            
-            // 2. Cargar Solicitudes Aprobadas que crucen con hoy
-            const { data: solicitudes } = await client.from('rh_solicitudes')
-                .select('empleado_id, tipo, fecha_inicio, fecha_fin')
-                .eq('estatus', 'APROBADO')
-                .lte('fecha_inicio', hoyISO)
-                .gte('fecha_fin', hoyISO);
+        // Cargar datos en paralelo
+        const [resEmp, resSol, resAsis] = await Promise.all([
+            client.from('rh_empleados').select('id, nombre_completo, foto_url, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
+            client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', hoy).gte('fecha_fin', hoy),
+            client.from('rh_asistencia_diaria').select('*').eq('fecha', hoy)
+        ]);
 
-            db_empleados_activos = empleados;
-            db_solicitudes_hoy = solicitudes;
+        db_empleados = resEmp.data;
+        db_solicitudes = resSol.data;
+        db_asistencias_existentes = resAsis.data;
 
-            renderizarLista();
+        // Pre-cargar datos si ya existen en la BD
+        db_asistencias_existentes.forEach(a => {
+            asistenciaData[a.empleado_id] = { estado: a.estado, motivo: a.motivo || '', horas_extra: a.horas_extra || 0 };
+        });
 
-        } catch (err) {
-            console.error(err);
-        }
+        renderizar();
     }
 
-    function renderizarLista() {
-        const lista = document.getElementById('lista-asistencia');
-        lista.innerHTML = '';
+    function cambiarTab(modo) {
+        modoActual = modo;
+        document.getElementById('tab-asistencia').classList.toggle('active', modo === 'asistencia');
+        document.getElementById('tab-extra').classList.toggle('active', modo === 'extra');
+        
+        const btn = document.getElementById('btn-principal');
+        if(modo === 'extra') {
+            btn.innerHTML = '<i class="fas fa-bolt"></i> GUARDAR TIEMPO EXTRA';
+            btn.className = 'btn-final extra';
+        } else {
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> GUARDAR ASISTENCIA';
+            btn.className = 'btn-final';
+        }
+        renderizar();
+    }
 
-        db_empleados_activos.forEach(emp => {
-            // Verificar si el empleado tiene un permiso hoy
-            const solicitud = db_solicitudes_hoy.find(s => s.empleado_id === emp.id);
-            const isLocked = !!solicitud;
+    function renderizar() {
+        const contenedor = document.getElementById('lista-contenedor');
+        contenedor.innerHTML = '';
 
-            // Inicializar data (si está bloqueado, ya tiene estado y motivo)
-            if(isLocked) {
-                asistenciaData[emp.id] = { estado: 'F', motivo: solicitud.tipo, bloqueado: true };
-            }
+        db_empleados.forEach(emp => {
+            const solicitud = db_solicitudes.find(s => s.empleado_id === emp.id);
+            const data = asistenciaData[emp.id] || { estado: '', motivo: '', horas_extra: 0 };
+            
+            // Si estamos en modo EXTRA, solo mostrar a los que tienen asistencia (P o R)
+            if(modoActual === 'extra' && (data.estado === 'F' || !data.estado)) return;
 
             const card = document.createElement('div');
-            card.className = `attendance-card ${isLocked ? 'locked' : ''}`;
+            card.className = `attendance-card ${solicitud ? 'locked' : ''}`;
+            
+            let controlHTML = '';
+            if (modoActual === 'asistencia') {
+                if(solicitud) {
+                    controlHTML = `<div style="color:#64748b; font-size:11px; font-weight:bold; background:#e2e8f0; padding:5px 10px; border-radius:6px;"><i class="fas fa-lock"></i> ${solicitud.tipo}</div>`;
+                    asistenciaData[emp.id] = { estado: 'F', motivo: solicitud.tipo, horas_extra: 0 };
+                } else {
+                    controlHTML = `
+                        <div class="status-buttons">
+                            <button class="btn-status ${data.estado === 'P' ? 'active-P' : ''}" onclick="setEstado('${emp.id}', 'P')">P</button>
+                            <button class="btn-status ${data.estado === 'R' ? 'active-R' : ''}" onclick="setEstado('${emp.id}', 'R')">R</button>
+                            <button class="btn-status ${data.estado === 'F' ? 'active-F' : ''}" onclick="setEstado('${emp.id}', 'F')">F</button>
+                        </div>`;
+                }
+            } else {
+                // Modo Extra
+                controlHTML = `
+                    <div class="extra-input-group">
+                        <label style="font-size:10px; font-weight:bold;">HORAS:</label>
+                        <input type="number" class="input-extra" value="${data.horas_extra}" 
+                               onchange="asistenciaData['${emp.id}'].horas_extra = this.value" step="0.5" min="0">
+                    </div>`;
+            }
+
             card.innerHTML = `
                 <div class="emp-row">
                     <div class="emp-info">
                         <img src="${emp.foto_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="emp-img">
                         <div class="emp-details">
                             <h4>${emp.nombre_completo}</h4>
-                            <p>${emp.rh_puestos?.nombre || 'General'}</p>
+                            <p>${emp.rh_puestos?.nombre || 'Operador'}</p>
                         </div>
                     </div>
-                    ${isLocked ? `
-                        <div class="lock-badge">
-                            <i class="fas fa-lock"></i> ${solicitud.tipo}
-                        </div>
-                    ` : `
-                        <div class="status-buttons">
-                            <button class="btn-status" id="btn-P-${emp.id}" onclick="updateStatus('${emp.id}', 'P')">P</button>
-                            <button class="btn-status" id="btn-R-${emp.id}" onclick="updateStatus('${emp.id}', 'R')">R</button>
-                            <button class="btn-status" id="btn-F-${emp.id}" onclick="updateStatus('${emp.id}', 'F')">F</button>
-                        </div>
-                    `}
+                    ${controlHTML}
                 </div>
-                <select class="reason-select" id="select-${emp.id}" onchange="updateMotivo('${emp.id}', this.value)">
-                    <option value="Injustificada">⚠️ Falta Injustificada</option>
-                    <option value="Justificante">📄 Justificante Médico</option>
-                    <option value="Permiso Sin Goce">💸 Permiso Sin Goce</option>
+                <select class="reason-select ${data.estado === 'F' && !solicitud ? 'show-reason' : ''}" onchange="asistenciaData['${emp.id}'].motivo = this.value">
+                    <option value="Injustificada" ${data.motivo === 'Injustificada' ? 'selected' : ''}>⚠️ Falta Injustificada</option>
+                    <option value="Justificante" ${data.motivo === 'Justificante' ? 'selected' : ''}>📄 Justificante Médico</option>
+                    <option value="Permiso Sin Goce" ${data.motivo === 'Permiso Sin Goce' ? 'selected' : ''}>💸 Permiso Sin Goce</option>
                 </select>
             `;
-            lista.appendChild(card);
+            contenedor.appendChild(card);
         });
     }
 
-    function updateStatus(empId, status) {
-        // Limpiar selección previa
-        document.getElementById(`btn-P-${empId}`).className = 'btn-status';
-        document.getElementById(`btn-R-${empId}`).className = 'btn-status';
-        document.getElementById(`btn-F-${empId}`).className = 'btn-status';
-        
-        // Marcar activo
-        document.getElementById(`btn-${status}-${empId}`).classList.add(`active-${status}`);
-
-        asistenciaData[empId] = { estado: status, motivo: '', bloqueado: false };
-
-        const select = document.getElementById(`select-${empId}`);
-        if (status === 'F') {
-            select.classList.add('show-reason');
-            asistenciaData[empId].motivo = select.value;
-        } else {
-            select.classList.remove('show-reason');
-        }
+    function setEstado(id, estado) {
+        if(!asistenciaData[id]) asistenciaData[id] = { estado: '', motivo: '', horas_extra: 0 };
+        asistenciaData[id].estado = estado;
+        renderizar();
     }
 
-    function updateMotivo(empId, motivo) {
-        asistenciaData[empId].motivo = motivo;
-    }
-
-    async function enviarAsistencia() {
-        const hoyStr = new Date().toISOString().split('T')[0];
-        const marcados = Object.keys(asistenciaData);
-
-        if (marcados.length === 0) return alert("No has marcado ninguna asistencia aún.");
-        if (!confirm("¿Deseas guardar el pase de lista?")) return;
-
-        const insertData = marcados.map(id => ({
+    async function guardarTodo() {
+        const hoy = new Date().toISOString().split('T')[0];
+        const records = Object.keys(asistenciaData).map(id => ({
             empleado_id: id,
-            fecha: hoyStr,
+            fecha: hoy,
             estado: asistenciaData[id].estado,
-            motivo: asistenciaData[id].motivo
+            motivo: asistenciaData[id].motivo,
+            horas_extra: asistenciaData[id].horas_extra || 0
         }));
 
-        const { error } = await client.from('rh_asistencia_diaria').insert(insertData);
+        if(records.length === 0) return alert("Nada que guardar");
 
-        if (!error) {
-            alert("✅ Asistencia guardada");
-            location.href = 'dashboard.html';
+        // Usamos upsert para que si el registro ya existe (fecha + empleado_id), lo actualice
+        const { error } = await client.from('rh_asistencia_diaria').upsert(records, { onConflict: 'empleado_id, fecha' });
+
+        if(!error) {
+            alert(`✅ ${modoActual === 'asistencia' ? 'Asistencia' : 'Tiempo Extra'} guardado correctamente.`);
+            if(modoActual === 'asistencia') cambiarTab('extra'); // Sugerir pasar a tiempo extra
         } else {
             alert("Error: " + error.message);
         }
