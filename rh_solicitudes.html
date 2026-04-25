@@ -3,226 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Sistema de Incidencias v2</title>
+    <title>KRAEM | Panel de Control de Incidencias</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-        .container { max-width: 1400px; margin: auto; }
-        .layout { display: grid; grid-template-columns: 400px 1fr; gap: 20px; }
-        .card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .form-group { margin-bottom: 15px; }
-        label { font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
-        .info-panel { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent); margin-bottom: 15px; display: none; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; padding: 12px; background: #f8fafc; font-size: 11px; color: #64748b; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
+        :root {
+            --primary: #0f172a; --accent: #3b82f6; --bg: #f8fafc;
+            --text-main: #1e293b; --text-muted: #64748b;
+            --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; display: flex; }
+        
+        /* Sidebar mejorada */
+        .sidebar { width: 260px; background: var(--primary); height: 100vh; position: fixed; color: white; padding: 20px; box-sizing: border-box; }
+        .main-content { margin-left: 260px; width: calc(100% - 260px); padding: 30px; box-sizing: border-box; }
+        
+        .nav-link { display: flex; align-items: center; gap: 12px; color: #94a3b8; text-decoration: none; padding: 12px; border-radius: 8px; transition: 0.3s; margin-bottom: 5px; }
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
+
+        /* Cards y Layout */
+        .grid-main { display: grid; grid-template-columns: 380px 1fr; gap: 25px; }
+        .glass-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 24px; }
+        
+        /* Stats Visuals */
+        .stat-bubble { background: #eff6ff; border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #dbeafe; }
+        .stat-value { font-size: 24px; font-weight: 800; color: var(--accent); display: block; }
+        .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Form Elements */
+        .filter-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        label { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block; }
+        select, input, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 14px; background: #fff; outline: none; box-sizing: border-box; }
+        select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+        /* Table Design */
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        th { padding: 12px; text-align: left; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+        tr.row-item { background: white; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        tr.row-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        td { padding: 16px; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; }
+        td:first-child { border-left: 1px solid #f1f5f9; border-radius: 12px 0 0 12px; }
+        td:last-child { border-right: 1px solid #f1f5f9; border-radius: 0 12px 12px 0; }
+
+        /* Status Badges */
+        .status { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .status-pendiente { background: #fff7ed; color: #c2410c; }
+        .status-aprobado { background: #f0fdf4; color: #15803d; }
+        .status-rechazado { background: #fef2f2; color: #b91c1c; }
+
+        .btn-action { padding: 8px; border-radius: 8px; border: none; cursor: pointer; transition: 0.2s; }
+        .btn-approve { background: #dcfce7; color: #166534; }
+        .btn-reject { background: #fee2e2; color: #991b1b; }
+        .btn-primary { background: var(--accent); color: white; width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; border: none; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="layout">
-        <div class="card">
-            <h3><i class="fas fa- calendar-plus"></i> Nueva Solicitud</h3>
+<div class="sidebar">
+    <h2 style="font-size: 20px; margin-bottom: 30px;"><i class="fas fa-shield-alt"></i> KRAEM RH</h2>
+    <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a>
+    <a href="rh_personal.html" class="nav-link"><i class="fas fa-users"></i> Mi Personal</a>
+    <a href="#" class="nav-link active"><i class="fas fa-calendar-check"></i> Incidencias</a>
+    <a href="reportes.html" class="nav-link"><i class="fas fa-chart-bar"></i> Reportes Excel</a>
+</div>
+
+<div class="main-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+        <div>
+            <h1 style="margin:0; font-size: 26px;">Gestión de Solicitudes</h1>
+            <p style="color:var(--text-muted); margin: 5px 0 0;">Administra vacaciones, permisos e incapacidades</p>
+        </div>
+        <div id="reloj" style="font-weight: 700; background: white; padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0;"></div>
+    </div>
+
+    <div class="grid-main">
+        <div class="glass-card">
+            <h3 style="margin-top:0;"><i class="fas fa-plus-circle" style="color:var(--accent)"></i> Registro Pro</h3>
             
-            <div class="form-group">
-                <label>Colaborador</label>
-                <select id="sol_empleado" onchange="actualizarInfoEmpleado()"></select>
+            <div class="filter-group">
+                <div>
+                    <label>Área</label>
+                    <select id="filtro_area" onchange="filtrarListaEmpleados()">
+                        <option value="TODAS">Todas</option>
+                        <option value="PRODUCCION">Producción</option>
+                        <option value="ADMINISTRACION">Administración</option>
+                        <option value="CALIDAD">Calidad</option>
+                        <option value="LOGISTICA">Logística</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Turno</label>
+                    <select id="filtro_turno" onchange="filtrarListaEmpleados()">
+                        <option value="TODOS">Todos</option>
+                        <option value="MATUTINO">Matutino</option>
+                        <option value="VESPERTINO">Vespertino</option>
+                        <option value="NOCTURNO">Nocturno</option>
+                    </select>
+                </div>
             </div>
 
-            <div id="panel_empleado" class="info-panel">
-                <div id="view_anti_detalle" style="font-size: 12px; font-weight: bold; color: var(--accent);">--</div>
-                <div style="font-size: 11px;">Días Vacaciones Disponibles: <b id="stat_vacaciones">0</b></div>
-            </div>
-
             <div class="form-group">
-                <label>Tipo de Solicitud</label>
-                <select id="sol_tipo" onchange="validarTipoSolicitud()">
-                    <option value="">Seleccione...</option>
-                    <optgroup label="Vacaciones">
-                        <option value="VACACIONES">Vacaciones Ordinarias</option>
-                        <option value="AJUSTE_SISTEMA">Ajuste de Saldo (Histórico)</option>
-                    </optgroup>
-                    <optgroup label="Incapacidades (IMSS)">
-                        <option value="INCAPACIDAD_MATERNIDAD">Incapacidad Maternidad (84 días)</option>
-                        <option value="INCAPACIDAD_ENFERMEDAD">Incapacidad Enfermedad General</option>
-                        <option value="RIESGO_TRABAJO">Riesgo de Trabajo</option>
-                    </optgroup>
-                    <optgroup label="Permisos Legales / Especiales">
-                        <option value="PATERNIDAD">Permiso Paternidad (5 días)</option>
-                        <option value="DEFUNCION">Fallecimiento Familiar Directo</option>
-                        <option value="MATRIMONIO">Matrimonio</option>
-                        <option value="PERMISO_SIN_GOCE">Permiso SIN Goce de Sueldo</option>
-                        <option value="DIA_FESTIVO">Día Festivo Trabajado</option>
-                    </optgroup>
+                <label>Seleccionar Colaborador</label>
+                <select id="sol_empleado" onchange="cargarDatosEmpleado()">
+                    <option value="">-- Seleccione un filtro --</option>
                 </select>
             </div>
 
-            <div class="form-group">
-                <label>Fecha Inicio</label>
-                <input type="date" id="sol_desde" onchange="calcularFechasAutomaticas()">
+            <div id="info_card_emp" class="info-panel" style="display:none; margin-bottom: 20px;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="stat-bubble">
+                        <span class="stat-label">Saldo Vacaciones</span>
+                        <span id="view_saldo" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-bubble">
+                        <span class="stat-label">Antigüedad</span>
+                        <span id="view_anti" style="font-size:12px; font-weight:700; color:var(--primary); display:block; margin-top:5px;">--</span>
+                    </div>
+                </div>
             </div>
 
             <div class="form-group">
-                <label>Fecha Fin</label>
-                <input type="date" id="sol_hasta" onchange="calcularDias()">
+                <label>Tipo de Incidencia</label>
+                <select id="sol_tipo" onchange="checkMaternidad()">
+                    <option value="VACACIONES">Vacaciones</option>
+                    <option value="INCAPACIDAD_MATERNIDAD">Incapacidad Maternidad (84 días)</option>
+                    <option value="PATERNIDAD">Permiso Paternidad (5 días)</option>
+                    <option value="DEFUNCION">Duelo / Defunción</option>
+                    <option value="MATRIMONIO">Matrimonio</option>
+                    <option value="PERMISO_SIN_GOCE">Permiso sin Goce</option>
+                    <option value="AJUSTE_SISTEMA">Ajuste de Saldo (Manual)</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <div>
+                    <label>Fecha Inicio</label>
+                    <input type="date" id="sol_desde" onchange="autoCalcular()">
+                </div>
+                <div>
+                    <label>Fecha Fin</label>
+                    <input type="date" id="sol_hasta" onchange="autoCalcular()">
+                </div>
             </div>
 
             <div class="form-group">
-                <label>Días Totales</label>
-                <input type="number" id="sol_dias" readonly style="background: #f8fafc;">
+                <label>Días Calculados</label>
+                <input type="number" id="sol_dias" readonly style="background:#f1f5f9; font-weight:800;">
             </div>
 
             <div class="form-group">
-                <label>Observaciones</label>
+                <label>Motivo / Observaciones</label>
                 <textarea id="sol_motivo" rows="2"></textarea>
             </div>
 
-            <button class="btn-primary" onclick="guardarSolicitud()">REGISTRAR Y BLOQUEAR FECHAS</button>
+            <button class="btn-primary" onclick="registrarSolicitud()">
+                <i class="fas fa-paper-plane"></i> REGISTRAR SOLICITUD
+            </button>
         </div>
 
-        <div class="card">
-            <div style="display:flex; justify-content:space-between;">
-                <h3>Historial de Movimientos</h3>
-                <input type="text" id="f_nombre" placeholder="Buscar..." style="width:200px;" oninput="listarSolicitudes()">
+        <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="margin:0;">Historial y Aprobaciones</h3>
+                <div style="display:flex; gap:10px;">
+                    <select id="f_estado" onchange="listarSolicitudes()" style="width:150px;">
+                        <option value="PENDIENTE">⏳ Pendientes</option>
+                        <option value="APROBADO">✅ Aprobados</option>
+                        <option value="RECHAZADO">❌ Rechazados</option>
+                    </select>
+                </div>
             </div>
+
             <table>
                 <thead>
                     <tr>
-                        <th>Empleado</th>
+                        <th>Colaborador</th>
                         <th>Tipo</th>
                         <th>Periodo</th>
                         <th>Días</th>
                         <th>Estatus</th>
-                        <th>Acción</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="tabla_solicitudes"></tbody>
+                <tbody id="lista_pedidos"></tbody>
             </table>
         </div>
     </div>
 </div>
 
 <script>
-    let db_empleados = [];
-
-    // 1. ANTIGÜEDAD DETALLADA
-    function calcularAntiguedadDetallada(fecha) {
-        const inicio = new Date(fecha);
-        const hoy = new Date();
-        let anios = hoy.getFullYear() - inicio.getFullYear();
-        let meses = hoy.getMonth() - inicio.getMonth();
-        
-        if (meses < 0 || (meses === 0 && hoy.getDate() < inicio.getDate())) {
-            anios--;
-            meses += 12;
-        }
-        return `${anios} años y ${meses} meses`;
-    }
-
-    // 2. MATERNIDAD Y PATERNIDAD AUTOMÁTICA
-    function calcularFechasAutomaticas() {
-        const tipo = document.getElementById('sol_tipo').value;
-        const fechaInicioStr = document.getElementById('sol_desde').value;
-        if (!fechaInicioStr) return;
-
-        let fechaInicio = new Date(fechaInicioStr + 'T00:00:00');
-        let fechaFin = new Date(fechaInicio);
-        let dias = 0;
-
-        if (tipo === 'INCAPACIDAD_MATERNIDAD') {
-            dias = 84; // 84 días naturales por ley
-        } else if (tipo === 'PATERNIDAD') {
-            dias = 5; // 5 días laborables/naturales según empresa
-        }
-
-        if (dias > 0) {
-            fechaFin.setDate(fechaInicio.getDate() + (dias - 1));
-            document.getElementById('sol_hasta').value = fechaFin.toISOString().split('T')[0];
-            document.getElementById('sol_dias').value = dias;
-        } else {
-            calcularDias();
-        }
-    }
+    let todosLosEmpleados = [];
+    let solicitudesCargadas = [];
 
     async function init() {
         const { data } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
-        db_empleados = data || [];
-        const select = document.getElementById('sol_empleado');
-        select.innerHTML = '<option value="">-- Seleccionar --</option>';
-        db_empleados.forEach(e => select.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+        todosLosEmpleados = data || [];
+        filtrarListaEmpleados();
         listarSolicitudes();
+        
+        // Reloj
+        setInterval(() => {
+            document.getElementById('reloj').innerText = new Date().toLocaleString();
+        }, 1000);
     }
 
-    async function actualizarInfoEmpleado() {
+    function filtrarListaEmpleados() {
+        const area = document.getElementById('filtro_area').value;
+        const turno = document.getElementById('filtro_turno').value;
+        const select = document.getElementById('sol_empleado');
+        
+        const filtrados = todosLosEmpleados.filter(e => {
+            return (area === 'TODAS' || e.area === area) && (turno === 'TODOS' || e.turno === turno);
+        });
+
+        select.innerHTML = '<option value="">-- Seleccionar Persona (${filtrados.length}) --</option>';
+        filtrados.forEach(e => {
+            select.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+        });
+    }
+
+    async function cargarDatosEmpleado() {
         const id = document.getElementById('sol_empleado').value;
-        if (!id) return;
-        const emp = db_empleados.find(e => e.id == id);
+        if(!id) return;
+        const emp = todosLosEmpleados.find(e => e.id == id);
         
-        document.getElementById('view_anti_detalle').innerText = "Antigüedad: " + calcularAntiguedadDetallada(emp.fecha_ingreso);
-        document.getElementById('panel_empleado').style.display = 'block';
+        // Antigüedad detallada
+        const inicio = new Date(emp.fecha_ingreso);
+        const hoy = new Date();
+        let anios = hoy.getFullYear() - inicio.getFullYear();
+        let meses = hoy.getMonth() - inicio.getMonth();
+        if (meses < 0) { anios--; meses += 12; }
         
-        // Aquí podrías llamar a una función que sume ajustes y reste vacaciones aprobadas
-        // Por ahora lo dejamos en visual
+        document.getElementById('view_anti').innerText = `${anios} años, ${meses} meses`;
+        
+        // CALCULAR SALDO REAL (Ley - Usados + Ajustes)
+        const { data: movs } = await client.from('rh_solicitudes').select('*').eq('empleado_id', id).eq('estatus', 'APROBADO');
+        
+        // Función de Ley (puedes ajustar según tu tabla)
+        let diasLey = 12; // Base mínima primer año
+        if(anios >= 2) diasLey = 14;
+        if(anios >= 3) diasLey = 16;
+        if(anios >= 4) diasLey = 18;
+        if(anios >= 5) diasLey = 20;
+        if(anios >= 6) diasLey = 22; // etc...
+
+        const usados = movs?.reduce((acc, m) => {
+            if(m.tipo === 'VACACIONES') return acc + m.dias_solicitados;
+            if(m.tipo === 'AJUSTE_SISTEMA') return acc - m.dias_solicitados; // Ajuste negativo suma días
+            return acc;
+        }, 0) || 0;
+
+        document.getElementById('view_saldo').innerText = (diasLey - usados);
+        document.getElementById('info_card_emp').style.display = 'block';
     }
 
-    function calcularDias() {
-        const d = document.getElementById('sol_desde').value;
-        const h = document.getElementById('sol_hasta').value;
-        if (d && h) {
-            const start = new Date(d + 'T00:00:00');
-            const end = new Date(h + 'T00:00:00');
-            const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-            document.getElementById('sol_dias').value = diff;
+    function autoCalcular() {
+        const tipo = document.getElementById('sol_tipo').value;
+        const inicioStr = document.getElementById('sol_desde').value;
+        if(!inicioStr) return;
+
+        let fini = new Date(inicioStr + 'T00:00:00');
+        
+        if(tipo === 'INCAPACIDAD_MATERNIDAD') {
+            let ffin = new Date(fini);
+            ffin.setDate(fini.getDate() + 83); // 84 días totales
+            document.getElementById('sol_hasta').value = ffin.toISOString().split('T')[0];
+            document.getElementById('sol_dias').value = 84;
+        } else {
+            const hStr = document.getElementById('sol_hasta').value;
+            if(hStr) {
+                let ffin = new Date(hStr + 'T00:00:00');
+                const diff = Math.ceil((ffin - fini) / (1000*60*60*24)) + 1;
+                document.getElementById('sol_dias').value = diff > 0 ? diff : 0;
+            }
         }
     }
 
-    async function guardarSolicitud() {
+    async function registrarSolicitud() {
         const empId = document.getElementById('sol_empleado').value;
-        const tipo = document.getElementById('sol_tipo').value;
-        const inicio = document.getElementById('sol_desde').value;
-        const fin = document.getElementById('sol_hasta').value;
-
-        if (!empId || !tipo || !inicio || !fin) return alert("Faltan datos");
+        if(!empId) return alert("Selecciona empleado");
 
         const { error } = await client.from('rh_solicitudes').insert([{
             empleado_id: empId,
-            tipo: tipo,
-            fecha_inicio: inicio,
-            fecha_fin: fin,
+            tipo: document.getElementById('sol_tipo').value,
+            fecha_inicio: document.getElementById('sol_desde').value,
+            fecha_fin: document.getElementById('sol_hasta').value,
             dias_solicitados: document.getElementById('sol_dias').value,
             motivo: document.getElementById('sol_motivo').value,
-            estatus: 'APROBADO' // Se aprueba directo para bloquear asistencia
+            estatus: 'PENDIENTE'
         }]);
 
-        if (!error) {
-            alert("Registro guardado. Las fechas han sido bloqueadas en el sistema de asistencia.");
-            location.reload();
-        }
+        if(!error) { alert("Solicitud enviada a revisión"); location.reload(); }
     }
 
     async function listarSolicitudes() {
-        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
-        const tbody = document.getElementById('tabla_solicitudes');
+        const est = document.getElementById('f_estado').value;
+        const { data } = await client.from('rh_solicitudes')
+            .select('*, rh_empleados(nombre_completo, area)')
+            .eq('estatus', est)
+            .order('created_at', {ascending: false});
+        
+        const tbody = document.getElementById('lista_pedidos');
         tbody.innerHTML = data.map(s => `
-            <tr>
-                <td>${s.rh_empleados.nombre_completo}</td>
-                <td><span class="badge" style="background:#e2e8f0;">${s.tipo}</span></td>
-                <td>${s.fecha_inicio} / ${s.fecha_fin}</td>
-                <td>${s.dias_solicitados}</td>
-                <td>${s.estatus}</td>
-                <td><button onclick="borrar('${s.id}')" style="color:red; border:none; background:none; cursor:pointer;"><i class="fas fa-trash"></i></button></td>
+            <tr class="row-item">
+                <td>
+                    <div style="font-weight:700;">${s.rh_empleados.nombre_completo}</div>
+                    <div style="font-size:10px; color:gray;">${s.rh_empleados.area}</div>
+                </td>
+                <td><span class="type-tag">${s.tipo}</span></td>
+                <td style="font-size:12px;">${s.fecha_inicio} al ${s.fecha_fin}</td>
+                <td style="font-weight:800; color:var(--accent);">${s.dias_solicitados} d</td>
+                <td><span class="status status-${s.estatus.toLowerCase()}">${s.estatus}</span></td>
+                <td>
+                    ${s.estatus === 'PENDIENTE' ? `
+                        <button class="btn-action btn-approve" onclick="decidir('${s.id}', 'APROBADO')" title="Aprobar"><i class="fas fa-check"></i></button>
+                        <button class="btn-action btn-reject" onclick="decidir('${s.id}', 'RECHAZADO')" title="Rechazar"><i class="fas fa-times"></i></button>
+                    ` : '<i class="fas fa-lock" style="color:#cbd5e1"></i>'}
+                </td>
             </tr>
         `).join('');
     }
 
+    async function decidir(id, valor) {
+        if(!confirm(`¿Estás seguro de marcar como ${valor}?`)) return;
+        const { error } = await client.from('rh_solicitudes').update({ estatus: valor }).eq('id', id);
+        if(!error) listarSolicitudes();
+    }
+
     document.addEventListener('DOMContentLoaded', init);
 </script>
+
 </body>
 </html>
