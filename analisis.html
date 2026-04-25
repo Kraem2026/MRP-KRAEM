@@ -21,7 +21,7 @@
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; align-items: flex-end; 
         }
         .group { display: flex; flex-direction: column; gap: 4px; position: relative; }
-        label { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; }
+        label { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
         select, input { padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px; outline: none; width: 100%; box-sizing: border-box; }
         
         .autobox { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid var(--border); z-index: 1000; max-height: 150px; overflow-y: auto; display: none; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -41,7 +41,7 @@
 
         .table-wrap { overflow-x: auto; max-height: 500px; }
         table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
-        th { position: sticky; top: 0; background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
+        th { position: sticky; top: 0; background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; z-index: 10; }
         td { padding: 8px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
 
         .btn { padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; height: 35px; }
@@ -62,10 +62,10 @@
         <div class="group"><label>Hasta</label><input type="date" id="f_hasta"></div>
         <div class="group"><label>Turno</label><select id="f_turno"><option value="">Todos</option><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
         <div class="group"><label>Máquina</label><input type="text" id="m_input" placeholder="Máquina..." autocomplete="off"><div id="m_box" class="autobox"></div></div>
-        <div class="group"><label>N/P</label><input type="text" id="p_input" placeholder="Parte..." autocomplete="off"><div id="p_box" class="autobox"></div></div>
-        <div class="group"><label>Descripción</label><input type="text" id="d_input" placeholder="Buscar desc..." autocomplete="off"><div id="d_box" class="autobox"></div></div>
-        <div class="group"><label>Operador</label><input type="text" id="ope_input" placeholder="Operador..." autocomplete="off"><div id="ope_box" class="autobox"></div></div>
-        <div class="group"><label>Inspector</label><input type="text" id="ins_input" placeholder="Inspector..." autocomplete="off"><div id="ins_box" class="autobox"></div></div>
+        <div class="group"><label>N/P</label><input type="text" id="p_input" placeholder="Filtrar..." autocomplete="off"><div id="p_box" class="autobox"></div></div>
+        <div class="group"><label>Descripción</label><input type="text" id="d_input" placeholder="Nombre pieza..." autocomplete="off"><div id="d_box" class="autobox"></div></div>
+        <div class="group"><label>Operador</label><input type="text" id="ope_input" placeholder="Fabricó..." autocomplete="off"><div id="ope_box" class="autobox"></div></div>
+        <div class="group"><label>Inspector</label><input type="text" id="ins_input" placeholder="Revisó..." autocomplete="off"><div id="ins_box" class="autobox"></div></div>
         <div class="group"><label>Área</label><select id="f_area"><option value="">Todas</option></select></div>
         <div class="group"><label>Defecto</label><select id="f_defecto"><option value="">Todos</option></select></div>
         <div class="group"><label>Disposición</label><select id="f_destino"><option value="">Todas</option><option value="LIBERADO">LIBERADO</option><option value="RETRABAJO">RETRABAJO</option><option value="SCRAP">SCRAP</option></select></div>
@@ -94,7 +94,7 @@
                         <tr>
                             <th>Fecha</th>
                             <th>N/P</th>
-                            <th>Descripción</th>
+                            <th>Nombre de Pieza</th>
                             <th>Máquina</th>
                             <th>Turno</th>
                             <th>Operador</th>
@@ -116,7 +116,7 @@
     let db_parts = [], db_personal = [], db_machines = [], rawData = [], myChart = null;
 
     async function init() {
-        const { data: areas } = await client.from('rh_areas').select('nombre');
+        const { data: areas } = await client.from('rh_areas').select('nombre').order('nombre');
         const sArea = document.getElementById('f_area');
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
 
@@ -127,19 +127,20 @@
             sDef.innerHTML += `<option value="${n}">${n}</option>`; 
         });
 
-        // Cargar partes con descripción para los filtros
-        const { data: parts } = await client.from('parts').select('part_number, description');
+        // NOTA: Usamos 'part_name' para coincidir con tu pantalla de captura
+        const { data: parts } = await client.from('parts').select('part_number, part_name');
         db_parts = parts || [];
         
         const { data: pers } = await client.from('rh_empleados').select('nombre_completo');
         db_personal = pers || [];
 
+        // Extraer máquinas de las inspecciones existentes
         const { data: mqs } = await client.from('inspeccion_produccion').select('maquina');
         const uniqueMqs = [...new Set(mqs?.map(m => m.maquina).filter(m => m))];
         db_machines = uniqueMqs.map(m => ({ name: m }));
 
         setupSearch('p_input', 'p_box', db_parts, 'part_number');
-        setupSearch('d_input', 'd_box', db_parts, 'description');
+        setupSearch('d_input', 'd_box', db_parts, 'part_name');
         setupSearch('ope_input', 'ope_box', db_personal, 'nombre_completo');
         setupSearch('ins_input', 'ins_box', db_personal, 'nombre_completo');
         setupSearch('m_input', 'm_box', db_machines, 'name');
@@ -160,9 +161,9 @@
                 div.innerText = i[key];
                 div.onclick = () => { 
                     input.value = i[key]; 
-                    // Si selecciono por descripción, autocompletar el N/P y viceversa
-                    if(key === 'description') document.getElementById('p_input').value = i.part_number;
-                    if(key === 'part_number') document.getElementById('d_input').value = i.description || '';
+                    // Sincronización de campos N/P y Nombre
+                    if(key === 'part_name') document.getElementById('p_input').value = i.part_number;
+                    if(key === 'part_number') document.getElementById('d_input').value = i.part_name || '';
                     
                     box.style.display='none'; 
                     fetchData(); 
@@ -181,10 +182,10 @@
         const area = document.getElementById('f_area').value;
         const defecto = document.getElementById('f_defecto').value;
         const destino = document.getElementById('f_destino').value;
-        const np = document.getElementById('p_input').value;
-        const desc_filtro = document.getElementById('d_input').value.toUpperCase();
-        const ope = document.getElementById('ope_input').value;
-        const ins = document.getElementById('ins_input').value;
+        const np = document.getElementById('p_input').value.trim().toUpperCase();
+        const desc_filtro = document.getElementById('d_input').value.trim().toUpperCase();
+        const ope = document.getElementById('ope_input').value.trim().toUpperCase();
+        const ins = document.getElementById('ins_input').value.trim().toUpperCase();
         const turno = document.getElementById('f_turno').value;
         const maquina = document.getElementById('m_input').value;
 
@@ -197,19 +198,20 @@
         if(turno) query = query.eq('turno', turno);
         if(maquina) query = query.ilike('maquina', `%${maquina}%`);
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if(error) console.error(error);
 
-        // Mapear descripción de la tabla parts a los resultados
+        // Cruce de datos con la tabla 'parts' local para asegurar la descripción
         rawData = data ? data.map(r => {
-            const infoParte = db_parts.find(p => p.part_number === r.num_parte);
-            return { ...r, description: infoParte ? infoParte.description : 'S/D' };
+            const info = db_parts.find(p => String(p.part_number).trim().toUpperCase() === String(r.num_parte).trim().toUpperCase());
+            return { ...r, part_description: info ? info.part_name : (r.nombre_pieza || 'S/D') };
         }) : [];
 
-        // Filtros adicionales que no están en la tabla principal de inspección (por descripción o nombre parcial)
+        // Filtros de texto parciales (Operador, Inspector, Descripción)
         rawData = rawData.filter(r => 
-            (!ope || (r.operador||"").toUpperCase().includes(ope.toUpperCase())) &&
-            (!ins || (r.inspector||"").toUpperCase().includes(ins.toUpperCase())) &&
-            (!desc_filtro || (r.description||"").toUpperCase().includes(desc_filtro))
+            (!ope || (r.operador||"").toUpperCase().includes(ope)) &&
+            (!ins || (r.inspector||"").toUpperCase().includes(ins)) &&
+            (!desc_filtro || (r.part_description||"").toUpperCase().includes(desc_filtro))
         );
 
         updateUI();
@@ -228,7 +230,7 @@
             tbody.innerHTML += `<tr>
                 <td>${r.fecha}</td>
                 <td><b>${r.num_parte}</b></td>
-                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">${r.description}</td>
+                <td title="${r.part_description}">${r.part_description}</td>
                 <td>${r.maquina||'-'}</td>
                 <td>T${r.turno}</td>
                 <td>${(r.operador||"").split(' ')[0]}</td>
@@ -262,7 +264,7 @@
             data: {
                 labels: labels,
                 datasets: [
-                    { type: 'bar', label: 'Cantidad', data: counts, backgroundColor: '#2563eb', borderRadius: 5, yAxisID: 'y' },
+                    { type: 'bar', label: 'Pzs Defectuosas', data: counts, backgroundColor: '#2563eb', borderRadius: 5, yAxisID: 'y' },
                     { type: 'line', label: '% Acumulado', data: porcentajesAcu, borderColor: '#ef4444', borderWidth: 3, tension: 0.3, yAxisID: 'y1' }
                 ]
             },
@@ -271,24 +273,26 @@
                 scales: {
                     y: { type: 'linear', position: 'left', beginAtZero: true },
                     y1: { type: 'linear', position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } }
-                }
+                },
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
             }
         });
     }
 
     function exportExcel() {
-        if(rawData.length === 0) return alert("No hay datos");
+        if(rawData.length === 0) return alert("No hay datos para exportar");
         const excelData = rawData.map(r => ({
             Fecha: r.fecha, Hora: r.hora, Turno: r.turno, Area: r.area, Maquina: r.maquina, 
-            Num_Parte: r.num_parte, Descripcion: r.description, Operador: r.operador, Inspector: r.inspector, 
+            Num_Parte: r.num_parte, Descripcion: r.part_description, Operador: r.operador, Inspector: r.inspector, 
             Inspeccionado: r.cant_inspeccionada, Rechazado: r.cant_defectuosa,
-            OK: r.cant_inspeccionada - r.cant_defectuosa, Yield: r.cant_inspeccionada > 0 ? (((r.cant_inspeccionada-r.cant_defectuosa)/r.cant_inspeccionada)*100).toFixed(2)+"%" : "0%",
+            OK: r.cant_inspeccionada - r.cant_defectuosa, 
+            Yield: r.cant_inspeccionada > 0 ? (((r.cant_inspeccionada-r.cant_defectuosa)/r.cant_inspeccionada)*100).toFixed(2)+"%" : "0%",
             Defecto: r.tipo_defecto, Disposicion: r.destino, Comentarios: r.comentarios
         }));
         const ws = XLSX.utils.json_to_sheet(excelData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Reporte_Calidad");
-        XLSX.writeFile(wb, `BI_KRAEM_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Calidad_BI");
+        XLSX.writeFile(wb, `Reporte_Calidad_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     window.onload = init;
