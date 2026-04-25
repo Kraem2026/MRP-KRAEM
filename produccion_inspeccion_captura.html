@@ -54,23 +54,29 @@
         </div>
     </div>
 
-    <div class="tag">PRODUCTO</div>
-    <div class="group">
-        <label>Número de Parte / Nombre</label>
-        <input type="text" id="part_input" placeholder="Escriba para filtrar..." autocomplete="off">
-        <div id="part_box" class="autobox"></div>
+    <div class="tag">PRODUCTO Y EQUIPO</div>
+    <div class="grid">
+        <div class="group">
+            <label>Número de Parte</label>
+            <input type="text" id="part_input" placeholder="Filtrar..." autocomplete="off">
+            <div id="part_box" class="autobox"></div>
+        </div>
+        <div class="group">
+            <label>Máquina / Estación</label>
+            <input type="text" id="maquina" placeholder="Ej. CNC-01, PRENSA-05">
+        </div>
     </div>
     <div class="group"><label>Descripción</label><input type="text" id="desc_display" class="readonly" readonly></div>
 
     <div class="grid">
-        <div class="group"><label>Cantidad Inspeccionada</label><input type="number" id="c_total" value="0" oninput="calcular()"></div>
-        <div class="group"><label style="color:var(--danger)">Cantidad Defectuosa</label><input type="number" id="c_def" value="0" oninput="calcular()"></div>
+        <div class="group"><label>Cant. Inspeccionada</label><input type="number" id="c_total" value="0" oninput="calcular()"></div>
+        <div class="group"><label style="color:var(--danger)">Cant. Defectuosa</label><input type="number" id="c_def" value="0" oninput="calcular()"></div>
     </div>
 
     <div class="tag">RESULTADO</div>
     <div class="grid">
         <div class="group">
-            <label>Defecto Detectado (Lista)</label>
+            <label>Defecto Detectado</label>
             <select id="defect_select"></select>
         </div>
         <div class="group">
@@ -97,17 +103,14 @@
     let db_parts = [], db_personal = [];
 
     async function init() {
-        // Cargar Áreas
         const { data: areas } = await client.from('rh_areas').select('nombre').order('nombre');
         const sArea = document.getElementById('area_select');
         sArea.innerHTML = '<option value="">-- Selección --</option>';
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
 
-        // Cargar Personal (Inspectores/Operadores)
         const { data: pers } = await client.from('rh_empleados').select('nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
         db_personal = pers || [];
 
-        // Cargar Defectos en LISTA
         const { data: defs } = await client.from('defects').select('*').order('Defect_name');
         const sDef = document.getElementById('defect_select');
         sDef.innerHTML = '<option value="NINGUNO">NINGUNO (OK)</option>';
@@ -116,7 +119,6 @@
             sDef.innerHTML += `<option value="${n}">${n}</option>`;
         });
 
-        // Cargar Partes
         const { data: parts } = await client.from('parts').select('part_number, part_name');
         db_parts = parts || [];
     }
@@ -149,12 +151,14 @@
     async function guardar() {
         const d = {
             fecha: new Date().toISOString().split('T')[0],
+            hora: new Date().toLocaleTimeString('en-GB'), // CAPTURA HORA AUTOMÁTICA HH:MM:SS
             turno: document.getElementById('turno').value,
             area: document.getElementById('area_select').value,
             inspector: document.getElementById('ins_input').value,
             operador: document.getElementById('ope_input').value,
             num_parte: document.getElementById('part_input').value,
             nombre_pieza: document.getElementById('desc_display').value,
+            maquina: document.getElementById('maquina').value.toUpperCase(), // CAMPO NUEVO
             cant_inspeccionada: parseFloat(document.getElementById('c_total').value) || 0,
             cant_defectuosa: parseFloat(document.getElementById('c_def').value) || 0,
             tipo_defecto: document.getElementById('defect_select').value,
@@ -162,10 +166,10 @@
             comentarios: document.getElementById('notas').value
         };
 
-        if(!d.area || !d.num_parte || !d.inspector || !d.operador) return alert("⚠️ Llena los campos obligatorios.");
+        if(!d.area || !d.num_parte || !d.inspector || !d.operador || !d.maquina) return alert("⚠️ Llena los campos obligatorios (incluyendo máquina).");
         
         const { error } = await client.from('inspeccion_produccion').insert([d]);
-        if(error) alert(error.message); else { alert("✅ Guardado"); location.reload(); }
+        if(error) alert(error.message); else { alert("✅ Guardado con éxito"); location.reload(); }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
