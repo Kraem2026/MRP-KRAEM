@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --border: #e2e8f0; }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --border: #e2e8f0; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; --purple: #7c3aed; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         
@@ -21,7 +21,7 @@
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
         select, input { padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; }
 
-        .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); max-height: 70vh; }
+        .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); max-height: 60vh; margin-bottom: 20px; }
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
         th { position: sticky; top: 0; background: #f8fafc; padding: 10px 5px; font-size: 10px; border: 1px solid var(--border); z-index: 10; }
         td { padding: 6px 4px; border: 1px solid #f1f5f9; text-align: center; font-size: 11px; }
@@ -32,11 +32,20 @@
             border-right: 2px solid var(--border); min-width: 180px; 
         }
         
-        /* Indicadores */
-        .badge-p { color: #22c55e; font-weight: bold; }
-        .badge-f { color: #ef4444; font-weight: bold; }
-        .badge-r { color: #f59e0b; font-weight: bold; }
-        .extra-val { color: #7c3aed; font-weight: bold; font-size: 10px; background: #f5f3ff; border-radius: 4px; padding: 1px 3px; }
+        /* Tablero de Métricas */
+        .metrics-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px; background: #f1f5f9; padding: 20px; border-radius: 12px; border: 1px solid var(--border);
+        }
+        .metric-card { background: white; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+        .metric-label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+        .metric-value { font-size: 24px; font-weight: 900; color: var(--primary); }
+
+        /* Colores */
+        .badge-p { color: var(--success); font-weight: bold; }
+        .badge-f { color: var(--danger); font-weight: bold; }
+        .badge-r { color: var(--warning); font-weight: bold; }
+        .extra-val { color: var(--purple); font-weight: bold; font-size: 10px; background: #f5f3ff; border-radius: 4px; padding: 1px 3px; }
         .domingo { background: #f1f5f9 !important; color: #94a3b8; }
         
         .btn { padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 5px; }
@@ -48,7 +57,7 @@
 
 <div class="card">
     <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:15px;">
-        <h2 style="margin:0;"><i class="fas fa-calendar-check"></i> Monitor Maestro de Operaciones</h2>
+        <h2 style="margin:0;"><i class="fas fa-chart-line"></i> Monitor Maestro Kraem</h2>
         <div style="display:flex; gap:10px;">
             <button class="btn btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Exportar</button>
             <button class="btn btn-primary" onclick="cargarData()"><i class="fas fa-sync"></i> Refrescar</button>
@@ -65,7 +74,7 @@
         </div>
         <div id="c_mes" class="control-group">
             <label>Mes</label>
-            <select id="v_mes">
+            <select id="v_mes" onchange="cargarData()">
                 <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
                 <option value="3" selected>Abril</option><option value="4">Mayo</option>
             </select>
@@ -73,12 +82,12 @@
         <div id="c_rango" class="control-group" style="display:none;">
             <label>Desde / Hasta</label>
             <div style="display:flex; gap:2px;">
-                <input type="date" id="v_desde">
-                <input type="date" id="v_hasta">
+                <input type="date" id="v_desde" onchange="cargarData()">
+                <input type="date" id="v_hasta" onchange="cargarData()">
             </div>
         </div>
-        <div class="control-group"><label>Área</label><select id="v_area"><option value="">Todas</option></select></div>
-        <div class="control-group"><label>Turno</label><select id="v_turno"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+        <div class="control-group"><label>Área</label><select id="v_area" onchange="cargarData()"><option value="">Todas</option></select></div>
+        <div class="control-group"><label>Turno</label><select id="v_turno" onchange="cargarData()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
         <div class="control-group"><label>Nombre</label><input type="text" id="v_nombre" placeholder="Buscar..." onkeyup="filtrarLocal()"></div>
     </div>
 
@@ -88,18 +97,39 @@
             <tbody id="master_body"></tbody>
         </table>
     </div>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <span class="metric-label">Asistencias</span>
+            <span class="metric-value" id="res-asis" style="color:var(--success)">0</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Faltas</span>
+            <span class="metric-value" id="res-faltas" style="color:var(--danger)">0</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Retardos</span>
+            <span class="metric-value" id="res-retardos" style="color:var(--warning)">0</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Incapacidades/Permisos</span>
+            <span class="metric-value" id="res-permisos" style="color:var(--accent)">0</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-label">Total Horas Extra</span>
+            <span class="metric-value" id="res-extra" style="color:var(--purple)">0h</span>
+        </div>
+    </div>
 </div>
 
 <script>
-    let rawData = [];
+    let globalData = []; // Para guardar el procesamiento y recalcular rápido
 
     async function init() {
-        // Cargar áreas igual que en tu registro
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
         
-        // Default fechas
         const hoy = new Date();
         document.getElementById('v_desde').value = hoy.toISOString().split('T')[0];
         document.getElementById('v_hasta').value = hoy.toISOString().split('T')[0];
@@ -130,7 +160,6 @@
         const iniStr = inicio.toISOString().split('T')[0];
         const finStr = fin.toISOString().split('T')[0];
 
-        // Fetch
         const [resEmp, resAsi, resSol] = await Promise.all([
             client.from('rh_empleados').select('id, nombre_completo, area_id, turno_id').eq('estatus','ACTIVO'),
             client.from('rh_asistencia_diaria').select('*').gte('fecha', iniStr).lte('fecha', finStr),
@@ -143,46 +172,78 @@
             let d = new Date(inicio); d.setDate(d.getDate() + i);
             headHTML += `<th class="${d.getDay()===0?'domingo':''}">${['D','L','M','M','J','V','S'][d.getDay()]}<br>${d.getDate()}</th>`;
         }
-        headHTML += `<th>Faltas</th><th>Total Horas Extra</th></tr>`;
+        headHTML += `<th>Faltas</th><th>Total Extra</th></tr>`;
         document.getElementById('master_head').innerHTML = headHTML;
 
-        // Render Body
         const areaF = document.getElementById('v_area').value;
         const turnoF = document.getElementById('v_turno').value;
-        
         const emps = resEmp.data.filter(e => (!areaF || e.area_id == areaF) && (!turnoF || e.turno_id == turnoF));
         
+        // Guardaremos el resumen de cada fila para el tablero
+        globalData = [];
+
         document.getElementById('master_body').innerHTML = emps.map(emp => {
-            let faltas = 0, extras = 0;
+            let fCount = 0, pCount = 0, aCount = 0, rCount = 0, hCount = 0;
             let fila = `<tr class="row-emp"><td class="emp-name">${emp.nombre_completo}</td>`;
             
             for(let i=0; i<diasDiff; i++) {
                 let d = new Date(inicio); d.setDate(d.getDate() + i);
                 const fStr = d.toISOString().split('T')[0];
-                
                 const sol = resSol.data.find(s => s.empleado_id === emp.id && fStr >= s.fecha_inicio && fStr <= s.fecha_fin);
                 const asi = resAsi.data.find(a => a.empleado_id === emp.id && a.fecha === fStr);
                 
                 let celda = '-';
-                if(sol) celda = `<small style="color:blue">${sol.tipo.charAt(0)}</small>`;
-                else if(asi) {
+                if(sol) {
+                    celda = `<small style="color:blue">${sol.tipo.charAt(0)}</small>`;
+                    pCount++;
+                } else if(asi) {
+                    if(asi.estado === 'P') aCount++;
+                    else if(asi.estado === 'R') rCount++;
+                    else if(asi.estado === 'F') fCount++;
+                    
                     let txt = asi.estado === 'P' ? '<span class="badge-p">P</span>' : (asi.estado === 'R' ? '<span class="badge-r">R</span>' : '<span class="badge-f">F</span>');
-                    if(asi.estado === 'F') faltas++;
                     let hex = asi.horas_extra > 0 ? `<div class="extra-val">+${asi.horas_extra}h</div>` : '';
                     celda = txt + hex;
-                    extras += parseFloat(asi.horas_extra || 0);
+                    hCount += parseFloat(asi.horas_extra || 0);
                 }
                 fila += `<td class="${d.getDay()===0?'domingo':''}">${celda}</td>`;
             }
-            return fila + `<td style="color:red; font-weight:bold">${faltas}</td><td style="color:purple; font-weight:bold">${extras}h</td></tr>`;
+
+            globalData.push({ nombre: emp.nombre_completo.toLowerCase(), a: aCount, f: fCount, r: rCount, p: pCount, h: hCount });
+            return fila + `<td style="color:red; font-weight:bold">${fCount}</td><td style="color:purple; font-weight:bold">${hCount}h</td></tr>`;
         }).join('');
+
+        actualizarTablero();
     }
 
     function filtrarLocal() {
         const busqueda = document.getElementById('v_nombre').value.toLowerCase();
         document.querySelectorAll('.row-emp').forEach(row => {
-            row.style.display = row.querySelector('.emp-name').innerText.toLowerCase().includes(busqueda) ? '' : 'none';
+            const nombreRow = row.querySelector('.emp-name').innerText.toLowerCase();
+            row.style.display = nombreRow.includes(busqueda) ? '' : 'none';
         });
+        actualizarTablero(); // Recalcular números al buscar
+    }
+
+    function actualizarTablero() {
+        const busqueda = document.getElementById('v_nombre').value.toLowerCase();
+        // Solo sumamos los datos de las personas que coinciden con la búsqueda de nombre
+        const filtrados = globalData.filter(d => d.nombre.includes(busqueda));
+
+        const totales = filtrados.reduce((acc, cur) => {
+            acc.asistencias += cur.a;
+            acc.faltas += cur.f;
+            acc.retardos += cur.r;
+            acc.permisos += cur.p;
+            acc.horas += cur.h;
+            return acc;
+        }, { asistencias: 0, faltas: 0, retardos: 0, permisos: 0, horas: 0 });
+
+        document.getElementById('res-asis').innerText = totales.asistencias;
+        document.getElementById('res-faltas').innerText = totales.faltas;
+        document.getElementById('res-retardos').innerText = totales.retardos;
+        document.getElementById('res-permisos').innerText = totales.permisos;
+        document.getElementById('res-extra').innerText = totales.horas.toFixed(1) + 'h';
     }
 
     function exportarExcel() {
