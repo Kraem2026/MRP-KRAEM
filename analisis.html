@@ -12,13 +12,13 @@
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0; --danger: #ef4444; --success: #22c55e; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: #1e293b; margin: 0; padding: 10px; }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 1600px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--primary); color: white; padding: 12px 20px; border-radius: 10px; }
         
         .filter-panel { 
             background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); 
             margin-bottom: 15px; display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; align-items: flex-end; 
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; align-items: flex-end; 
         }
         .group { display: flex; flex-direction: column; gap: 4px; position: relative; }
         label { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; }
@@ -34,13 +34,13 @@
         .m-value { font-size: 18px; font-weight: 800; display: block; }
         
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        @media (min-width: 1100px) { .main-grid { grid-template-columns: 450px 1fr; } }
+        @media (min-width: 1200px) { .main-grid { grid-template-columns: 400px 1fr; } }
         
         .card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
         .chart-container { position: relative; height: 320px; width: 100%; }
 
-        .table-wrap { overflow-x: auto; max-height: 450px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .table-wrap { overflow-x: auto; max-height: 500px; }
+        table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
         th { position: sticky; top: 0; background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
         td { padding: 8px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
 
@@ -63,6 +63,7 @@
         <div class="group"><label>Turno</label><select id="f_turno"><option value="">Todos</option><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
         <div class="group"><label>Máquina</label><input type="text" id="m_input" placeholder="Máquina..." autocomplete="off"><div id="m_box" class="autobox"></div></div>
         <div class="group"><label>N/P</label><input type="text" id="p_input" placeholder="Parte..." autocomplete="off"><div id="p_box" class="autobox"></div></div>
+        <div class="group"><label>Descripción</label><input type="text" id="d_input" placeholder="Buscar desc..." autocomplete="off"><div id="d_box" class="autobox"></div></div>
         <div class="group"><label>Operador</label><input type="text" id="ope_input" placeholder="Operador..." autocomplete="off"><div id="ope_box" class="autobox"></div></div>
         <div class="group"><label>Inspector</label><input type="text" id="ins_input" placeholder="Inspector..." autocomplete="off"><div id="ins_box" class="autobox"></div></div>
         <div class="group"><label>Área</label><select id="f_area"><option value="">Todas</option></select></div>
@@ -91,8 +92,9 @@
                 <table id="mainTable">
                     <thead>
                         <tr>
-                            <th>Fecha/Hora</th>
+                            <th>Fecha</th>
                             <th>N/P</th>
+                            <th>Descripción</th>
                             <th>Máquina</th>
                             <th>Turno</th>
                             <th>Operador</th>
@@ -100,7 +102,7 @@
                             <th>Insp</th>
                             <th>Rech</th>
                             <th>Defecto</th>
-                            <th>Disposición</th>
+                            <th>Disp</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -125,8 +127,10 @@
             sDef.innerHTML += `<option value="${n}">${n}</option>`; 
         });
 
-        const { data: parts } = await client.from('parts').select('part_number');
+        // Cargar partes con descripción para los filtros
+        const { data: parts } = await client.from('parts').select('part_number, description');
         db_parts = parts || [];
+        
         const { data: pers } = await client.from('rh_empleados').select('nombre_completo');
         db_personal = pers || [];
 
@@ -135,6 +139,7 @@
         db_machines = uniqueMqs.map(m => ({ name: m }));
 
         setupSearch('p_input', 'p_box', db_parts, 'part_number');
+        setupSearch('d_input', 'd_box', db_parts, 'description');
         setupSearch('ope_input', 'ope_box', db_personal, 'nombre_completo');
         setupSearch('ins_input', 'ins_box', db_personal, 'nombre_completo');
         setupSearch('m_input', 'm_box', db_machines, 'name');
@@ -149,11 +154,19 @@
             const val = input.value.toUpperCase();
             box.innerHTML = '';
             if(!val) { box.style.display='none'; return; }
-            const fil = data.filter(i => (i[key]||"").toUpperCase().includes(val)).slice(0,6);
+            const fil = data.filter(i => (i[key]||"").toUpperCase().includes(val)).slice(0,8);
             fil.forEach(i => {
                 const div = document.createElement('div');
                 div.innerText = i[key];
-                div.onclick = () => { input.value = i[key]; box.style.display='none'; fetchData(); };
+                div.onclick = () => { 
+                    input.value = i[key]; 
+                    // Si selecciono por descripción, autocompletar el N/P y viceversa
+                    if(key === 'description') document.getElementById('p_input').value = i.part_number;
+                    if(key === 'part_number') document.getElementById('d_input').value = i.description || '';
+                    
+                    box.style.display='none'; 
+                    fetchData(); 
+                };
                 box.appendChild(div);
             });
             box.style.display = fil.length ? 'block' : 'none';
@@ -162,12 +175,14 @@
 
     async function fetchData() {
         let query = client.from('inspeccion_produccion').select('*').order('fecha', {ascending: false});
+        
         const desde = document.getElementById('f_desde').value;
         const hasta = document.getElementById('f_hasta').value;
         const area = document.getElementById('f_area').value;
         const defecto = document.getElementById('f_defecto').value;
         const destino = document.getElementById('f_destino').value;
         const np = document.getElementById('p_input').value;
+        const desc_filtro = document.getElementById('d_input').value.toUpperCase();
         const ope = document.getElementById('ope_input').value;
         const ins = document.getElementById('ins_input').value;
         const turno = document.getElementById('f_turno').value;
@@ -183,10 +198,20 @@
         if(maquina) query = query.ilike('maquina', `%${maquina}%`);
 
         const { data } = await query;
-        rawData = data ? data.filter(r => 
+
+        // Mapear descripción de la tabla parts a los resultados
+        rawData = data ? data.map(r => {
+            const infoParte = db_parts.find(p => p.part_number === r.num_parte);
+            return { ...r, description: infoParte ? infoParte.description : 'S/D' };
+        }) : [];
+
+        // Filtros adicionales que no están en la tabla principal de inspección (por descripción o nombre parcial)
+        rawData = rawData.filter(r => 
             (!ope || (r.operador||"").toUpperCase().includes(ope.toUpperCase())) &&
-            (!ins || (r.inspector||"").toUpperCase().includes(ins.toUpperCase()))
-        ) : [];
+            (!ins || (r.inspector||"").toUpperCase().includes(ins.toUpperCase())) &&
+            (!desc_filtro || (r.description||"").toUpperCase().includes(desc_filtro))
+        );
+
         updateUI();
     }
 
@@ -203,6 +228,7 @@
             tbody.innerHTML += `<tr>
                 <td>${r.fecha}</td>
                 <td><b>${r.num_parte}</b></td>
+                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">${r.description}</td>
                 <td>${r.maquina||'-'}</td>
                 <td>T${r.turno}</td>
                 <td>${(r.operador||"").split(' ')[0]}</td>
@@ -254,7 +280,7 @@
         if(rawData.length === 0) return alert("No hay datos");
         const excelData = rawData.map(r => ({
             Fecha: r.fecha, Hora: r.hora, Turno: r.turno, Area: r.area, Maquina: r.maquina, 
-            Num_Parte: r.num_parte, Operador: r.operador, Inspector: r.inspector, 
+            Num_Parte: r.num_parte, Descripcion: r.description, Operador: r.operador, Inspector: r.inspector, 
             Inspeccionado: r.cant_inspeccionada, Rechazado: r.cant_defectuosa,
             OK: r.cant_inspeccionada - r.cant_defectuosa, Yield: r.cant_inspeccionada > 0 ? (((r.cant_inspeccionada-r.cant_defectuosa)/r.cant_inspeccionada)*100).toFixed(2)+"%" : "0%",
             Defecto: r.tipo_defecto, Disposicion: r.destino, Comentarios: r.comentarios
