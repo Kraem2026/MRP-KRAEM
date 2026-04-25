@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Análisis Pro</title>
+    <title>KRAEM | BI Analytics 80/20</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,40 +13,41 @@
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --card: #ffffff; --border: #e2e8f0; --danger: #ef4444; --success: #22c55e; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: #1e293b; margin: 0; padding: 10px; }
         
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--primary); color: white; padding: 12px 20px; border-radius: 10px; }
         
-        /* Filtros */
-        .filter-panel { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: flex-end; }
+        /* Filtros Expandidos */
+        .filter-panel { 
+            background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); 
+            margin-bottom: 15px; display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; align-items: flex-end; 
+        }
         .group { display: flex; flex-direction: column; gap: 4px; position: relative; }
-        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; }
-        select, input { padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; outline: none; width: 100%; box-sizing: border-box; }
+        label { font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; }
+        select, input { padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px; outline: none; width: 100%; box-sizing: border-box; }
         
-        /* Autocompletado */
         .autobox { position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid var(--border); z-index: 1000; max-height: 150px; overflow-y: auto; display: none; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .autobox div { padding: 8px; cursor: pointer; border-bottom: 1px solid #f8fafc; font-size: 12px; }
+        .autobox div { padding: 8px; cursor: pointer; border-bottom: 1px solid #f8fafc; font-size: 11px; }
         .autobox div:hover { background: #eff6ff; }
 
         /* Métricas */
         .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
-        @media (min-width: 768px) { .metrics-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 768px) { .metrics-grid { grid-template-columns: repeat(5, 1fr); } }
         .m-card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
-        .m-value { font-size: 20px; font-weight: 800; display: block; }
+        .m-value { font-size: 18px; font-weight: 800; display: block; }
         
-        /* Layout Principal */
         .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        @media (min-width: 992px) { .main-grid { grid-template-columns: 350px 1fr; } }
+        @media (min-width: 1100px) { .main-grid { grid-template-columns: 450px 1fr; } }
         
         .card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-container { position: relative; height: 320px; width: 100%; }
 
-        /* Tabla */
-        .table-wrap { overflow-x: auto; max-height: 350px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th { position: sticky; top: 0; background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid var(--border); }
-        td { padding: 8px; border-bottom: 1px solid #f1f5f9; }
+        .table-wrap { overflow-x: auto; max-height: 450px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { position: sticky; top: 0; background: #f8fafc; padding: 10px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
+        td { padding: 8px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
 
-        .btn { padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 12px; }
+        .btn { padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; height: 35px; }
         .btn-blue { background: var(--accent); color: white; }
         .btn-green { background: #16a34a; color: white; }
     </style>
@@ -55,61 +56,51 @@
 
 <div class="container">
     <div class="header">
-        <h3 style="margin:0;"><i class="fas fa-chart-line"></i> Análisis de Calidad</h3>
+        <h3 style="margin:0;"><i class="fas fa-chart-line"></i> Análisis de Calidad 80/20</h3>
         <a href="dashboard.html" style="color:white; text-decoration:none; font-size:12px;"><i class="fas fa-home"></i> INICIO</a>
     </div>
 
     <div class="filter-panel">
         <div class="group"><label>Desde</label><input type="date" id="f_desde"></div>
         <div class="group"><label>Hasta</label><input type="date" id="f_hasta"></div>
-        
-        <div class="group">
-            <label>N/P</label>
-            <input type="text" id="p_input" placeholder="Buscar Parte..." autocomplete="off">
-            <div id="p_box" class="autobox"></div>
-        </div>
-
-        <div class="group">
-            <label>Personal</label>
-            <input type="text" id="u_input" placeholder="Operador/Inspector..." autocomplete="off">
-            <div id="u_box" class="autobox"></div>
-        </div>
-
-        <div class="group">
-            <label>Área</label>
-            <select id="f_area"><option value="">Todas</option></select>
-        </div>
-
+        <div class="group"><label>N/P</label><input type="text" id="p_input" placeholder="Parte..." autocomplete="off"><div id="p_box" class="autobox"></div></div>
+        <div class="group"><label>Operador</label><input type="text" id="ope_input" placeholder="Fabricó..." autocomplete="off"><div id="ope_box" class="autobox"></div></div>
+        <div class="group"><label>Inspector</label><input type="text" id="ins_input" placeholder="Auditó..." autocomplete="off"><div id="ins_box" class="autobox"></div></div>
+        <div class="group"><label>Área</label><select id="f_area"><option value="">Todas</option></select></div>
+        <div class="group"><label>Defecto</label><select id="f_defecto"><option value="">Todos</option></select></div>
+        <div class="group"><label>Disposición</label><select id="f_destino"><option value="">Todas</option><option value="LIBERADO">LIBERADO</option><option value="RETRABAJO">RETRABAJO</option><option value="SCRAP">SCRAP</option></select></div>
         <button class="btn btn-blue" onclick="fetchData()"><i class="fas fa-sync"></i></button>
         <button class="btn btn-green" onclick="exportExcel()"><i class="fas fa-file-excel"></i> EXCEL</button>
     </div>
 
     <div class="metrics-grid">
         <div class="m-card"><label>INSPECCIONADO</label><span class="m-value" id="m_total">0</span></div>
-        <div class="m-card"><label>DEFECTOS</label><span class="m-value" id="m_def" style="color:var(--danger)">0</span></div>
-        <div class="m-card"><label>PIEZAS OK</label><span class="m-value" id="m_ok" style="color:var(--success)">0</span></div>
+        <div class="m-card"><label>RECHAZO (PZS)</label><span class="m-value" id="m_def" style="color:var(--danger)">0</span></div>
+        <div class="m-card"><label>ACEPTADO (PZS)</label><span class="m-value" id="m_ok" style="color:var(--success)">0</span></div>
         <div class="m-card"><label>YIELD %</label><span class="m-value" id="m_yield" style="color:var(--accent)">0%</span></div>
+        <div class="m-card"><label>TOTAL SCRAP</label><span class="m-value" id="m_scrap" style="color:var(--danger)">0</span></div>
     </div>
 
     <div class="main-grid">
         <div class="card">
-            <h4 style="margin:0 0 10px 0;"><i class="fas fa-chart-bar"></i> Pareto (Top Defectos)</h4>
-            <div class="chart-container">
-                <canvas id="chartPareto"></canvas>
-            </div>
+            <h4 style="margin:0 0 10px 0;"><i class="fas fa-chart-bar"></i> Diagrama de Pareto (80/20)</h4>
+            <div class="chart-container"><canvas id="chartPareto"></canvas></div>
         </div>
         <div class="card">
-            <h4 style="margin:0 0 10px 0;"><i class="fas fa-table"></i> Historial de Registros</h4>
+            <h4 style="margin:0 0 10px 0;"><i class="fas fa-table"></i> Detalle de Inspecciones</h4>
             <div class="table-wrap">
                 <table id="mainTable">
                     <thead>
                         <tr>
-                            <th>Fecha</th>
+                            <th>Fecha/Hora</th>
                             <th>N/P</th>
+                            <th>Máquina</th>
                             <th>Operador</th>
-                            <th>Def</th>
-                            <th>Tipo</th>
-                            <th>Destino</th>
+                            <th>Inspector</th>
+                            <th>Insp</th>
+                            <th>Rech</th>
+                            <th>Defecto</th>
+                            <th>Disposición</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -123,20 +114,22 @@
     let db_parts = [], db_personal = [], rawData = [], myChart = null;
 
     async function init() {
-        // Cargar Áreas
         const { data: areas } = await client.from('rh_areas').select('nombre');
         const sArea = document.getElementById('f_area');
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
 
-        // Cargar Datos para buscadores
+        const { data: defs } = await client.from('defects').select('*');
+        const sDef = document.getElementById('f_defecto');
+        defs?.forEach(d => { let n = d.Defect_name || d.defect_name; sDef.innerHTML += `<option value="${n}">${n}</option>`; });
+
         const { data: parts } = await client.from('parts').select('part_number');
         db_parts = parts || [];
         const { data: pers } = await client.from('rh_empleados').select('nombre_completo');
         db_personal = pers || [];
 
-        // Configurar buscadores
         setupSearch('p_input', 'p_box', db_parts, 'part_number');
-        setupSearch('u_input', 'u_box', db_personal, 'nombre_completo');
+        setupSearch('ope_input', 'ope_box', db_personal, 'nombre_completo');
+        setupSearch('ins_input', 'ins_box', db_personal, 'nombre_completo');
 
         fetchData();
     }
@@ -160,95 +153,96 @@
     }
 
     async function fetchData() {
-        let query = client.from('inspeccion_produccion').select('*').order('fecha', {ascending: false}).limit(500);
-        
+        let query = client.from('inspeccion_produccion').select('*').order('fecha', {ascending: false});
         const desde = document.getElementById('f_desde').value;
         const hasta = document.getElementById('f_hasta').value;
         const area = document.getElementById('f_area').value;
+        const defecto = document.getElementById('f_defecto').value;
+        const destino = document.getElementById('f_destino').value;
         const np = document.getElementById('p_input').value;
-        const user = document.getElementById('u_input').value;
+        const ope = document.getElementById('ope_input').value;
+        const ins = document.getElementById('ins_input').value;
 
         if(desde) query = query.gte('fecha', desde);
         if(hasta) query = query.lte('fecha', hasta);
         if(area) query = query.eq('area', area);
+        if(defecto) query = query.eq('tipo_defecto', defecto);
+        if(destino) query = query.eq('destino', destino);
         if(np) query = query.eq('num_parte', np);
 
         const { data } = await query;
-        
-        // Filtro manual para el buscador de personal (que busca en inspector u operador)
         rawData = data ? data.filter(r => 
-            !user || 
-            (r.operador||"").toUpperCase().includes(user.toUpperCase()) || 
-            (r.inspector||"").toUpperCase().includes(user.toUpperCase())
+            (!ope || (r.operador||"").toUpperCase().includes(ope.toUpperCase())) &&
+            (!ins || (r.inspector||"").toUpperCase().includes(ins.toUpperCase()))
         ) : [];
-
         updateUI();
     }
 
     function updateUI() {
         const tbody = document.querySelector('#mainTable tbody');
         tbody.innerHTML = '';
-        let tIns = 0, tDef = 0, pMap = {};
+        let tIns = 0, tDef = 0, tScrap = 0, pMap = {};
 
         rawData.forEach(r => {
-            tIns += r.cant_inspeccionada;
-            tDef += r.cant_defectuosa;
-            if(r.tipo_defecto && r.tipo_defecto !== 'NINGUNO') {
-                pMap[r.tipo_defecto] = (pMap[r.tipo_defecto] || 0) + r.cant_defectuosa;
-            }
-            tbody.innerHTML += `<tr>
-                <td>${r.fecha.slice(5)}</td>
-                <td><b>${r.num_parte}</b></td>
-                <td>${(r.operador||"").split(' ')[0]}</td>
-                <td style="color:red; font-weight:bold">${r.cant_defectuosa}</td>
-                <td>${r.tipo_defecto}</td>
-                <td>${r.destino}</td>
-            </tr>`;
+            tIns += r.cant_inspeccionada; tDef += r.cant_defectuosa;
+            if(r.destino === 'SCRAP') tScrap += r.cant_defectuosa;
+            if(r.tipo_defecto && r.tipo_defecto !== 'NINGUNO') { pMap[r.tipo_defecto] = (pMap[r.tipo_defecto] || 0) + r.cant_defectuosa; }
+            tbody.innerHTML += `<tr><td>${r.fecha} <small>${r.hora||''}</small></td><td><b>${r.num_parte}</b></td><td>${r.maquina||'-'}</td><td>${(r.operador||"").split(' ')[0]}</td><td>${(r.inspector||"").split(' ')[0]}</td><td>${r.cant_inspeccionada}</td><td style="color:red; font-weight:bold">${r.cant_defectuosa}</td><td>${r.tipo_defecto}</td><td>${r.destino}</td></tr>`;
         });
 
-        document.getElementById('m_total').innerText = tIns;
-        document.getElementById('m_def').innerText = tDef;
-        document.getElementById('m_ok').innerText = tIns - tDef;
+        document.getElementById('m_total').innerText = tIns.toLocaleString();
+        document.getElementById('m_def').innerText = tDef.toLocaleString();
+        document.getElementById('m_ok').innerText = (tIns - tDef).toLocaleString();
         document.getElementById('m_yield').innerText = tIns > 0 ? (((tIns-tDef)/tIns)*100).toFixed(1) + "%" : "0%";
-
+        document.getElementById('m_scrap').innerText = tScrap.toLocaleString();
         renderChart(pMap);
     }
 
     function renderChart(pMap) {
         const ctx = document.getElementById('chartPareto').getContext('2d');
-        const sorted = Object.entries(pMap).sort((a,b) => b[1]-a[1]).slice(0,8);
-        
-        if(myChart) myChart.destroy();
+        const sorted = Object.entries(pMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const labels = sorted.map(i => i[0]);
+        const counts = sorted.map(i => i[1]);
+        const totalDefectos = counts.reduce((a, b) => a + b, 0);
+        let acumulado = 0;
+        const porcentajesAcu = counts.map(c => { acumulado += c; return ((acumulado / totalDefectos) * 100).toFixed(1); });
+
+        if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
-            type: 'bar',
             data: {
-                labels: sorted.map(i => i[0]),
-                datasets: [{
-                    data: sorted.map(i => i[1]),
-                    backgroundColor: '#2563eb',
-                    borderRadius: 5
-                }]
+                labels: labels,
+                datasets: [
+                    { type: 'bar', label: 'Cantidad', data: counts, backgroundColor: '#2563eb', borderRadius: 5, yAxisID: 'y' },
+                    { type: 'line', label: '% Acumulado', data: porcentajesAcu, borderColor: '#ef4444', borderWidth: 3, tension: 0.3, yAxisID: 'y1' }
+                ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { display: false } } }
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { type: 'linear', position: 'left', beginAtZero: true },
+                    y1: { type: 'linear', position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } }
+                }
             }
         });
     }
 
     function exportExcel() {
-        const ws = XLSX.utils.json_to_sheet(rawData);
+        if(rawData.length === 0) return alert("No hay datos");
+        const excelData = rawData.map(r => ({
+            Fecha: r.fecha, Hora: r.hora, Turno: r.turno, Area: r.area, Maquina: r.maquina, 
+            Num_Parte: r.num_parte, Nombre_Pieza: r.nombre_pieza, Operador: r.operador, 
+            Inspector: r.inspector, Inspeccionado: r.cant_inspeccionada, Rechazado: r.cant_defectuosa,
+            OK: r.cant_inspeccionada - r.cant_defectuosa, Porcentaje_Rechazo: r.cant_inspeccionada > 0 ? ((r.cant_defectuosa/r.cant_inspeccionada)*100).toFixed(2)+"%" : "0%",
+            Defecto: r.tipo_defecto, Disposicion: r.destino, Comentarios: r.comentarios
+        }));
+        const ws = XLSX.utils.json_to_sheet(excelData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Calidad");
-        XLSX.writeFile(wb, "KRAEM_Calidad.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Calidad_BI");
+        XLSX.writeFile(wb, `Reporte_BI_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     window.onload = init;
-    document.addEventListener('click', (e) => { 
-        if(!e.target.closest('.group')) document.querySelectorAll('.autobox').forEach(b => b.style.display='none');
-    });
+    document.onclick = (e) => { if(!e.target.closest('.group')) document.querySelectorAll('.autobox').forEach(b => b.style.display='none'); };
 </script>
 </body>
 </html>
