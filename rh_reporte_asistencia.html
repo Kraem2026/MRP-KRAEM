@@ -16,28 +16,33 @@
         
         table { width: 100%; border-collapse: collapse; background: white; }
         th { background: #f8fafc; padding: 10px 5px; text-align: center; font-size: 10px; border: 1px solid #e2e8f0; color: #64748b; }
-        td { padding: 8px 4px; border: 1px solid #f1f5f9; text-align: center; font-size: 11px; }
+        td { padding: 8px 4px; border: 1px solid #f1f5f9; text-align: center; font-size: 11px; min-width: 25px; }
         
         .domingo { background: #f1f5f9; color: #94a3b8; }
-        .emp-name { text-align: left; font-weight: bold; padding-left: 10px; position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid #e2e8f0; }
+        .emp-name { text-align: left; font-weight: bold; padding-left: 10px; position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid #e2e8f0; min-width: 200px; }
         
+        /* Colores de estados */
         .asistencia { color: #22c55e; font-weight: bold; }
+        .retardo { color: #f59e0b; font-weight: bold; }
         .falta { color: #ef4444; font-weight: bold; }
-        .vacaciones { color: #2563eb; font-weight: bold; background: #eff6ff; display: block; border-radius: 4px; }
+        .solicitud-badge { color: #2563eb; font-weight: bold; background: #eff6ff; display: block; border-radius: 4px; font-size: 9px; }
         
-        .btn-nav { background: white; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        @media print { .controls { display: none; } .card { border: none; box-shadow: none; } }
+        .btn-nav { background: white; border: 1px solid #cbd5e1; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; color: var(--text); }
+        @media print { .controls, .btn-nav { display: none !important; } .card { border: none; box-shadow: none; } .emp-name { position: static; } }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
-            <h2 style="margin:0;">Reporte Mensual de Asistencia</h2>
-            <p style="font-size: 12px; color: #64748b; margin: 5px 0 0 0;">Gestión de incidencias y vacaciones KRAEM</p>
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
+            <div>
+                <h2 style="margin:0;">Reporte Mensual de Asistencia</h2>
+                <p style="font-size: 12px; color: #64748b; margin: 5px 0 0 0;">Control de incidencias global KRAEM</p>
+            </div>
         </div>
-        <button onclick="window.print()" class="btn-nav"><i class="fas fa-print"></i> Imprimir</button>
+        <button onclick="window.print()" class="btn-nav"><i class="fas fa-print"></i> Imprimir Reporte</button>
     </div>
 
     <div class="controls">
@@ -52,6 +57,9 @@
         <div class="group"><label>Año: </label>
             <input type="number" id="anio_filtro" value="2026" onchange="generarReporte()" style="width: 80px;">
         </div>
+        <div style="margin-left: auto; font-size: 11px; color: #64748b;">
+            <b>P</b>: Presente | <b>R</b>: Retardo | <b>F</b>: Falta | <b>V/I/P</b>: Solicitudes
+        </div>
     </div>
 
     <div style="overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -59,7 +67,9 @@
             <thead>
                 <tr id="headers_fechas"></tr>
             </thead>
-            <tbody id="cuerpo_reporte"></tbody>
+            <tbody id="cuerpo_reporte">
+                <tr><td colspan="32">Cargando datos...</td></tr>
+            </tbody>
         </table>
     </div>
 </div>
@@ -70,64 +80,75 @@
         const anio = parseInt(document.getElementById('anio_filtro').value);
         const ultimoDia = new Date(anio, mes + 1, 0).getDate();
         
-        // 1. Generar Encabezados con día de la semana
+        // 1. Generar Encabezados
         const headerRow = document.getElementById('headers_fechas');
         headerRow.innerHTML = '<th class="emp-name">Empleado</th>';
         for(let i=1; i<=ultimoDia; i++) {
             const fecha = new Date(anio, mes, i);
-            const diaSem = fecha.getDay() === 0 ? 'D' : 
-                         fecha.getDay() === 6 ? 'S' : i;
-            headerRow.innerHTML += `<th class="${fecha.getDay() === 0 ? 'domingo' : ''}">${diaSem}<br><small>${i}</small></th>`;
+            const diaSem = ['D','L','M','M','J','V','S'][fecha.getDay()];
+            headerRow.innerHTML += `<th class="${fecha.getDay() === 0 ? 'domingo' : ''}">${diaSem}<br>${i}</th>`;
         }
         headerRow.innerHTML += '<th>Faltas</th>';
 
-        // 2. Cargar Datos en paralelo
+        // 2. Rango de fechas
         const inicioMes = `${anio}-${(mes+1).toString().padStart(2,'0')}-01`;
         const finMes = `${anio}-${(mes+1).toString().padStart(2,'0')}-${ultimoDia}`;
 
-        const [resEmps, resAsist, resVacas] = await Promise.all([
-            client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo'),
-            client.from('rh_asistencia').select('empleado_id, fecha, estado').gte('fecha', inicioMes).lte('fecha', finMes),
-            client.from('rh_vacaciones').select('empleado_id, fecha_inicio, fecha_fin').or(`fecha_inicio.lte.${finMes},fecha_fin.gte.${inicioMes}`)
-        ]);
+        try {
+            const [resEmps, resAsist, resSolics] = await Promise.all([
+                client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo'),
+                client.from('rh_asistencia_diaria').select('empleado_id, fecha, estado').gte('fecha', inicioMes).lte('fecha', finMes),
+                client.from('rh_solicitudes').select('empleado_id, fecha_inicio, fecha_fin, tipo').eq('estatus', 'APROBADO').or(`fecha_inicio.lte.${finMes},fecha_fin.gte.${inicioMes}`)
+            ]);
 
-        const emps = resEmps.data || [];
-        const asist = resAsist.data || [];
-        const vacas = resVacas.data || [];
+            const emps = resEmps.data || [];
+            const asistData = resAsist.data || [];
+            const solics = resSolics.data || [];
 
-        // 3. Renderizar Tabla
-        const tbody = document.getElementById('cuerpo_reporte');
-        tbody.innerHTML = '';
+            const tbody = document.getElementById('cuerpo_reporte');
+            tbody.innerHTML = '';
 
-        emps.forEach(e => {
-            let fila = `<tr><td class="emp-name">${e.nombre_completo}</td>`;
-            let contadorFaltas = 0;
+            emps.forEach(e => {
+                let fila = `<tr><td class="emp-name">${e.nombre_completo}</td>`;
+                let contadorFaltas = 0;
 
-            for(let d=1; d<=ultimoDia; d++) {
-                const fechaActual = new Date(anio, mes, d);
-                const fechaStr = `${anio}-${(mes+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
-                
-                // Buscar si está en periodo de vacaciones
-                const esVacacion = vacas.some(v => v.empleado_id === e.id && fechaStr >= v.fecha_inicio && fechaStr <= v.fecha_fin);
-                
-                // Buscar registro de asistencia
-                const registro = asist.find(a => a.empleado_id === e.id && a.fecha === fechaStr);
-                
-                let celda = '-';
-                let claseExtra = fechaActual.getDay() === 0 ? 'domingo' : '';
+                for(let d=1; d<=ultimoDia; d++) {
+                    const fechaActual = new Date(anio, mes, d);
+                    const fechaStr = `${anio}-${(mes+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+                    const diaSemana = fechaActual.getDay();
+                    
+                    // Buscar Solicitud (Vaca, Incapacidad, etc)
+                    const solicitud = solics.find(s => s.empleado_id === e.id && fechaStr >= s.fecha_inicio && fechaStr <= s.fecha_fin);
+                    
+                    // Buscar Asistencia marcada por líder
+                    const registro = asistData.find(a => a.empleado_id === e.id && a.fecha === fechaStr);
+                    
+                    let contenido = '-';
+                    let claseExtra = diaSemana === 0 ? 'domingo' : '';
 
-                if (esVacacion) {
-                    celda = '<span class="vacaciones">V</span>';
-                } else if (registro) {
-                    if(registro.estado === 'ASISTENCIA') celda = '<span class="asistencia">A</span>';
-                    if(registro.estado === 'FALTA') { celda = '<span class="falta">F</span>'; contadorFaltas++; }
+                    if (solicitud) {
+                        // Extraer inicial del tipo (V para Vacaciones, I para Incapacidad, etc.)
+                        const inicial = solicitud.tipo.charAt(0).toUpperCase();
+                        contenido = `<span class="solicitud-badge" title="${solicitud.tipo}">${inicial}</span>`;
+                    } else if (registro) {
+                        if(registro.estado === 'P') contenido = '<span class="asistencia">P</span>';
+                        if(registro.estado === 'R') contenido = '<span class="retardo">R</span>';
+                        if(registro.estado === 'F') { 
+                            contenido = '<span class="falta">F</span>'; 
+                            contadorFaltas++; 
+                        }
+                    }
+
+                    fila += `<td class="${claseExtra}">${contenido}</td>`;
                 }
+                fila += `<td style="font-weight:bold; color:#e11d48; background:#fff1f2;">${contadorFaltas}</td></tr>`;
+                tbody.innerHTML += fila;
+            });
 
-                fila += `<td class="${claseExtra}">${celda}</td>`;
-            }
-            fila += `<td style="font-weight:bold; color:#e11d48; background:#fff1f2;">${contadorFaltas}</td></tr>`;
-            tbody.innerHTML += fila;
-        });
+        } catch (err) {
+            console.error("Error cargando reporte:", err);
+            document.getElementById('cuerpo_reporte').innerHTML = '<tr><td colspan="32">Error al cargar datos</td></tr>';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', generarReporte);
