@@ -3,335 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Panel de Control de Incidencias</title>
+    <title>KRAEM | Gestión de Solicitudes</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #0f172a; --accent: #3b82f6; --bg: #f8fafc;
-            --text-main: #1e293b; --text-muted: #64748b;
-            --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
-        }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text-main); margin: 0; display: flex; }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+        .container { max-width: 1600px; margin: auto; }
         
-        /* Sidebar mejorada */
-        .sidebar { width: 260px; background: var(--primary); height: 100vh; position: fixed; color: white; padding: 20px; box-sizing: border-box; }
-        .main-content { margin-left: 260px; width: calc(100% - 260px); padding: 30px; box-sizing: border-box; }
+        /* Header igual al otro módulo */
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
         
-        .nav-link { display: flex; align-items: center; gap: 12px; color: #94a3b8; text-decoration: none; padding: 12px; border-radius: 8px; transition: 0.3s; margin-bottom: 5px; }
-        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
-
-        /* Cards y Layout */
-        .grid-main { display: grid; grid-template-columns: 380px 1fr; gap: 25px; }
-        .glass-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 24px; }
+        .grid-main { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         
-        /* Stats Visuals */
-        .stat-bubble { background: #eff6ff; border-radius: 12px; padding: 15px; text-align: center; border: 1px solid #dbeafe; }
-        .stat-value { font-size: 24px; font-weight: 800; color: var(--accent); display: block; }
-        .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        /* El diseño de vacaciones que te gusta */
+        .vacation-box { background: #f0f9ff; padding: 15px; border-radius: 12px; border: 1px solid #bae6fd; margin-bottom: 20px; text-align: center; }
+        .vacation-label { font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase; letter-spacing: 1px; }
+        .vacation-value { font-size: 32px; font-weight: 800; color: #0284c7; margin: 5px 0; }
+        .anti-label { font-size: 12px; color: #64748b; font-weight: 600; }
 
-        /* Form Elements */
-        .filter-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        label { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block; }
-        select, input, textarea { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 14px; background: #fff; outline: none; box-sizing: border-box; }
-        select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        /* Formulario y Filtros */
+        .group { display: flex; flex-direction: column; margin-bottom: 12px; }
+        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
+        .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.3s; }
+        .btn-primary:hover { background: #1d4ed8; }
 
-        /* Table Design */
-        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
-        th { padding: 12px; text-align: left; font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
-        tr.row-item { background: white; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        tr.row-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        td { padding: 16px; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; }
-        td:first-child { border-left: 1px solid #f1f5f9; border-radius: 12px 0 0 12px; }
-        td:last-child { border-right: 1px solid #f1f5f9; border-radius: 0 12px 12px 0; }
+        /* Tabla Estilo 360 */
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        
+        /* Badges de Estatus */
+        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
+        .status-pendiente { background: #fef3c7; color: #92400e; }
+        .status-aprobado { background: #dcfce7; color: #166534; }
+        .status-rechazado { background: #fee2e2; color: #991b1b; }
 
-        /* Status Badges */
-        .status { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-        .status-pendiente { background: #fff7ed; color: #c2410c; }
-        .status-aprobado { background: #f0fdf4; color: #15803d; }
-        .status-rechazado { background: #fef2f2; color: #b91c1c; }
-
-        .btn-action { padding: 8px; border-radius: 8px; border: none; cursor: pointer; transition: 0.2s; }
-        .btn-approve { background: #dcfce7; color: #166534; }
-        .btn-reject { background: #fee2e2; color: #991b1b; }
-        .btn-primary { background: var(--accent); color: white; width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; border: none; cursor: pointer; margin-top: 10px; }
+        .btn-action { border: none; background: none; cursor: pointer; font-size: 16px; padding: 5px; transition: 0.2s; }
+        .btn-approve { color: var(--success); }
+        .btn-reject { color: var(--danger); }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <h2 style="font-size: 20px; margin-bottom: 30px;"><i class="fas fa-shield-alt"></i> KRAEM RH</h2>
-    <a href="dashboard.html" class="nav-link"><i class="fas fa-th-large"></i> Dashboard</a>
-    <a href="rh_personal.html" class="nav-link"><i class="fas fa-users"></i> Mi Personal</a>
-    <a href="#" class="nav-link active"><i class="fas fa-calendar-check"></i> Incidencias</a>
-    <a href="reportes.html" class="nav-link"><i class="fas fa-chart-bar"></i> Reportes Excel</a>
-</div>
-
-<div class="main-content">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-        <div>
-            <h1 style="margin:0; font-size: 26px;">Gestión de Solicitudes</h1>
-            <p style="color:var(--text-muted); margin: 5px 0 0;">Administra vacaciones, permisos e incapacidades</p>
+<div class="container">
+    <div class="nav-header">
+        <div style="display:flex; gap:15px; align-items:center;">
+            <a href="rh_personal.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
+            <h2 style="margin:0;">Gestión de Solicitudes</h2>
         </div>
-        <div id="reloj" style="font-weight: 700; background: white; padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0;"></div>
+        <div id="reloj" style="font-size: 14px; font-weight: bold; color: #64748b;"></div>
     </div>
 
     <div class="grid-main">
-        <div class="glass-card">
-            <h3 style="margin-top:0;"><i class="fas fa-plus-circle" style="color:var(--accent)"></i> Registro Pro</h3>
+        <div class="card">
+            <h3 style="margin-top:0; font-size: 16px; color: var(--accent);"><i class="fas fa-calendar-plus"></i> Nueva Solicitud</h3>
             
-            <div class="filter-group">
-                <div>
-                    <label>Área</label>
-                    <select id="filtro_area" onchange="filtrarListaEmpleados()">
-                        <option value="TODAS">Todas</option>
-                        <option value="PRODUCCION">Producción</option>
-                        <option value="ADMINISTRACION">Administración</option>
-                        <option value="CALIDAD">Calidad</option>
-                        <option value="LOGISTICA">Logística</option>
-                    </select>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div class="group">
+                    <label>Filtrar Área</label>
+                    <select id="f_area" onchange="filtrarEmpleados()"></select>
                 </div>
-                <div>
+                <div class="group">
                     <label>Turno</label>
-                    <select id="filtro_turno" onchange="filtrarListaEmpleados()">
-                        <option value="TODOS">Todos</option>
-                        <option value="MATUTINO">Matutino</option>
-                        <option value="VESPERTINO">Vespertino</option>
-                        <option value="NOCTURNO">Nocturno</option>
+                    <select id="f_turno" onchange="filtrarEmpleados()">
+                        <option value="">Todos</option>
+                        <option value="1">Turno 1</option>
+                        <option value="2">Turno 2</option>
                     </select>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Seleccionar Colaborador</label>
-                <select id="sol_empleado" onchange="cargarDatosEmpleado()">
-                    <option value="">-- Seleccione un filtro --</option>
+            <div class="group">
+                <label>Colaborador</label>
+                <select id="sol_empleado" onchange="cargarInfoEmpleado()">
+                    <option value="">Seleccione filtros...</option>
                 </select>
             </div>
 
-            <div id="info_card_emp" class="info-panel" style="display:none; margin-bottom: 20px;">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <div class="stat-bubble">
-                        <span class="stat-label">Saldo Vacaciones</span>
-                        <span id="view_saldo" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-bubble">
-                        <span class="stat-label">Antigüedad</span>
-                        <span id="view_anti" style="font-size:12px; font-weight:700; color:var(--primary); display:block; margin-top:5px;">--</span>
-                    </div>
+            <div id="panel_info" style="display:none;">
+                <div class="vacation-box">
+                    <div class="vacation-label">Días Disponibles</div>
+                    <div id="view_dias_disponibles" class="vacation-value">--</div>
+                    <div id="view_anti" class="anti-label">--</div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Tipo de Incidencia</label>
-                <select id="sol_tipo" onchange="checkMaternidad()">
+            <div class="group">
+                <label>Tipo de Solicitud</label>
+                <select id="sol_tipo" onchange="autoCalcularFechas()">
                     <option value="VACACIONES">Vacaciones</option>
                     <option value="INCAPACIDAD_MATERNIDAD">Incapacidad Maternidad (84 días)</option>
                     <option value="PATERNIDAD">Permiso Paternidad (5 días)</option>
                     <option value="DEFUNCION">Duelo / Defunción</option>
-                    <option value="MATRIMONIO">Matrimonio</option>
                     <option value="PERMISO_SIN_GOCE">Permiso sin Goce</option>
-                    <option value="AJUSTE_SISTEMA">Ajuste de Saldo (Manual)</option>
+                    <option value="AJUSTE_SISTEMA">Ajuste de Saldo (Histórico)</option>
                 </select>
             </div>
 
-            <div class="filter-group">
-                <div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="group">
                     <label>Fecha Inicio</label>
-                    <input type="date" id="sol_desde" onchange="autoCalcular()">
+                    <input type="date" id="sol_desde" onchange="autoCalcularFechas()">
                 </div>
-                <div>
+                <div class="group">
                     <label>Fecha Fin</label>
-                    <input type="date" id="sol_hasta" onchange="autoCalcular()">
+                    <input type="date" id="sol_hasta" onchange="autoCalcularFechas()">
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Días Calculados</label>
-                <input type="number" id="sol_dias" readonly style="background:#f1f5f9; font-weight:800;">
+            <div class="group">
+                <label>Días Totales</label>
+                <input type="number" id="sol_dias" readonly style="background:#f8fafc; font-weight:bold; color:var(--accent);">
             </div>
 
-            <div class="form-group">
-                <label>Motivo / Observaciones</label>
-                <textarea id="sol_motivo" rows="2"></textarea>
+            <div class="group">
+                <label>Motivo</label>
+                <textarea id="sol_motivo" rows="2" placeholder="Opcional..."></textarea>
             </div>
 
-            <button class="btn-primary" onclick="registrarSolicitud()">
-                <i class="fas fa-paper-plane"></i> REGISTRAR SOLICITUD
-            </button>
+            <button class="btn-primary" onclick="guardarSolicitud()">ENVIAR SOLICITUD</button>
         </div>
 
-        <div class="glass-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 style="margin:0;">Historial y Aprobaciones</h3>
-                <div style="display:flex; gap:10px;">
-                    <select id="f_estado" onchange="listarSolicitudes()" style="width:150px;">
-                        <option value="PENDIENTE">⏳ Pendientes</option>
-                        <option value="APROBADO">✅ Aprobados</option>
-                        <option value="RECHAZADO">❌ Rechazados</option>
-                    </select>
-                </div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; font-size: 16px;">Panel de Aprobaciones</h3>
+                <select id="f_estado" onchange="listarSolicitudes()" style="width:auto;">
+                    <option value="PENDIENTE">⏳ Pendientes</option>
+                    <option value="APROBADO">✅ Aprobados</option>
+                    <option value="RECHAZADO">❌ Rechazados</option>
+                </select>
             </div>
-
+            
             <table>
                 <thead>
                     <tr>
-                        <th>Colaborador</th>
+                        <th>Empleado</th>
                         <th>Tipo</th>
                         <th>Periodo</th>
                         <th>Días</th>
                         <th>Estatus</th>
-                        <th>Acciones</th>
+                        <th>Acción</th>
                     </tr>
                 </thead>
-                <tbody id="lista_pedidos"></tbody>
+                <tbody id="tabla_solicitudes"></tbody>
             </table>
         </div>
     </div>
 </div>
 
 <script>
-    let todosLosEmpleados = [];
-    let solicitudesCargadas = [];
+    let db_empleados = [];
+
+    // Tabla LFT México
+    function obtenerDiasLey(anios) {
+        if (anios < 1) return 0;
+        if (anios === 1) return 12;
+        if (anios === 2) return 14;
+        if (anios === 3) return 16;
+        if (anios === 4) return 18;
+        if (anios === 5) return 20;
+        return 22; // Simplificado para el ejemplo
+    }
 
     async function init() {
-        const { data } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
-        todosLosEmpleados = data || [];
-        filtrarListaEmpleados();
+        // Cargar Áreas para el filtro
+        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
+        const fArea = document.getElementById('f_area');
+        fArea.innerHTML = '<option value="">Todas</option>';
+        areas?.forEach(a => fArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
+
+        // Cargar Empleados
+        const { data: emps } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
+        db_empleados = emps || [];
+        
+        filtrarEmpleados();
         listarSolicitudes();
         
-        // Reloj
-        setInterval(() => {
-            document.getElementById('reloj').innerText = new Date().toLocaleString();
-        }, 1000);
+        setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleString(); }, 1000);
     }
 
-    function filtrarListaEmpleados() {
-        const area = document.getElementById('filtro_area').value;
-        const turno = document.getElementById('filtro_turno').value;
+    function filtrarEmpleados() {
+        const area = document.getElementById('f_area').value;
+        const turno = document.getElementById('f_turno').value;
         const select = document.getElementById('sol_empleado');
         
-        const filtrados = todosLosEmpleados.filter(e => {
-            return (area === 'TODAS' || e.area === area) && (turno === 'TODOS' || e.turno === turno);
-        });
+        const filtrados = db_empleados.filter(e => 
+            (!area || e.area_id == area) && (!turno || e.turno_id == turno)
+        );
 
-        select.innerHTML = '<option value="">-- Seleccionar Persona (${filtrados.length}) --</option>';
-        filtrados.forEach(e => {
-            select.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
-        });
+        select.innerHTML = `<option value="">-- Seleccionar (${filtrados.length}) --</option>`;
+        filtrados.forEach(e => select.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
     }
 
-    async function cargarDatosEmpleado() {
+    async function cargarInfoEmpleado() {
         const id = document.getElementById('sol_empleado').value;
-        if(!id) return;
-        const emp = todosLosEmpleados.find(e => e.id == id);
+        if(!id) { document.getElementById('panel_info').style.display = 'none'; return; }
         
-        // Antigüedad detallada
-        const inicio = new Date(emp.fecha_ingreso);
-        const hoy = new Date();
-        let anios = hoy.getFullYear() - inicio.getFullYear();
-        let meses = hoy.getMonth() - inicio.getMonth();
+        const emp = db_empleados.find(e => e.id == id);
+        
+        // Calcular Antigüedad
+        const ini = new Date(emp.fecha_ingreso), hoy = new Date();
+        let anios = hoy.getFullYear() - ini.getFullYear();
+        let meses = hoy.getMonth() - ini.getMonth();
         if (meses < 0) { anios--; meses += 12; }
         
-        document.getElementById('view_anti').innerText = `${anios} años, ${meses} meses`;
+        document.getElementById('view_anti').innerText = `${anios} años, ${meses} meses de antigüedad`;
         
-        // CALCULAR SALDO REAL (Ley - Usados + Ajustes)
-        const { data: movs } = await client.from('rh_solicitudes').select('*').eq('empleado_id', id).eq('estatus', 'APROBADO');
+        // Saldo de Vacaciones
+        const diasDerecho = obtenerDiasLey(anios);
+        const { data: sol } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
+        const tomados = sol?.reduce((acc, curr) => acc + curr.dias_solicitados, 0) || 0;
         
-        // Función de Ley (puedes ajustar según tu tabla)
-        let diasLey = 12; // Base mínima primer año
-        if(anios >= 2) diasLey = 14;
-        if(anios >= 3) diasLey = 16;
-        if(anios >= 4) diasLey = 18;
-        if(anios >= 5) diasLey = 20;
-        if(anios >= 6) diasLey = 22; // etc...
-
-        const usados = movs?.reduce((acc, m) => {
-            if(m.tipo === 'VACACIONES') return acc + m.dias_solicitados;
-            if(m.tipo === 'AJUSTE_SISTEMA') return acc - m.dias_solicitados; // Ajuste negativo suma días
-            return acc;
-        }, 0) || 0;
-
-        document.getElementById('view_saldo').innerText = (diasLey - usados);
-        document.getElementById('info_card_emp').style.display = 'block';
+        document.getElementById('view_dias_disponibles').innerText = (diasDerecho - tomados);
+        document.getElementById('panel_info').style.display = 'block';
     }
 
-    function autoCalcular() {
+    function autoCalcularFechas() {
         const tipo = document.getElementById('sol_tipo').value;
-        const inicioStr = document.getElementById('sol_desde').value;
-        if(!inicioStr) return;
+        const inicio = document.getElementById('sol_desde').value;
+        if(!inicio) return;
 
-        let fini = new Date(inicioStr + 'T00:00:00');
+        let f1 = new Date(inicio + 'T00:00:00');
         
         if(tipo === 'INCAPACIDAD_MATERNIDAD') {
-            let ffin = new Date(fini);
-            ffin.setDate(fini.getDate() + 83); // 84 días totales
-            document.getElementById('sol_hasta').value = ffin.toISOString().split('T')[0];
+            let f2 = new Date(f1);
+            f2.setDate(f1.getDate() + 83);
+            document.getElementById('sol_hasta').value = f2.toISOString().split('T')[0];
             document.getElementById('sol_dias').value = 84;
+        } else if(tipo === 'PATERNIDAD') {
+            let f2 = new Date(f1);
+            f2.setDate(f1.getDate() + 4);
+            document.getElementById('sol_hasta').value = f2.toISOString().split('T')[0];
+            document.getElementById('sol_dias').value = 5;
         } else {
-            const hStr = document.getElementById('sol_hasta').value;
-            if(hStr) {
-                let ffin = new Date(hStr + 'T00:00:00');
-                const diff = Math.ceil((ffin - fini) / (1000*60*60*24)) + 1;
+            const fin = document.getElementById('sol_hasta').value;
+            if(fin) {
+                let f2 = new Date(fin + 'T00:00:00');
+                const diff = Math.ceil((f2 - f1) / (1000*60*60*24)) + 1;
                 document.getElementById('sol_dias').value = diff > 0 ? diff : 0;
             }
         }
     }
 
-    async function registrarSolicitud() {
+    async function guardarSolicitud() {
         const empId = document.getElementById('sol_empleado').value;
-        if(!empId) return alert("Selecciona empleado");
+        if(!empId) return alert("Selecciona un empleado");
 
-        const { error } = await client.from('rh_solicitudes').insert([{
+        const obj = {
             empleado_id: empId,
             tipo: document.getElementById('sol_tipo').value,
             fecha_inicio: document.getElementById('sol_desde').value,
             fecha_fin: document.getElementById('sol_hasta').value,
-            dias_solicitados: document.getElementById('sol_dias').value,
+            dias_solicitados: parseInt(document.getElementById('sol_dias').value),
             motivo: document.getElementById('sol_motivo').value,
             estatus: 'PENDIENTE'
-        }]);
+        };
 
-        if(!error) { alert("Solicitud enviada a revisión"); location.reload(); }
+        const { error } = await client.from('rh_solicitudes').insert([obj]);
+        if(!error) { alert("Solicitud enviada"); location.reload(); }
     }
 
     async function listarSolicitudes() {
         const est = document.getElementById('f_estado').value;
-        const { data } = await client.from('rh_solicitudes')
-            .select('*, rh_empleados(nombre_completo, area)')
-            .eq('estatus', est)
-            .order('created_at', {ascending: false});
+        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').eq('estatus', est).order('created_at', {ascending: false});
         
-        const tbody = document.getElementById('lista_pedidos');
-        tbody.innerHTML = data.map(s => `
-            <tr class="row-item">
-                <td>
-                    <div style="font-weight:700;">${s.rh_empleados.nombre_completo}</div>
-                    <div style="font-size:10px; color:gray;">${s.rh_empleados.area}</div>
-                </td>
-                <td><span class="type-tag">${s.tipo}</span></td>
-                <td style="font-size:12px;">${s.fecha_inicio} al ${s.fecha_fin}</td>
-                <td style="font-weight:800; color:var(--accent);">${s.dias_solicitados} d</td>
-                <td><span class="status status-${s.estatus.toLowerCase()}">${s.estatus}</span></td>
+        document.getElementById('tabla_solicitudes').innerHTML = data.map(s => `
+            <tr>
+                <td><b>${s.rh_empleados.nombre_completo}</b></td>
+                <td><span class="badge" style="background:#e2e8f0;">${s.tipo}</span></td>
+                <td>${s.fecha_inicio} / ${s.fecha_fin}</td>
+                <td style="font-weight:bold; color:var(--accent);">${s.dias_solicitados}</td>
+                <td><span class="badge status-${s.estatus.toLowerCase()}">${s.estatus}</span></td>
                 <td>
                     ${s.estatus === 'PENDIENTE' ? `
-                        <button class="btn-action btn-approve" onclick="decidir('${s.id}', 'APROBADO')" title="Aprobar"><i class="fas fa-check"></i></button>
-                        <button class="btn-action btn-reject" onclick="decidir('${s.id}', 'RECHAZADO')" title="Rechazar"><i class="fas fa-times"></i></button>
+                        <button class="btn-action btn-approve" onclick="procesar('${s.id}', 'APROBADO')"><i class="fas fa-check-circle"></i></button>
+                        <button class="btn-action btn-reject" onclick="procesar('${s.id}', 'RECHAZADO')"><i class="fas fa-times-circle"></i></button>
                     ` : '<i class="fas fa-lock" style="color:#cbd5e1"></i>'}
                 </td>
             </tr>
         `).join('');
     }
 
-    async function decidir(id, valor) {
-        if(!confirm(`¿Estás seguro de marcar como ${valor}?`)) return;
-        const { error } = await client.from('rh_solicitudes').update({ estatus: valor }).eq('id', id);
-        if(!error) listarSolicitudes();
+    async function procesar(id, estado) {
+        if(!confirm(`¿Marcar como ${estado}?`)) return;
+        await client.from('rh_solicitudes').update({ estatus: estado }).eq('id', id);
+        listarSolicitudes();
     }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
-
 </body>
 </html>
