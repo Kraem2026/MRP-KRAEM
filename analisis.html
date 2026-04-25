@@ -63,7 +63,8 @@
         <div class="group"><label>Turno</label><select id="f_turno"><option value="">Todos</option><option value="1">Turno 1</option><option value="2">Turno 2</option></select></div>
         <div class="group"><label>Máquina</label><input type="text" id="m_input" placeholder="Máquina..." autocomplete="off"><div id="m_box" class="autobox"></div></div>
         <div class="group"><label>N/P</label><input type="text" id="p_input" placeholder="Parte..." autocomplete="off"><div id="p_box" class="autobox"></div></div>
-        <div class="group"><label>Operador</label><input type="text" id="ope_input" placeholder="Fabricó..." autocomplete="off"><div id="ope_box" class="autobox"></div></div>
+        <div class="group"><label>Operador</label><input type="text" id="ope_input" placeholder="Operador..." autocomplete="off"><div id="ope_box" class="autobox"></div></div>
+        <div class="group"><label>Inspector</label><input type="text" id="ins_input" placeholder="Inspector..." autocomplete="off"><div id="ins_box" class="autobox"></div></div>
         <div class="group"><label>Área</label><select id="f_area"><option value="">Todas</option></select></div>
         <div class="group"><label>Defecto</label><select id="f_defecto"><option value="">Todos</option></select></div>
         <div class="group"><label>Disposición</label><select id="f_destino"><option value="">Todas</option><option value="LIBERADO">LIBERADO</option><option value="RETRABAJO">RETRABAJO</option><option value="SCRAP">SCRAP</option></select></div>
@@ -95,6 +96,7 @@
                             <th>Máquina</th>
                             <th>Turno</th>
                             <th>Operador</th>
+                            <th>Inspector</th>
                             <th>Insp</th>
                             <th>Rech</th>
                             <th>Defecto</th>
@@ -128,13 +130,13 @@
         const { data: pers } = await client.from('rh_empleados').select('nombre_completo');
         db_personal = pers || [];
 
-        // Extraer máquinas únicas de los registros existentes para el buscador
         const { data: mqs } = await client.from('inspeccion_produccion').select('maquina');
         const uniqueMqs = [...new Set(mqs?.map(m => m.maquina).filter(m => m))];
         db_machines = uniqueMqs.map(m => ({ name: m }));
 
         setupSearch('p_input', 'p_box', db_parts, 'part_number');
         setupSearch('ope_input', 'ope_box', db_personal, 'nombre_completo');
+        setupSearch('ins_input', 'ins_box', db_personal, 'nombre_completo');
         setupSearch('m_input', 'm_box', db_machines, 'name');
 
         fetchData();
@@ -167,6 +169,7 @@
         const destino = document.getElementById('f_destino').value;
         const np = document.getElementById('p_input').value;
         const ope = document.getElementById('ope_input').value;
+        const ins = document.getElementById('ins_input').value;
         const turno = document.getElementById('f_turno').value;
         const maquina = document.getElementById('m_input').value;
 
@@ -181,7 +184,8 @@
 
         const { data } = await query;
         rawData = data ? data.filter(r => 
-            (!ope || (r.operador||"").toUpperCase().includes(ope.toUpperCase()))
+            (!ope || (r.operador||"").toUpperCase().includes(ope.toUpperCase())) &&
+            (!ins || (r.inspector||"").toUpperCase().includes(ins.toUpperCase()))
         ) : [];
         updateUI();
     }
@@ -195,7 +199,19 @@
             tIns += r.cant_inspeccionada; tDef += r.cant_defectuosa;
             if(r.destino === 'SCRAP') tScrap += r.cant_defectuosa;
             if(r.tipo_defecto && r.tipo_defecto !== 'NINGUNO') { pMap[r.tipo_defecto] = (pMap[r.tipo_defecto] || 0) + r.cant_defectuosa; }
-            tbody.innerHTML += `<tr><td>${r.fecha}</td><td><b>${r.num_parte}</b></td><td>${r.maquina||'-'}</td><td>T${r.turno}</td><td>${(r.operador||"").split(' ')[0]}</td><td>${r.cant_inspeccionada}</td><td style="color:red; font-weight:bold">${r.cant_defectuosa}</td><td>${r.tipo_defecto}</td><td>${r.destino}</td></tr>`;
+            
+            tbody.innerHTML += `<tr>
+                <td>${r.fecha}</td>
+                <td><b>${r.num_parte}</b></td>
+                <td>${r.maquina||'-'}</td>
+                <td>T${r.turno}</td>
+                <td>${(r.operador||"").split(' ')[0]}</td>
+                <td>${(r.inspector||"").split(' ')[0]}</td>
+                <td>${r.cant_inspeccionada}</td>
+                <td style="color:red; font-weight:bold">${r.cant_defectuosa}</td>
+                <td>${r.tipo_defecto}</td>
+                <td>${r.destino}</td>
+            </tr>`;
         });
 
         document.getElementById('m_total').innerText = tIns.toLocaleString();
