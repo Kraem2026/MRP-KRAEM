@@ -17,104 +17,65 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: auto; padding-bottom: 140px; }
 
-        /* Header & Tabs */
-        .header-asistencia { background: white; padding: 15px; border-radius: 12px 12px 0 0; border: 1px solid var(--border); border-bottom: none; }
-        .btn-nav { text-decoration: none; color: var(--text); font-weight: bold; display: flex; align-items: center; gap: 5px; font-size: 14px; }
-        .tabs-container { display: flex; background: white; border: 1px solid var(--border); border-bottom: 2px solid var(--border); margin-bottom: 10px; border-radius: 0 0 12px 12px; overflow: hidden; }
-        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; font-size: 12px; color: #64748b; border-bottom: 3px solid transparent; }
-        .tab.active { color: var(--accent); border-bottom-color: var(--accent); background: #eff6ff; }
-        .tab i { display: block; margin-bottom: 4px; font-size: 16px; }
-
-        /* Filtros */
-        .filter-bar { background: #f1f5f9; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
-        .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 20px; }
-        input:checked + .slider { background-color: var(--accent); }
-        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider:before { transform: translateX(16px); }
+        /* Estilos de Tabs */
+        .tabs-container { display: flex; background: white; border: 1px solid var(--border); border-bottom: 2px solid var(--border); margin-bottom: 10px; border-radius: 12px; overflow: hidden; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; font-size: 13px; color: #64748b; transition: 0.3s; }
+        .tab.active { color: var(--accent); background: #eff6ff; border-bottom: 3px solid var(--accent); }
 
         /* Cards */
-        .attendance-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; transition: all 0.3s ease; position: relative; }
-        .attendance-card.locked { background: #f8fafc; opacity: 0.7; border-style: dashed; }
-        .attendance-card.saved-card { border-left: 5px solid var(--success); background: #f0fdf4; }
-        
+        .attendance-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; position: relative; }
+        .card-saved { border-left: 5px solid var(--success); }
+        .card-extra { border-left: 5px solid var(--purple); }
+
         .emp-row { display: flex; align-items: center; justify-content: space-between; }
         .emp-info { display: flex; align-items: center; gap: 12px; }
-        .emp-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #e2e8f0; }
-        .emp-details h4 { margin: 0; font-size: 14px; color: var(--primary); }
-        .emp-details p { margin: 2px 0 0; font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; }
+        .emp-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; }
+        
+        /* Botones de Estatus */
+        .status-buttons { display: flex; gap: 5px; }
+        .btn-status { width: 35px; height: 35px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: bold; }
+        .active-P { background: var(--success) !important; color: white !important; border-color: var(--success); }
+        .active-R { background: var(--warning) !important; color: white !important; border-color: var(--warning); }
+        .active-F { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
 
-        /* Botones */
-        .status-buttons { display: flex; gap: 6px; }
-        .btn-status { width: 38px; height: 38px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: 800; font-size: 12px; color: #64748b; }
-        .btn-status.active-P { background: var(--success) !important; color: white !important; border-color: var(--success); }
-        .btn-status.active-R { background: var(--warning) !important; color: white !important; border-color: var(--warning); }
-        .btn-status.active-F { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
+        /* Badge de lo ya guardado */
+        .status-badge { padding: 5px 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 12px; }
 
-        .badge-fixed { padding: 6px 12px; border-radius: 6px; font-weight: bold; color: white; font-size: 12px; }
-        .bg-P { background: var(--success); }
-        .bg-R { background: var(--warning); }
-        .bg-F { background: var(--danger); }
-
-        .btn-action { background: white; border: 1px solid var(--border); padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .btn-delete { color: var(--danger); border-color: #fecaca; }
-        .btn-delete:hover { background: #fef2f2; }
-
-        .reason-select { width: 100%; margin-top: 10px; padding: 8px; border-radius: 6px; border: 1px solid var(--danger); background: #fff5f5; font-size: 12px; display: none; }
-        .show-reason { display: block; }
+        .input-extra { width: 60px; padding: 8px; border-radius: 8px; border: 2px solid var(--purple); text-align: center; font-weight: bold; font-size: 16px; }
 
         .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; }
-        .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; }
+        
+        .btn-delete { color: var(--danger); background: none; border: 1px solid #fee2e2; padding: 8px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-asistencia">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> VOLVER</a>
-            <div style="text-align: right;">
-                <h3 style="margin:0; font-size: 15px;">Control Kraem</h3>
-                <span id="fecha-hoy" style="font-size: 11px; color: var(--accent); font-weight: bold; text-transform: uppercase;"></span>
-            </div>
-        </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="margin:0; font-size:18px;">Control Diario</h2>
+        <span id="fecha-hoy" style="font-weight:bold; color:var(--accent);"></span>
     </div>
 
     <div class="tabs-container">
-        <div class="tab active" id="tab-asistencia" onclick="cambiarTab('asistencia')">
-            <i class="fas fa-user-check"></i> ASISTENCIA
-        </div>
-        <div class="tab" id="tab-extra" onclick="cambiarTab('extra')">
-            <i class="fas fa-clock"></i> TIEMPO EXTRA
-        </div>
+        <div class="tab active" id="tab-asis" onclick="cambiarTab('asistencia')"><i class="fas fa-check"></i> ASISTENCIA</div>
+        <div class="tab" id="tab-ext" onclick="cambiarTab('extra')"><i class="fas fa-clock"></i> EXTRA</div>
     </div>
 
-    <div class="filter-bar" id="filtro-contenedor">
-        <span style="font-size: 12px; font-weight: 600; color: #475569;">Ocultar ya marcados</span>
-        <label class="switch">
-            <input type="checkbox" id="check-pendientes" onchange="renderizar()">
-            <span class="slider"></span>
-        </label>
-    </div>
-
-    <div id="lista-asistencia"></div>
+    <div id="lista-empleados"></div>
 </div>
 
 <div class="footer-save">
-    <button id="btn-save" class="btn-final" onclick="guardarTodo()">
-        <i class="fas fa-save"></i> GUARDAR CAMBIOS
-    </button>
+    <button class="btn-final" id="btn-save" onclick="guardarCambios()">GUARDAR CAMBIOS</button>
 </div>
 
 <script>
-    let modoActual = 'asistencia';
-    let db_empleados = [];
-    let db_solicitudes = [];
-    let db_asistencias_confirmadas = [];
-    let asistenciaData = {};
+    let modo = 'asistencia';
+    let empleados = [];
+    let solicitudes = [];
+    let asistenciaLocal = {}; 
 
-    async function init() {
+    async function cargarDatos() {
         const hoy = new Date().toISOString().split('T')[0];
         document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
@@ -124,66 +85,67 @@
             client.from('rh_asistencia_diaria').select('*').eq('fecha', hoy)
         ]);
 
-        db_empleados = resEmp.data;
-        db_solicitudes = resSol.data;
-        db_asistencias_confirmadas = resAsis.data;
+        empleados = resEmp.data;
+        solicitudes = resSol.data;
 
-        // Cargar datos confirmados al estado local
-        db_asistencias_confirmadas.forEach(reg => {
-            asistenciaData[reg.empleado_id] = { estado: reg.estado, motivo: reg.motivo || '', horas_extra: reg.horas_extra || 0, guardado: true };
+        // Llenar el estado local con lo que ya existe en la BD
+        resAsis.data.forEach(a => {
+            asistenciaLocal[a.empleado_id] = { 
+                estado: a.estado, 
+                motivo: a.motivo || '', 
+                horas_extra: a.horas_extra || 0,
+                en_db: true 
+            };
         });
 
-        renderizar();
+        render();
     }
 
-    function cambiarTab(modo) {
-        modoActual = modo;
-        document.getElementById('tab-asistencia').classList.toggle('active', modo === 'asistencia');
-        document.getElementById('tab-extra').classList.toggle('active', modo === 'extra');
-        renderizar();
+    function cambiarTab(nuevoModo) {
+        modo = nuevoModo;
+        document.getElementById('tab-asis').classList.toggle('active', modo === 'asistencia');
+        document.getElementById('tab-ext').classList.toggle('active', modo === 'extra');
+        render();
     }
 
-    function renderizar() {
-        const lista = document.getElementById('lista-asistencia');
-        const soloPendientes = document.getElementById('check-pendientes').checked;
-        lista.innerHTML = '';
+    function render() {
+        const container = document.getElementById('lista-empleados');
+        container.innerHTML = '';
 
-        db_empleados.forEach(emp => {
-            const solicitud = db_solicitudes.find(s => s.empleado_id === emp.id);
-            const data = asistenciaData[emp.id] || { estado: '', motivo: '', horas_extra: 0, guardado: false };
+        empleados.forEach(emp => {
+            const sol = solicitudes.find(s => s.empleado_id === emp.id);
+            const data = asistenciaLocal[emp.id] || { estado: '', motivo: '', horas_extra: 0, en_db: false };
 
-            if (modoActual === 'asistencia' && soloPendientes && (data.estado || solicitud)) return;
-            if (modoActual === 'extra' && (!data.estado || data.estado === 'F')) return;
+            // En pestaña EXTRA solo mostrar a los que asistieron
+            if (modo === 'extra' && (data.estado === 'F' || !data.estado)) return;
 
             const card = document.createElement('div');
-            card.className = `attendance-card ${solicitud ? 'locked' : ''} ${data.guardado ? 'saved-card' : ''}`;
-            
+            card.className = `attendance-card ${data.en_db ? 'card-saved' : ''}`;
+            if (modo === 'extra' && data.horas_extra > 0) card.className += ' card-extra';
+
             let controles = '';
-            if (modoActual === 'asistencia') {
-                if (solicitud) {
-                    controles = `<div class="badge-fixed" style="color:#64748b; background:#e2e8f0;">${solicitud.tipo}</div>`;
-                } else if (data.guardado) {
+            if (modo === 'asistencia') {
+                if (sol) {
+                    controles = `<span class="status-badge" style="background:#64748b;">${sol.tipo}</span>`;
+                } else if (data.en_db) {
                     controles = `
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="badge-fixed bg-${data.estado}">${data.estado}</span>
-                            <button class="btn-action btn-delete" onclick="eliminarRegistro('${emp.id}')" title="Borrar y volver a capturar">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span class="status-badge bg-${data.estado}">${data.estado}</span>
+                            <button class="btn-delete" onclick="borrarRegistro('${emp.id}')"><i class="fas fa-trash"></i></button>
                         </div>`;
                 } else {
                     controles = `
                         <div class="status-buttons">
-                            <button class="btn-status ${data.estado === 'P' ? 'active-P' : ''}" onclick="setEstado('${emp.id}', 'P')">P</button>
-                            <button class="btn-status ${data.estado === 'R' ? 'active-R' : ''}" onclick="setEstado('${emp.id}', 'R')">R</button>
-                            <button class="btn-status ${data.estado === 'F' ? 'active-F' : ''}" onclick="setEstado('${emp.id}', 'F')">F</button>
+                            <button class="btn-status ${data.estado === 'P' ? 'active-P' : ''}" onclick="updateLocal('${emp.id}', 'P')">P</button>
+                            <button class="btn-status ${data.estado === 'R' ? 'active-R' : ''}" onclick="updateLocal('${emp.id}', 'R')">R</button>
+                            <button class="btn-status ${data.estado === 'F' ? 'active-F' : ''}" onclick="updateLocal('${emp.id}', 'F')">F</button>
                         </div>`;
                 }
             } else {
                 controles = `
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="number" class="input-extra" style="width:50px; padding:5px; border-radius:5px; border:1px solid var(--purple);" 
-                               value="${data.horas_extra}" onchange="asistenciaData['${emp.id}'].horas_extra = this.value">
-                        <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)">
+                        <span style="font-size:10px; font-weight:bold; color:var(--purple);">HORAS</span>
                     </div>`;
             }
 
@@ -197,64 +159,57 @@
                         </div>
                     </div>
                     ${controles}
-                </div>
-                <select class="reason-select ${data.estado === 'F' && !solicitud ? 'show-reason' : ''}" 
-                        ${data.guardado ? 'disabled' : ''} onchange="asistenciaData['${emp.id}'].motivo = this.value">
-                    <option value="Injustificada" ${data.motivo === 'Injustificada' ? 'selected' : ''}>⚠️ Falta Injustificada</option>
-                    <option value="Justificante" ${data.motivo === 'Justificante' ? 'selected' : ''}>📄 Justificante Médico</option>
-                    <option value="Permiso Sin Goce" ${data.motivo === 'Permiso Sin Goce' ? 'selected' : ''}>💸 Permiso Sin Goce</option>
-                </select>
-            `;
-            lista.appendChild(card);
+                </div>`;
+            container.appendChild(card);
         });
     }
 
-    function setEstado(id, est) {
-        if (!asistenciaData[id]) asistenciaData[id] = { estado: '', motivo: '', horas_extra: 0, guardado: false };
-        asistenciaData[id].estado = est;
-        if (est === 'F' && !asistenciaData[id].motivo) asistenciaData[id].motivo = 'Injustificada';
-        renderizar();
+    function updateLocal(id, est) {
+        if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', motivo: '', horas_extra: 0, en_db: false };
+        asistenciaLocal[id].estado = est;
+        render();
     }
 
-    async function eliminarRegistro(empId) {
-        if (!confirm("¿Eliminar este registro para volver a capturar?")) return;
-        const hoy = new Date().toISOString().split('T')[0];
-        
-        const { error } = await client.from('rh_asistencia_diaria').delete().eq('empleado_id', empId).eq('fecha', hoy);
+    function updateExtra(id, valor) {
+        asistenciaLocal[id].horas_extra = parseFloat(valor) || 0;
+        // No llamamos a render aquí para no perder el foco del input
+    }
 
-        if (!error) {
-            delete asistenciaData[empId];
-            alert("Registro eliminado. Ya puedes volver a capturar.");
-            renderizar();
-        } else {
-            alert("Error al eliminar: " + error.message);
+    async function borrarRegistro(id) {
+        if(!confirm("¿Borrar asistencia para capturar de nuevo?")) return;
+        const hoy = new Date().toISOString().split('T')[0];
+        const { error } = await client.from('rh_asistencia_diaria').delete().eq('empleado_id', id).eq('fecha', hoy);
+        if(!error) {
+            delete asistenciaLocal[id];
+            render();
         }
     }
 
-    async function guardarTodo() {
+    async function guardarCambios() {
         const hoy = new Date().toISOString().split('T')[0];
-        const aEnviar = Object.keys(asistenciaData)
-            .filter(id => asistenciaData[id].estado && !asistenciaData[id].guardado)
+        const batch = Object.keys(asistenciaLocal)
+            .filter(id => asistenciaLocal[id].estado) // Solo si tiene una letra puesta
             .map(id => ({
-                empleado_id: id, fecha: hoy,
-                estado: asistenciaData[id].estado,
-                motivo: asistenciaData[id].motivo,
-                horas_extra: parseFloat(asistenciaData[id].horas_extra) || 0
+                empleado_id: id,
+                fecha: hoy,
+                estado: asistenciaLocal[id].estado,
+                motivo: asistenciaLocal[id].motivo,
+                horas_extra: asistenciaLocal[id].horas_extra
             }));
 
-        if (aEnviar.length === 0) return alert("No hay cambios nuevos para guardar.");
+        if (batch.length === 0) return alert("Nada que guardar.");
 
-        const { error } = await client.from('rh_asistencia_diaria').upsert(aEnviar, { onConflict: 'empleado_id, fecha' });
+        const { error } = await client.from('rh_asistencia_diaria').upsert(batch, { onConflict: 'empleado_id, fecha' });
 
         if (!error) {
-            alert("✅ Guardado correctamente");
-            init(); // Recargamos todo para refrescar estados
+            alert("✅ Registro actualizado correctamente.");
+            cargarDatos(); // Recargar de la BD para confirmar
         } else {
             alert("Error: " + error.message);
         }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', cargarDatos);
 </script>
 </body>
 </html>
