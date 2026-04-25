@@ -16,7 +16,6 @@
         .container { max-width: 1400px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--primary); color: white; padding: 12px 20px; border-radius: 10px; }
         
-        /* Filtros Expandidos */
         .filter-panel { 
             background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); 
             margin-bottom: 15px; display: grid; 
@@ -30,7 +29,6 @@
         .autobox div { padding: 8px; cursor: pointer; border-bottom: 1px solid #f8fafc; font-size: 11px; }
         .autobox div:hover { background: #eff6ff; }
 
-        /* Métricas */
         .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
         @media (min-width: 768px) { .metrics-grid { grid-template-columns: repeat(5, 1fr); } }
         .m-card { background: var(--card); padding: 12px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
@@ -118,9 +116,13 @@
         const sArea = document.getElementById('f_area');
         areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
 
-        const { data: defs } = await client.from('defects').select('*');
+        // CORRECCIÓN AQUÍ: Se cambió 'defect' por 'defects'
+        const { data: defs } = await client.from('defects').select('*').order('Defect_name');
         const sDef = document.getElementById('f_defecto');
-        defs?.forEach(d => { let n = d.Defect_name || d.defect_name; sDef.innerHTML += `<option value="${n}">${n}</option>`; });
+        defs?.forEach(d => { 
+            let n = d.Defect_name || d.defect_name; 
+            sDef.innerHTML += `<option value="${n}">${n}</option>`; 
+        });
 
         const { data: parts } = await client.from('parts').select('part_number');
         db_parts = parts || [];
