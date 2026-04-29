@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>KRAEM | Control de Personal y Permisos</title>
+    <title>KRAEM | Gestión de Permisos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -15,7 +15,7 @@
         .vacation-value { font-size: 28px; font-weight: 800; color: #0284c7; }
         .group { display: flex; flex-direction: column; margin-bottom: 12px; }
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; }
+        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
         .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #f8fafc; padding: 10px; text-align: left; font-size: 10px; color: #64748b; border-bottom: 2px solid var(--border); }
@@ -41,10 +41,10 @@
             </div>
 
             <div id="panel_vacaciones" style="display:none;" class="vacation-box">
-                <div style="font-size:10px; font-weight:bold; color:#0369a1;">DÍAS DISPONIBLES</div>
+                <div id="view_puesto" style="font-size:12px; font-weight:800; color:#1e293b; margin-bottom:5px; text-transform:uppercase;">--</div>
+                <div style="font-size:10px; font-weight:bold; color:#0369a1;">DÍAS DISPONIBLES DE VACACIONES</div>
                 <div id="view_dias" class="vacation-value">--</div>
-                <div id="view_puesto" style="font-size:11px; font-weight:bold; margin-top:5px;"></div>
-                <div id="view_anti" style="font-size:10px; color:#64748b;"></div>
+                <div id="view_anti" style="font-size:10px; color:#64748b; margin-top:5px;"></div>
             </div>
 
             <div class="group">
@@ -115,7 +115,7 @@
     }
 
     async function init() {
-        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
+        const { data: emps, error } = await client.from('rh_empleados').select('*, rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
         db_personal = emps || [];
         
         const selEmp = document.getElementById('sol_empleado');
@@ -129,6 +129,7 @@
         });
 
         listarSolicitudes();
+        setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleString(); }, 1000);
         document.getElementById('sol_desde').valueAsDate = new Date();
     }
 
@@ -143,12 +144,13 @@
             let meses = hoy.getMonth() - ini.getMonth();
             if (meses < 0) { anios--; meses += 12; }
             
-            document.getElementById('view_puesto').innerText = p.puesto || 'OPERADOR';
+            // ASIGNACIÓN CORRECTA DEL PUESTO DESDE DB
+            document.getElementById('view_puesto').innerText = p.puesto || 'PUESTO NO REGISTRADO';
             document.getElementById('view_anti').innerText = `${anios} años, ${meses} meses de antigüedad`;
             
-            // Calcular saldo de vacaciones
             const { data: sols } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('estatus', 'APROBADO').eq('tipo', 'VACACIONES');
             let usados = 0; sols?.forEach(s => usados += s.dias_solicitados);
+            
             document.getElementById('view_dias').innerText = calcularDiasLey(anios) - usados;
             document.getElementById('panel_vacaciones').style.display = 'block';
         } else {
@@ -170,25 +172,39 @@
 
         const elab = db_personal.find(x => x.id == idElab);
         const colab = db_personal.find(x => x.id == idColab);
+        const tipo = document.getElementById('sol_tipo').value;
         
         const { count } = await client.from('rh_solicitudes').select('*', { count: 'exact', head: true });
         const folio = `KR-${new Date().getFullYear()}-${(count + 1).toString().padStart(4, '0')}`;
 
+        // CALCULO DE DIAS PARA EVITAR EL ERROR DE NULL
+        let dias = 0;
+        if(tipo === 'VACACIONES') {
+            const f1 = new Date(document.getElementById('sol_desde').value);
+            const f2 = new Date(document.getElementById('sol_hasta').value);
+            dias = Math.ceil((f2 - f1) / (1000*60*60*24)) + 1;
+        }
+
         const { error } = await client.from('rh_solicitudes').insert([{
             id_personalizado: folio,
             empleado_id: idColab,
-            tipo: document.getElementById('sol_tipo').value,
+            tipo: tipo,
             fecha_inicio: document.getElementById('sol_desde').value,
             fecha_fin: document.getElementById('sol_hasta').value || document.getElementById('sol_desde').value,
             hora_solicitud: document.getElementById('sol_hora').value || null,
             motivo: document.getElementById('sol_motivo').value,
             creado_por: elab.nombre_completo,
-            puesto_solicitante: colab.puesto || 'OPERADOR', // Guardamos el puesto del operador
+            puesto_solicitante: colab.puesto || 'SIN PUESTO', // SE GUARDA EL PUESTO REAL
+            dias_solicitados: dias, // YA NO VA NULL, VA 0 SI ES SALIDA TEMPRANO
             estatus: 'PENDIENTE'
         }]);
 
-        if(error) alert("Error al guardar: " + error.message);
-        else location.reload();
+        if(error) {
+            console.error(error);
+            alert("Error al guardar: " + error.message);
+        } else {
+            location.reload();
+        }
     }
 
     async function listarSolicitudes() {
@@ -209,13 +225,16 @@
     }
 
     async function autorizar(id) {
-        await client.from('rh_solicitudes').update({ estatus: 'APROBADO', aprobado_por: 'YURIDIA RIOS (COORD. GERENTE JR)', fecha_aprobacion: new Date().toISOString() }).eq('id', id);
+        await client.from('rh_solicitudes').update({ 
+            estatus: 'APROBADO', 
+            aprobado_por: 'YURIDIA RIOS (COORD. GERENTE JR)', 
+            fecha_aprobacion: new Date().toISOString() 
+        }).eq('id', id);
         listarSolicitudes();
     }
 
     function imprimir(id) {
         const s = solicitudes.find(x => x.id == id);
-        const elab = db_personal.find(x => x.nombre_completo == s.creado_por);
         const win = window.open('', '_blank');
         win.document.write(`
             <html>
@@ -232,7 +251,7 @@
                     <tr><td style="border:1px solid #000; padding:10px;"><b>MOTIVO:</b></td><td colspan="3" style="border:1px solid #000; padding:10px; height:60px;">${s.motivo}</td></tr>
                 </table>
                 <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-top:60px; text-align:center; font-size:10px;">
-                    <div><div style="color:blue;">FIRMADO DIGITALMENTE<br>${s.creado_por}<br>${elab?.puesto || 'SUPERVISOR'}<br>${new Date(s.fecha_creacion).toLocaleString()}</div><div style="border-top:1px solid #000; margin-top:5px; font-weight:bold;">ELABORÓ</div></div>
+                    <div><div style="color:blue;">FIRMADO DIGITALMENTE<br>${s.creado_por}<br>${new Date(s.fecha_creacion).toLocaleString()}</div><div style="border-top:1px solid #000; margin-top:5px; font-weight:bold;">ELABORÓ</div></div>
                     <div><div style="color:blue;">APROBADO SISTEMA<br>${s.aprobado_por}<br>${new Date(s.fecha_aprobacion).toLocaleString()}</div><div style="border-top:1px solid #000; margin-top:5px; font-weight:bold;">AUTORIZÓ (JR. MANAGER)</div></div>
                     <div><div style="height:40px;"></div><div style="border-top:1px solid #000; margin-top:5px; font-weight:bold;">DIRECTOR (MR. KIM)</div></div>
                 </div>
