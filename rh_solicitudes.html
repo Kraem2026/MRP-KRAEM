@@ -112,7 +112,6 @@
 <script>
     let db_personal = [];
 
-    // Tabla de Ley actualizada
     function calcularDiasLey(anios) {
         if (anios < 1) return 0;
         if (anios == 1) return 12;
@@ -126,13 +125,7 @@
     }
 
     async function init() {
-        // Traemos empleados cruzando con el nombre de los puestos y áreas
-        const { data: emps } = await client.from('rh_empleados').select(`
-            *,
-            rh_puestos(nombre),
-            rh_areas(nombre)
-        `).eq('estatus', 'ACTIVO').order('nombre_completo');
-
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_puestos(nombre), rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
         db_personal = emps || [];
         
         const selEmp = document.getElementById('sol_empleado');
@@ -161,7 +154,6 @@
             document.getElementById('view_puesto').innerText = `PUESTO: ${puestoNombre}`;
             document.getElementById('view_anti').innerText = `Ingreso: ${p.fecha_ingreso} (${anios} años cumplidos)`;
             
-            // Consultar saldo real de vacaciones
             const { data: usados } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('estatus', 'APROBADO').eq('tipo', 'VACACIONES');
             const totalUsados = usados?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
             
@@ -188,7 +180,6 @@
         const colab = db_personal.find(x => x.id == idColab);
         const tipo = document.getElementById('sol_tipo').value;
 
-        // Cálculo de días
         let dias = 0;
         if(tipo === 'VACACIONES' || tipo === 'PERMISO_SIN_GOCE') {
             const f1 = new Date(document.getElementById('sol_desde').value);
@@ -256,7 +247,7 @@
             <body style="font-family:Arial; padding:20px; border: 2px solid #000; width: 500px; margin: auto;">
                 <div style="text-align:center; border-bottom: 2px solid #000; padding-bottom: 10px;">
                     <h2 style="margin:0;">KRAEM S.A. DE C.V.</h2>
-                    <div style="font-size:14px;">${esPaseSalida ? '<b>PASE DE SALIDA / ENTRADA (CASETA)</b>' : '<b>COMPROBANTE DE MOVIMIENTO RH</b>'}</div>
+                    <div style="font-size:14px;"><b>${esPaseSalida ? 'PASE DE SALIDA / ENTRADA (CASETA)' : 'COMPROBANTE DE MOVIMIENTO RH'}</b></div>
                 </div>
                 
                 <div style="margin-top:15px; font-size:13px;">
@@ -281,13 +272,13 @@
                         <div style="border-top:1px solid #000; margin-top:5px;">AUTORIZACIÓN RH</div>
                     </div>
                 </div>
-
                 <div style="margin-top:20px; border-top: 1px dashed #000; padding-top:10px; font-size:9px; text-align:center;">
                     ESTE DOCUMENTO ES UN REGISTRO OFICIAL DE KRAEM. <br> 
                     SI ES PASE DE SALIDA, ENTREGAR ORIGINAL EN CASETA DE VIGILANCIA.
                 </div>
-                
-                <script>window.print(); window.close();</script>
+                <script>
+                    window.onload = function() { window.print(); window.close(); };
+                <\/script>
             </body>
             </html>
         `);
