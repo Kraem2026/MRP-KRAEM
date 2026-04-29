@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Control de Incidencias y Vacaciones</title>
+    <title>KRAEM | Gestión de Solicitudes Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -16,9 +16,9 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
         .header-pro { background: white; padding: 20px; border-radius: 16px; margin-bottom: 25px; border-bottom: 4px solid var(--accent); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .grid-main { display: grid; grid-template-columns: 450px 1fr; gap: 25px; }
+        .grid-main { display: grid; grid-template-columns: 400px 1fr; gap: 25px; }
 
-        .card { background: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); padding: 25px; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); padding: 25px; height: fit-content; }
         .section-title { font-size: 13px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
         label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
@@ -28,99 +28,133 @@
         }
         select:focus, input:focus { border-color: var(--accent); outline: none; background: white; }
 
+        /* Filtros */
+        .filter-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; gap: 15px; align-items: flex-end; border: 1px solid var(--border); }
+        .filter-group { flex: 1; }
+        .filter-group label { margin-bottom: 4px; }
+        .filter-group input, .filter-group select { margin-bottom: 0; padding: 8px; }
+
         .info-panel { background: #eff6ff; padding: 15px; border-radius: 12px; border: 1px solid #dbeafe; display: none; margin-bottom: 20px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
-        .stat-val { font-size: 18px; font-weight: 800; color: #1e40af; }
+        .stat-val { font-size: 16px; font-weight: 800; color: #1e40af; }
         .stat-lab { font-size: 9px; font-weight: bold; color: #60a5fa; text-transform: uppercase; }
 
         .request-card { 
             background: white; border-radius: 12px; border: 1px solid var(--border); 
-            padding: 20px; margin-bottom: 15px; border-left: 6px solid #cbd5e1;
+            padding: 15px; margin-bottom: 12px; border-left: 6px solid #cbd5e1;
+            transition: transform 0.2s;
         }
+        .request-card:hover { transform: translateX(5px); }
         .status-PENDIENTE { border-left-color: var(--warning); }
         .status-APROBADO { border-left-color: var(--success); }
+        .status-RECHAZADO { border-left-color: var(--danger); opacity: 0.8; }
         .status-ENCURSO { border-left-color: var(--info); background: #f0f9ff; }
 
-        .btn-action { padding: 8px 15px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 11px; transition: 0.3s; }
+        .btn-action { padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 10px; transition: 0.3s; }
         .btn-submit { background: var(--accent); color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; border: none; font-size: 14px; }
         
-        .badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; background: #e2e8f0; }
-        .time-highlight { color: var(--accent); font-weight: 800; font-family: monospace; }
+        .badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; background: #e2e8f0; color: #475569; }
     </style>
 </head>
 <body>
 
 <div class="header-pro">
     <div>
-        <h1 style="margin:0; font-size: 26px;">KRAEM | <span style="font-weight:300;">Gestión de Solicitudes</span></h1>
-        <p style="margin:5px 0; color:#64748b; font-size:14px;"><i class="fas fa-file-invoice"></i> Sistema alineado al registro de personal</p>
+        <h1 style="margin:0; font-size: 24px;">KRAEM | <span style="font-weight:300;">Solicitudes e Incidencias</span></h1>
+        <p style="margin:5px 0; color:#64748b; font-size:13px;"><i class="fas fa-check-double"></i> Todo cuadra con el registro de personal</p>
     </div>
     <div style="text-align:right;">
-        <div id="reloj" style="font-size:22px; font-weight:900;">00:00:00</div>
-        <div id="fecha_hoy" style="font-size:11px; font-weight:bold; color:var(--accent);">--/--/----</div>
+        <div id="reloj" style="font-size:20px; font-weight:900;">00:00:00</div>
     </div>
 </div>
 
 <div class="grid-main">
     <div class="card">
-        <div class="section-title"><i class="fas fa-plus-circle"></i> Nueva Solicitud</div>
+        <div class="section-title"><i class="fas fa-edit"></i> Levantar Solicitud</div>
         
-        <label>Personal que solicita</label>
+        <label>¿Quién solicita?</label>
         <select id="sel_empleado" onchange="cargarDatosEmpleado()"></select>
 
         <div id="info_panel" class="info-panel">
             <div class="stats-grid">
-                <div><div class="stat-lab">Antigüedad (Año/Mes)</div><div id="txt_anti" class="stat-val">--</div></div>
-                <div><div class="stat-lab">Vacaciones Disponibles</div><div id="txt_disp" class="stat-val">--</div></div>
+                <div><div class="stat-lab">Antigüedad</div><div id="txt_anti" class="stat-val">--</div></div>
+                <div><div class="stat-lab">Vacaciones Libres</div><div id="txt_disp" class="stat-val">--</div></div>
             </div>
         </div>
 
-        <label>Tipo de Permiso</label>
+        <label>Tipo de movimiento</label>
         <select id="sel_tipo" onchange="toggleModo()">
-            <optgroup label="Por Día">
+            <optgroup label="Ausencia">
                 <option value="VACACIONES">VACACIONES</option>
                 <option value="FALTA">FALTA</option>
-                <option value="SUSPENCION">SUSPENSIÓN</option>
                 <option value="PERMISO_SIN_GOCE">PERMISO SIN GOCE</option>
             </optgroup>
-            <optgroup label="Por Horas">
+            <optgroup label="Salidas Cortas">
                 <option value="IDA_VUELTA">IDA Y VUELTA</option>
                 <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
             </optgroup>
         </select>
 
-        <div id="box_dias" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div><label>Desde</label><input type="date" id="f_ini"></div>
-            <div><label>Hasta</label><input type="date" id="f_fin"></div>
-        </div>
-
-        <div id="box_horas" style="display:none; background:#fefce8; padding:15px; border-radius:10px; border:1px solid #fef08a; margin-bottom:15px;">
+        <div id="box_dias">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><label>Fecha</label><input type="date" id="h_fecha"></div>
-                <div><label>Hora Salida</label><input type="time" id="h_salida"></div>
+                <div><label>Desde</label><input type="date" id="f_ini"></div>
+                <div><label>Hasta</label><input type="date" id="f_fin"></div>
             </div>
         </div>
 
-        <label>Quién Autoriza (Listado General)</label>
+        <div id="box_horas" style="display:none;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div><label>Fecha</label><input type="date" id="h_fecha"></div>
+                <div><label>Hora</label><input type="time" id="h_salida"></div>
+            </div>
+        </div>
+
+        <label>¿Quién autoriza?</label>
         <select id="sel_autorizador"></select>
 
         <label>Observaciones</label>
-        <textarea id="txt_obs" rows="2" placeholder="Notas adicionales..."></textarea>
+        <textarea id="txt_obs" rows="2" placeholder="Ej: Motivos personales..."></textarea>
 
-        <button class="btn-submit" onclick="registrar()">
-            <i class="fas fa-check-circle"></i> REGISTRAR SOLICITUD
+        <button class="btn-submit" id="btn_guardar" onclick="registrar()">
+            <i class="fas fa-save"></i> GUARDAR REGISTRO
         </button>
     </div>
 
-    <div class="card">
-        <div class="section-title"><i class="fas fa-list-ul"></i> Historial de Solicitudes</div>
+    <div>
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Buscar Nombre</label>
+                <input type="text" id="filtro_nombre" placeholder="Escribe..." oninput="filtrarTodo()">
+            </div>
+            <div class="filter-group">
+                <label>Tipo</label>
+                <select id="filtro_tipo" onchange="filtrarTodo()">
+                    <option value="">Todos</option>
+                    <option value="VACACIONES">VACACIONES</option>
+                    <option value="FALTA">FALTA</option>
+                    <option value="IDA_VUELTA">IDA Y VUELTA</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Estatus</label>
+                <select id="filtro_estatus" onchange="filtrarTodo()">
+                    <option value="">Todos</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="APROBADO">APROBADO</option>
+                    <option value="ENCURSO">EN CURSO</option>
+                </select>
+            </div>
+        </div>
+
         <div id="lista_monitor"></div>
     </div>
 </div>
 
 <script>
     let db_empleados = [];
+    let db_solicitudes = [];
 
+    // Lógica Vacaciones
     function obtenerDiasLey(anios) {
         if (anios < 1) return 0;
         if (anios == 1) return 12;
@@ -128,29 +162,17 @@
         if (anios == 3) return 16;
         if (anios == 4) return 18;
         if (anios == 5) return 20;
-        if (anios >= 6 && anios <= 10) return 22;
-        return 24;
-    }
-
-    function calcularAntiguedadDetallada(f) {
-        if(!f) return "-";
-        const ini = new Date(f), hoy = new Date();
-        let anios = hoy.getFullYear() - ini.getFullYear();
-        let meses = hoy.getMonth() - ini.getMonth();
-        if (meses < 0) { anios--; meses += 12; }
-        return `${anios} años, ${meses} m`;
+        return 22;
     }
 
     async function init() {
-        setInterval(() => { 
-            const d = new Date();
-            document.getElementById('reloj').innerText = d.toLocaleTimeString(); 
-            document.getElementById('fecha_hoy').innerText = d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        }, 1000);
+        setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleTimeString(); }, 1000);
 
-        const { data: emps } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
+        // Cargar Personal
+        const { data: emps, error: errEmp } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
+        if(errEmp) { console.error("Error cargando personal:", errEmp); return; }
+        
         db_empleados = emps || [];
-
         const selE = document.getElementById('sel_empleado');
         const selA = document.getElementById('sel_autorizador');
         
@@ -158,50 +180,57 @@
         selA.innerHTML = '<option value="">-- Seleccionar --</option>';
 
         db_empleados.forEach(e => {
-            const opt = `<option value="${e.id}">${e.nombre_completo}</option>`;
-            const optNombre = `<option value="${e.nombre_completo}">${e.nombre_completo}</option>`;
-            selE.innerHTML += opt;
-            selA.innerHTML += optNombre; // LISTA COMPLETA DE PERSONAL AQUÍ
+            selE.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+            selA.innerHTML += `<option value="${e.nombre_completo}">${e.nombre_completo}</option>`;
         });
 
-        consultarMonitor();
+        consultarSolicitudes();
     }
 
     async function cargarDatosEmpleado() {
         const id = document.getElementById('sel_empleado').value;
-        if(!id) return document.getElementById('info_panel').style.display='none';
+        if(!id) { document.getElementById('info_panel').style.display='none'; return; }
 
         const emp = db_empleados.find(e => e.id == id);
-        document.getElementById('txt_anti').innerText = calcularAntiguedadDetallada(emp.fecha_ingreso);
-
-        const ini = new Date(emp.fecha_ingreso);
-        const hoy = new Date();
-        let aniosV = hoy.getFullYear() - ini.getFullYear();
-        if (hoy < new Date(hoy.getFullYear(), ini.getMonth(), ini.getDate())) aniosV--;
         
-        const derecho = obtenerDiasLey(aniosV);
-        const { data: tomadas } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
-        const totalTomadas = tomadas?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
+        // Antigüedad Años/Meses
+        const ini = new Date(emp.fecha_ingreso), hoy = new Date();
+        let an = hoy.getFullYear() - ini.getFullYear();
+        let ms = hoy.getMonth() - ini.getMonth();
+        if (ms < 0) { an--; ms += 12; }
+        document.getElementById('txt_anti').innerText = `${an}a, ${ms}m`;
 
-        document.getElementById('txt_disp').innerText = (derecho - totalTomadas) + " días";
+        // Vacaciones
+        const derecho = obtenerDiasLey(an);
+        const { data: tomadas } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
+        const total = tomadas?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
+        document.getElementById('txt_disp').innerText = (derecho - total) + " días";
+        
         document.getElementById('info_panel').style.display = 'block';
     }
 
     function toggleModo() {
         const t = document.getElementById('sel_tipo').value;
         const esPase = ["IDA_VUELTA", "SALIDA_TEMPRANO"].includes(t);
-        document.getElementById('box_dias').style.display = esPase ? 'none' : 'grid';
+        document.getElementById('box_dias').style.display = esPase ? 'none' : 'block';
         document.getElementById('box_horas').style.display = esPase ? 'block' : 'none';
     }
 
     async function registrar() {
+        const btn = document.getElementById('btn_guardar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> GUARDANDO...';
+
         const tipo = document.getElementById('sel_tipo').value;
         const esPase = ["IDA_VUELTA", "SALIDA_TEMPRANO"].includes(tipo);
 
-        const obj = {
-            empleado_id: document.getElementById('sel_empleado').value,
+        const id_emp = document.getElementById('sel_empleado').value;
+        const autoriza = document.getElementById('sel_autorizador').value;
+
+        let obj = {
+            empleado_id: id_emp,
             tipo: tipo,
-            autorizado_por: document.getElementById('sel_autorizador').value,
+            autorizado_por: autoriza,
             observaciones: document.getElementById('txt_obs').value,
             estatus: 'PENDIENTE'
         };
@@ -217,37 +246,73 @@
             obj.dias_solicitados = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
         }
 
-        if(!obj.empleado_id || !obj.autorizado_por || !obj.fecha_inicio) return alert("Por favor complete los campos obligatorios.");
+        if(!obj.empleado_id || !obj.fecha_inicio || !obj.autorizado_por) {
+            alert("Error: Nombre, Fecha y Autorizador son obligatorios.");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> GUARDAR REGISTRO';
+            return;
+        }
 
         const { error } = await client.from('rh_solicitudes').insert([obj]);
-        if(!error) { alert("¡Solicitud registrada correctamente!"); location.reload(); }
+        
+        if(error) {
+            alert("Error de Base de Datos: " + error.message);
+            console.error(error);
+        } else {
+            alert("¡Guardado con éxito!");
+            location.reload();
+        }
+        
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> GUARDAR REGISTRO';
     }
 
-    async function consultarMonitor() {
-        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false}).limit(20);
-        const list = document.getElementById('lista_monitor');
-        list.innerHTML = "";
+    async function consultarSolicitudes() {
+        const { data, error } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
+        if(error) { console.error(error); return; }
+        db_solicitudes = data || [];
+        filtrarTodo();
+    }
 
-        data?.forEach(s => {
-            list.innerHTML += `
+    function filtrarTodo() {
+        const nom = document.getElementById('filtro_nombre').value.toLowerCase();
+        const tip = document.getElementById('filtro_tipo').value;
+        const est = document.getElementById('filtro_estatus').value;
+
+        const filtradas = db_solicitudes.filter(s => {
+            const matchNom = s.rh_empleados?.nombre_completo.toLowerCase().includes(nom);
+            const matchTip = tip === "" || s.tipo === tip;
+            const matchEst = est === "" || s.estatus === est;
+            return matchNom && matchTip && matchEst;
+        });
+
+        renderizarTabla(filtradas);
+    }
+
+    function renderizarTabla(lista) {
+        const div = document.getElementById('lista_monitor');
+        div.innerHTML = "";
+
+        lista.forEach(s => {
+            div.innerHTML += `
                 <div class="request-card status-${s.estatus}">
                     <div style="display:flex; justify-content:space-between; align-items:start;">
                         <div>
                             <span class="badge">${s.tipo}</span>
-                            <h3 style="margin:8px 0 2px 0; font-size:16px;">${s.rh_empleados?.nombre_completo || 'Desconocido'}</h3>
+                            <h3 style="margin:5px 0; font-size:15px;">${s.rh_empleados?.nombre_completo}</h3>
                             <p style="font-size:12px; color:#64748b; margin:0;">
-                                <i class="fas fa-calendar-alt"></i> ${s.fecha_inicio} ${s.fecha_fin ? ' al ' + s.fecha_fin : ''}
+                                <i class="fas fa-calendar"></i> ${s.fecha_inicio} ${s.fecha_fin ? ' al ' + s.fecha_fin : ''}
                                 ${s.hora_salida ? ` | <i class="fas fa-clock"></i> ${s.hora_salida}` : ''}
                             </p>
-                            <p style="font-size:11px; margin-top:8px;"><b>Autorizó:</b> ${s.autorizado_por}</p>
+                            <p style="font-size:11px; margin-top:5px;"><b>Autoriza:</b> ${s.autorizado_por}</p>
                         </div>
-                        <div style="display:flex; flex-direction:column; gap:5px;">
+                        <div style="display:flex; gap:5px;">
                             ${s.estatus === 'PENDIENTE' ? `
-                                <button class="btn-action" style="background:var(--success); color:white;" onclick="updateStatus('${s.id}', '${s.tipo === 'IDA_VUELTA' ? 'ENCURSO' : 'APROBADO'}')">AUTORIZAR</button>
-                                <button class="btn-action" style="background:var(--danger); color:white;" onclick="updateStatus('${s.id}', 'RECHAZADO')">RECHAZAR</button>
+                                <button class="btn-action" style="background:var(--success); color:white;" onclick="cambiarEstado('${s.id}', '${s.tipo === 'IDA_VUELTA' ? 'ENCURSO' : 'APROBADO'}')">OK</button>
+                                <button class="btn-action" style="background:var(--danger); color:white;" onclick="cambiarEstado('${s.id}', 'RECHAZADO')">X</button>
                             ` : ''}
                             ${s.estatus === 'ENCURSO' ? `
-                                <button class="btn-action" style="background:var(--info); color:white;" onclick="marcarRegreso('${s.id}')">MARCAR REGRESO</button>
+                                <button class="btn-action" style="background:var(--info); color:white;" onclick="marcarRegreso('${s.id}')">LLEGÓ</button>
                             ` : ''}
                         </div>
                     </div>
@@ -256,15 +321,15 @@
         });
     }
 
-    async function updateStatus(id, n) {
-        await client.from('rh_solicitudes').update({ estatus: n }).eq('id', id);
-        consultarMonitor();
+    async function cambiarEstado(id, nuevo) {
+        await client.from('rh_solicitudes').update({ estatus: nuevo }).eq('id', id);
+        consultarSolicitudes();
     }
 
     async function marcarRegreso(id) {
-        const h = new Date().toLocaleTimeString('es-MX', { hour12: false, hour: '2-digit', minute: '2-digit' });
-        await client.from('rh_solicitudes').update({ estatus: 'APROBADO', hora_regreso: h }).eq('id', id);
-        consultarMonitor();
+        const hora = new Date().toLocaleTimeString('es-MX', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        await client.from('rh_solicitudes').update({ estatus: 'APROBADO', hora_regreso: hora }).eq('id', id);
+        consultarSolicitudes();
     }
 
     document.addEventListener('DOMContentLoaded', init);
