@@ -3,485 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión de Personal 360</title>
+    <title>KRAEM | Control Pro de Incidencias y Tiempos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .container { max-width: 1600px; margin: auto; }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
-        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-add { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .btn-excel { background: #166534; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-
-        .dashboard-360 { display: grid; grid-template-columns: 350px 1fr 300px; gap: 20px; margin-bottom: 20px; display: none; }
-        @media (max-width: 1100px) { .dashboard-360 { grid-template-columns: 1fr; } }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
-        .radar-box { height: 300px; display: flex; align-items: center; justify-content: center; }
-        .metric-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .metric-card { text-align: center; padding: 12px; border: 1px solid #f1f5f9; border-radius: 10px; background: #fff; }
-        .metric-val { font-size: 22px; font-weight: 800; color: var(--accent); }
-        .metric-lab { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
-
-        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
-        tr:hover { background: #f8fafc; cursor: pointer; }
-
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-        .modal-content { background: white; width: 95%; max-width: 1000px; margin: 2% auto; padding: 25px; border-radius: 15px; max-height: 90vh; overflow-y: auto; }
-        .inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
-        .group { display: flex; flex-direction: column; }
-        .group.full-width { grid-column: 1 / -1; }
-        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-
-        .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
-        .status-activo { background: #dcfce7; color: #166534; }
-        .status-baja { background: #fee2e2; color: #991b1b; }
-        .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
+        :root { 
+            --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; 
+            --text: #1e293b; --border: #e2e8f0; --success: #16a34a; 
+            --danger: #dc2626; --warning: #d97706; --info: #0ea5e9;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        .vacation-box { background: #f0f9ff; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; margin-top: 10px; text-align: center; }
+        .header-pro { background: white; padding: 20px; border-radius: 16px; margin-bottom: 25px; border-bottom: 4px solid var(--accent); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .grid-main { display: grid; grid-template-columns: 450px 1fr; gap: 25px; }
 
-        .photo-upload-container { display: flex; justify-content: center; margin-bottom: 25px; }
-        .photo-btn { position: relative; width: 120px; height: 120px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px dashed #cbd5e1; cursor: pointer; overflow: hidden; transition: all 0.3s; }
-        .photo-btn:hover { border-color: var(--accent); background: #f1f5f9; }
-        .photo-btn i.fa-user { font-size: 70px; color: #94a3b8; }
-        .photo-btn img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        .photo-overlay { position: absolute; bottom: 0; background: rgba(15, 23, 42, 0.6); width: 100%; text-align: center; padding: 4px 0; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); padding: 25px; }
+        .section-title { font-size: 13px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+        label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
+        select, input, textarea { 
+            width: 100%; padding: 12px; border: 2px solid #f1f5f9; border-radius: 10px; 
+            font-size: 14px; transition: 0.2s; box-sizing: border-box; background: #f8fafc; margin-bottom: 15px;
+        }
+        select:focus, input:focus { border-color: var(--accent); outline: none; background: white; }
+
+        /* Panel Informativo */
+        .info-panel { background: #eff6ff; padding: 15px; border-radius: 12px; border: 1px solid #dbeafe; display: none; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+        .stat-val { font-size: 20px; font-weight: 800; color: #1e40af; }
+        .stat-lab { font-size: 9px; font-weight: bold; color: #60a5fa; text-transform: uppercase; }
+
+        /* Monitor de Solicitudes */
+        .request-card { 
+            background: white; border-radius: 12px; border: 1px solid var(--border); 
+            padding: 20px; margin-bottom: 15px; border-left: 6px solid #cbd5e1;
+        }
+        .status-PENDIENTE { border-left-color: var(--warning); }
+        .status-APROBADO { border-left-color: var(--success); }
+        .status-ENCURSO { border-left-color: var(--info); background: #f0f9ff; }
+
+        .btn-action { padding: 8px 15px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 11px; transition: 0.3s; }
+        .btn-submit { background: var(--accent); color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; border: none; font-size: 14px; }
+        
+        .badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; background: #e2e8f0; }
+        .time-highlight { color: var(--accent); font-weight: 800; font-family: monospace; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="nav-header">
-        <div style="display:flex; gap:15px; align-items:center;">
-            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
-            <h2 style="margin:0;">Gestión de Personal Kraem</h2>
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXPORTAR</button>
-            <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
-        </div>
+<div class="header-pro">
+    <div>
+        <h1 style="margin:0; font-size: 26px;">KRAEM | <span style="font-weight:300;">Control Personal Pro</span></h1>
+        <p style="margin:5px 0; color:#64748b; font-size:14px;"><i class="fas fa-id-badge"></i> Módulo de Incidencias y Pases de Salida</p>
     </div>
-
-    <div id="dash_analisis" class="dashboard-360">
-        <div class="card" style="text-align: center;">
-            <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:110px; height:110px; border-radius:50%; border:4px solid var(--accent); object-fit:cover;">
-            <h3 id="view_nombre" style="margin:15px 0 5px 0;">--</h3>
-            <p id="view_puesto_area" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
-            
-            <div class="vacation-box">
-                <div style="font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase;">Días Disponibles</div>
-                <div id="view_dias_disponibles" style="font-size: 20px; font-weight: 800; color: #0284c7;">--</div>
-                <a href="rh_solicitudes.html" class="btn-nav" style="font-size: 11px; padding: 5px 10px; margin-top: 5px; width: 90%; justify-content: center;">Gestionar Vacaciones</a>
-            </div>
-
-            <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-            <div style="text-align:left; font-size:13px; line-height: 1.6;">
-                <p><strong><i class="fas fa-fingerprint"></i> NSS:</strong> <span id="view_nss">--</span></p>
-                <p><strong><i class="fas fa-calendar"></i> Antigüedad:</strong> <span id="view_anti">--</span></p>
-                <p><strong><i class="fas fa-tshirt"></i> Talla:</strong> <span id="view_talla">--</span></p>
-                <p><strong><i class="fas fa-clock"></i> Ingreso:</strong> <span id="view_ingreso">--</span></p>
-                <p><strong><i class="fas fa-map-marker-alt"></i> Dirección:</strong> <span id="view_direccion">--</span></p>
-                <button class="btn-nav" style="width:100%; justify-content:center; margin-top:15px; border-color:var(--accent); color:var(--accent);" onclick="editarActual()">EDITAR FICHA</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <label style="font-weight:bold; color:var(--accent);">DESEMPEÑO GLOBAL</label>
-                <div id="rango_texto" style="font-size:10px; background:#eff6ff; padding:5px 10px; border-radius:5px; color:var(--accent); font-weight:bold;">--</div>
-            </div>
-            <div class="radar-box"><canvas id="chartRadar"></canvas></div>
-        </div>
-
-        <div class="card metric-grid">
-            <div class="metric-card"><div class="metric-lab">Calidad</div><div id="val_yield" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">Asistencia</div><div id="val_asistencia" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">Puntualidad</div><div id="val_puntualidad" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">5'S</div><div id="val_5s" class="metric-val">0%</div></div>
-            <div class="metric-card" style="background:#f0f9ff; grid-column: 1/-1;"><div class="metric-lab">Versatilidad</div><div id="val_versatilidad" class="metric-val">0%</div></div>
-        </div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px;">
-        <div class="inputs-grid">
-            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()"></div>
-            <div class="group"><label>Desde</label><input type="date" id="f_desde" onchange="actualizarTodo()"></div>
-            <div class="group"><label>Hasta</label><input type="date" id="f_hasta" onchange="actualizarTodo()"></div>
-            <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
-            <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()"><option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-        </div>
-    </div>
-
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Área</th>
-                    <th>Puesto</th>
-                    <th>Antigüedad</th>
-                    <th>Turno</th>
-                    <th>Ruta</th>
-                    <th>Estatus</th>
-                </tr>
-            </thead>
-            <tbody id="lista_empleados"></tbody>
-        </table>
+    <div style="text-align:right;">
+        <div id="reloj" style="font-size:22px; font-weight:900;">00:00:00</div>
+        <div id="fecha_hoy" style="font-size:11px; font-weight:bold; color:var(--accent);">--/--/----</div>
     </div>
 </div>
 
-<div id="modalRegistro" class="modal">
-    <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h3 id="modal_titulo">Información del Personal</h3>
-            <button onclick="cerrarModal()" style="border:none; background:none; font-size:30px; cursor:pointer;">&times;</button>
-        </div>
+<div class="grid-main">
+    <div class="card">
+        <div class="section-title"><i class="fas fa-file-signature"></i> Nueva Solicitud</div>
+        
+        <label>Colaborador que solicita</label>
+        <select id="sel_empleado" onchange="cargarDatosEmpleado()"></select>
 
-        <div class="photo-upload-container">
-            <div class="photo-btn" onclick="document.getElementById('input_foto').click()">
-                <i class="fas fa-user" id="modal_icon_user"></i>
-                <img id="img_preview" style="display:none;">
-                <div class="photo-overlay">
-                    <i class="fas fa-camera" style="color: white; font-size: 12px;"></i>
-                </div>
-                <input type="file" id="input_foto" style="display: none;" accept="image/*" onchange="previewImage(event)">
+        <div id="info_panel" class="info-panel">
+            <div class="stats-grid">
+                <div><div class="stat-lab">Antigüedad Exacta</div><div id="txt_anti" class="stat-val">--</div></div>
+                <div><div class="stat-lab">Vacaciones Disponibles</div><div id="txt_disp" class="stat-val">--</div></div>
             </div>
         </div>
 
-        <input type="hidden" id="edit_id">
-        <div class="inputs-grid">
-            <div class="section-title">LABORALES</div>
-            <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
-            <div class="group"><label># Seguro Social (NSS)</label><input type="text" id="nss"></div>
-            <div class="group"><label>Área</label><select id="sel_area"></select></div>
-            <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
-            <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
-            <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
-            <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
-            <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-            
-            <div class="section-title">PERSONAL / MÉDICO</div>
-            <div class="group"><label>Teléfono Personal</label><input type="tel" id="telefono_personal"></div>
-            <div class="group"><label>Tipo de Sangre</label><input type="text" id="tipo_sangre"></div>
-            <div class="group"><label>Talla</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
-            <div class="group full-width"><label>Dirección</label><input type="text" id="direccion"></div>
-            <div class="group"><label>Contacto Emergencia</label><input type="text" id="emergencia_nombre"></div>
-            <div class="group"><label>Parentesco</label><input type="text" id="emergencia_parentesco"></div>
-            <div class="group"><label>Tel. Emergencia</label><input type="tel" id="emergencia_tel"></div>
-            <div class="group full-width"><label>Alergias / Padecimientos</label><textarea id="alergias" rows="2"></textarea></div>
+        <label>Tipo de Incidencia</label>
+        <select id="sel_tipo" onchange="toggleModo()">
+            <optgroup label="Días Completos">
+                <option value="VACACIONES">VACACIONES</option>
+                <option value="FALTA">FALTA</option>
+                <option value="SUSPENCION">SUSPENSIÓN</option>
+                <option value="INCAPACIDAD">INCAPACIDAD</option>
+                <option value="PERMISO_SIN_GOCE">PERMISO SIN GOCE</option>
+                <option value="PERMISO_MATERNIDAD">PERMISO MATERNIDAD</option>
+                <option value="PERMISO_DEFUNCION">PERMISO POR DEFUNCIÓN</option>
+            </optgroup>
+            <optgroup label="Pases de Tiempo (Mismo día)">
+                <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
+                <option value="IDA_VUELTA">IDA Y VUELTA</option>
+                <option value="LLEGADA_TARDE">LLEGADA TARDE</option>
+            </optgroup>
+        </select>
+
+        <div id="box_dias" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div><label>Fecha Inicio</label><input type="date" id="f_ini"></div>
+            <div><label>Fecha Fin</label><input type="date" id="f_fin"></div>
         </div>
-        <div style="margin-top:30px; display:flex; gap:15px;">
-            <button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">GUARDAR</button>
-            <button class="btn-nav" style="flex:1; justify-content:center;" onclick="cerrarModal()">CANCELAR</button>
+
+        <div id="box_horas" style="display:none; background:#fefce8; padding:15px; border-radius:10px; border:1px solid #fef08a; margin-bottom:15px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div><label>Fecha del Pase</label><input type="date" id="h_fecha"></div>
+                <div><label>Hora de Salida</label><input type="time" id="h_salida"></div>
+            </div>
+            <p id="msg_extra" style="font-size:11px; color:#a16207; margin:0;"><i class="fas fa-info-circle"></i> La hora de regreso se sellará automáticamente al volver.</p>
         </div>
+
+        <label>Autoriza (Listado de Jefes)</label>
+        <select id="sel_autorizador"></select>
+
+        <label>Motivo / Observaciones</label>
+        <textarea id="txt_obs" rows="2" placeholder="Describa el motivo..."></textarea>
+
+        <button class="btn-submit" onclick="registrar()">
+            <i class="fas fa-save"></i> GENERAR REGISTRO DIGITAL
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="section-title"><i class="fas fa-tv"></i> Monitor de Incidencias en Tiempo Real</div>
+        <div id="lista_monitor"></div>
     </div>
 </div>
 
 <script>
     let db_empleados = [];
-    let db_filtrados = [];
-    let chartRadar;
-    let currentEmpId = null;
 
-    // Tabla de vacaciones Ley Federal del Trabajo (México)
+    // Lógica de Vacaciones México
     function obtenerDiasLey(anios) {
         if (anios < 1) return 0;
-        if (anios === 1) return 12;
-        if (anios === 2) return 14;
-        if (anios === 3) return 16;
-        if (anios === 4) return 18;
-        if (anios === 5) return 20;
+        if (anios == 1) return 12;
+        if (anios == 2) return 14;
+        if (anios == 3) return 16;
+        if (anios == 4) return 18;
+        if (anios == 5) return 20;
         if (anios >= 6 && anios <= 10) return 22;
         if (anios >= 11 && anios <= 15) return 24;
-        if (anios >= 16 && anios <= 20) return 26;
-        if (anios >= 21 && anios <= 25) return 28;
-        if (anios >= 26 && anios <= 30) return 30;
-        return 32;
+        return 26;
     }
 
-    async function init() {
-        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
-        const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
-        const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
-        
-        const fill = (id, data, esFiltro = false) => {
-            const s = document.getElementById(id);
-            if(!s) return;
-            s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
-            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
-        };
-
-        fill('sel_area', areas); fill('f_area', areas, true);
-        fill('sel_puesto', puestos);
-        fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
-
-        const d = new Date();
-        document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('f_hasta').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
-
-        await listarEmpleados();
-    }
-
-    async function listarEmpleados() {
-        const { data, error } = await client.from('rh_empleados').select(`
-            *,
-            rh_areas!left(nombre),
-            rh_puestos!left(nombre),
-            rh_rutas!left(nombre)
-        `).order('nombre_completo');
-
-        if (error) { console.error(error); return; }
-
-        db_empleados = data.map(e => ({
-            ...e,
-            area_txt: e.rh_areas?.nombre || '-',
-            puesto_txt: e.rh_puestos?.nombre || '-',
-            ruta_txt: e.rh_rutas?.nombre || '-',
-            antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
-        }));
-        aplicarFiltros();
-    }
-
-    function aplicarFiltros() {
-        const n = document.getElementById('f_nombre').value.toLowerCase();
-        const a = document.getElementById('f_area').value;
-        const t = document.getElementById('f_turno').value;
-        const r = document.getElementById('f_ruta').value;
-        const s = document.getElementById('f_estatus').value;
-
-        db_filtrados = db_empleados.filter(e => 
-            (!n || e.nombre_completo.toLowerCase().includes(n)) && 
-            (!a || e.area_id == a) &&
-            (!t || e.turno_id == t) &&
-            (!r || e.ruta_id == r) &&
-            (!s || e.estatus == s)
-        );
-        
-        document.getElementById('lista_empleados').innerHTML = db_filtrados.map(e => `
-            <tr onclick="cargarAnalisis('${e.id}')">
-                <td><b>${e.nombre_completo}</b></td>
-                <td>${e.area_txt}</td>
-                <td>${e.puesto_txt}</td>
-                <td>${e.antiguedad_txt}</td>
-                <td>Turno ${e.turno_id || '-'}</td>
-                <td>${e.ruta_txt}</td>
-                <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus || 'N/A'}</span></td>
-            </tr>`).join('');
-    }
-
-    async function cargarAnalisis(id) {
-        const emp = db_empleados.find(e => e.id == id);
-        currentEmpId = id;
-        document.getElementById('dash_analisis').style.display = 'grid';
-        
-        document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        document.getElementById('view_nombre').innerText = emp.nombre_completo;
-        document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
-        document.getElementById('view_nss').innerText = emp.nss || '--';
-        document.getElementById('view_anti').innerText = emp.antiguedad_txt;
-        document.getElementById('view_talla').innerText = emp.talla_playera || '--';
-        document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
-        document.getElementById('view_direccion').innerText = emp.direccion || '--';
-
-        // LÓGICA DE VACACIONES CALCULADA
-        const fIngreso = new Date(emp.fecha_ingreso);
-        const fHoy = new Date();
-        let anios = fHoy.getFullYear() - fIngreso.getFullYear();
-        if (fHoy < new Date(fHoy.getFullYear(), fIngreso.getMonth(), fIngreso.getDate())) anios--;
-        
-        const diasTotalesDerecho = obtenerDiasLey(anios);
-
-        // Consultar solicitudes de vacaciones aprobadas para restar
-        const { data: sol } = await client.from('rh_solicitudes')
-            .select('dias_solicitados')
-            .eq('empleado_id', id)
-            .eq('tipo', 'VACACIONES')
-            .eq('estatus', 'APROBADO');
-
-        const diasTomados = sol?.reduce((acc, curr) => acc + (curr.dias_solicitados || 0), 0) || 0;
-        const saldoVacaciones = diasTotalesDerecho - diasTomados;
-
-        document.getElementById('view_dias_disponibles').innerText = saldoVacaciones > 0 ? saldoVacaciones : 0;
-
-        const fDesde = document.getElementById('f_desde').value;
-        const fHasta = document.getElementById('f_hasta').value;
-        document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
-
-        // CALIDAD REAL
-        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
-        let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
-        const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
-
-        // ASISTENCIA REAL
-        const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        const totalDias = asistData?.length || 0;
-        const asistPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado !== 'FALTA').length / totalDias) * 100).toFixed(1)) : 0;
-        const puntPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1)) : 0;
-
-        // 5'S REAL
-        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        const score5s = fives?.length > 0 ? parseFloat((fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1)) : 0;
-
-        document.getElementById('val_yield').innerText = yieldVal + '%';
-        document.getElementById('val_asistencia').innerText = asistPct + '%';
-        document.getElementById('val_puntualidad').innerText = puntPct + '%';
-        document.getElementById('val_5s').innerText = score5s + '%';
-        document.getElementById('val_versatilidad').innerText = "80%"; 
-
-        renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
-        window.scrollTo({top: 0, behavior: 'smooth'});
-    }
-
-    function renderRadar(y, a, s, v, p) {
-        const ctx = document.getElementById('chartRadar').getContext('2d');
-        if(chartRadar) chartRadar.destroy();
-        chartRadar = new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: ['Calidad', 'Asistencia', '5\'S', 'Versatilidad', 'Puntualidad'],
-                datasets: [{
-                    data: [y, a, s, v, p],
-                    backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb'
-                }]
-            },
-            options: { scales: { r: { suggestedMin: 0, suggestedMax: 100 } }, plugins: { legend: { display: false } } }
-        });
-    }
-
-    function previewImage(event) {
-        const reader = new FileReader();
-        const file = event.target.files[0];
-        if(!file) return;
-        reader.onload = () => {
-            const output = document.getElementById('img_preview');
-            output.src = reader.result;
-            output.style.display = 'block';
-            document.getElementById('modal_icon_user').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-    }
-
-    async function subirFoto(archivo, id) {
-        try {
-            const ext = archivo.name.split('.').pop();
-            const fileName = `foto_${id || 'new'}_${Date.now()}.${ext}`;
-            const { data, error } = await client.storage.from('empleados').upload(fileName, archivo);
-            if(error) throw error;
-            const { data: url } = client.storage.from('empleados').getPublicUrl(fileName);
-            return url.publicUrl;
-        } catch (e) {
-            console.error(e);
-            return null;
-        }
-    }
-
-    async function guardarEmpleado() {
-        const id = document.getElementById('edit_id').value;
-        const fotoInput = document.getElementById('input_foto');
-        let fotoUrl = null;
-
-        if(fotoInput.files[0]) {
-            fotoUrl = await subirFoto(fotoInput.files[0], id);
-            if(!fotoUrl) return alert("Error al subir imagen.");
-        }
-
-        const obj = {
-            nombre_completo: document.getElementById('nombre').value,
-            nss: document.getElementById('nss').value,
-            area_id: document.getElementById('sel_area').value || null,
-            puesto_id: document.getElementById('sel_puesto').value || null,
-            fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
-            turno_id: document.getElementById('sel_turno').value || null,
-            ruta_id: document.getElementById('sel_ruta').value || null,
-            tipo_sangre: document.getElementById('tipo_sangre').value,
-            talla_playera: document.getElementById('sel_talla').value,
-            direccion: document.getElementById('direccion').value,
-            telefono_personal: document.getElementById('telefono_personal').value,
-            emergencia_nombre: document.getElementById('emergencia_nombre').value,
-            emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
-            emergencia_tel: document.getElementById('emergencia_tel').value,
-            alergias: document.getElementById('alergias').value,
-            estatus: document.getElementById('sel_estatus').value
-        };
-
-        if(fotoUrl) obj.foto_url = fotoUrl;
-
-        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
-        
-        if(!error) { alert("¡Guardado!"); cerrarModal(); await listarEmpleados(); }
-        else { alert("Error: " + error.message); }
-    }
-
-    function editarActual() {
-        if(!currentEmpId) return;
-        const emp = db_empleados.find(e => e.id == currentEmpId);
-        document.getElementById('edit_id').value = emp.id;
-        document.getElementById('nombre').value = emp.nombre_completo || "";
-        document.getElementById('nss').value = emp.nss || "";
-        document.getElementById('sel_area').value = emp.area_id || "";
-        document.getElementById('sel_puesto').value = emp.puesto_id || "";
-        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
-        document.getElementById('sel_turno').value = emp.turno_id || "1";
-        document.getElementById('sel_ruta').value = emp.ruta_id || "";
-        document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
-        document.getElementById('sel_talla').value = emp.talla_playera || "";
-        document.getElementById('direccion').value = emp.direccion || "";
-        document.getElementById('telefono_personal').value = emp.telefono_personal || "";
-        document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || "";
-        document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
-        document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
-        document.getElementById('alergias').value = emp.alergias || "";
-        document.getElementById('sel_estatus').value = emp.estatus || "ACTIVO";
-
-        if(emp.foto_url) {
-            document.getElementById('img_preview').src = emp.foto_url;
-            document.getElementById('img_preview').style.display = 'block';
-            document.getElementById('modal_icon_user').style.display = 'none';
-        } else {
-            document.getElementById('img_preview').style.display = 'none';
-            document.getElementById('modal_icon_user').style.display = 'block';
-        }
-        document.getElementById('modalRegistro').style.display = 'block';
-    }
-
-    function abrirModal() {
-        document.getElementById('edit_id').value = "";
-        document.querySelectorAll('#modalRegistro input, #modalRegistro select, #modalRegistro textarea').forEach(i => i.value = "");
-        document.getElementById('img_preview').style.display = 'none';
-        document.getElementById('modal_icon_user').style.display = 'block';
-        document.getElementById('modalRegistro').style.display = 'block';
-    }
-
-    function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
-
+    // Antigüedad Años y Meses
     function calcularAntiguedadExacta(f) {
         if(!f) return "-";
         const ini = new Date(f), hoy = new Date();
         let anios = hoy.getFullYear() - ini.getFullYear();
         let meses = hoy.getMonth() - ini.getMonth();
         if (meses < 0) { anios--; meses += 12; }
-        return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
+        return `${anios} años, ${meses} m`;
     }
 
-    async function exportarExcel() {
-        if(db_filtrados.length === 0) return alert("No hay datos");
-        const ws = XLSX.utils.json_to_sheet(db_filtrados);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Personal");
-        XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
+    async function init() {
+        // Reloj
+        setInterval(() => { 
+            const d = new Date();
+            document.getElementById('reloj').innerText = d.toLocaleTimeString(); 
+            document.getElementById('fecha_hoy').innerText = d.toLocaleDateString();
+        }, 1000);
+
+        // Cargar Empleados (Relacionando con Puestos)
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
+        db_empleados = emps || [];
+
+        // Llenar selector de solicitantes
+        const selE = document.getElementById('sel_empleado');
+        selE.innerHTML = '<option value="">-- Seleccione --</option>';
+        db_empleados.forEach(e => selE.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+
+        // Llenar selector de Autorizadores (Filtramos solo Jefes/Ing/Lideres)
+        const selA = document.getElementById('sel_autorizador');
+        selA.innerHTML = '<option value="">-- Seleccione Jefe --</option>';
+        db_empleados.filter(e => {
+            const p = e.rh_puestos?.nombre.toUpperCase() || "";
+            return p.includes("JEFE") || p.includes("LIDER") || p.includes("GERENTE") || p.includes("ING");
+        }).forEach(j => selA.innerHTML += `<option value="${j.nombre_completo}">${j.nombre_completo}</option>`);
+
+        consultarMonitor();
     }
 
-    function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId); }
+    async function cargarDatosEmpleado() {
+        const id = document.getElementById('sel_empleado').value;
+        if(!id) return document.getElementById('info_panel').style.display='none';
+
+        const emp = db_empleados.find(e => e.id == id);
+        
+        // 1. Antigüedad
+        document.getElementById('txt_anti').innerText = calcularAntiguedadExacta(emp.fecha_ingreso);
+
+        // 2. Vacaciones Ley vs Tomadas
+        const ini = new Date(emp.fecha_ingreso);
+        const hoy = new Date();
+        let anios = hoy.getFullYear() - ini.getFullYear();
+        if (hoy < new Date(hoy.getFullYear(), ini.getMonth(), ini.getDate())) anios--;
+        
+        const derecho = obtenerDiasLey(anios);
+        const { data: tomadas } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
+        const totalTomadas = tomadas?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
+
+        document.getElementById('txt_disp').innerText = (derecho - totalTomadas) + " días";
+        document.getElementById('info_panel').style.display = 'block';
+    }
+
+    function toggleModo() {
+        const t = document.getElementById('sel_tipo').value;
+        const esPase = ["SALIDA_TEMPRANO", "IDA_VUELTA", "LLEGADA_TARDE"].includes(t);
+        document.getElementById('box_dias').style.display = esPase ? 'none' : 'grid';
+        document.getElementById('box_horas').style.display = esPase ? 'block' : 'none';
+        document.getElementById('msg_extra').style.display = t === "IDA_VUELTA" ? "block" : "none";
+    }
+
+    async function registrar() {
+        const tipo = document.getElementById('sel_tipo').value;
+        const esPase = ["SALIDA_TEMPRANO", "IDA_VUELTA", "LLEGADA_TARDE"].includes(tipo);
+
+        const obj = {
+            empleado_id: document.getElementById('sel_empleado').value,
+            tipo: tipo,
+            autorizado_por: document.getElementById('sel_autorizador').value,
+            observaciones: document.getElementById('txt_obs').value,
+            estatus: 'PENDIENTE'
+        };
+
+        if(esPase) {
+            obj.fecha_inicio = document.getElementById('h_fecha').value;
+            obj.hora_salida = document.getElementById('h_salida').value;
+            obj.dias_solicitados = 0; // Se mide en horas
+        } else {
+            obj.fecha_inicio = document.getElementById('f_ini').value;
+            obj.fecha_fin = document.getElementById('f_fin').value;
+            // Cálculo básico de días
+            const d1 = new Date(obj.fecha_inicio), d2 = new Date(obj.fecha_fin);
+            obj.dias_solicitados = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
+        }
+
+        if(!obj.empleado_id || !obj.autorizado_por || !obj.fecha_inicio) return alert("Faltan datos críticos.");
+
+        const { error } = await client.from('rh_solicitudes').insert([obj]);
+        if(!error) { alert("Registro Guardado"); location.reload(); }
+    }
+
+    async function consultarMonitor() {
+        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
+        const list = document.getElementById('lista_monitor');
+        list.innerHTML = "";
+
+        data?.forEach(s => {
+            list.innerHTML += `
+                <div class="request-card status-${s.estatus}">
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <span class="badge">${s.tipo}</span>
+                            <h3 style="margin:8px 0 2px 0;">${s.rh_empleados.nombre_completo}</h3>
+                            <p style="font-size:12px; color:#64748b; margin:0;">
+                                <i class="fas fa-calendar"></i> ${s.fecha_inicio} ${s.fecha_fin ? ' al ' + s.fecha_fin : ''}
+                                ${s.hora_salida ? ` | <i class="fas fa-clock"></i> Salida: <span class="time-highlight">${s.hora_salida}</span>` : ''}
+                                ${s.hora_regreso ? ` | <i class="fas fa-undo"></i> Regreso: <span class="time-highlight">${s.hora_regreso}</span>` : ''}
+                            </p>
+                            <p style="font-size:11px; margin-top:8px;"><b>AUTORIZA:</b> ${s.autorizado_por}</p>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            ${s.estatus === 'PENDIENTE' ? `
+                                <button class="btn-action" style="background:var(--success); color:white;" onclick="updateStatus('${s.id}', '${s.tipo === 'IDA_VUELTA' ? 'ENCURSO' : 'APROBADO'}')">AUTORIZAR</button>
+                                <button class="btn-action" style="background:var(--danger); color:white;" onclick="updateStatus('${s.id}', 'RECHAZADO')">RECHAZAR</button>
+                            ` : ''}
+
+                            ${s.estatus === 'ENCURSO' ? `
+                                <button class="btn-action" style="background:var(--info); color:white;" onclick="registrarRetorno('${s.id}')"><i class="fas fa-sign-in-alt"></i> MARCAR REGRESO</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    async function updateStatus(id, n) {
+        await client.from('rh_solicitudes').update({ estatus: n }).eq('id', id);
+        consultarMonitor();
+    }
+
+    async function registrarRetorno(id) {
+        const h = new Date().toLocaleTimeString('es-MX', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        if(confirm("¿Sellar regreso a las " + h + "?")) {
+            await client.from('rh_solicitudes').update({ estatus: 'APROBADO', hora_regreso: h }).eq('id', id);
+            consultarMonitor();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
