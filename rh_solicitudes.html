@@ -3,102 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión de Solicitudes</title>
+    <title>KRAEM | Gestión de Solicitudes y Permisos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; --danger: #ef4444; }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
         .container { max-width: 1600px; margin: auto; }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .grid-main { display: grid; grid-template-columns: 400px 1fr; gap: 20px; }
+        .grid-main { display: grid; grid-template-columns: 420px 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
         .group { display: flex; flex-direction: column; margin-bottom: 12px; }
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
         input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
         .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        .btn-primary:disabled { background: #cbd5e1; cursor: not-allowed; }
-        table { width: 100%; border-collapse: collapse; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { background: #f8fafc; padding: 12px; text-align: left; font-size: 10px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 9px; }
-        .audit-info { font-size: 9px; color: #94a3b8; display: block; margin-top: 4px; }
-        .btn-print { color: var(--accent); cursor: pointer; font-size: 18px; margin-left: 10px; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 9px; text-transform: uppercase; }
+        .status-pendiente { background: #fef3c7; color: #92400e; }
+        .status-aprobado { background: #dcfce7; color: #166534; }
+        .btn-print { color: var(--accent); cursor: pointer; font-size: 18px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="nav-header">
-        <h2 style="margin:0;">KRAEM Solicitudes</h2>
-        <div id="reloj" style="font-weight: bold; color: var(--accent);"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2 style="margin:0;"><i class="fas fa-id-card"></i> Sistema de Permisos KRAEM</h2>
+        <div id="reloj" style="font-weight:bold; color:var(--accent);"></div>
     </div>
 
     <div class="grid-main">
         <div class="card">
-            <h3 style="margin-top:0; font-size: 16px; color: var(--accent);"><i class="fas fa-file-signature"></i> Nueva Solicitud</h3>
+            <h3 style="margin-top:0; font-size: 16px; color: var(--accent);">Nueva Solicitud / Permiso</h3>
             
-            <div class="group">
-                <label>Colaborador (Nombre Completo)</label>
-                <select id="sol_empleado" onchange="cargarInfoEmpleado()"></select>
-            </div>
-
-            <div id="panel_info" style="display:none; background: #f0f9ff; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #bae6fd;">
-                <div style="font-size: 11px; font-weight: bold; color: #0369a1;">PUESTO: <span id="view_puesto">--</span></div>
-                <div style="font-size: 11px; font-weight: bold; color: #0369a1;">AREA: <span id="view_area">--</span></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                <div class="group"><label>Filtrar Área</label><select id="f_area" onchange="actualizarListas()"></select></div>
+                <div class="group"><label>Turno</label><select id="f_turno" onchange="actualizarListas()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
             </div>
 
             <div class="group">
-                <label>Tipo de Permiso</label>
-                <select id="sol_tipo" onchange="manejarTipoSolicitud()">
+                <label>Nombre del Colaborador</label>
+                <select id="sol_empleado" onchange="cargarDetallesEmpleado()"></select>
+            </div>
+
+            <div id="info_empleado" style="display:none; background:#f0f9ff; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #bae6fd;">
+                <div style="font-size:11px;"><b>PUESTO:</b> <span id="view_puesto">--</span></div>
+                <div style="font-size:11px;"><b>AREA:</b> <span id="view_area">--</span></div>
+            </div>
+
+            <div class="group">
+                <label>Tipo de Movimiento</label>
+                <select id="sol_tipo" onchange="ajustarFormulario()">
                     <option value="VACACIONES">Vacaciones</option>
-                    <option value="SALIDA_TEMPRANO">Salida Temprano (Sin regreso)</option>
-                    <option value="SALIDA_REGRESO">Permiso de Ida y Vuelta</option>
+                    <option value="SALIDA_TEMPRANO">Salida Temprano (Sin Regreso)</option>
+                    <option value="IDA_Y_VUELTA">Permiso de Ida y Vuelta</option>
                     <option value="LLEGADA_TARDE">Llegada Tarde</option>
                     <option value="AJUSTE_SISTEMA">Ajuste de Saldo (+/- días)</option>
                 </select>
             </div>
 
-            <div id="cont_fechas" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div class="group"><label>Fecha</label><input type="date" id="sol_desde"></div>
-                <div class="group" id="cont_fin"><label>Fecha Fin</label><input type="date" id="sol_hasta"></div>
+            <div id="campos_fechas" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="group"><label>Fecha Inicio</label><input type="date" id="sol_desde"></div>
+                <div id="div_hasta" class="group"><label>Fecha Fin</label><input type="date" id="sol_hasta"></div>
             </div>
 
-            <div id="cont_hora" style="display:none;" class="group">
-                <label>Hora de Salida / Entrada</label>
+            <div id="campo_hora" style="display:none;" class="group">
+                <label>Hora Programada</label>
                 <input type="time" id="sol_hora">
             </div>
 
-            <div id="cont_ajuste" style="display:none;" class="group">
-                <label>Cantidad de ajuste (+13 o -5)</label>
-                <input type="number" id="sol_ajuste">
+            <div id="campo_ajuste" style="display:none;" class="group">
+                <label>Cantidad (+ para sumar días, - para restar)</label>
+                <input type="number" id="sol_ajuste" placeholder="Ej: 13 o -5">
             </div>
 
             <div class="group">
-                <label>Supervisor Elaboró</label>
-                <select id="sol_creador">
-                    <option value="GERARDO GONZALEZ">GERARDO GONZALEZ (SUPERVISOR)</option>
-                    <option value="SUPERVISOR TURNO 1">SUPERVISOR TURNO 1</option>
-                    <option value="SUPERVISOR TURNO 2">SUPERVISOR TURNO 2</option>
-                </select>
+                <label>Elaboró (Supervisor / Administrativo)</label>
+                <select id="sol_elaboro"></select>
             </div>
 
             <div class="group">
-                <label>Motivo Detallado</label>
-                <textarea id="sol_motivo" rows="2"></textarea>
+                <label>Causa / Motivo</label>
+                <textarea id="sol_motivo" rows="2" placeholder="Escriba la causa oficial..."></textarea>
             </div>
 
-            <button id="btn_enviar" class="btn-primary" onclick="guardarSolicitud()">ENVIAR PARA APROBACIÓN</button>
+            <button id="btn_guardar" class="btn-primary" onclick="registrarSolicitud()">REGISTRAR SOLICITUD</button>
         </div>
 
         <div class="card">
-            <h3 style="margin:0 0 15px 0;">Historial y Aprobaciones</h3>
+            <h3 style="margin:0 0 15px 0;">Panel de Control de Personal</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>Folio / Empleado</th>
-                        <th>Tipo / Creado por</th>
+                        <th>Folio / Nombre</th>
+                        <th>Tipo y Elaboró</th>
                         <th>Fecha / Hora</th>
                         <th>Estatus / Firmas</th>
                         <th>Acción</th>
@@ -111,61 +111,84 @@
 </div>
 
 <script>
-    let db_empleados = [];
-    let solicitudes_recientes = [];
-    const MANAGER_JR = "YURIDIA RIOS (COORD. GERENTE JR)";
+    let todosLosEmpleados = [];
+    let solicitudesCargadas = [];
+    const COORDINADORA = "YURIDIA RIOS (COORD. GERENTE JR)";
 
     async function init() {
-        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
-        db_empleados = emps || [];
-        const select = document.getElementById('sol_empleado');
-        select.innerHTML = '<option value="">-- Seleccionar --</option>';
-        db_empleados.forEach(e => select.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+        // Cargar Áreas
+        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
+        const fArea = document.getElementById('f_area');
+        fArea.innerHTML = '<option value="">Todas las Áreas</option>';
+        areas?.forEach(a => fArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
 
+        // Cargar Personal completo
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
+        todosLosEmpleados = emps || [];
+        
+        actualizarListas();
         listarSolicitudes();
         setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleString(); }, 1000);
         document.getElementById('sol_desde').valueAsDate = new Date();
     }
 
-    function cargarInfoEmpleado() {
+    function actualizarListas() {
+        const areaId = document.getElementById('f_area').value;
+        const turno = document.getElementById('f_turno').value;
+        
+        const filtrados = todosLosEmpleados.filter(e => (!areaId || e.area_id == areaId) && (!turno || e.turno_id == turno));
+        
+        const selEmp = document.getElementById('sol_empleado');
+        const selElab = document.getElementById('sol_elaboro');
+
+        selEmp.innerHTML = '<option value="">-- Seleccionar Colaborador --</option>';
+        selElab.innerHTML = '<option value="">-- Seleccionar Quién Elabora --</option>';
+
+        filtrados.forEach(e => selEmp.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+        
+        // La lista de quién elabora puede ser de cualquier área (Supervisores/Admin)
+        todosLosEmpleados.forEach(e => selElab.innerHTML += `<option value="${e.nombre_completo}">${e.nombre_completo}</option>`);
+    }
+
+    function cargarDetallesEmpleado() {
         const id = document.getElementById('sol_empleado').value;
-        const emp = db_empleados.find(e => e.id == id);
+        const emp = todosLosEmpleados.find(e => e.id == id);
         if(emp) {
             document.getElementById('view_puesto').innerText = emp.puesto || 'OPERADOR';
             document.getElementById('view_area').innerText = emp.rh_areas.nombre;
-            document.getElementById('panel_info').style.display = 'block';
+            document.getElementById('info_empleado').style.display = 'block';
         }
     }
 
-    function manejarTipoSolicitud() {
+    function ajustarFormulario() {
         const tipo = document.getElementById('sol_tipo').value;
-        const esTiempo = tipo.includes('SALIDA') || tipo === 'LLEGADA_TARDE';
+        const esPermisoRapido = tipo.includes('SALIDA') || tipo === 'IDA_Y_VUELTA' || tipo === 'LLEGADA_TARDE';
         const esAjuste = tipo === 'AJUSTE_SISTEMA';
 
-        document.getElementById('cont_hora').style.display = esTiempo ? 'block' : 'none';
-        document.getElementById('cont_fin').style.display = (esTiempo || esAjuste) ? 'none' : 'block';
-        document.getElementById('cont_ajuste').style.display = esAjuste ? 'block' : 'none';
+        document.getElementById('campo_hora').style.display = esPermisoRapido ? 'block' : 'none';
+        document.getElementById('div_hasta').style.display = (esPermisoRapido || esAjuste) ? 'none' : 'block';
+        document.getElementById('campo_ajuste').style.display = esAjuste ? 'block' : 'none';
     }
 
-    async function guardarSolicitud() {
+    async function registrarSolicitud() {
         const empId = document.getElementById('sol_empleado').value;
-        const creador = document.getElementById('sol_creador').value;
-        if(!empId) return alert("Selecciona un colaborador");
+        const elaboro = document.getElementById('sol_elaboro').value;
+        if(!empId || !elaboro) return alert("Debe seleccionar al Colaborador y a la persona que Elabora.");
 
-        document.getElementById('btn_enviar').disabled = true;
+        document.getElementById('btn_guardar').disabled = true;
 
-        // Generar Folio Único (Ej: K-2026-0001)
+        // Generar Folio Incremental
         const { count } = await client.from('rh_solicitudes').select('*', { count: 'exact', head: true });
-        const folio = `K-2026-${(count + 1).toString().padStart(4, '0')}`;
+        const folio = `KR-${new Date().getFullYear()}-${(count + 1).toString().padStart(4, '0')}`;
 
         const tipo = document.getElementById('sol_tipo').value;
-        const obj = {
+        const payload = {
             id_personalizado: folio,
             empleado_id: empId,
             tipo: tipo,
-            motivo: document.getElementById('sol_motivo').value || 'Sin motivo específico',
+            motivo: document.getElementById('sol_motivo').value || 'Sin motivo especificado',
             estatus: 'PENDIENTE',
-            creado_por: creador,
+            creado_por: elaboro,
             fecha_creacion: new Date().toISOString(),
             fecha_inicio: document.getElementById('sol_desde').value,
             fecha_fin: document.getElementById('sol_hasta').value || document.getElementById('sol_desde').value,
@@ -173,83 +196,89 @@
             dias_solicitados: tipo === 'AJUSTE_SISTEMA' ? parseInt(document.getElementById('sol_ajuste').value) : 0
         };
 
-        const { error } = await client.from('rh_solicitudes').insert([obj]);
-        if(!error) { alert("Solicitud enviada"); location.reload(); }
+        const { error } = await client.from('rh_solicitudes').insert([payload]);
+        if(!error) { alert("Solicitud Registrada con Folio: " + folio); location.reload(); }
+        else { alert("Error: " + error.message); document.getElementById('btn_guardar').disabled = false; }
     }
 
     async function listarSolicitudes() {
         const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(*, rh_areas(nombre))').order('created_at', {ascending: false});
-        solicitudes_recientes = data || [];
-        document.getElementById('tabla_solicitudes').innerHTML = solicitudes_recientes.map(s => `
+        solicitudesCargadas = data || [];
+        
+        document.getElementById('tabla_solicitudes').innerHTML = solicitudesCargadas.map(s => `
             <tr>
-                <td><b>${s.id_personalizado || 'S/F'}</b><br>${s.rh_empleados.nombre_completo}</td>
-                <td><span class="badge">${s.tipo}</span><br><span class="audit-info">Por: ${s.creado_por}</span></td>
+                <td><b>${s.id_personalizado}</b><br>${s.rh_empleados.nombre_completo}</td>
+                <td><span class="badge" style="background:#e2e8f0;">${s.tipo}</span><br><small>Por: ${s.creado_por}</small></td>
                 <td>${s.fecha_inicio} ${s.hora_solicitud ? ' @ ' + s.hora_solicitud : ''}</td>
-                <td><span class="badge status-${s.estatus.toLowerCase()}">${s.estatus}</span>
-                    ${s.aprobado_por ? `<span class="audit-info">Firma: ${s.aprobado_por}<br>${new Date(s.fecha_aprobacion).toLocaleString()}</span>` : ''}
+                <td>
+                    <span class="badge status-${s.estatus.toLowerCase()}">${s.estatus}</span>
+                    ${s.aprobado_por ? `<br><small style="color:blue">Firmó: ${s.aprobado_por}</small>` : ''}
                 </td>
                 <td>
-                    ${s.estatus === 'PENDIENTE' ? `<button onclick="procesar('${s.id}')">Aprobar</button>` : 
-                      s.estatus === 'APROBADO' ? `<i class="fas fa-print btn-print" onclick="imprimir('${s.id}')"></i>` : ''}
+                    ${s.estatus === 'PENDIENTE' ? `<button onclick="autorizar('${s.id}')">Autorizar</button>` : 
+                      s.estatus === 'APROBADO' ? `<i class="fas fa-print btn-print" onclick="imprimirPermiso('${s.id}')"></i>` : ''}
                 </td>
             </tr>
         `).join('');
     }
 
-    async function procesar(id) {
+    async function autorizar(id) {
+        const conf = confirm("¿Desea aplicar la firma digital de Coordinación?");
+        if(!conf) return;
+        
         await client.from('rh_solicitudes').update({ 
             estatus: 'APROBADO', 
-            aprobado_por: MANAGER_JR, 
+            aprobado_por: COORDINADORA, 
             fecha_aprobacion: new Date().toISOString() 
         }).eq('id', id);
         listarSolicitudes();
     }
 
-    function imprimir(id) {
-        const s = solicitudes_recientes.find(x => x.id == id);
+    function imprimirPermiso(id) {
+        const s = solicitudesCargadas.find(x => x.id == id);
         const win = window.open('', '_blank');
         win.document.write(`
             <html>
             <head>
                 <style>
-                    body { font-family: Arial; padding: 30px; line-height: 1.5; }
-                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-                    .logo { width: 120px; font-weight: bold; font-size: 20px; }
-                    .folio-table { width: 100%; border: 1px solid #000; margin-top: 20px; border-collapse: collapse; }
-                    .folio-table td { border: 1px solid #000; padding: 8px; }
-                    .signature-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 50px; text-align: center; }
-                    .sig-line { border-top: 1px solid #000; margin-top: 40px; font-size: 10px; padding-top: 5px; }
-                    .digital { color: blue; font-family: monospace; font-size: 9px; }
+                    body { font-family: Arial; padding: 40px; }
+                    .header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px; }
+                    .main-table { width:100%; border:1px solid #000; margin-top:20px; border-collapse:collapse; }
+                    .main-table td { border:1px solid #000; padding:10px; font-size:13px; }
+                    .sig-section { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px; margin-top:60px; text-align:center; }
+                    .line { border-top:1px solid #000; padding-top:5px; font-size:11px; font-weight:bold; }
+                    .digital { color:blue; font-family:monospace; font-size:10px; margin-bottom:5px; }
                 </style>
             </head>
             <body>
                 <div class="header">
-                    <div class="logo">KRAEM</div>
-                    <div style="text-align:center;"><b>FORMATO DE SOLICITUD DE PERMISO</b></div>
-                    <div>Folio: ${s.id_personalizado}</div>
+                    <div><b>KRAEM S.A. de C.V.</b></div>
+                    <div style="font-size:16px;"><b>FORMATO DE SOLICITUD DE PERMISO</b></div>
+                    <div><b>Folio:</b> ${s.id_personalizado}</div>
                 </div>
-                <table class="folio-table">
+                <table class="main-table">
                     <tr><td><b>FECHA:</b></td><td>${s.fecha_inicio}</td><td><b>HORA:</b></td><td>${s.hora_solicitud || '--:--'}</td></tr>
-                    <tr><td><b>NOMBRE:</b></td><td colspan="3">${s.rh_empleados.nombre_completo}</td></tr>
+                    <tr><td><b>COLABORADOR:</b></td><td colspan="3">${s.rh_empleados.nombre_completo}</td></tr>
                     <tr><td><b>PUESTO:</b></td><td>${s.rh_empleados.puesto || 'OPERADOR'}</td><td><b>AREA:</b></td><td>${s.rh_empleados.rh_areas.nombre}</td></tr>
-                    <tr><td><b>TIPO:</b></td><td colspan="3">${s.tipo}</td></tr>
-                    <tr><td><b>MOTIVO:</b></td><td colspan="3">${s.motivo}</td></tr>
+                    <tr><td><b>TIPO DE PERMISO:</b></td><td colspan="3">${s.tipo.replace('_', ' ')}</td></tr>
+                    <tr><td><b>MOTIVO / CAUSA:</b></td><td colspan="3" style="height:60px; vertical-align:top;">${s.motivo}</td></tr>
                 </table>
-                <div class="signature-grid">
+                <div style="text-align:center; margin-top:30px; font-weight:bold;">FAVOR DE APROBAR ESTA SOLICITUD SEGÚN LO MENCIONADO.</div>
+                <div class="sig-section">
                     <div>
-                        <div class="digital">CERTIFICADO DIGITAL<br>${s.creado_por}<br>${new Date(s.fecha_creacion).toLocaleString()}</div>
-                        <div class="sig-line">ELABORÓ (SUPERVISOR)</div>
+                        <div class="digital">CERTIFICADO ELECTRÓNICO<br>${s.creado_por}<br>${new Date(s.fecha_creacion).toLocaleString()}</div>
+                        <div class="line">ELABORÓ (SUPERVISOR)</div>
                     </div>
                     <div>
-                        <div class="digital">AUTORIZACIÓN SISTEMA<br>${s.aprobado_por}<br>${new Date(s.fecha_aprobacion).toLocaleString()}</div>
-                        <div class="sig-line">AUTORIZÓ (MANAGER JR / COORD)</div>
+                        <div class="digital">AUTORIZACIÓN DIGITAL<br>${s.aprobado_por}<br>${new Date(s.fecha_aprobacion).toLocaleString()}</div>
+                        <div class="line">AUTORIZÓ (JR. MANAGER / COORD)</div>
                     </div>
                     <div>
-                        <div style="height:40px"></div>
-                        <div class="sig-line">MR. KIM (DIRECTOR OPERACIONES)</div>
+                        <div style="height:45px"></div>
+                        <div class="line">DIRECTOR OPERACIONES (MR. KIM)</div>
                     </div>
                 </div>
-                <script>window.onload = function() { window.print(); }</script>
+                <script>window.onload = function() { window.print(); }</scrip` + `t>
             </body>
             </html>
         `);
