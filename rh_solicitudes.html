@@ -3,192 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Control de Incidencias & Salidas Pro</title>
+    <title>KRAEM | Control Pro de Incidencias y Tiempos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --success: #16a34a; --danger: #dc2626; --warning: #f59e0b; --info: #0ea5e9; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #1e293b; margin: 0; padding: 20px; }
+        :root { 
+            --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; 
+            --text: #1e293b; --border: #e2e8f0; --success: #16a34a; 
+            --danger: #dc2626; --warning: #d97706; --info: #0ea5e9;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        .header-pro { background: white; padding: 20px; border-radius: 16px; margin-bottom: 25px; border-bottom: 4px solid var(--accent); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .header-pro { background: white; padding: 20px; border-radius: 16px; margin-bottom: 25px; border-bottom: 4px solid var(--accent); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .grid-main { display: grid; grid-template-columns: 450px 1fr; gap: 25px; }
 
-        .card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 25px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
-        .section-title { font-size: 13px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); padding: 25px; }
+        .section-title { font-size: 13px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
-        .group { margin-bottom: 15px; }
         label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
-        select, input, textarea { width: 100%; padding: 12px; border: 2px solid #f1f5f9; border-radius: 10px; font-size: 14px; box-sizing: border-box; background: #f8fafc; transition: 0.2s; }
-        select:focus, input:focus { border-color: var(--accent); background: white; outline: none; }
+        select, input, textarea { 
+            width: 100%; padding: 12px; border: 2px solid #f1f5f9; border-radius: 10px; 
+            font-size: 14px; transition: 0.2s; box-sizing: border-box; background: #f8fafc; margin-bottom: 15px;
+        }
+        select:focus, input:focus { border-color: var(--accent); outline: none; background: white; }
 
-        .time-box { background: #fff7ed; padding: 15px; border-radius: 12px; border: 1px solid #ffedd5; display: none; margin-bottom: 15px; }
-        
-        .request-card { background: white; border-radius: 12px; border-left: 6px solid #cbd5e1; padding: 20px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-left-width: 6px; transition: 0.3s; }
+        /* Panel Informativo */
+        .info-panel { background: #eff6ff; padding: 15px; border-radius: 12px; border: 1px solid #dbeafe; display: none; margin-bottom: 20px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+        .stat-val { font-size: 20px; font-weight: 800; color: #1e40af; }
+        .stat-lab { font-size: 9px; font-weight: bold; color: #60a5fa; text-transform: uppercase; }
+
+        /* Monitor de Solicitudes */
+        .request-card { 
+            background: white; border-radius: 12px; border: 1px solid var(--border); 
+            padding: 20px; margin-bottom: 15px; border-left: 6px solid #cbd5e1;
+        }
         .status-PENDIENTE { border-left-color: var(--warning); }
         .status-APROBADO { border-left-color: var(--success); }
         .status-ENCURSO { border-left-color: var(--info); background: #f0f9ff; }
 
-        .btn-action { padding: 8px 15px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 11px; }
-        .btn-submit { background: var(--accent); color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; border: none; margin-top: 10px; }
+        .btn-action { padding: 8px 15px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 11px; transition: 0.3s; }
+        .btn-submit { background: var(--accent); color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; border: none; font-size: 14px; }
         
-        .badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+        .badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; background: #e2e8f0; }
+        .time-highlight { color: var(--accent); font-weight: 800; font-family: monospace; }
     </style>
 </head>
 <body>
 
 <div class="header-pro">
     <div>
-        <h1 style="margin:0; font-size: 24px;">KRAEM | <span style="font-weight:300;">Gestión de Tiempos</span></h1>
-        <p style="margin:5px 0; color:#64748b; font-size:13px;">Sistema de Autorización Digital de Incidencias</p>
+        <h1 style="margin:0; font-size: 26px;">KRAEM | <span style="font-weight:300;">Control Personal Pro</span></h1>
+        <p style="margin:5px 0; color:#64748b; font-size:14px;"><i class="fas fa-id-badge"></i> Módulo de Incidencias y Pases de Salida</p>
     </div>
-    <div id="clock" style="font-size:20px; font-weight:800; color:var(--primary);">00:00:00</div>
+    <div style="text-align:right;">
+        <div id="reloj" style="font-size:22px; font-weight:900;">00:00:00</div>
+        <div id="fecha_hoy" style="font-size:11px; font-weight:bold; color:var(--accent);">--/--/----</div>
+    </div>
 </div>
 
 <div class="grid-main">
     <div class="card">
-        <div class="section-title"><i class="fas fa-file-contract"></i> Nueva Solicitud / Pase</div>
+        <div class="section-title"><i class="fas fa-file-signature"></i> Nueva Solicitud</div>
         
-        <div class="group">
-            <label>Colaborador</label>
-            <select id="sel_empleado"></select>
-        </div>
+        <label>Colaborador que solicita</label>
+        <select id="sel_empleado" onchange="cargarDatosEmpleado()"></select>
 
-        <div class="group">
-            <label>Concepto</label>
-            <select id="sel_tipo" onchange="toggleInputs()">
-                <optgroup label="Días Completos">
-                    <option value="VACACIONES">VACACIONES</option>
-                    <option value="FALTA">FALTA</option>
-                    <option value="SUSPENCION">SUSPENSIÓN</option>
-                    <option value="INCAPACIDAD">INCAPACIDAD</option>
-                    <option value="PERMISO_SIN_GOCE">PERMISO SIN GOCE</option>
-                </optgroup>
-                <optgroup label="Pases de Tiempo (Horas)">
-                    <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
-                    <option value="IDA_VUELTA">IDA Y VUELTA</option>
-                    <option value="LLEGADA_TARDE">LLEGADA TARDE</option>
-                </optgroup>
-            </select>
-        </div>
-
-        <div id="box_dias">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div class="group"><label>Inicio</label><input type="date" id="f_ini"></div>
-                <div class="group"><label>Fin</label><input type="date" id="f_fin"></div>
+        <div id="info_panel" class="info-panel">
+            <div class="stats-grid">
+                <div><div class="stat-lab">Antigüedad Exacta</div><div id="txt_anti" class="stat-val">--</div></div>
+                <div><div class="stat-lab">Vacaciones Disponibles</div><div id="txt_disp" class="stat-val">--</div></div>
             </div>
         </div>
 
-        <div id="box_horas" class="time-box">
+        <label>Tipo de Incidencia</label>
+        <select id="sel_tipo" onchange="toggleModo()">
+            <optgroup label="Días Completos">
+                <option value="VACACIONES">VACACIONES</option>
+                <option value="FALTA">FALTA</option>
+                <option value="SUSPENCION">SUSPENSIÓN</option>
+                <option value="INCAPACIDAD">INCAPACIDAD</option>
+                <option value="PERMISO_SIN_GOCE">PERMISO SIN GOCE</option>
+                <option value="PERMISO_MATERNIDAD">PERMISO MATERNIDAD</option>
+                <option value="PERMISO_DEFUNCION">PERMISO POR DEFUNCIÓN</option>
+            </optgroup>
+            <optgroup label="Pases de Tiempo (Mismo día)">
+                <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
+                <option value="IDA_VUELTA">IDA Y VUELTA</option>
+                <option value="LLEGADA_TARDE">LLEGADA TARDE</option>
+            </optgroup>
+        </select>
+
+        <div id="box_dias" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div><label>Fecha Inicio</label><input type="date" id="f_ini"></div>
+            <div><label>Fecha Fin</label><input type="date" id="f_fin"></div>
+        </div>
+
+        <div id="box_horas" style="display:none; background:#fefce8; padding:15px; border-radius:10px; border:1px solid #fef08a; margin-bottom:15px;">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div class="group"><label>Fecha</label><input type="date" id="h_fecha"></div>
-                <div class="group"><label>Hora Salida/Inicio</label><input type="time" id="h_salida"></div>
+                <div><label>Fecha del Pase</label><input type="date" id="h_fecha"></div>
+                <div><label>Hora de Salida</label><input type="time" id="h_salida"></div>
             </div>
-            <p id="msg_vuelta" style="font-size:11px; color:#c2410c; margin:0;"><i class="fas fa-info-circle"></i> La hora de regreso se registrará al volver.</p>
+            <p id="msg_extra" style="font-size:11px; color:#a16207; margin:0;"><i class="fas fa-info-circle"></i> La hora de regreso se sellará automáticamente al volver.</p>
         </div>
 
-        <div class="group">
-            <label>Autoriza (Jefe Inmediato)</label>
-            <select id="sel_autorizador">
-                <option value="">-- Seleccione Jefe --</option>
-                <option value="ING. RICARDO">ING. RICARDO</option>
-                <option value="LIC. MARTHA">LIC. MARTHA</option>
-                <option value="LIDER DE LINEA">LIDER DE LINEA</option>
-                <option value="GERENCIA">GERENCIA GENERAL</option>
-            </select>
-        </div>
+        <label>Autoriza (Listado de Jefes)</label>
+        <select id="sel_autorizador"></select>
 
-        <div class="group">
-            <label>Observaciones</label>
-            <textarea id="txt_obs" rows="2"></textarea>
-        </div>
+        <label>Motivo / Observaciones</label>
+        <textarea id="txt_obs" rows="2" placeholder="Describa el motivo..."></textarea>
 
-        <button class="btn-submit" onclick="enviarSolicitud()">GENERAR FOLIO DIGITAL</button>
+        <button class="btn-submit" onclick="registrar()">
+            <i class="fas fa-save"></i> GENERAR REGISTRO DIGITAL
+        </button>
     </div>
 
     <div class="card">
-        <div class="section-title"><i class="fas fa-desktop"></i> Monitor de Autorizaciones en Tiempo Real</div>
-        <div id="lista_solicitudes"></div>
+        <div class="section-title"><i class="fas fa-tv"></i> Monitor de Incidencias en Tiempo Real</div>
+        <div id="lista_monitor"></div>
     </div>
 </div>
 
 <script>
+    let db_empleados = [];
+
+    // Lógica de Vacaciones México
+    function obtenerDiasLey(anios) {
+        if (anios < 1) return 0;
+        if (anios == 1) return 12;
+        if (anios == 2) return 14;
+        if (anios == 3) return 16;
+        if (anios == 4) return 18;
+        if (anios == 5) return 20;
+        if (anios >= 6 && anios <= 10) return 22;
+        if (anios >= 11 && anios <= 15) return 24;
+        return 26;
+    }
+
+    // Antigüedad Años y Meses
+    function calcularAntiguedadExacta(f) {
+        if(!f) return "-";
+        const ini = new Date(f), hoy = new Date();
+        let anios = hoy.getFullYear() - ini.getFullYear();
+        let meses = hoy.getMonth() - ini.getMonth();
+        if (meses < 0) { anios--; meses += 12; }
+        return `${anios} años, ${meses} m`;
+    }
+
     async function init() {
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
-        const { data: emps } = await client.from('rh_empleados').select('*').eq('estatus','ACTIVO').order('nombre_completo');
-        const sel = document.getElementById('sel_empleado');
-        sel.innerHTML = '<option value="">-- Seleccionar --</option>';
-        emps.forEach(e => sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
-        listar();
+        // Reloj
+        setInterval(() => { 
+            const d = new Date();
+            document.getElementById('reloj').innerText = d.toLocaleTimeString(); 
+            document.getElementById('fecha_hoy').innerText = d.toLocaleDateString();
+        }, 1000);
+
+        // Cargar Empleados (Relacionando con Puestos)
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
+        db_empleados = emps || [];
+
+        // Llenar selector de solicitantes
+        const selE = document.getElementById('sel_empleado');
+        selE.innerHTML = '<option value="">-- Seleccione --</option>';
+        db_empleados.forEach(e => selE.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+
+        // Llenar selector de Autorizadores (Filtramos solo Jefes/Ing/Lideres)
+        const selA = document.getElementById('sel_autorizador');
+        selA.innerHTML = '<option value="">-- Seleccione Jefe --</option>';
+        db_empleados.filter(e => {
+            const p = e.rh_puestos?.nombre.toUpperCase() || "";
+            return p.includes("JEFE") || p.includes("LIDER") || p.includes("GERENTE") || p.includes("ING");
+        }).forEach(j => selA.innerHTML += `<option value="${j.nombre_completo}">${j.nombre_completo}</option>`);
+
+        consultarMonitor();
     }
 
-    function toggleInputs() {
-        const tipo = document.getElementById('sel_tipo').value;
-        const pases = ['SALIDA_TEMPRANO', 'IDA_VUELTA', 'LLEGADA_TARDE'];
-        if(pases.includes(tipo)) {
-            document.getElementById('box_dias').style.display = 'none';
-            document.getElementById('box_horas').style.display = 'block';
-        } else {
-            document.getElementById('box_dias').style.display = 'block';
-            document.getElementById('box_horas').style.display = 'none';
-        }
+    async function cargarDatosEmpleado() {
+        const id = document.getElementById('sel_empleado').value;
+        if(!id) return document.getElementById('info_panel').style.display='none';
+
+        const emp = db_empleados.find(e => e.id == id);
+        
+        // 1. Antigüedad
+        document.getElementById('txt_anti').innerText = calcularAntiguedadExacta(emp.fecha_ingreso);
+
+        // 2. Vacaciones Ley vs Tomadas
+        const ini = new Date(emp.fecha_ingreso);
+        const hoy = new Date();
+        let anios = hoy.getFullYear() - ini.getFullYear();
+        if (hoy < new Date(hoy.getFullYear(), ini.getMonth(), ini.getDate())) anios--;
+        
+        const derecho = obtenerDiasLey(anios);
+        const { data: tomadas } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
+        const totalTomadas = tomadas?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
+
+        document.getElementById('txt_disp').innerText = (derecho - totalTomadas) + " días";
+        document.getElementById('info_panel').style.display = 'block';
     }
 
-    async function enviarSolicitud() {
+    function toggleModo() {
+        const t = document.getElementById('sel_tipo').value;
+        const esPase = ["SALIDA_TEMPRANO", "IDA_VUELTA", "LLEGADA_TARDE"].includes(t);
+        document.getElementById('box_dias').style.display = esPase ? 'none' : 'grid';
+        document.getElementById('box_horas').style.display = esPase ? 'block' : 'none';
+        document.getElementById('msg_extra').style.display = t === "IDA_VUELTA" ? "block" : "none";
+    }
+
+    async function registrar() {
         const tipo = document.getElementById('sel_tipo').value;
-        const payload = {
+        const esPase = ["SALIDA_TEMPRANO", "IDA_VUELTA", "LLEGADA_TARDE"].includes(tipo);
+
+        const obj = {
             empleado_id: document.getElementById('sel_empleado').value,
             tipo: tipo,
-            observaciones: document.getElementById('txt_obs').value,
             autorizado_por: document.getElementById('sel_autorizador').value,
-            estatus: 'PENDIENTE',
-            created_at: new Date()
+            observaciones: document.getElementById('txt_obs').value,
+            estatus: 'PENDIENTE'
         };
 
-        if(tipo === 'IDA_VUELTA' || tipo === 'SALIDA_TEMPRANO' || tipo === 'LLEGADA_TARDE') {
-            payload.fecha_inicio = document.getElementById('h_fecha').value;
-            payload.hora_salida = document.getElementById('h_salida').value;
-            // Si es Ida y Vuelta, entra como PENDIENTE pero se marcará EN CURSO al autorizar
+        if(esPase) {
+            obj.fecha_inicio = document.getElementById('h_fecha').value;
+            obj.hora_salida = document.getElementById('h_salida').value;
+            obj.dias_solicitados = 0; // Se mide en horas
         } else {
-            payload.fecha_inicio = document.getElementById('f_ini').value;
-            payload.fecha_fin = document.getElementById('f_fin').value;
+            obj.fecha_inicio = document.getElementById('f_ini').value;
+            obj.fecha_fin = document.getElementById('f_fin').value;
+            // Cálculo básico de días
+            const d1 = new Date(obj.fecha_inicio), d2 = new Date(obj.fecha_fin);
+            obj.dias_solicitados = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
         }
 
-        const { error } = await client.from('rh_solicitudes').insert([payload]);
-        if(!error) { alert("Folio Generado"); location.reload(); }
+        if(!obj.empleado_id || !obj.autorizado_por || !obj.fecha_inicio) return alert("Faltan datos críticos.");
+
+        const { error } = await client.from('rh_solicitudes').insert([obj]);
+        if(!error) { alert("Registro Guardado"); location.reload(); }
     }
 
-    async function listar() {
-        const { data } = await client.from('rh_solicitudes')
-            .select('*, rh_empleados(nombre_completo)')
-            .order('created_at', {ascending: false});
+    async function consultarMonitor() {
+        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
+        const list = document.getElementById('lista_monitor');
+        list.innerHTML = "";
 
-        const container = document.getElementById('lista_solicitudes');
-        container.innerHTML = "";
-
-        data.forEach(s => {
-            const esPase = s.hora_salida ? true : false;
-            container.innerHTML += `
+        data?.forEach(s => {
+            list.innerHTML += `
                 <div class="request-card status-${s.estatus}">
                     <div style="display:flex; justify-content:space-between; align-items:start;">
                         <div>
-                            <span class="badge" style="background:#e2e8f0;">${s.tipo}</span>
-                            <h3 style="margin:10px 0 5px 0;">${s.rh_empleados.nombre_completo}</h3>
+                            <span class="badge">${s.tipo}</span>
+                            <h3 style="margin:8px 0 2px 0;">${s.rh_empleados.nombre_completo}</h3>
                             <p style="font-size:12px; color:#64748b; margin:0;">
-                                <i class="far fa-clock"></i> 
-                                ${esPase ? `FECHA: ${s.fecha_inicio} | SALIDA: ${s.hora_salida}` : `PERIODO: ${s.fecha_inicio} al ${s.fecha_fin}`}
-                                ${s.hora_regreso ? ` | <b>REGRESO: ${s.hora_regreso}</b>` : ''}
+                                <i class="fas fa-calendar"></i> ${s.fecha_inicio} ${s.fecha_fin ? ' al ' + s.fecha_fin : ''}
+                                ${s.hora_salida ? ` | <i class="fas fa-clock"></i> Salida: <span class="time-highlight">${s.hora_salida}</span>` : ''}
+                                ${s.hora_regreso ? ` | <i class="fas fa-undo"></i> Regreso: <span class="time-highlight">${s.hora_regreso}</span>` : ''}
                             </p>
-                            <p style="font-size:12px; margin-top:10px;"><b>AUTORIZA:</b> ${s.autorizado_por}</p>
+                            <p style="font-size:11px; margin-top:8px;"><b>AUTORIZA:</b> ${s.autorizado_por}</p>
                         </div>
                         <div style="display:flex; flex-direction:column; gap:8px;">
                             ${s.estatus === 'PENDIENTE' ? `
-                                <button class="btn-action" style="background:var(--success); color:white;" onclick="cambiarEstado('${s.id}', '${s.tipo === 'IDA_VUELTA' ? 'ENCURSO' : 'APROBADO'}')">AUTORIZAR</button>
-                                <button class="btn-action" style="background:var(--danger); color:white;" onclick="cambiarEstado('${s.id}', 'RECHAZADO')">RECHAZAR</button>
+                                <button class="btn-action" style="background:var(--success); color:white;" onclick="updateStatus('${s.id}', '${s.tipo === 'IDA_VUELTA' ? 'ENCURSO' : 'APROBADO'}')">AUTORIZAR</button>
+                                <button class="btn-action" style="background:var(--danger); color:white;" onclick="updateStatus('${s.id}', 'RECHAZADO')">RECHAZAR</button>
                             ` : ''}
-                            
+
                             ${s.estatus === 'ENCURSO' ? `
-                                <button class="btn-action" style="background:var(--info); color:white;" onclick="registrarRegreso('${s.id}')">REGISTRAR REGRESO</button>
+                                <button class="btn-action" style="background:var(--info); color:white;" onclick="registrarRetorno('${s.id}')"><i class="fas fa-sign-in-alt"></i> MARCAR REGRESO</button>
                             ` : ''}
                         </div>
                     </div>
@@ -197,19 +275,16 @@
         });
     }
 
-    async function cambiarEstado(id, nuevo) {
-        await client.from('rh_solicitudes').update({ estatus: nuevo }).eq('id', id);
-        listar();
+    async function updateStatus(id, n) {
+        await client.from('rh_solicitudes').update({ estatus: n }).eq('id', id);
+        consultarMonitor();
     }
 
-    async function registrarRegreso(id) {
-        const hora = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-        if(confirm("¿Confirmar regreso del colaborador a las " + hora + "?")) {
-            await client.from('rh_solicitudes').update({ 
-                hora_regreso: hora,
-                estatus: 'APROBADO' 
-            }).eq('id', id);
-            listar();
+    async function registrarRetorno(id) {
+        const h = new Date().toLocaleTimeString('es-MX', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        if(confirm("¿Sellar regreso a las " + h + "?")) {
+            await client.from('rh_solicitudes').update({ estatus: 'APROBADO', hora_regreso: h }).eq('id', id);
+            consultarMonitor();
         }
     }
 
