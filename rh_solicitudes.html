@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Control Pro de Incidencias y Tiempos</title>
+    <title>KRAEM | Control de Incidencias y Vacaciones</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -28,13 +28,11 @@
         }
         select:focus, input:focus { border-color: var(--accent); outline: none; background: white; }
 
-        /* Panel Informativo */
         .info-panel { background: #eff6ff; padding: 15px; border-radius: 12px; border: 1px solid #dbeafe; display: none; margin-bottom: 20px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
-        .stat-val { font-size: 20px; font-weight: 800; color: #1e40af; }
+        .stat-val { font-size: 18px; font-weight: 800; color: #1e40af; }
         .stat-lab { font-size: 9px; font-weight: bold; color: #60a5fa; text-transform: uppercase; }
 
-        /* Monitor de Solicitudes */
         .request-card { 
             background: white; border-radius: 12px; border: 1px solid var(--border); 
             padding: 20px; margin-bottom: 15px; border-left: 6px solid #cbd5e1;
@@ -54,8 +52,8 @@
 
 <div class="header-pro">
     <div>
-        <h1 style="margin:0; font-size: 26px;">KRAEM | <span style="font-weight:300;">Control Personal Pro</span></h1>
-        <p style="margin:5px 0; color:#64748b; font-size:14px;"><i class="fas fa-id-badge"></i> Módulo de Incidencias y Pases de Salida</p>
+        <h1 style="margin:0; font-size: 26px;">KRAEM | <span style="font-weight:300;">Gestión de Solicitudes</span></h1>
+        <p style="margin:5px 0; color:#64748b; font-size:14px;"><i class="fas fa-file-invoice"></i> Sistema alineado al registro de personal</p>
     </div>
     <div style="text-align:right;">
         <div id="reloj" style="font-size:22px; font-weight:900;">00:00:00</div>
@@ -65,62 +63,57 @@
 
 <div class="grid-main">
     <div class="card">
-        <div class="section-title"><i class="fas fa-file-signature"></i> Nueva Solicitud</div>
+        <div class="section-title"><i class="fas fa-plus-circle"></i> Nueva Solicitud</div>
         
-        <label>Colaborador que solicita</label>
+        <label>Personal que solicita</label>
         <select id="sel_empleado" onchange="cargarDatosEmpleado()"></select>
 
         <div id="info_panel" class="info-panel">
             <div class="stats-grid">
-                <div><div class="stat-lab">Antigüedad Exacta</div><div id="txt_anti" class="stat-val">--</div></div>
+                <div><div class="stat-lab">Antigüedad (Año/Mes)</div><div id="txt_anti" class="stat-val">--</div></div>
                 <div><div class="stat-lab">Vacaciones Disponibles</div><div id="txt_disp" class="stat-val">--</div></div>
             </div>
         </div>
 
-        <label>Tipo de Incidencia</label>
+        <label>Tipo de Permiso</label>
         <select id="sel_tipo" onchange="toggleModo()">
-            <optgroup label="Días Completos">
+            <optgroup label="Por Día">
                 <option value="VACACIONES">VACACIONES</option>
                 <option value="FALTA">FALTA</option>
                 <option value="SUSPENCION">SUSPENSIÓN</option>
-                <option value="INCAPACIDAD">INCAPACIDAD</option>
                 <option value="PERMISO_SIN_GOCE">PERMISO SIN GOCE</option>
-                <option value="PERMISO_MATERNIDAD">PERMISO MATERNIDAD</option>
-                <option value="PERMISO_DEFUNCION">PERMISO POR DEFUNCIÓN</option>
             </optgroup>
-            <optgroup label="Pases de Tiempo (Mismo día)">
-                <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
+            <optgroup label="Por Horas">
                 <option value="IDA_VUELTA">IDA Y VUELTA</option>
-                <option value="LLEGADA_TARDE">LLEGADA TARDE</option>
+                <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
             </optgroup>
         </select>
 
         <div id="box_dias" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <div><label>Fecha Inicio</label><input type="date" id="f_ini"></div>
-            <div><label>Fecha Fin</label><input type="date" id="f_fin"></div>
+            <div><label>Desde</label><input type="date" id="f_ini"></div>
+            <div><label>Hasta</label><input type="date" id="f_fin"></div>
         </div>
 
         <div id="box_horas" style="display:none; background:#fefce8; padding:15px; border-radius:10px; border:1px solid #fef08a; margin-bottom:15px;">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><label>Fecha del Pase</label><input type="date" id="h_fecha"></div>
-                <div><label>Hora de Salida</label><input type="time" id="h_salida"></div>
+                <div><label>Fecha</label><input type="date" id="h_fecha"></div>
+                <div><label>Hora Salida</label><input type="time" id="h_salida"></div>
             </div>
-            <p id="msg_extra" style="font-size:11px; color:#a16207; margin:0;"><i class="fas fa-info-circle"></i> La hora de regreso se sellará automáticamente al volver.</p>
         </div>
 
-        <label>Autoriza (Listado de Jefes)</label>
+        <label>Quién Autoriza (Listado General)</label>
         <select id="sel_autorizador"></select>
 
-        <label>Motivo / Observaciones</label>
-        <textarea id="txt_obs" rows="2" placeholder="Describa el motivo..."></textarea>
+        <label>Observaciones</label>
+        <textarea id="txt_obs" rows="2" placeholder="Notas adicionales..."></textarea>
 
         <button class="btn-submit" onclick="registrar()">
-            <i class="fas fa-save"></i> GENERAR REGISTRO DIGITAL
+            <i class="fas fa-check-circle"></i> REGISTRAR SOLICITUD
         </button>
     </div>
 
     <div class="card">
-        <div class="section-title"><i class="fas fa-tv"></i> Monitor de Incidencias en Tiempo Real</div>
+        <div class="section-title"><i class="fas fa-list-ul"></i> Historial de Solicitudes</div>
         <div id="lista_monitor"></div>
     </div>
 </div>
@@ -128,7 +121,6 @@
 <script>
     let db_empleados = [];
 
-    // Lógica de Vacaciones México
     function obtenerDiasLey(anios) {
         if (anios < 1) return 0;
         if (anios == 1) return 12;
@@ -137,12 +129,10 @@
         if (anios == 4) return 18;
         if (anios == 5) return 20;
         if (anios >= 6 && anios <= 10) return 22;
-        if (anios >= 11 && anios <= 15) return 24;
-        return 26;
+        return 24;
     }
 
-    // Antigüedad Años y Meses
-    function calcularAntiguedadExacta(f) {
+    function calcularAntiguedadDetallada(f) {
         if(!f) return "-";
         const ini = new Date(f), hoy = new Date();
         let anios = hoy.getFullYear() - ini.getFullYear();
@@ -152,29 +142,27 @@
     }
 
     async function init() {
-        // Reloj
         setInterval(() => { 
             const d = new Date();
             document.getElementById('reloj').innerText = d.toLocaleTimeString(); 
-            document.getElementById('fecha_hoy').innerText = d.toLocaleDateString();
+            document.getElementById('fecha_hoy').innerText = d.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }, 1000);
 
-        // Cargar Empleados (Relacionando con Puestos)
-        const { data: emps } = await client.from('rh_empleados').select('*, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
+        const { data: emps } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
         db_empleados = emps || [];
 
-        // Llenar selector de solicitantes
         const selE = document.getElementById('sel_empleado');
-        selE.innerHTML = '<option value="">-- Seleccione --</option>';
-        db_empleados.forEach(e => selE.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
-
-        // Llenar selector de Autorizadores (Filtramos solo Jefes/Ing/Lideres)
         const selA = document.getElementById('sel_autorizador');
-        selA.innerHTML = '<option value="">-- Seleccione Jefe --</option>';
-        db_empleados.filter(e => {
-            const p = e.rh_puestos?.nombre.toUpperCase() || "";
-            return p.includes("JEFE") || p.includes("LIDER") || p.includes("GERENTE") || p.includes("ING");
-        }).forEach(j => selA.innerHTML += `<option value="${j.nombre_completo}">${j.nombre_completo}</option>`);
+        
+        selE.innerHTML = '<option value="">-- Seleccionar --</option>';
+        selA.innerHTML = '<option value="">-- Seleccionar --</option>';
+
+        db_empleados.forEach(e => {
+            const opt = `<option value="${e.id}">${e.nombre_completo}</option>`;
+            const optNombre = `<option value="${e.nombre_completo}">${e.nombre_completo}</option>`;
+            selE.innerHTML += opt;
+            selA.innerHTML += optNombre; // LISTA COMPLETA DE PERSONAL AQUÍ
+        });
 
         consultarMonitor();
     }
@@ -184,17 +172,14 @@
         if(!id) return document.getElementById('info_panel').style.display='none';
 
         const emp = db_empleados.find(e => e.id == id);
-        
-        // 1. Antigüedad
-        document.getElementById('txt_anti').innerText = calcularAntiguedadExacta(emp.fecha_ingreso);
+        document.getElementById('txt_anti').innerText = calcularAntiguedadDetallada(emp.fecha_ingreso);
 
-        // 2. Vacaciones Ley vs Tomadas
         const ini = new Date(emp.fecha_ingreso);
         const hoy = new Date();
-        let anios = hoy.getFullYear() - ini.getFullYear();
-        if (hoy < new Date(hoy.getFullYear(), ini.getMonth(), ini.getDate())) anios--;
+        let aniosV = hoy.getFullYear() - ini.getFullYear();
+        if (hoy < new Date(hoy.getFullYear(), ini.getMonth(), ini.getDate())) aniosV--;
         
-        const derecho = obtenerDiasLey(anios);
+        const derecho = obtenerDiasLey(aniosV);
         const { data: tomadas } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
         const totalTomadas = tomadas?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
 
@@ -204,15 +189,14 @@
 
     function toggleModo() {
         const t = document.getElementById('sel_tipo').value;
-        const esPase = ["SALIDA_TEMPRANO", "IDA_VUELTA", "LLEGADA_TARDE"].includes(t);
+        const esPase = ["IDA_VUELTA", "SALIDA_TEMPRANO"].includes(t);
         document.getElementById('box_dias').style.display = esPase ? 'none' : 'grid';
         document.getElementById('box_horas').style.display = esPase ? 'block' : 'none';
-        document.getElementById('msg_extra').style.display = t === "IDA_VUELTA" ? "block" : "none";
     }
 
     async function registrar() {
         const tipo = document.getElementById('sel_tipo').value;
-        const esPase = ["SALIDA_TEMPRANO", "IDA_VUELTA", "LLEGADA_TARDE"].includes(tipo);
+        const esPase = ["IDA_VUELTA", "SALIDA_TEMPRANO"].includes(tipo);
 
         const obj = {
             empleado_id: document.getElementById('sel_empleado').value,
@@ -225,23 +209,22 @@
         if(esPase) {
             obj.fecha_inicio = document.getElementById('h_fecha').value;
             obj.hora_salida = document.getElementById('h_salida').value;
-            obj.dias_solicitados = 0; // Se mide en horas
+            obj.dias_solicitados = 0;
         } else {
             obj.fecha_inicio = document.getElementById('f_ini').value;
             obj.fecha_fin = document.getElementById('f_fin').value;
-            // Cálculo básico de días
             const d1 = new Date(obj.fecha_inicio), d2 = new Date(obj.fecha_fin);
             obj.dias_solicitados = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
         }
 
-        if(!obj.empleado_id || !obj.autorizado_por || !obj.fecha_inicio) return alert("Faltan datos críticos.");
+        if(!obj.empleado_id || !obj.autorizado_por || !obj.fecha_inicio) return alert("Por favor complete los campos obligatorios.");
 
         const { error } = await client.from('rh_solicitudes').insert([obj]);
-        if(!error) { alert("Registro Guardado"); location.reload(); }
+        if(!error) { alert("¡Solicitud registrada correctamente!"); location.reload(); }
     }
 
     async function consultarMonitor() {
-        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
+        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false}).limit(20);
         const list = document.getElementById('lista_monitor');
         list.innerHTML = "";
 
@@ -251,22 +234,20 @@
                     <div style="display:flex; justify-content:space-between; align-items:start;">
                         <div>
                             <span class="badge">${s.tipo}</span>
-                            <h3 style="margin:8px 0 2px 0;">${s.rh_empleados.nombre_completo}</h3>
+                            <h3 style="margin:8px 0 2px 0; font-size:16px;">${s.rh_empleados?.nombre_completo || 'Desconocido'}</h3>
                             <p style="font-size:12px; color:#64748b; margin:0;">
-                                <i class="fas fa-calendar"></i> ${s.fecha_inicio} ${s.fecha_fin ? ' al ' + s.fecha_fin : ''}
-                                ${s.hora_salida ? ` | <i class="fas fa-clock"></i> Salida: <span class="time-highlight">${s.hora_salida}</span>` : ''}
-                                ${s.hora_regreso ? ` | <i class="fas fa-undo"></i> Regreso: <span class="time-highlight">${s.hora_regreso}</span>` : ''}
+                                <i class="fas fa-calendar-alt"></i> ${s.fecha_inicio} ${s.fecha_fin ? ' al ' + s.fecha_fin : ''}
+                                ${s.hora_salida ? ` | <i class="fas fa-clock"></i> ${s.hora_salida}` : ''}
                             </p>
-                            <p style="font-size:11px; margin-top:8px;"><b>AUTORIZA:</b> ${s.autorizado_por}</p>
+                            <p style="font-size:11px; margin-top:8px;"><b>Autorizó:</b> ${s.autorizado_por}</p>
                         </div>
-                        <div style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; flex-direction:column; gap:5px;">
                             ${s.estatus === 'PENDIENTE' ? `
                                 <button class="btn-action" style="background:var(--success); color:white;" onclick="updateStatus('${s.id}', '${s.tipo === 'IDA_VUELTA' ? 'ENCURSO' : 'APROBADO'}')">AUTORIZAR</button>
                                 <button class="btn-action" style="background:var(--danger); color:white;" onclick="updateStatus('${s.id}', 'RECHAZADO')">RECHAZAR</button>
                             ` : ''}
-
                             ${s.estatus === 'ENCURSO' ? `
-                                <button class="btn-action" style="background:var(--info); color:white;" onclick="registrarRetorno('${s.id}')"><i class="fas fa-sign-in-alt"></i> MARCAR REGRESO</button>
+                                <button class="btn-action" style="background:var(--info); color:white;" onclick="marcarRegreso('${s.id}')">MARCAR REGRESO</button>
                             ` : ''}
                         </div>
                     </div>
@@ -280,12 +261,10 @@
         consultarMonitor();
     }
 
-    async function registrarRetorno(id) {
+    async function marcarRegreso(id) {
         const h = new Date().toLocaleTimeString('es-MX', { hour12: false, hour: '2-digit', minute: '2-digit' });
-        if(confirm("¿Sellar regreso a las " + h + "?")) {
-            await client.from('rh_solicitudes').update({ estatus: 'APROBADO', hora_regreso: h }).eq('id', id);
-            consultarMonitor();
-        }
+        await client.from('rh_solicitudes').update({ estatus: 'APROBADO', hora_regreso: h }).eq('id', id);
+        consultarMonitor();
     }
 
     document.addEventListener('DOMContentLoaded', init);
