@@ -2,325 +2,216 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión Integral de Incidencias</title>
+    <title>KRAEM | Control Total de Incidencias</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { 
-            --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; 
-            --text: #1e293b; --border: #e2e8f0; --success: #16a34a; 
-            --danger: #dc2626; --warning: #d97706; --info: #0ea5e9;
-        }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --text: #1e293b; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; }
         
-        /* Header */
-        .header-pro { background: white; padding: 20px; border-radius: 16px; margin-bottom: 25px; border-bottom: 4px solid var(--accent); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        /* Navbar */
+        .nav { background: var(--primary); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-dash { background: #334155; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+
+        .main-container { display: grid; grid-template-columns: 450px 1fr; gap: 20px; padding: 20px; flex: 1; overflow: hidden; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow-y: auto; }
+
+        /* Formulario Estilizado */
+        .section-title { font-size: 14px; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 15px; border-bottom: 2px solid var(--bg); padding-bottom: 5px; }
+        label { display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; }
+        select, input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; font-size: 13px; box-sizing: border-box; }
         
-        .grid-main { display: grid; grid-template-columns: 400px 1fr; gap: 25px; }
+        .info-badge { background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        .card { background: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--border); padding: 25px; height: fit-content; }
-        .section-title { font-size: 13px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-
-        /* Formulario */
-        label { display: block; font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
-        select, input, textarea { 
-            width: 100%; padding: 12px; border: 2px solid #f1f5f9; border-radius: 10px; 
-            font-size: 14px; transition: 0.2s; box-sizing: border-box; background: #f8fafc; margin-bottom: 15px;
-        }
-        select:focus, input:focus { border-color: var(--accent); outline: none; background: white; }
-
-        /* Panel Informativo */
-        .info-panel { background: #eff6ff; padding: 15px; border-radius: 12px; border: 1px solid #dbeafe; display: none; margin-bottom: 20px; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
-        .stat-val { font-size: 16px; font-weight: 800; color: #1e40af; }
-        .stat-lab { font-size: 9px; font-weight: bold; color: #60a5fa; text-transform: uppercase; }
-
-        /* Filtros */
-        .filter-container { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-end; }
-        .filter-item { flex: 1; }
-        .filter-item label { margin-bottom: 4px; }
-        .filter-item input, .filter-item select { margin-bottom: 0; padding: 8px; }
-
-        /* Tabla/Cards */
-        .request-card { 
-            background: white; border-radius: 12px; border: 1px solid var(--border); 
-            padding: 15px; margin-bottom: 12px; border-left: 6px solid #cbd5e1;
-            transition: 0.2s;
-        }
-        .status-PENDIENTE { border-left-color: var(--warning); }
-        .status-APROBADO { border-left-color: var(--success); }
-        .status-RECHAZADO { border-left-color: var(--danger); opacity: 0.7; }
-        .status-ENCURSO { border-left-color: var(--info); background: #f0f9ff; }
-
-        .btn-action { padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-size: 10px; }
-        .btn-submit { background: var(--accent); color: white; width: 100%; padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; border: none; font-size: 14px; }
+        /* Tabla */
+        .table-container { background: white; border-radius: 12px; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { background: #f8fafc; text-align: left; padding: 12px; color: #64748b; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
         
-        .badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; background: #e2e8f0; color: #475569; }
+        .status { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+        .status-PENDIENTE { background: #fef3c7; color: #92400e; }
+        .status-APROBADO { background: #dcfce7; color: #166534; }
+        
+        .btn-reg { background: var(--accent); color: white; border: none; width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="header-pro">
-    <div>
-        <h1 style="margin:0; font-size: 24px;">KRAEM | <span style="font-weight:300;">Control de Incidencias</span></h1>
-        <p style="margin:5px 0; color:#64748b; font-size:13px;"><i class="fas fa-database"></i> Sincronizado con Registro de Personal</p>
-    </div>
-    <div id="reloj" style="font-size:20px; font-weight:900; color: var(--primary);">00:00:00</div>
+<div class="nav">
+    <button class="btn-dash" onclick="window.location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> Dashboard</button>
+    <div id="reloj" style="font-weight: bold;">00:00:00 - --/--/----</div>
 </div>
 
-<div class="grid-main">
+<div class="main-container">
     <div class="card">
-        <div class="section-title"><i class="fas fa-plus-circle"></i> Nueva Solicitud</div>
-        
-        <label>Personal que solicita</label>
-        <select id="sel_empleado" onchange="cargarDatosEmpleado()"></select>
-
-        <div id="info_panel" class="info-panel">
-            <div class="stats-grid">
-                <div><div class="stat-lab">Antigüedad Exacta</div><div id="txt_anti" class="stat-val">--</div></div>
-                <div><div class="stat-lab">Vacaciones Disponibles</div><div id="txt_disp" class="stat-val">--</div></div>
+        <div class="section-title">Datos del Solicitante</div>
+        <div class="grid-2">
+            <div>
+                <label>Área</label>
+                <select id="f_area" onchange="filtrarPersonal()"><option value="">Todas</option><option value="PRODUCCION">PRODUCCIÓN</option><option value="CALIDAD">CALIDAD</option><option value="MANTENIMIENTO">MANTENIMIENTO</option></select>
+            </div>
+            <div>
+                <label>Turno</label>
+                <select id="f_turno" onchange="filtrarPersonal()"><option value="">Todos</option><option value="1">1ero</option><option value="2">2do</option><option value="3">3ero</option></select>
             </div>
         </div>
+        
+        <label>Seleccionar Personal</label>
+        <select id="sel_empleado" onchange="verInfoEmpleado()"></select>
 
-        <label>Tipo de Incidencia</label>
-        <select id="sel_tipo" onchange="toggleModo()">
-            <optgroup label="Ausencias">
-                <option value="VACACIONES">VACACIONES</option>
-                <option value="FALTA">FALTA</option>
-                <option value="PERMISO_SIN_GOCE">PERMISO SIN GOCE</option>
-                <option value="SUSPENCION">SUSPENSIÓN</option>
-            </optgroup>
-            <optgroup label="Pases de Tiempo">
-                <option value="IDA_VUELTA">IDA Y VUELTA</option>
-                <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
-            </optgroup>
+        <div id="info_empleado" class="info-badge" style="display:none;">
+            <b>Puesto:</b> <span id="info_puesto"></span><br>
+            <b>Antigüedad:</b> <span id="info_anti"></span><br>
+            <b>Vacaciones Disponibles:</b> <span id="info_vacs"></span>
+        </div>
+
+        <div class="section-title">Tipo de Solicitud</div>
+        <select id="sel_tipo" onchange="ajustarCampos()">
+            <option value="VACACIONES">VACACIONES</option>
+            <option value="PERMISO_SIN_GOCE">PERMISO SIN GOCE</option>
+            <option value="MATERNIDAD">INCAPACIDAD MATERNIDAD (84 DÍAS)</option>
+            <option value="PATERNIDAD">INCAPACIDAD PATERNIDAD</option>
+            <option value="ENFERMEDAD">INCAPACIDAD ENFERMEDAD</option>
+            <option value="DEFUNCION">PERMISO DEFUNCIÓN</option>
+            <option value="MATRIMONIO">PERMISO MATRIMONIO</option>
+            <option value="SUSPENCION">SUSPENSIÓN</option>
+            <option value="SALIDA_TEMPRANO">SALIDA TEMPRANO</option>
+            <option value="IDA_VUELTA">IDA Y VUELTA</option>
+            <option value="LLEGADA_TARDE">LLEGADA TARDE</option>
         </select>
 
-        <div id="box_dias">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><label>Fecha Inicio</label><input type="date" id="f_ini"></div>
-                <div><label>Fecha Fin</label><input type="date" id="f_fin"></div>
+        <div id="campos_dinamicos">
+            <div id="box_fechas" class="grid-2">
+                <div><label>Fecha Inicio</label><input type="date" id="f_ini" onchange="calcularMaternidad()"></div>
+                <div id="box_f_fin"><label>Fecha Fin</label><input type="date" id="f_fin"></div>
+            </div>
+            <div id="box_reloj" style="display:none;" class="grid-2">
+                <div><label>Hora Acción</label><input type="time" id="h_accion"></div>
             </div>
         </div>
 
-        <div id="box_horas" style="display:none;">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><label>Fecha Pase</label><input type="date" id="h_fecha"></div>
-                <div><label>Hora Salida</label><input type="time" id="h_salida"></div>
-            </div>
-        </div>
+        <label>Autoriza (Turno/Área)</label>
+        <select id="sel_autoriza"></select>
 
-        <label>Quién Autoriza (Personal Completo)</label>
-        <select id="sel_autorizador"></select>
+        <label>Observaciones</label>
+        <textarea id="txt_obs" rows="2"></textarea>
 
-        <label>Motivo / Observaciones</label>
-        <textarea id="txt_obs" rows="2" placeholder="Escriba el motivo..."></textarea>
-
-        <button class="btn-submit" id="btn_guardar" onclick="registrar()">
-            <i class="fas fa-save"></i> GUARDAR SOLICITUD
-        </button>
+        <button class="btn-reg" onclick="registrarSolicitud()">REGISTRAR Y FIRMAR</button>
     </div>
 
-    <div>
-        <div class="filter-container">
-            <div class="filter-item">
-                <label>Buscar por Nombre</label>
-                <input type="text" id="f_nom" placeholder="Escriba..." oninput="filtrar()">
-            </div>
-            <div class="filter-item">
-                <label>Tipo</label>
-                <select id="f_tipo" onchange="filtrar()">
-                    <option value="">Todos</option>
-                    <option value="VACACIONES">VACACIONES</option>
-                    <option value="FALTA">FALTA</option>
-                    <option value="IDA_VUELTA">IDA Y VUELTA</option>
-                </select>
-            </div>
-            <div class="filter-item">
-                <label>Estatus</label>
-                <select id="f_est" onchange="filtrar()">
-                    <option value="">Todos</option>
-                    <option value="PENDIENTE">PENDIENTE</option>
-                    <option value="APROBADO">APROBADO</option>
-                    <option value="ENCURSO">EN CURSO</option>
-                </select>
-            </div>
+    <div class="card">
+        <div class="section-title">Historial y Aprobaciones</div>
+        <div class="filter-container" style="display:flex; gap:10px; margin-bottom:15px;">
+            <select id="filter_status" onchange="consultar()" style="width:200px;"><option value="">Todos los registros</option><option value="PENDIENTE">PENDIENTES</option><option value="APROBADO">APROBADOS</option></select>
+            <button onclick="exportarExcel()" class="btn-dash"><i class="fas fa-file-excel"></i> Excel</button>
         </div>
-
-        <div id="lista_solicitudes"></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Empleado</th>
+                    <th>Tipo</th>
+                    <th>Periodo / Hora</th>
+                    <th>Estatus</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tabla_solicitudes"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    let raw_empleados = [];
-    let raw_solicitudes = [];
+let todos_empleados = [];
 
-    // Inicialización
-    async function init() {
-        setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleTimeString(); }, 1000);
+async function init() {
+    setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleString(); }, 1000);
+    const { data } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO');
+    todos_empleados = data || [];
+    filtrarPersonal();
+    consultar();
+}
 
-        // Cargar Personal Completo
-        const { data: emps } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
-        raw_empleados = emps || [];
+function filtrarPersonal() {
+    const area = document.getElementById('f_area').value;
+    const turno = document.getElementById('f_turno').value;
+    const filtrados = todos_empleados.filter(e => (!area || e.area === area) && (!turno || e.turno == turno));
+    
+    let html = '<option value="">-- Seleccionar --</option>';
+    filtrados.forEach(e => html += `<option value="${e.id}">${e.nombre_completo}</option>`);
+    document.getElementById('sel_empleado').innerHTML = html;
+    document.getElementById('sel_autoriza').innerHTML = html;
+}
 
-        const selE = document.getElementById('sel_empleado');
-        const selA = document.getElementById('sel_autorizador');
-        
-        selE.innerHTML = '<option value="">-- Seleccionar --</option>';
-        selA.innerHTML = '<option value="">-- Seleccionar --</option>';
+function verInfoEmpleado() {
+    const id = document.getElementById('sel_empleado').value;
+    const emp = todos_empleados.find(e => e.id == id);
+    if(!emp) return;
+    
+    document.getElementById('info_puesto').innerText = emp.puesto || 'N/A';
+    document.getElementById('info_anti').innerText = emp.fecha_ingreso || 'N/A';
+    document.getElementById('info_empleado').style.display = 'block';
+}
 
-        raw_empleados.forEach(e => {
-            selE.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
-            selA.innerHTML += `<option value="${e.nombre_completo}">${e.nombre_completo}</option>`;
-        });
+function ajustarCampos() {
+    const tipo = document.getElementById('sel_tipo').value;
+    const esReloj = ["SALIDA_TEMPRANO", "IDA_VUELTA", "LLEGADA_TARDE"].includes(tipo);
+    const esMaternidad = tipo === "MATERNIDAD";
 
-        consultar();
+    document.getElementById('box_reloj').style.display = esReloj ? 'grid' : 'none';
+    document.getElementById('box_f_fin').style.display = (esReloj || esMaternidad) ? 'none' : 'block';
+}
+
+function calcularMaternidad() {
+    if(document.getElementById('sel_tipo').value === "MATERNIDAD") {
+        const fecha = new Date(document.getElementById('f_ini').value);
+        fecha.setDate(fecha.getDate() + 84);
+        document.getElementById('f_fin').value = fecha.toISOString().split('T')[0];
     }
+}
 
-    // Carga datos informativos del empleado seleccionado
-    async function cargarDatosEmpleado() {
-        const id = document.getElementById('sel_empleado').value;
-        if(!id) { document.getElementById('info_panel').style.display='none'; return; }
+async function registrarSolicitud() {
+    const tipo = document.getElementById('sel_tipo').value;
+    const payload = {
+        empleado_id: document.getElementById('sel_empleado').value,
+        tipo: tipo,
+        fecha_inicio: document.getElementById('f_ini').value,
+        fecha_fin: document.getElementById('f_fin').value,
+        hora_salida: document.getElementById('h_accion').value,
+        autorizado_por: document.getElementById('sel_autoriza').value,
+        observaciones: document.getElementById('txt_obs').value,
+        estatus: 'PENDIENTE',
+        firma_digital: 'FIRMADO_SISTEMA'
+    };
 
-        const emp = raw_empleados.find(e => e.id == id);
-        
-        // Antigüedad Años y Meses
-        const ini = new Date(emp.fecha_ingreso), hoy = new Date();
-        let an = hoy.getFullYear() - ini.getFullYear();
-        let ms = hoy.getMonth() - ini.getMonth();
-        if (ms < 0) { an--; ms += 12; }
-        document.getElementById('txt_anti').innerText = `${an} años, ${ms} meses`;
+    const { error } = await client.from('rh_solicitudes').insert([payload]);
+    if(error) alert("Error: " + error.message);
+    else { alert("Registrado"); location.reload(); }
+}
 
-        // Vacaciones (Ley actual MX)
-        const obtenerLey = (a) => a < 1 ? 0 : a==1 ? 12 : a==2 ? 14 : a==3 ? 16 : a==4 ? 18 : a==5 ? 20 : 22;
-        const derecho = obtenerLey(an);
-        
-        const { data: tomadas } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
-        const gastadas = tomadas?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
-        
-        document.getElementById('txt_disp').innerText = (derecho - gastadas) + " días";
-        document.getElementById('info_panel').style.display = 'block';
-    }
+async function consultar() {
+    const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)');
+    const body = document.getElementById('tabla_solicitudes');
+    body.innerHTML = "";
+    data.forEach(s => {
+        body.innerHTML += `<tr>
+            <td>${s.rh_empleados?.nombre_completo}</td>
+            <td>${s.tipo}</td>
+            <td>${s.fecha_inicio} ${s.hora_salida || ''}</td>
+            <td><span class="status status-${s.estatus}">${s.estatus}</span></td>
+            <td>
+                <button onclick="aprobar('${s.id}')">✔️</button>
+                <button onclick="rechazar('${s.id}')">❌</button>
+            </td>
+        </tr>`;
+    });
+}
 
-    function toggleModo() {
-        const esPase = ["IDA_VUELTA", "SALIDA_TEMPRANO"].includes(document.getElementById('sel_tipo').value);
-        document.getElementById('box_dias').style.display = esPase ? 'none' : 'block';
-        document.getElementById('box_horas').style.display = esPase ? 'block' : 'none';
-    }
+async function aprobar(id) { await client.from('rh_solicitudes').update({estatus: 'APROBADO'}).eq('id', id); consultar(); }
 
-    // REGISTRAR SOLICITUD (Corregido para evitar errores de columnas)
-    async function registrar() {
-        const btn = document.getElementById('btn_guardar');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESANDO...';
-
-        const tipo = document.getElementById('sel_tipo').value;
-        const esPase = ["IDA_VUELTA", "SALIDA_TEMPRANO"].includes(tipo);
-
-        let payload = {
-            empleado_id: document.getElementById('sel_empleado').value,
-            tipo: tipo,
-            autorizado_por: document.getElementById('sel_autorizador').value,
-            observaciones: document.getElementById('txt_obs').value,
-            estatus: 'PENDIENTE',
-            fecha_inicio: esPase ? document.getElementById('h_fecha').value : document.getElementById('f_ini').value
-        };
-
-        if(esPase) {
-            payload.hora_salida = document.getElementById('h_salida').value;
-            payload.dias_solicitados = 0;
-        } else {
-            payload.fecha_fin = document.getElementById('f_fin').value;
-            const d1 = new Date(payload.fecha_inicio), d2 = new Date(payload.fecha_fin);
-            payload.dias_solicitados = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
-        }
-
-        if(!payload.empleado_id || !payload.fecha_inicio || !payload.autorizado_por) {
-            alert("⚠️ Por favor completa los campos de Empleado, Fecha y Autorizador.");
-            resetBtn(btn); return;
-        }
-
-        const { error } = await client.from('rh_solicitudes').insert([payload]);
-        
-        if(error) {
-            console.error(error);
-            alert("❌ ERROR DE BASE DE DATOS:\n" + error.message + "\n\nRevisa si las columnas hora_salida y autorizado_por existen.");
-        } else {
-            alert("✅ Solicitud guardada correctamente.");
-            location.reload();
-        }
-        resetBtn(btn);
-    }
-
-    function resetBtn(b) { b.disabled = false; b.innerHTML = '<i class="fas fa-save"></i> GUARDAR SOLICITUD'; }
-
-    // CONSULTA Y FILTRADO
-    async function consultar() {
-        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
-        raw_solicitudes = data || [];
-        filtrar();
-    }
-
-    function filtrar() {
-        const nom = document.getElementById('f_nom').value.toLowerCase();
-        const tip = document.getElementById('f_tipo').value;
-        const est = document.getElementById('f_est').value;
-
-        const filtered = raw_solicitudes.filter(s => {
-            return (s.rh_empleados?.nombre_completo.toLowerCase().includes(nom)) &&
-                   (tip === "" || s.tipo === tip) &&
-                   (est === "" || s.estatus === est);
-        });
-
-        renderTable(filtered);
-    }
-
-    function renderTable(data) {
-        const container = document.getElementById('lista_solicitudes');
-        container.innerHTML = "";
-
-        data.forEach(s => {
-            container.innerHTML += `
-                <div class="request-card status-${s.estatus}">
-                    <div style="display:flex; justify-content:space-between; align-items:start;">
-                        <div>
-                            <span class="badge">${s.tipo}</span>
-                            <h3 style="margin:5px 0; font-size:15px;">${s.rh_empleados?.nombre_completo}</h3>
-                            <p style="font-size:12px; color:#64748b; margin:0;">
-                                <i class="fas fa-calendar"></i> ${s.fecha_inicio} ${s.fecha_fin ? ' al ' + s.fecha_fin : ''}
-                                ${s.hora_salida ? ` | <i class="fas fa-clock"></i> ${s.hora_salida}` : ''}
-                            </p>
-                            <p style="font-size:11px; margin-top:5px;"><b>Autoriza:</b> ${s.autorizado_por}</p>
-                        </div>
-                        <div style="display:flex; gap:5px;">
-                            ${s.estatus === 'PENDIENTE' ? `
-                                <button class="btn-action" style="background:var(--success); color:white;" onclick="updateStatus('${s.id}', '${s.tipo === 'IDA_VUELTA' ? 'ENCURSO' : 'APROBADO'}')">APROBAR</button>
-                                <button class="btn-action" style="background:var(--danger); color:white;" onclick="updateStatus('${s.id}', 'RECHAZADO')">RECHAZAR</button>
-                            ` : ''}
-                            ${s.estatus === 'ENCURSO' ? `
-                                <button class="btn-action" style="background:var(--info); color:white;" onclick="marcarRegreso('${s.id}')">REGRESÓ</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    async function updateStatus(id, st) {
-        await client.from('rh_solicitudes').update({ estatus: st }).eq('id', id);
-        consultar();
-    }
-
-    async function marcarRegreso(id) {
-        const hora = new Date().toLocaleTimeString('es-MX', { hour12: false, hour: '2-digit', minute: '2-digit' });
-        await client.from('rh_solicitudes').update({ estatus: 'APROBADO', hora_regreso: hora }).eq('id', id);
-        consultar();
-    }
-
-    document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
