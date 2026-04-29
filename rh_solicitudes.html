@@ -2,105 +2,94 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión de Solicitudes y Permisos</title>
+    <title>KRAEM | Control de Personal y Permisos</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .container { max-width: 1600px; margin: auto; }
         .grid-main { display: grid; grid-template-columns: 420px 1fr; gap: 20px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .vacation-box { background: #f0f9ff; padding: 15px; border-radius: 12px; border: 1px solid #bae6fd; margin-bottom: 15px; text-align: center; }
+        .vacation-value { font-size: 28px; font-weight: 800; color: #0284c7; }
         .group { display: flex; flex-direction: column; margin-bottom: 12px; }
         label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
+        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; }
         .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 10px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 9px; text-transform: uppercase; }
-        .status-pendiente { background: #fef3c7; color: #92400e; }
-        .status-aprobado { background: #dcfce7; color: #166534; }
-        .btn-print { color: var(--accent); cursor: pointer; font-size: 18px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; padding: 10px; text-align: left; font-size: 10px; color: #64748b; border-bottom: 2px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+        .badge { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h2 style="margin:0;"><i class="fas fa-id-card"></i> Sistema de Permisos KRAEM</h2>
-        <div id="reloj" style="font-weight:bold; color:var(--accent);"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2 style="margin:0;">KRAEM | Gestión de Permisos</h2>
+        <div id="reloj" style="font-weight:bold;"></div>
     </div>
 
     <div class="grid-main">
         <div class="card">
-            <h3 style="margin-top:0; font-size: 16px; color: var(--accent);">Nueva Solicitud / Permiso</h3>
+            <h3 style="margin-top:0; font-size:16px; color:var(--accent);">Nueva Solicitud</h3>
             
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-                <div class="group"><label>Filtrar Área</label><select id="f_area" onchange="actualizarListas()"></select></div>
-                <div class="group"><label>Turno</label><select id="f_turno" onchange="actualizarListas()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+            <div class="group">
+                <label>Colaborador</label>
+                <select id="sol_empleado" onchange="cargarDetallesPersona('colaborador')"></select>
+            </div>
+
+            <div id="panel_vacaciones" style="display:none;" class="vacation-box">
+                <div style="font-size:10px; font-weight:bold; color:#0369a1;">DÍAS DISPONIBLES</div>
+                <div id="view_dias" class="vacation-value">--</div>
+                <div id="view_puesto" style="font-size:11px; font-weight:bold; margin-top:5px;"></div>
+                <div id="view_anti" style="font-size:10px; color:#64748b;"></div>
             </div>
 
             <div class="group">
-                <label>Nombre del Colaborador</label>
-                <select id="sol_empleado" onchange="cargarDetallesEmpleado()"></select>
-            </div>
-
-            <div id="info_empleado" style="display:none; background:#f0f9ff; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #bae6fd;">
-                <div style="font-size:11px;"><b>PUESTO:</b> <span id="view_puesto">--</span></div>
-                <div style="font-size:11px;"><b>AREA:</b> <span id="view_area">--</span></div>
-            </div>
-
-            <div class="group">
-                <label>Tipo de Movimiento</label>
-                <select id="sol_tipo" onchange="ajustarFormulario()">
+                <label>Tipo de Permiso</label>
+                <select id="sol_tipo" onchange="cambiarInterfaz()">
                     <option value="VACACIONES">Vacaciones</option>
-                    <option value="SALIDA_TEMPRANO">Salida Temprano (Sin Regreso)</option>
-                    <option value="IDA_Y_VUELTA">Permiso de Ida y Vuelta</option>
+                    <option value="SALIDA_TEMPRANO">Salida Temprano</option>
+                    <option value="IDA_Y_VUELTA">Ida y Vuelta</option>
                     <option value="LLEGADA_TARDE">Llegada Tarde</option>
-                    <option value="AJUSTE_SISTEMA">Ajuste de Saldo (+/- días)</option>
                 </select>
             </div>
 
-            <div id="campos_fechas" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                 <div class="group"><label>Fecha Inicio</label><input type="date" id="sol_desde"></div>
                 <div id="div_hasta" class="group"><label>Fecha Fin</label><input type="date" id="sol_hasta"></div>
             </div>
 
-            <div id="campo_hora" style="display:none;" class="group">
-                <label>Hora Programada</label>
+            <div id="div_hora" style="display:none;" class="group">
+                <label>Hora Específica</label>
                 <input type="time" id="sol_hora">
             </div>
 
-            <div id="campo_ajuste" style="display:none;" class="group">
-                <label>Cantidad (+ para sumar días, - para restar)</label>
-                <input type="number" id="sol_ajuste" placeholder="Ej: 13 o -5">
+            <div class="group" style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                <label>Quien Elabora (Supervisor/Admin)</label>
+                <select id="sol_elaboro" onchange="cargarDetallesPersona('elaborador')"></select>
+                <div id="view_puesto_elaboro" style="font-size:10px; color:var(--accent); font-weight:bold; margin-top:4px;"></div>
             </div>
 
             <div class="group">
-                <label>Elaboró (Supervisor / Administrativo)</label>
-                <select id="sol_elaboro"></select>
+                <label>Motivo</label>
+                <textarea id="sol_motivo" rows="2"></textarea>
             </div>
 
-            <div class="group">
-                <label>Causa / Motivo</label>
-                <textarea id="sol_motivo" rows="2" placeholder="Escriba la causa oficial..."></textarea>
-            </div>
-
-            <button id="btn_guardar" class="btn-primary" onclick="registrarSolicitud()">REGISTRAR SOLICITUD</button>
+            <button id="btn_guardar" class="btn-primary" onclick="guardarTodo()">GENERAR SOLICITUD</button>
         </div>
 
         <div class="card">
-            <h3 style="margin:0 0 15px 0;">Panel de Control de Personal</h3>
+            <h3 style="margin:0 0 10px 0;">Registros Recientes</h3>
             <table>
                 <thead>
                     <tr>
                         <th>Folio / Nombre</th>
-                        <th>Tipo y Elaboró</th>
+                        <th>Tipo / Puesto</th>
                         <th>Fecha / Hora</th>
-                        <th>Estatus / Firmas</th>
+                        <th>Estatus</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -111,178 +100,146 @@
 </div>
 
 <script>
-    let todosLosEmpleados = [];
-    let solicitudesCargadas = [];
-    const COORDINADORA = "YURIDIA RIOS (COORD. GERENTE JR)";
+    let db_personal = [];
+    let solicitudes = [];
 
-    async function init() {
-        // Cargar Áreas
-        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
-        const fArea = document.getElementById('f_area');
-        fArea.innerHTML = '<option value="">Todas las Áreas</option>';
-        areas?.forEach(a => fArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
-
-        // Cargar Personal completo
-        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
-        todosLosEmpleados = emps || [];
-        
-        actualizarListas();
-        listarSolicitudes();
-        setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleString(); }, 1000);
-        document.getElementById('sol_desde').valueAsDate = new Date();
+    function calcularDiasLey(anios) {
+        if (anios < 1) return 0;
+        if (anios == 1) return 12;
+        if (anios == 2) return 14;
+        if (anios == 3) return 16;
+        if (anios == 4) return 18;
+        if (anios == 5) return 20;
+        if (anios <= 10) return 22;
+        return 24;
     }
 
-    function actualizarListas() {
-        const areaId = document.getElementById('f_area').value;
-        const turno = document.getElementById('f_turno').value;
-        
-        const filtrados = todosLosEmpleados.filter(e => (!areaId || e.area_id == areaId) && (!turno || e.turno_id == turno));
+    async function init() {
+        const { data: emps } = await client.from('rh_empleados').select('*, rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
+        db_personal = emps || [];
         
         const selEmp = document.getElementById('sol_empleado');
         const selElab = document.getElementById('sol_elaboro');
-
-        selEmp.innerHTML = '<option value="">-- Seleccionar Colaborador --</option>';
-        selElab.innerHTML = '<option value="">-- Seleccionar Quién Elabora --</option>';
-
-        filtrados.forEach(e => selEmp.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
         
-        // La lista de quién elabora puede ser de cualquier área (Supervisores/Admin)
-        todosLosEmpleados.forEach(e => selElab.innerHTML += `<option value="${e.nombre_completo}">${e.nombre_completo}</option>`);
+        selEmp.innerHTML = selElab.innerHTML = '<option value="">-- Seleccionar --</option>';
+        db_personal.forEach(e => {
+            const opt = `<option value="${e.id}">${e.nombre_completo}</option>`;
+            selEmp.innerHTML += opt;
+            selElab.innerHTML += opt;
+        });
+
+        listarSolicitudes();
+        document.getElementById('sol_desde').valueAsDate = new Date();
     }
 
-    function cargarDetallesEmpleado() {
-        const id = document.getElementById('sol_empleado').value;
-        const emp = todosLosEmpleados.find(e => e.id == id);
-        if(emp) {
-            document.getElementById('view_puesto').innerText = emp.puesto || 'OPERADOR';
-            document.getElementById('view_area').innerText = emp.rh_areas.nombre;
-            document.getElementById('info_empleado').style.display = 'block';
+    async function cargarDetallesPersona(rol) {
+        const id = rol === 'colaborador' ? document.getElementById('sol_empleado').value : document.getElementById('sol_elaboro').value;
+        const p = db_personal.find(x => x.id == id);
+        if(!p) return;
+
+        if(rol === 'colaborador') {
+            const ini = new Date(p.fecha_ingreso), hoy = new Date();
+            let anios = hoy.getFullYear() - ini.getFullYear();
+            let meses = hoy.getMonth() - ini.getMonth();
+            if (meses < 0) { anios--; meses += 12; }
+            
+            document.getElementById('view_puesto').innerText = p.puesto || 'OPERADOR';
+            document.getElementById('view_anti').innerText = `${anios} años, ${meses} meses de antigüedad`;
+            
+            // Calcular saldo de vacaciones
+            const { data: sols } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('estatus', 'APROBADO').eq('tipo', 'VACACIONES');
+            let usados = 0; sols?.forEach(s => usados += s.dias_solicitados);
+            document.getElementById('view_dias').innerText = calcularDiasLey(anios) - usados;
+            document.getElementById('panel_vacaciones').style.display = 'block';
+        } else {
+            document.getElementById('view_puesto_elaboro').innerText = `PUESTO: ${p.puesto || 'SUPERVISOR'}`;
         }
     }
 
-    function ajustarFormulario() {
-        const tipo = document.getElementById('sol_tipo').value;
-        const esPermisoRapido = tipo.includes('SALIDA') || tipo === 'IDA_Y_VUELTA' || tipo === 'LLEGADA_TARDE';
-        const esAjuste = tipo === 'AJUSTE_SISTEMA';
-
-        document.getElementById('campo_hora').style.display = esPermisoRapido ? 'block' : 'none';
-        document.getElementById('div_hasta').style.display = (esPermisoRapido || esAjuste) ? 'none' : 'block';
-        document.getElementById('campo_ajuste').style.display = esAjuste ? 'block' : 'none';
+    function cambiarInterfaz() {
+        const t = document.getElementById('sol_tipo').value;
+        const esRapido = t.includes('SALIDA') || t === 'IDA_Y_VUELTA' || t === 'LLEGADA_TARDE';
+        document.getElementById('div_hora').style.display = esRapido ? 'block' : 'none';
+        document.getElementById('div_hasta').style.display = esRapido ? 'none' : 'block';
     }
 
-    async function registrarSolicitud() {
-        const empId = document.getElementById('sol_empleado').value;
-        const elaboro = document.getElementById('sol_elaboro').value;
-        if(!empId || !elaboro) return alert("Debe seleccionar al Colaborador y a la persona que Elabora.");
+    async function guardarTodo() {
+        const idColab = document.getElementById('sol_empleado').value;
+        const idElab = document.getElementById('sol_elaboro').value;
+        if(!idColab || !idElab) return alert("Selecciona personal en ambos campos");
 
-        document.getElementById('btn_guardar').disabled = true;
-
-        // Generar Folio Incremental
+        const elab = db_personal.find(x => x.id == idElab);
+        const colab = db_personal.find(x => x.id == idColab);
+        
         const { count } = await client.from('rh_solicitudes').select('*', { count: 'exact', head: true });
         const folio = `KR-${new Date().getFullYear()}-${(count + 1).toString().padStart(4, '0')}`;
 
-        const tipo = document.getElementById('sol_tipo').value;
-        const payload = {
+        const { error } = await client.from('rh_solicitudes').insert([{
             id_personalizado: folio,
-            empleado_id: empId,
-            tipo: tipo,
-            motivo: document.getElementById('sol_motivo').value || 'Sin motivo especificado',
-            estatus: 'PENDIENTE',
-            creado_por: elaboro,
-            fecha_creacion: new Date().toISOString(),
+            empleado_id: idColab,
+            tipo: document.getElementById('sol_tipo').value,
             fecha_inicio: document.getElementById('sol_desde').value,
             fecha_fin: document.getElementById('sol_hasta').value || document.getElementById('sol_desde').value,
             hora_solicitud: document.getElementById('sol_hora').value || null,
-            dias_solicitados: tipo === 'AJUSTE_SISTEMA' ? parseInt(document.getElementById('sol_ajuste').value) : 0
-        };
+            motivo: document.getElementById('sol_motivo').value,
+            creado_por: elab.nombre_completo,
+            puesto_solicitante: colab.puesto || 'OPERADOR', // Guardamos el puesto del operador
+            estatus: 'PENDIENTE'
+        }]);
 
-        const { error } = await client.from('rh_solicitudes').insert([payload]);
-        if(!error) { alert("Solicitud Registrada con Folio: " + folio); location.reload(); }
-        else { alert("Error: " + error.message); document.getElementById('btn_guardar').disabled = false; }
+        if(error) alert("Error al guardar: " + error.message);
+        else location.reload();
     }
 
     async function listarSolicitudes() {
         const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(*, rh_areas(nombre))').order('created_at', {ascending: false});
-        solicitudesCargadas = data || [];
-        
-        document.getElementById('tabla_solicitudes').innerHTML = solicitudesCargadas.map(s => `
+        solicitudes = data || [];
+        document.getElementById('tabla_solicitudes').innerHTML = solicitudes.map(s => `
             <tr>
                 <td><b>${s.id_personalizado}</b><br>${s.rh_empleados.nombre_completo}</td>
-                <td><span class="badge" style="background:#e2e8f0;">${s.tipo}</span><br><small>Por: ${s.creado_por}</small></td>
-                <td>${s.fecha_inicio} ${s.hora_solicitud ? ' @ ' + s.hora_solicitud : ''}</td>
+                <td><span class="badge" style="background:#eee">${s.tipo}</span><br><small>${s.puesto_solicitante}</small></td>
+                <td>${s.fecha_inicio} ${s.hora_solicitud ? '@ '+s.hora_solicitud : ''}</td>
+                <td><span class="badge" style="background:${s.estatus=='APROBADO'?'#dcfce7':'#fef3c7'}">${s.estatus}</span></td>
                 <td>
-                    <span class="badge status-${s.estatus.toLowerCase()}">${s.estatus}</span>
-                    ${s.aprobado_por ? `<br><small style="color:blue">Firmó: ${s.aprobado_por}</small>` : ''}
-                </td>
-                <td>
-                    ${s.estatus === 'PENDIENTE' ? `<button onclick="autorizar('${s.id}')">Autorizar</button>` : 
-                      s.estatus === 'APROBADO' ? `<i class="fas fa-print btn-print" onclick="imprimirPermiso('${s.id}')"></i>` : ''}
+                    ${s.estatus === 'PENDIENTE' ? `<button onclick="autorizar('${s.id}')">OK</button>` : 
+                    `<i class="fas fa-print" style="cursor:pointer; color:blue;" onclick="imprimir('${s.id}')"></i>`}
                 </td>
             </tr>
         `).join('');
     }
 
     async function autorizar(id) {
-        const conf = confirm("¿Desea aplicar la firma digital de Coordinación?");
-        if(!conf) return;
-        
-        await client.from('rh_solicitudes').update({ 
-            estatus: 'APROBADO', 
-            aprobado_por: COORDINADORA, 
-            fecha_aprobacion: new Date().toISOString() 
-        }).eq('id', id);
+        await client.from('rh_solicitudes').update({ estatus: 'APROBADO', aprobado_por: 'YURIDIA RIOS (COORD. GERENTE JR)', fecha_aprobacion: new Date().toISOString() }).eq('id', id);
         listarSolicitudes();
     }
 
-    function imprimirPermiso(id) {
-        const s = solicitudesCargadas.find(x => x.id == id);
+    function imprimir(id) {
+        const s = solicitudes.find(x => x.id == id);
+        const elab = db_personal.find(x => x.nombre_completo == s.creado_por);
         const win = window.open('', '_blank');
         win.document.write(`
             <html>
-            <head>
-                <style>
-                    body { font-family: Arial; padding: 40px; }
-                    .header { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:10px; }
-                    .main-table { width:100%; border:1px solid #000; margin-top:20px; border-collapse:collapse; }
-                    .main-table td { border:1px solid #000; padding:10px; font-size:13px; }
-                    .sig-section { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:20px; margin-top:60px; text-align:center; }
-                    .line { border-top:1px solid #000; padding-top:5px; font-size:11px; font-weight:bold; }
-                    .digital { color:blue; font-family:monospace; font-size:10px; margin-bottom:5px; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <div><b>KRAEM S.A. de C.V.</b></div>
-                    <div style="font-size:16px;"><b>FORMATO DE SOLICITUD DE PERMISO</b></div>
-                    <div><b>Folio:</b> ${s.id_personalizado}</div>
+            <body style="font-family:Arial; padding:40px;">
+                <div style="display:flex; justify-content:space-between; border-bottom:2px solid #000; padding-bottom:10px;">
+                    <div style="font-size:20px;"><b>KRAEM S.A. DE C.V.</b></div>
+                    <div><b>FOLIO:</b> ${s.id_personalizado}</div>
                 </div>
-                <table class="main-table">
-                    <tr><td><b>FECHA:</b></td><td>${s.fecha_inicio}</td><td><b>HORA:</b></td><td>${s.hora_solicitud || '--:--'}</td></tr>
-                    <tr><td><b>COLABORADOR:</b></td><td colspan="3">${s.rh_empleados.nombre_completo}</td></tr>
-                    <tr><td><b>PUESTO:</b></td><td>${s.rh_empleados.puesto || 'OPERADOR'}</td><td><b>AREA:</b></td><td>${s.rh_empleados.rh_areas.nombre}</td></tr>
-                    <tr><td><b>TIPO DE PERMISO:</b></td><td colspan="3">${s.tipo.replace('_', ' ')}</td></tr>
-                    <tr><td><b>MOTIVO / CAUSA:</b></td><td colspan="3" style="height:60px; vertical-align:top;">${s.motivo}</td></tr>
+                <h3 style="text-align:center;">SOLICITUD DE PERMISO / VACACIONES</h3>
+                <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+                    <tr><td style="border:1px solid #000; padding:10px;"><b>NOMBRE:</b></td><td colspan="3" style="border:1px solid #000; padding:10px;">${s.rh_empleados.nombre_completo}</td></tr>
+                    <tr><td style="border:1px solid #000; padding:10px;"><b>PUESTO:</b></td><td style="border:1px solid #000; padding:10px;">${s.puesto_solicitante}</td><td style="border:1px solid #000; padding:10px;"><b>ÁREA:</b></td><td style="border:1px solid #000; padding:10px;">${s.rh_empleados.rh_areas.nombre}</td></tr>
+                    <tr><td style="border:1px solid #000; padding:10px;"><b>TIPO:</b></td><td style="border:1px solid #000; padding:10px;">${s.tipo}</td><td style="border:1px solid #000; padding:10px;"><b>HORA:</b></td><td style="border:1px solid #000; padding:10px;">${s.hora_solicitud || 'N/A'}</td></tr>
+                    <tr><td style="border:1px solid #000; padding:10px;"><b>MOTIVO:</b></td><td colspan="3" style="border:1px solid #000; padding:10px; height:60px;">${s.motivo}</td></tr>
                 </table>
-                <div style="text-align:center; margin-top:30px; font-weight:bold;">FAVOR DE APROBAR ESTA SOLICITUD SEGÚN LO MENCIONADO.</div>
-                <div class="sig-section">
-                    <div>
-                        <div class="digital">CERTIFICADO ELECTRÓNICO<br>${s.creado_por}<br>${new Date(s.fecha_creacion).toLocaleString()}</div>
-                        <div class="line">ELABORÓ (SUPERVISOR)</div>
-                    </div>
-                    <div>
-                        <div class="digital">AUTORIZACIÓN DIGITAL<br>${s.aprobado_por}<br>${new Date(s.fecha_aprobacion).toLocaleString()}</div>
-                        <div class="line">AUTORIZÓ (JR. MANAGER / COORD)</div>
-                    </div>
-                    <div>
-                        <div style="height:45px"></div>
-                        <div class="line">DIRECTOR OPERACIONES (MR. KIM)</div>
-                    </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-top:60px; text-align:center; font-size:10px;">
+                    <div><div style="color:blue;">FIRMADO DIGITALMENTE<br>${s.creado_por}<br>${elab?.puesto || 'SUPERVISOR'}<br>${new Date(s.fecha_creacion).toLocaleString()}</div><div style="border-top:1px solid #000; margin-top:5px; font-weight:bold;">ELABORÓ</div></div>
+                    <div><div style="color:blue;">APROBADO SISTEMA<br>${s.aprobado_por}<br>${new Date(s.fecha_aprobacion).toLocaleString()}</div><div style="border-top:1px solid #000; margin-top:5px; font-weight:bold;">AUTORIZÓ (JR. MANAGER)</div></div>
+                    <div><div style="height:40px;"></div><div style="border-top:1px solid #000; margin-top:5px; font-weight:bold;">DIRECTOR (MR. KIM)</div></div>
                 </div>
-                <script>window.onload = function() { window.print(); }</scrip` + `t>
+                <script>window.print(); window.close();</scrip` + `t>
             </body>
             </html>
         `);
-        win.document.close();
     }
 
     document.addEventListener('DOMContentLoaded', init);
