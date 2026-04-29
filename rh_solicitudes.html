@@ -31,6 +31,7 @@
         .status-aprobado { background: #dcfce7; color: #166534; }
         .status-rechazado { background: #fee2e2; color: #991b1b; }
         .audit-info { font-size: 9px; color: #94a3b8; display: block; margin-top: 4px; }
+        .btn-print { color: #64748b; cursor: pointer; font-size: 16px; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -81,7 +82,7 @@
             </div>
 
             <div id="cont_ajuste" style="display:none;" class="group">
-                <label>Días a ajustar (Ej: +2 o -3)</label>
+                <label>Días a ajustar (Ej: +13 o -5)</label>
                 <input type="number" id="sol_ajuste_valor" placeholder="0">
             </div>
 
@@ -97,7 +98,7 @@
 
             <div class="group">
                 <label>Supervisor / Solicitante</label>
-                <input type="text" id="sol_creador" placeholder="Nombre de quien solicita">
+                <input type="text" id="sol_creador" placeholder="Nombre del Supervisor">
             </div>
 
             <div class="group">
@@ -105,7 +106,7 @@
                 <textarea id="sol_motivo" rows="2" placeholder="Opcional..."></textarea>
             </div>
 
-            <button class="btn-primary" onclick="guardarSolicitud()">ENVIAR SOLICITUD</button>
+            <button id="btn_enviar" class="btn-primary" onclick="guardarSolicitud()">ENVIAR SOLICITUD</button>
         </div>
 
         <div class="card">
@@ -122,10 +123,10 @@
                 <thead>
                     <tr>
                         <th>Empleado</th>
-                        <th>Tipo y Solicitante</th>
+                        <th>Tipo / Solicitante</th>
                         <th>Periodo / Días</th>
-                        <th>Estatus / Firma Digital</th>
-                        <th>Acción</th>
+                        <th>Estatus / Firmas</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tabla_solicitudes"></tbody>
@@ -136,7 +137,8 @@
 
 <script>
     let db_empleados = [];
-    const USER_COORD = "Coordinadora RH"; // Esto podría venir de un login
+    let solicitudes_recientes = [];
+    const USER_COORD = "COORD. RECURSOS HUMANOS";
 
     function obtenerDiasLey(anios) {
         if (anios < 1) return 0;
@@ -199,21 +201,17 @@
     function manejarTipoSolicitud() {
         const tipo = document.getElementById('sol_tipo').value;
         const esAjuste = tipo === 'AJUSTE_SISTEMA';
-        const esSalida = tipo.includes('SALIDA');
-
         document.getElementById('cont_ajuste').style.display = esAjuste ? 'block' : 'none';
         document.getElementById('cont_fechas').style.display = esAjuste ? 'none' : 'grid';
         document.getElementById('cont_dias_totales').style.display = esAjuste ? 'none' : 'block';
-        
-        if(!esAjuste) autoCalcularFechas();
     }
 
     function autoCalcularFechas() {
         const tipo = document.getElementById('sol_tipo').value;
         const inicio = document.getElementById('sol_desde').value;
         if(!inicio) return;
-        let f1 = new Date(inicio + 'T00:00:00');
         
+        let f1 = new Date(inicio + 'T00:00:00');
         if(tipo === 'INCAPACIDAD_MATERNIDAD') {
             let f2 = new Date(f1); f2.setDate(f1.getDate() + 83);
             document.getElementById('sol_hasta').value = f2.toISOString().split('T')[0];
@@ -224,7 +222,7 @@
             document.getElementById('sol_dias').value = 5;
         } else if(tipo.includes('SALIDA')) {
             document.getElementById('sol_hasta').value = inicio;
-            document.getElementById('sol_dias').value = 0; // No resta de vacaciones
+            document.getElementById('sol_dias').value = 0;
         } else {
             const fin = document.getElementById('sol_hasta').value;
             if(fin) {
@@ -238,15 +236,20 @@
     async function guardarSolicitud() {
         const empId = document.getElementById('sol_empleado').value;
         const creador = document.getElementById('sol_creador').value;
-        if(!empId || !creador) return alert("Empleado y Supervisor son obligatorios");
+        const btn = document.getElementById('btn_enviar');
+
+        if(!empId || !creador) return alert("Por favor selecciona un colaborador y escribe el nombre del Supervisor.");
+
+        btn.disabled = true;
+        btn.innerText = "Enviando...";
 
         const tipo = document.getElementById('sol_tipo').value;
         const obj = {
             empleado_id: empId,
             tipo: tipo,
-            motivo: document.getElementById('sol_motivo').value,
+            motivo: document.getElementById('sol_motivo').value || 'Sin motivo',
             estatus: 'PENDIENTE',
-            creado_por: creador,
+            creado_por: creador.toUpperCase(),
             fecha_creacion: new Date().toISOString()
         };
 
@@ -257,40 +260,51 @@
         } else {
             obj.fecha_inicio = document.getElementById('sol_desde').value;
             obj.fecha_fin = document.getElementById('sol_hasta').value;
-            obj.dias_solicitados = parseInt(document.getElementById('sol_dias').value);
+            obj.dias_solicitados = parseInt(document.getElementById('sol_dias').value) || 0;
         }
 
         const { error } = await client.from('rh_solicitudes').insert([obj]);
-        if(!error) { alert("Solicitud enviada"); location.reload(); }
+        
+        if(error) {
+            alert("Error al enviar: " + error.message);
+            btn.disabled = false;
+            btn.innerText = "ENVIAR SOLICITUD";
+        } else {
+            alert("¡Solicitud registrada correctamente!");
+            location.reload();
+        }
     }
 
     async function listarSolicitudes() {
         const est = document.getElementById('f_estado').value;
-        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').eq('estatus', est).order('created_at', {ascending: false});
-        
-        document.getElementById('tabla_solicitudes').innerHTML = data.map(s => {
+        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(*, rh_areas(nombre))').eq('estatus', est).order('created_at', {ascending: false});
+        solicitudes_recientes = data || [];
+
+        document.getElementById('tabla_solicitudes').innerHTML = solicitudes_recientes.map(s => {
             const fCreacion = new Date(s.fecha_creacion).toLocaleString();
             const fAprobado = s.fecha_aprobacion ? new Date(s.fecha_aprobacion).toLocaleString() : '';
             
             return `
             <tr>
-                <td><b>${s.rh_empleados.nombre_completo}</b></td>
+                <td><b>${s.rh_empleados.nombre_completo}</b><br><small>${s.rh_empleados.rh_areas.nombre}</small></td>
                 <td>
                     <span class="badge" style="background:#e2e8f0;">${s.tipo}</span>
-                    <span class="audit-info">Solicitó: ${s.creado_por} <br> ${fCreacion}</span>
+                    <span class="audit-info">Solicitó: ${s.creado_por}<br>${fCreacion}</span>
                 </td>
                 <td>
-                    ${s.fecha_inicio} al ${s.fecha_fin}
-                    <div style="font-weight:bold; color:var(--accent);">${s.dias_solicitados} días</div>
+                    ${s.fecha_inicio} al ${s.fecha_fin}<br>
+                    <b>${s.dias_solicitados} días</b>
                 </td>
                 <td>
                     <span class="badge status-${s.estatus.toLowerCase()}">${s.estatus}</span>
-                    ${s.aprobado_por ? `<span class="audit-info">Firmado por: ${s.aprobado_por} <br> ${fAprobado}</span>` : ''}
+                    ${s.aprobado_por ? `<span class="audit-info">Firmado: ${s.aprobado_por}<br>${fAprobado}</span>` : ''}
                 </td>
                 <td>
                     ${s.estatus === 'PENDIENTE' ? `
-                        <button class="btn-action btn-approve" onclick="procesar('${s.id}', 'APROBADO')"><i class="fas fa-check-circle"></i></button>
-                        <button class="btn-action btn-reject" onclick="procesar('${s.id}', 'RECHAZADO')"><i class="fas fa-times-circle"></i></button>
+                        <button class="btn-action" style="color:var(--success)" onclick="procesar('${s.id}', 'APROBADO')"><i class="fas fa-check-circle"></i></button>
+                        <button class="btn-action" style="color:var(--danger)" onclick="procesar('${s.id}', 'RECHAZADO')"><i class="fas fa-times-circle"></i></button>
+                    ` : s.estatus === 'APROBADO' ? `
+                        <i class="fas fa-print btn-print" title="Imprimir Formato" onclick="imprimirPermiso('${s.id}')"></i>
                     ` : '<i class="fas fa-lock" style="color:#cbd5e1"></i>'}
                 </td>
             </tr>`;
@@ -298,16 +312,88 @@
     }
 
     async function procesar(id, estado) {
-        const firma = prompt("Nombre de quien autoriza:", USER_COORD);
+        const firma = prompt("Confirme su nombre para la firma digital de aprobación:", USER_COORD);
         if(!firma) return;
         
-        await client.from('rh_solicitudes').update({ 
+        const { error } = await client.from('rh_solicitudes').update({ 
             estatus: estado,
-            aprobado_por: firma,
+            aprobado_por: firma.toUpperCase(),
             fecha_aprobacion: new Date().toISOString()
         }).eq('id', id);
         
-        listarSolicitudes();
+        if(!error) listarSolicitudes();
+    }
+
+    function imprimirPermiso(id) {
+        const s = solicitudes_recientes.find(x => x.id == id);
+        if(!s) return;
+
+        const win = window.open('', '_blank');
+        const f_sol = new Date(s.fecha_creacion).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
+        const h_sol = new Date(s.fecha_creacion).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+        const f_aprob = new Date(s.fecha_aprobacion).toLocaleString('es-MX');
+
+        win.document.write(`
+            <html>
+            <head>
+                <title>Formato de Permiso - ${s.rh_empleados.nombre_completo}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                    .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    .header-table td { border: 1px solid black; padding: 8px; font-size: 12px; }
+                    .title { text-align: center; font-weight: bold; font-size: 16px; margin: 20px 0; border-bottom: 2px solid black; padding-bottom: 10px; }
+                    .signature-section { margin-top: 50px; width: 100%; display: flex; justify-content: space-between; text-align: center; }
+                    .sig-box { width: 30%; font-size: 10px; }
+                    .line { border-top: 1px solid black; margin-bottom: 5px; min-height: 40px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+                    .digital-sign { font-family: 'Courier New', monospace; font-size: 9px; color: blue; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div style="text-align:right; font-size: 10px;">KRAEM - RECURSOS HUMANOS</div>
+                <div class="title">FORMATO DE SOLICITUD DE PERMISO</div>
+                
+                <table class="header-table">
+                    <tr><td><b>NO. DE SOLICITUD:</b></td><td>${s.id.substring(0,8).toUpperCase()}</td></tr>
+                    <tr><td><b>FECHA:</b></td><td>${f_sol}</td></tr>
+                    <tr><td><b>HORA:</b></td><td>${h_sol}</td></tr>
+                    <tr><td><b>CAUSA OFICIAL:</b></td><td>${s.tipo}</td></tr>
+                    <tr><td><b>AREA:</b></td><td>${s.rh_empleados.rh_areas.nombre}</td></tr>
+                    <tr><td><b>NOMBRE:</b></td><td>${s.rh_empleados.nombre_completo}</td></tr>
+                    <tr><td><b>MOTIVO:</b></td><td>${s.motivo}</td></tr>
+                </table>
+
+                <p style="margin: 30px 0; font-size: 14px; text-align: center;">
+                    FAVOR DE APROBAR ESTA SOLICITUD DE PERMISO COMO SE MENCIONA EN ESTE FORMATO.
+                </p>
+
+                <div class="signature-section">
+                    <div class="sig-box">
+                        <div class="line">
+                            <span class="digital-sign">FIRMADO ELECTRÓNICAMENTE</span>
+                            <span class="digital-sign">${s.creado_por}</span>
+                            <span class="digital-sign">${new Date(s.fecha_creacion).toLocaleString()}</span>
+                        </div>
+                        <b>ELABORÓ (SUPERVISOR)</b>
+                    </div>
+                    <div class="sig-box">
+                        <div class="line">
+                            <span class="digital-sign">AUTORIZADO DIGITALMENTE</span>
+                            <span class="digital-sign">${s.aprobado_por}</span>
+                            <span class="digital-sign">${f_aprob}</span>
+                        </div>
+                        <b>AUTORIZÓ (JR. MANAGER / COORD)</b>
+                    </div>
+                    <div class="sig-box">
+                        <div class="line" style="min-height: 60px;"></div>
+                        <b>AUTORIZÓ (DIRECTOR MR. KIM)</b>
+                    </div>
+                </div>
+                
+                <script>window.onload = function() { window.print(); }</scrip"+"t>
+            </body>
+            </html>
+        `);
+        win.document.close();
     }
 
     document.addEventListener('DOMContentLoaded', init);
