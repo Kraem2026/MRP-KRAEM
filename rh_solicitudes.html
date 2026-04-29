@@ -2,112 +2,172 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>KRAEM | Control de Solicitudes y Permisos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | RH Management System</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .grid-main { display: grid; grid-template-columns: 420px 1fr; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
-        
-        /* Panel Info */
-        .info-box { background: #f0f9ff; padding: 15px; border-radius: 12px; border: 1px solid #bae6fd; margin-bottom: 15px; }
-        .info-label { font-size: 10px; font-weight: 800; color: #0369a1; text-transform: uppercase; }
-        .info-value { font-size: 22px; font-weight: 800; color: #0284c7; }
-        .info-sub { font-size: 11px; font-weight: bold; color: #1e293b; margin-top: 4px; text-transform: uppercase;}
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --accent-soft: #dbeafe;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f1f5f9;
+            --sidebar: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
 
-        .group { display: flex; flex-direction: column; margin-bottom: 12px; }
-        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-        .btn-primary { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text-main); display: flex; min-height: 100vh; }
+
+        /* Sidebar & Layout */
+        .sidebar { width: 300px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 24px; position: fixed; height: 100vh; overflow-y: auto; }
+        .main-content { margin-left: 300px; width: calc(100% - 300px); padding: 32px; }
+
+        /* Typography & Header */
+        .logo { font-weight: 800; font-size: 22px; color: var(--primary); display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+        .logo i { color: var(--accent); }
+        h3 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 20px; }
+
+        /* Form Components */
+        .group { margin-bottom: 18px; }
+        label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--text-main); }
+        select, input, textarea { 
+            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); 
+            font-size: 14px; transition: all 0.2s; background: #fff;
+        }
+        select:focus, input:focus { outline: none; border-color: var(--accent); ring: 2px var(--accent-soft); }
+
+        /* Info Card Inside Sidebar */
+        .info-card { background: var(--accent-soft); padding: 16px; border-radius: var(--radius); margin-top: 15px; border-left: 4px solid var(--accent); display: none; }
+        .info-card .val { font-size: 24px; font-weight: 800; color: var(--accent); }
+        .info-card .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+
+        /* Buttons */
+        .btn-primary { 
+            background: var(--accent); color: white; border: none; padding: 14px; border-radius: var(--radius); 
+            font-weight: 700; cursor: pointer; width: 100%; transition: transform 0.2s, opacity 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* Dashboard Table */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .table-container { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #f8fafc; padding: 12px; text-align: left; font-size: 10px; color: #64748b; border-bottom: 2px solid var(--border); }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
+        th { background: #f8fafc; padding: 16px; text-align: left; font-size: 12px; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        td { padding: 16px; border-bottom: 1px solid #f8fafc; font-size: 14px; vertical-align: middle; }
+        
+        /* Badges & Actions */
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .bg-pending { background: #fef3c7; color: #92400e; }
+        .bg-approved { background: #dcfce7; color: #166534; }
+        .bg-rejected { background: #fee2e2; color: #991b1b; }
+
+        .btn-action { width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; transition: 0.2s; }
+        .btn-approve { background: var(--success); color: white; }
+        .btn-reject { background: var(--danger); color: white; margin-left: 4px; }
+        .btn-print { background: var(--accent-soft); color: var(--accent); font-size: 16px; }
+
+        /* Clock & Stats */
+        #reloj { font-weight: 600; color: var(--text-muted); font-size: 14px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h2 style="margin:0;"><i class="fas fa-id-card"></i> KRAEM | Control de Permisos</h2>
-        <div id="reloj" style="font-weight:bold; color:var(--accent);"></div>
+<aside class="sidebar">
+    <div class="logo"><i class="fas fa-bolt"></i> KRAEM RH</div>
+    
+    <h3>Nueva Solicitud</h3>
+    
+    <div class="group">
+        <label>Colaborador</label>
+        <select id="sol_empleado" onchange="actualizarInterfazPersona('colaborador')"></select>
     </div>
 
-    <div class="grid-main">
-        <div class="card">
-            <h3 style="margin-top:0; font-size:16px; color:var(--accent);">Nueva Solicitud</h3>
-            
-            <div class="group">
-                <label>Colaborador (Quien solicita)</label>
-                <select id="sol_empleado" onchange="actualizarInterfazPersona('colaborador')"></select>
-            </div>
-
-            <div id="panel_info" style="display:none;" class="info-box">
-                <div id="view_puesto" class="info-sub">--</div>
-                <div class="info-label">Días Vacaciones Disponibles</div>
-                <div id="view_vacaciones" class="info-value">--</div>
-                <div id="view_anti" style="font-size:10px; color:#64748b; margin-top:5px;"></div>
-            </div>
-
-            <div class="group">
-                <label>Tipo de Permiso</label>
-                <select id="sol_tipo" onchange="ajustarCamposPorTipo()">
-                    <option value="VACACIONES">Vacaciones</option>
-                    <option value="PERMISO_SIN_GOCE">Permiso sin goce de sueldo</option>
-                    <option value="INCAPACIDAD">Incapacidad Médica</option>
-                    <option value="MATERNIDAD_PATERNIDAD">Maternidad / Paternidad</option>
-                    <option value="DEFUNCION">Defunción</option>
-                    <option value="SALIDA_TEMPRANO">Salida Temprano (Pase Caseta)</option>
-                    <option value="LLEGADA_TARDE">Entrada Tarde</option>
-                    <option value="IDA_Y_VUELTA">Salida Ida y Vuelta</option>
-                </select>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div class="group"><label>Fecha Inicio</label><input type="date" id="sol_desde"></div>
-                <div id="div_hasta" class="group"><label>Fecha Fin</label><input type="date" id="sol_hasta"></div>
-            </div>
-
-            <div id="div_hora" style="display:none;" class="group">
-                <label>Hora de Salida/Entrada</label>
-                <input type="time" id="sol_hora">
-            </div>
-
-            <div class="group" style="margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
-                <label>Quien Elabora (Supervisor / Admin)</label>
-                <select id="sol_elaboro" onchange="actualizarInterfazPersona('elaborador')"></select>
-                <div id="view_puesto_elaboro" style="font-size:10px; color:var(--accent); font-weight:bold; margin-top:4px; text-transform: uppercase;"></div>
-            </div>
-
-            <div class="group">
-                <label>Motivo Detallado</label>
-                <textarea id="sol_motivo" rows="2" placeholder="Especifique la razón..."></textarea>
-            </div>
-
-            <button class="btn-primary" onclick="guardarSolicitud()">GENERAR Y REGISTRAR</button>
-        </div>
-
-        <div class="card">
-            <h3 style="margin:0 0 15px 0;">Historial de Movimientos</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Folio / Nombre</th>
-                        <th>Tipo / Puesto</th>
-                        <th>Vigencia</th>
-                        <th>Estatus</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla_solicitudes"></tbody>
-            </table>
-        </div>
+    <div id="panel_info" class="info-card">
+        <div id="view_puesto" class="lbl" style="margin-bottom: 8px; color: var(--text-main);">--</div>
+        <div class="lbl">Días Vacaciones</div>
+        <div id="view_vacaciones" class="val">--</div>
+        <div id="view_anti" style="font-size:10px; margin-top:5px; font-weight: 600;"></div>
     </div>
-</div>
+
+    <div class="group" style="margin-top: 20px;">
+        <label>Tipo de Permiso</label>
+        <select id="sol_tipo" onchange="ajustarCamposPorTipo()">
+            <option value="VACACIONES">Vacaciones</option>
+            <option value="PERMISO_SIN_GOCE">Permiso sin goce</option>
+            <option value="INCAPACIDAD">Incapacidad Médica</option>
+            <option value="SALIDA_TEMPRANO">Salida Temprano (Pase)</option>
+            <option value="LLEGADA_TARDE">Entrada Tarde</option>
+            <option value="IDA_Y_VUELTA">Salida Ida y Vuelta</option>
+        </select>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="group"><label>Inicio</label><input type="date" id="sol_desde"></div>
+        <div id="div_hasta" class="group"><label>Fin</label><input type="date" id="sol_hasta"></div>
+    </div>
+
+    <div id="div_hora" style="display:none;" class="group">
+        <label>Hora Registro</label>
+        <input type="time" id="sol_hora">
+    </div>
+
+    <div class="group">
+        <label>Elaborado Por</label>
+        <select id="sol_elaboro" onchange="actualizarInterfazPersona('elaborador')"></select>
+    </div>
+
+    <div class="group">
+        <label>Motivo</label>
+        <textarea id="sol_motivo" rows="3" placeholder="Descripción..."></textarea>
+    </div>
+
+    <button class="btn-primary" onclick="guardarSolicitud()">
+        <i class="fas fa-paper-plane"></i> REGISTRAR SOLICITUD
+    </button>
+</aside>
+
+<main class="main-content">
+    <header class="top-bar">
+        <div>
+            <h1 style="font-size: 24px; font-weight: 800;">Historial de Gestión</h1>
+            <p style="color: var(--text-muted); font-size: 14px;">Administración de incidencias y permisos</p>
+        </div>
+        <div style="text-align: right;">
+            <div id="reloj">--:--:--</div>
+            <select id="filtro_estatus" onchange="listarSolicitudes()" style="width:180px; margin-top: 8px;">
+                <option value="TODOS">Ver Todos</option>
+                <option value="PENDIENTE" selected>Solo Pendientes</option>
+                <option value="APROBADO">Solo Aprobados</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>COLABORADOR / FOLIO</th>
+                    <th>TIPO DE MOVIMIENTO</th>
+                    <th>VIGENCIA</th>
+                    <th>ESTATUS</th>
+                    <th style="text-align: center;">ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody id="tabla_solicitudes"></tbody>
+        </table>
+    </div>
+</main>
 
 <script>
     let db_personal = [];
@@ -128,11 +188,8 @@
         const { data: emps } = await client.from('rh_empleados').select('*, rh_puestos(nombre), rh_areas(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo');
         db_personal = emps || [];
         
-        const selEmp = document.getElementById('sol_empleado');
-        const selElab = document.getElementById('sol_elaboro');
-        
         const opciones = db_personal.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-        selEmp.innerHTML = selElab.innerHTML = '<option value="">-- Seleccione --</option>' + opciones;
+        document.getElementById('sol_empleado').innerHTML = document.getElementById('sol_elaboro').innerHTML = '<option value="">-- Seleccionar --</option>' + opciones;
 
         listarSolicitudes();
         setInterval(() => { document.getElementById('reloj').innerText = new Date().toLocaleString(); }, 1000);
@@ -144,23 +201,19 @@
         const p = db_personal.find(x => x.id == id);
         if(!p) return;
 
-        const puestoNombre = p.rh_puestos?.nombre || 'PUESTO NO DEFINIDO';
-
         if(rol === 'colaborador') {
             const ini = new Date(p.fecha_ingreso), hoy = new Date();
             let anios = hoy.getFullYear() - ini.getFullYear();
             if (hoy < new Date(hoy.getFullYear(), ini.getMonth(), ini.getDate())) anios--;
             
-            document.getElementById('view_puesto').innerText = `PUESTO: ${puestoNombre}`;
-            document.getElementById('view_anti').innerText = `Ingreso: ${p.fecha_ingreso} (${anios} años cumplidos)`;
+            document.getElementById('view_puesto').innerText = p.rh_puestos?.nombre || 'OPERADOR';
+            document.getElementById('view_anti').innerText = `Ingreso: ${p.fecha_ingreso} (${anios} años)`;
             
             const { data: usados } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('estatus', 'APROBADO').eq('tipo', 'VACACIONES');
             const totalUsados = usados?.reduce((a, b) => a + (b.dias_solicitados || 0), 0) || 0;
             
             document.getElementById('view_vacaciones').innerText = calcularDiasLey(anios) - totalUsados;
             document.getElementById('panel_info').style.display = 'block';
-        } else {
-            document.getElementById('view_puesto_elaboro').innerText = `PUESTO: ${puestoNombre}`;
         }
     }
 
@@ -174,7 +227,7 @@
     async function guardarSolicitud() {
         const idColab = document.getElementById('sol_empleado').value;
         const idElab = document.getElementById('sol_elaboro').value;
-        if(!idColab || !idElab) return alert("Complete los nombres del personal.");
+        if(!idColab || !idElab) return alert("Complete los datos requeridos.");
 
         const elab = db_personal.find(x => x.id == idElab);
         const colab = db_personal.find(x => x.id == idColab);
@@ -190,7 +243,7 @@
         const { count } = await client.from('rh_solicitudes').select('*', { count: 'exact', head: true });
         const folio = `KR-${new Date().getFullYear()}-${(count + 1).toString().padStart(4, '0')}`;
 
-        const { error } = await client.from('rh_solicitudes').insert([{
+        await client.from('rh_solicitudes').insert([{
             id_personalizado: folio,
             empleado_id: idColab,
             tipo: tipo,
@@ -200,87 +253,64 @@
             motivo: document.getElementById('sol_motivo').value,
             creado_por: elab.nombre_completo,
             puesto_solicitante: colab.rh_puestos?.nombre || 'OPERADOR',
-            area_solicitante: colab.rh_areas?.nombre || 'GENERAL',
             dias_solicitados: dias,
             estatus: 'PENDIENTE'
         }]);
 
-        if(error) alert("Error: " + error.message);
-        else location.reload();
+        location.reload();
     }
 
     async function listarSolicitudes() {
-        const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
+        const filtro = document.getElementById('filtro_estatus').value;
+        let query = client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', {ascending: false});
+        if (filtro !== 'TODOS') query = query.eq('estatus', filtro);
+
+        const { data } = await query;
         document.getElementById('tabla_solicitudes').innerHTML = (data || []).map(s => `
             <tr>
-                <td><b>${s.id_personalizado}</b><br>${s.rh_empleados?.nombre_completo}</td>
-                <td><span class="badge" style="background:#eee">${s.tipo.replace(/_/g,' ')}</span><br><small>${s.puesto_solicitante}</small></td>
-                <td>${s.fecha_inicio} ${s.hora_solicitud ? '@ '+s.hora_solicitud : ''}</td>
-                <td><span class="badge" style="background:${s.estatus=='APROBADO'?'#dcfce7':'#fef3c7'}">${s.estatus}</span></td>
-                <td>
-                    ${s.estatus === 'PENDIENTE' ? `<button onclick="autorizar('${s.id}')">APROBAR</button>` : 
-                    `<i class="fas fa-print" style="cursor:pointer; color:blue; font-size:18px;" onclick="imprimirTicket('${s.id}')"></i>`}
+                <td><span style="font-weight:700; color:var(--primary);">${s.rh_empleados?.nombre_completo}</span><br><small style="color:var(--text-muted)">${s.id_personalizado}</small></td>
+                <td><span class="badge" style="background:#f1f5f9; color:var(--text-main);">${s.tipo.replace(/_/g,' ')}</span><br><small>${s.puesto_solicitante}</small></td>
+                <td><i class="far fa-calendar-alt"></i> ${s.fecha_inicio}<br><small>${s.hora_solicitud ? 'Hora: '+s.hora_solicitud : ''}</small></td>
+                <td><span class="badge bg-${s.estatus.toLowerCase()}">${s.estatus}</span></td>
+                <td style="text-align: center;">
+                    ${s.estatus === 'PENDIENTE' ? 
+                    `<button class="btn-action btn-approve" onclick="cambiarEstado('${s.id}', 'APROBADO')"><i class="fas fa-check"></i></button>
+                     <button class="btn-action btn-reject" onclick="cambiarEstado('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i></button>` : 
+                    `<button class="btn-action btn-print" onclick="imprimirTicket('${s.id}')"><i class="fas fa-print"></i></button>`}
                 </td>
             </tr>
         `).join('');
     }
 
-    async function autorizar(id) {
-        if(!confirm("¿Autorizar esta solicitud oficialmente?")) return;
+    async function cambiarEstado(id, nuevoEstado) {
+        if(!confirm(`¿Desea marcar como ${nuevoEstado}?`)) return;
         await client.from('rh_solicitudes').update({ 
-            estatus: 'APROBADO', 
-            aprobado_por: 'YURIDIA RIOS (COORD. GERENTE JR)', 
+            estatus: nuevoEstado, 
+            aprobado_por: 'YURIDIA RIOS', 
             fecha_aprobacion: new Date().toISOString() 
         }).eq('id', id);
         listarSolicitudes();
     }
 
     async function imprimirTicket(id) {
-        const { data: s } = await client.from('rh_solicitudes').select('*, rh_empleados(*, rh_areas(nombre))').eq('id', id).single();
-        const elab = db_personal.find(x => x.nombre_completo == s.creado_por);
-        
+        const { data: s } = await client.from('rh_solicitudes').select('*, rh_empleados(*)').eq('id', id).single();
         const win = window.open('', '_blank');
-        const esPaseSalida = s.tipo.includes('SALIDA') || s.tipo.includes('TARDE') || s.tipo === 'IDA_Y_VUELTA';
+        const esPase = s.tipo.includes('SALIDA') || s.tipo.includes('TARDE');
 
         win.document.write(`
-            <html>
-            <body style="font-family:Arial; padding:20px; border: 2px solid #000; width: 500px; margin: auto;">
-                <div style="text-align:center; border-bottom: 2px solid #000; padding-bottom: 10px;">
-                    <h2 style="margin:0;">KRAEM S.A. DE C.V.</h2>
-                    <div style="font-size:14px;"><b>${esPaseSalida ? 'PASE DE SALIDA / ENTRADA (CASETA)' : 'COMPROBANTE DE MOVIMIENTO RH'}</b></div>
+            <html><body style="font-family:sans-serif; padding:40px; border:1px solid #eee; max-width:500px; margin:auto;">
+                <h2 style="text-align:center;">KRAEM S.A. DE C.V.</h2>
+                <h3 style="text-align:center; border-top:2px solid #000; padding-top:10px;">${esPase ? 'PASE DE CASETA' : 'COMPROBANTE RH'}</h3>
+                <p><b>FOLIO:</b> ${s.id_personalizado} | <b>FECHA:</b> ${s.fecha_inicio}</p>
+                <p><b>COLABORADOR:</b> ${s.rh_empleados.nombre_completo}</p>
+                <p><b>TIPO:</b> ${s.tipo}</p>
+                <p><b>MOTIVO:</b> ${s.motivo}</p>
+                <div style="margin-top:50px; display:flex; justify-content:space-between; text-align:center; font-size:12px;">
+                    <div style="border-top:1px solid #000; width:45%;">SOLICITÓ<br>${s.creado_por}</div>
+                    <div style="border-top:1px solid #000; width:45%;">AUTORIZÓ<br>${s.aprobado_por}</div>
                 </div>
-                
-                <div style="margin-top:15px; font-size:13px;">
-                    <div style="display:flex; justify-content:space-between;">
-                        <span><b>FOLIO:</b> ${s.id_personalizado}</span>
-                        <span><b>FECHA:</b> ${s.fecha_inicio}</span>
-                    </div>
-                    <p><b>COLABORADOR:</b> ${s.rh_empleados.nombre_completo}</p>
-                    <p><b>PUESTO:</b> ${s.puesto_solicitante} | <b>ÁREA:</b> ${s.area_solicitante}</p>
-                    <p><b>TIPO DE MOVIMIENTO:</b> ${s.tipo.replace(/_/g,' ')}</p>
-                    ${s.hora_solicitud ? `<p style="font-size:16px; background:#eee; padding:5px;"><b>HORA REGISTRADA:</b> ${s.hora_solicitud}</p>` : ''}
-                    <p><b>MOTIVO:</b> ${s.motivo}</p>
-                </div>
-
-                <div style="margin-top:30px; display:grid; grid-template-columns:1fr 1fr; gap:20px; text-align:center; font-size:10px;">
-                    <div>
-                        <div style="color:blue;">VALIDADO DIGITAL<br>${s.creado_por}<br>${elab?.rh_puestos?.nombre || 'SUPERVISOR'}</div>
-                        <div style="border-top:1px solid #000; margin-top:5px;">SOLICITÓ / ELABORÓ</div>
-                    </div>
-                    <div>
-                        <div style="color:blue;">AUTORIZADO SISTEMA<br>${s.aprobado_por}<br>${s.fecha_aprobacion ? new Date(s.fecha_aprobacion).toLocaleString() : ''}</div>
-                        <div style="border-top:1px solid #000; margin-top:5px;">AUTORIZACIÓN RH</div>
-                    </div>
-                </div>
-                <div style="margin-top:20px; border-top: 1px dashed #000; padding-top:10px; font-size:9px; text-align:center;">
-                    ESTE DOCUMENTO ES UN REGISTRO OFICIAL DE KRAEM. <br> 
-                    SI ES PASE DE SALIDA, ENTREGAR ORIGINAL EN CASETA DE VIGILANCIA.
-                </div>
-                <script>
-                    window.onload = function() { window.print(); window.close(); };
-                <\/script>
-            </body>
-            </html>
+                <script>window.onload = function() { window.print(); window.close(); };<\/script>
+            </body></html>
         `);
     }
 
