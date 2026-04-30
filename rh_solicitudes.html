@@ -58,14 +58,18 @@ button{width:100%;padding:10px;background:#2563eb;color:white;border:none;border
 let empleados=[];
 let areas=[];
 
-// INIT
 async function init(){
 
-// 🔥 TRAER AREAS BIEN
+const selArea = document.getElementById('f_area');
+const selTurno = document.getElementById('f_turno');
+const selEmpleado = document.getElementById('sel_empleado');
+const debug = document.getElementById('debug');
+
+// AREAS
 const { data: a } = await client.from('rh_areas').select('*');
 areas = a || [];
 
-// 🔥 TRAER EMPLEADOS SIN JOIN
+// EMPLEADOS
 const { data: e } = await client
 .from('rh_empleados')
 .select('*')
@@ -73,47 +77,43 @@ const { data: e } = await client
 
 empleados = e || [];
 
-console.log("EMPLEADOS:", empleados);
-console.log("AREAS:", areas);
-
-document.getElementById('debug').innerText =
-JSON.stringify({empleados,areas}, null, 2);
+// DEBUG
+debug.innerText = JSON.stringify({empleados,areas}, null, 2);
 
 // CARGAR AREAS
-const selArea = document.getElementById('f_area');
 selArea.innerHTML = '<option value="">Área</option>';
-
-areas.forEach(a=>{
-selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+areas.forEach(x=>{
+selArea.innerHTML += `<option value="${x.id}">${x.nombre}</option>`;
 });
 
-// FILTRAR
+// FILTRO INICIAL
 filtrar();
+
+// EVENTOS
+selArea.addEventListener('change', filtrar);
+selTurno.addEventListener('change', filtrar);
 
 }
 
-// FILTRAR EMPLEADOS
+// FILTRAR
 function filtrar(){
 
 const area = document.getElementById('f_area').value;
 const turno = document.getElementById('f_turno').value;
+const selEmpleado = document.getElementById('sel_empleado');
 
 const list = empleados.filter(e=>
 (!area || e.area_id == area) &&
 (!turno || e.turno_id == turno)
 );
 
-const sel = document.getElementById('sel_empleado');
-sel.innerHTML = '<option value="">Empleado</option>';
+selEmpleado.innerHTML = '<option value="">Empleado</option>';
 
 list.forEach(e=>{
-sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+selEmpleado.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
 });
 
 }
-
-document.getElementById('f_area').onchange = filtrar;
-document.getElementById('f_turno').onchange = filtrar;
 
 // GUARDAR
 async function guardar(){
@@ -136,7 +136,7 @@ alert("Guardado correctamente");
 }
 
 // INIT
-init();
+document.addEventListener("DOMContentLoaded", init);
 </script>
 
 </body>
