@@ -2,17 +2,70 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM RH PRO</title>
+<title>KRAEM | Solicitudes RH PRO</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
 <style>
-body{font-family:Arial;background:#f1f5f9;padding:20px}
-.container{display:grid;grid-template-columns:400px 1fr;gap:20px}
-.card{background:white;padding:20px;border-radius:12px}
-select,input{width:100%;padding:10px;margin-bottom:10px}
-button{width:100%;padding:10px;background:#2563eb;color:white;border:none;border-radius:8px}
+:root {
+    --primary:#0f172a;
+    --accent:#2563eb;
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --border:#e2e8f0;
+    --success:#22c55e;
+    --danger:#ef4444;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    margin:0;
+    padding:20px;
+}
+
+.container {
+    max-width:1400px;
+    margin:auto;
+    display:grid;
+    grid-template-columns: 420px 1fr;
+    gap:20px;
+}
+
+.card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px;
+}
+
+label {
+    font-size:11px;
+    font-weight:700;
+    color:#64748b;
+}
+
+input, select, textarea {
+    width:100%;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #cbd5e1;
+    margin-bottom:12px;
+}
+
+.btn {
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    font-weight:700;
+    cursor:pointer;
+    background:var(--accent);
+    color:white;
+}
 </style>
 </head>
 
@@ -23,9 +76,8 @@ button{width:100%;padding:10px;background:#2563eb;color:white;border:none;border
 <div class="card">
 <h3>Registrar Solicitud</h3>
 
-<select id="f_area"></select>
-
-<select id="f_turno">
+<select id="f_area" onchange="filtrarEmpleados()"></select>
+<select id="f_turno" onchange="filtrarEmpleados()">
 <option value="">Turno</option>
 <option value="1">Turno 1</option>
 <option value="2">Turno 2</option>
@@ -33,110 +85,126 @@ button{width:100%;padding:10px;background:#2563eb;color:white;border:none;border
 
 <select id="sel_empleado"></select>
 
-<select id="tipo">
-<option value="VACACIONES">Vacaciones</option>
-<option value="PERMISO">Permiso</option>
-<option value="SALIDA_TEMPRANO">Salida temprano</option>
+<h4>Autoriza</h4>
+
+<select id="f_area_aut" onchange="filtrarAutorizadores()"></select>
+<select id="f_turno_aut" onchange="filtrarAutorizadores()">
+<option value="">Turno</option>
+<option value="1">Turno 1</option>
+<option value="2">Turno 2</option>
 </select>
 
-<input type="date" id="f_ini">
-<input type="date" id="f_fin">
-<input type="time" id="h_sol">
+<select id="sel_autoriza"></select>
 
-<button onclick="guardar()">Guardar</button>
-
-</div>
-
-<div class="card">
-<h3>Debug</h3>
-<pre id="debug"></pre>
+<button class="btn" onclick="guardar()">Guardar</button>
 </div>
 
 </div>
 
 <script>
-let empleados=[];
-let areas=[];
+
+let empleados = [];
+let areas = [];
 
 async function init(){
 
-const selArea = document.getElementById('f_area');
-const selTurno = document.getElementById('f_turno');
-const selEmpleado = document.getElementById('sel_empleado');
-const debug = document.getElementById('debug');
-
-// AREAS
-const { data: a } = await client.from('rh_areas').select('*');
-areas = a || [];
-
 // EMPLEADOS
-const { data: e } = await client
+const { data:emp } = await client
 .from('rh_empleados')
 .select('*')
 .eq('estatus','ACTIVO');
 
-empleados = e || [];
+empleados = emp || [];
 
-// DEBUG
-debug.innerText = JSON.stringify({empleados,areas}, null, 2);
+console.log("EMPLEADOS:", empleados);
 
-// CARGAR AREAS
-selArea.innerHTML = '<option value="">Área</option>';
-areas.forEach(x=>{
-selArea.innerHTML += `<option value="${x.id}">${x.nombre}</option>`;
-});
+// AREAS
+const { data:ar } = await client
+.from('rh_areas')
+.select('*')
+.eq('activo',true);
 
-// FILTRO INICIAL
-filtrar();
+areas = ar || [];
 
-// EVENTOS
-selArea.addEventListener('change', filtrar);
-selTurno.addEventListener('change', filtrar);
+console.log("AREAS:", areas);
 
+cargarAreas();
+filtrarEmpleados();
+filtrarAutorizadores();
 }
 
-// FILTRAR
-function filtrar(){
+// CARGAR AREAS
+function cargarAreas(){
+
+const sel1 = document.getElementById('f_area');
+const sel2 = document.getElementById('f_area_aut');
+
+sel1.innerHTML = '<option value="">Área</option>';
+sel2.innerHTML = '<option value="">Área</option>';
+
+areas.forEach(a=>{
+sel1.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+sel2.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+});
+}
+
+// FILTRAR EMPLEADOS
+function filtrarEmpleados(){
 
 const area = document.getElementById('f_area').value;
 const turno = document.getElementById('f_turno').value;
-const selEmpleado = document.getElementById('sel_empleado');
 
-const list = empleados.filter(e=>
+const lista = empleados.filter(e=>
 (!area || e.area_id == area) &&
 (!turno || e.turno_id == turno)
 );
 
-selEmpleado.innerHTML = '<option value="">Empleado</option>';
+const sel = document.getElementById('sel_empleado');
+sel.innerHTML = '<option value="">Empleado</option>';
 
-list.forEach(e=>{
-selEmpleado.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+lista.forEach(e=>{
+sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
 });
+}
 
+// FILTRAR AUTORIZADORES
+function filtrarAutorizadores(){
+
+const area = document.getElementById('f_area_aut').value;
+const turno = document.getElementById('f_turno_aut').value;
+
+const lista = empleados.filter(e=>
+(!area || e.area_id == area) &&
+(!turno || e.turno_id == turno)
+);
+
+const sel = document.getElementById('sel_autoriza');
+sel.innerHTML = '<option value="">Autoriza</option>';
+
+lista.forEach(e=>{
+sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+});
 }
 
 // GUARDAR
 async function guardar(){
 
 const emp = document.getElementById('sel_empleado').value;
+const aut = document.getElementById('sel_autoriza').value;
 
 if(!emp) return alert("Selecciona empleado");
 
 await client.from('rh_solicitudes').insert([{
 empleado_id: emp,
-tipo: document.getElementById('tipo').value,
-fecha_inicio: document.getElementById('f_ini').value,
-fecha_fin: document.getElementById('f_fin').value,
-hora_salida: document.getElementById('h_sol').value,
-estatus: 'PENDIENTE'
+autorizado_por: aut,
+estatus:'PENDIENTE'
 }]);
 
-alert("Guardado correctamente");
-
+alert("Guardado");
 }
 
-// INIT
-document.addEventListener("DOMContentLoaded", init);
+init();
+
 </script>
 
 </body>
