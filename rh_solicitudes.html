@@ -2,178 +2,282 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM | RH PRO FINAL</title>
+<title>KRAEM | RH PRO</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-<style>
-body{font-family:Arial;background:#f5f5f5;padding:20px}
-.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px}
-input,select,textarea{width:100%;padding:8px;margin-bottom:10px}
-button{padding:10px;cursor:pointer}
-.ok{background:green;color:white}
-.no{background:red;color:white}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
-#calendario{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.dia{background:white;border:1px solid #ddd;padding:5px;min-height:90px}
-.evento{background:#dbeafe;margin:2px;padding:2px;font-size:10px}
+<style>
+:root{
+--bg:#f8fafc;
+--card:#fff;
+--accent:#2563eb;
+--border:#e2e8f0;
+--ok:#22c55e;
+--bad:#ef4444;
+}
+
+body{font-family:Inter;background:var(--bg);padding:20px;margin:0}
+.container{display:grid;grid-template-columns:420px 1fr;gap:20px}
+
+.card{background:var(--card);padding:20px;border-radius:14px;border:1px solid var(--border)}
+
+input,select,textarea{
+width:100%;padding:10px;border-radius:8px;border:1px solid #cbd5e1;margin-bottom:10px
+}
+
+button{padding:10px;border:none;border-radius:8px;cursor:pointer}
+
+.btn{background:var(--accent);color:white;width:100%}
+
+.badge{padding:4px 8px;border-radius:6px;font-size:10px}
+.PENDIENTE{background:#fef9c3}
+.APROBADO{background:#dcfce7}
+.RECHAZADO{background:#fee2e2}
+
+.info{background:#eff6ff;padding:10px;border-radius:8px;margin-bottom:10px}
+
+.table{width:100%;border-collapse:collapse}
+.table td,.table th{padding:8px;border-bottom:1px solid #eee}
+
+.ok{background:var(--ok);color:white}
+.no{background:var(--bad);color:white}
+
+/* calendario */
+#cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.day{background:white;border:1px solid #ddd;padding:5px;border-radius:6px;min-height:90px}
+.event{background:#dbeafe;padding:2px;margin:2px;font-size:10px;border-radius:4px}
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
+<!-- FORM -->
 <div class="card">
+
 <h3>Solicitud</h3>
 
-<select id="sel_empleado"></select>
+<!-- FILTROS -->
+<div style="display:flex;gap:10px">
+<select id="f_area"></select>
+<select id="f_turno">
+<option value="">Turno</option>
+<option value="1">Turno 1</option>
+<option value="2">Turno 2</option>
+</select>
+</div>
 
-<select id="sel_tipo">
+<select id="empleado"></select>
+
+<div class="info" id="info" style="display:none">
+<b id="n"></b><br>
+<span id="p"></span><br>
+Antigüedad: <span id="a"></span><br>
+Vacaciones: <b id="v"></b>
+</div>
+
+<select id="tipo">
 <option value="VACACIONES">Vacaciones</option>
 <option value="PERMISO">Permiso</option>
 <option value="SALIDA_TEMPRANO">Salida temprano</option>
 </select>
 
-<input type="date" id="f_ini">
-<input type="date" id="f_fin">
-<input type="time" id="h_sol">
+<input type="date" id="ini">
+<input type="date" id="fin">
 
-<select id="sel_autoriza"></select>
+<div id="boxHora" style="display:none">
+<input type="time" id="hora">
+</div>
+
+<!-- AUTORIZADOR -->
+<div style="display:flex;gap:10px">
+<select id="f_area_aut"></select>
+<select id="f_turno_aut">
+<option value="">Turno</option>
+<option value="1">Turno 1</option>
+<option value="2">Turno 2</option>
+</select>
+</div>
+
+<select id="autoriza"></select>
 
 <textarea id="obs"></textarea>
 
-<button onclick="guardar()">Guardar</button>
+<button class="btn" onclick="guardar()">Guardar</button>
+
 </div>
 
+<!-- TABLA -->
 <div class="card">
 <h3>Historial</h3>
-<table border="1" width="100%">
-<thead><tr><th>Emp</th><th>Tipo</th><th>Estatus</th><th></th></tr></thead>
+<table class="table">
 <tbody id="hist"></tbody>
 </table>
 </div>
 
-<div class="card">
+<!-- CAL -->
+<div class="card" style="grid-column:span 2">
 <h3>Calendario</h3>
-<div id="calendario"></div>
+<div id="cal"></div>
+</div>
+
 </div>
 
 <script>
 let empleados=[];
 
-// INIT
 async function init(){
 const {data}=await client.from('rh_empleados').select('*');
 empleados=data||[];
 
-const sel=document.getElementById('sel_empleado');
-const selAut=document.getElementById('sel_autoriza');
-
-empleados.forEach(e=>{
-sel.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`;
-selAut.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`;
-});
-
-cargarHist();
-cargarCal();
+cargarFiltros();
+filtrar();
+filtrarAut();
+historial();
+calendario();
 }
 
-// FOLIO
-async function generarFolio(){
-const {count}=await client.from('rh_solicitudes').select('*',{count:'exact',head:true});
-return 'FRH-'+String((count||0)+1).padStart(5,'0');
+function cargarFiltros(){
+let areas=[...new Set(empleados.map(e=>e.area_id))];
+
+areas.forEach(a=>{
+f_area.innerHTML+=`<option value="${a}">${a}</option>`;
+f_area_aut.innerHTML+=`<option value="${a}">${a}</option>`;
+});
+}
+
+function filtrar(){
+let list=empleados.filter(e=>
+(!f_area.value||e.area_id==f_area.value)&&
+(!f_turno.value||e.turno_id==f_turno.value)
+);
+
+empleado.innerHTML='<option></option>';
+list.forEach(e=>empleado.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`);
+}
+
+function filtrarAut(){
+let list=empleados.filter(e=>
+(!f_area_aut.value||e.area_id==f_area_aut.value)&&
+(!f_turno_aut.value||e.turno_id==f_turno_aut.value)
+);
+
+autoriza.innerHTML='<option></option>';
+list.forEach(e=>autoriza.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`);
+}
+
+// INFO EMP
+empleado.onchange=()=>{
+let e=empleados.find(x=>x.id==empleado.value);
+if(!e)return;
+
+info.style.display='block';
+n.innerText=e.nombre_completo;
+p.innerText=e.puesto;
+
+let ing=new Date(e.fecha_ingreso);
+let hoy=new Date();
+let anios=hoy.getFullYear()-ing.getFullYear();
+a.innerText=anios+" años";
+
+v.innerText=12+(anios*2);
+}
+
+// TIPO
+tipo.onchange=()=>{
+let t=tipo.value;
+boxHora.style.display=(t==="SALIDA_TEMPRANO")?'block':'none';
 }
 
 // GUARDAR
 async function guardar(){
 await client.from('rh_solicitudes').insert([{
-empleado_id:sel_empleado.value,
-tipo:sel_tipo.value,
-fecha_inicio:f_ini.value,
-fecha_fin:f_fin.value,
-hora_salida:h_sol.value,
+empleado_id:empleado.value,
+tipo:tipo.value,
+fecha_inicio:ini.value,
+fecha_fin:fin.value,
+hora_salida:hora.value,
 observaciones:obs.value,
-autorizado_por:sel_autoriza.selectedOptions[0].text,
+autorizado_por:autoriza.selectedOptions[0].text,
 estatus:'PENDIENTE'
 }]);
-
 location.reload();
 }
 
+// FOLIO
+async function folio(){
+const {count}=await client.from('rh_solicitudes').select('*',{count:'exact',head:true});
+return 'FRH-'+String((count||0)+1).padStart(5,'0');
+}
+
 // PDF
-async function generarPDF(s){
+function pdf(d){
 const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
+let doc=new jsPDF();
 
-doc.text("FORMATO PERMISO RH",70,10);
+doc.text("FORMATO RH",80,10);
+doc.text("Folio: "+d.folio,10,20);
+doc.text("Empleado: "+d.nombre,10,30);
+doc.text("Tipo: "+d.tipo,10,40);
+doc.text("Motivo: "+d.obs,10,50);
 
-doc.text(`Folio: ${s.folio}`,10,20);
-doc.text(`Empleado: ${s.nombre}`,10,30);
-doc.text(`Tipo: ${s.tipo}`,10,40);
-doc.text(`Motivo: ${s.motivo}`,10,50);
+doc.text("Solicita: ✔ DIGITAL",10,80);
+doc.text("Autoriza: "+d.autoriza,80,80);
 
-doc.text("Solicita (Digital)",10,80);
-doc.text("✔ AUTORIZADO",10,85);
-
-doc.text("Autoriza (Digital)",80,80);
-doc.text(s.autoriza,80,85);
-
-doc.text("Director Operaciones",150,80);
+doc.text("Director:",150,80);
 doc.line(150,85,190,85);
 
-doc.save(s.folio+".pdf");
+doc.save(d.folio+".pdf");
 }
 
 // CAMBIAR
-async function cambiar(id,estatus){
+async function cambiar(id,est){
 
-const {data}=await client
-.from('rh_solicitudes')
+let {data}=await client.from('rh_solicitudes')
 .select('*,rh_empleados(nombre_completo,telefono)')
-.eq('id',id)
-.single();
+.eq('id',id).single();
 
-await client.from('rh_solicitudes').update({estatus}).eq('id',id);
+await client.from('rh_solicitudes').update({estatus:est}).eq('id',id);
 
-if(estatus==="APROBADO"){
+if(est==="APROBADO"){
+let f=await folio();
 
-const folio=await generarFolio();
+await client.from('rh_solicitudes').update({folio:f}).eq('id',id);
 
-await client.from('rh_solicitudes').update({folio}).eq('id',id);
-
-await generarPDF({
-folio,
+pdf({
+folio:f,
 nombre:data.rh_empleados.nombre_completo,
 tipo:data.tipo,
-motivo:data.observaciones,
+obs:data.observaciones,
 autoriza:data.autorizado_por
 });
 
-// WHATSAPP
-window.open(`https://wa.me/52${data.rh_empleados.telefono}?text=Tu solicitud ${folio} fue aprobada`);
+window.open(`https://wa.me/52${data.rh_empleados.telefono}?text=Solicitud ${f} aprobada`);
 }
 
-if(estatus==="RECHAZADO"){
-window.open(`https://wa.me/52${data.rh_empleados.telefono}?text=Tu solicitud fue rechazada`);
+if(est==="RECHAZADO"){
+window.open(`https://wa.me/52${data.rh_empleados.telefono}?text=Solicitud rechazada`);
 }
 
-cargarHist();
-cargarCal();
+historial();
+calendario();
 }
 
 // HISTORIAL
-async function cargarHist(){
-const {data}=await client
-.from('rh_solicitudes')
+async function historial(){
+let {data}=await client.from('rh_solicitudes')
 .select('*,rh_empleados(nombre_completo)');
 
 hist.innerHTML=(data||[]).map(s=>`
 <tr>
 <td>${s.rh_empleados?.nombre_completo}</td>
 <td>${s.tipo}</td>
-<td>${s.estatus}</td>
+<td><span class="badge ${s.estatus}">${s.estatus}</span></td>
 <td>
 ${s.estatus==='PENDIENTE'?`
 <button class="ok" onclick="cambiar('${s.id}','APROBADO')">✔</button>
@@ -184,29 +288,26 @@ ${s.estatus==='PENDIENTE'?`
 `).join('');
 }
 
-// CALENDARIO
-async function cargarCal(){
-const {data}=await client.from('rh_solicitudes').select('*').eq('estatus','APROBADO');
+// CAL
+async function calendario(){
+let {data}=await client.from('rh_solicitudes').select('*').eq('estatus','APROBADO');
 
-const cont=document.getElementById('calendario');
-cont.innerHTML='';
+let hoy=new Date();
+let dias=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate();
 
-const hoy=new Date();
-const año=hoy.getFullYear();
-const mes=hoy.getMonth();
-
-const dias=new Date(año,mes+1,0).getDate();
+cal.innerHTML='';
 
 for(let d=1;d<=dias;d++){
-let eventos=data.filter(s=>{
-return d>=new Date(s.fecha_inicio).getDate() &&
-d<=new Date(s.fecha_fin).getDate();
+let ev=data.filter(x=>{
+let i=new Date(x.fecha_inicio).getDate();
+let f=new Date(x.fecha_fin).getDate();
+return d>=i&&d<=f;
 });
 
-cont.innerHTML+=`
-<div class="dia">
+cal.innerHTML+=`
+<div class="day">
 <b>${d}</b>
-${eventos.map(e=>`<div class="evento">${e.tipo}</div>`).join('')}
+${ev.map(e=>`<div class="event">${e.tipo}</div>`).join('')}
 </div>`;
 }
 }
