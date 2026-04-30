@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM | Solicitudes RH</title>
+<title>KRAEM | Solicitudes RH PRO</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -18,7 +18,6 @@
     --border:#e2e8f0;
     --success:#22c55e;
     --danger:#ef4444;
-    --warning:#f59e0b;
 }
 
 body {
@@ -32,7 +31,7 @@ body {
     max-width:1400px;
     margin:auto;
     display:grid;
-    grid-template-columns: 400px 1fr;
+    grid-template-columns: 420px 1fr;
     gap:20px;
 }
 
@@ -44,10 +43,7 @@ body {
     box-shadow:0 4px 10px rgba(0,0,0,0.03);
 }
 
-h3 {
-    margin-top:0;
-    font-size:16px;
-}
+h3 { margin-top:0; }
 
 label {
     font-size:11px;
@@ -70,11 +66,17 @@ input, select, textarea {
     border-radius:10px;
     font-weight:700;
     cursor:pointer;
-}
-
-.btn-primary {
     background:var(--accent);
     color:white;
+}
+
+.info-box {
+    background:#eff6ff;
+    border:1px solid #bfdbfe;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:12px;
+    font-size:13px;
 }
 
 .badge {
@@ -84,9 +86,9 @@ input, select, textarea {
     font-weight:bold;
 }
 
-.badge-PENDIENTE { background:#fef9c3; color:#92400e; }
-.badge-APROBADO { background:#dcfce7; color:#166534; }
-.badge-RECHAZADO { background:#fee2e2; color:#991b1b; }
+.badge-PENDIENTE { background:#fef9c3; }
+.badge-APROBADO { background:#dcfce7; }
+.badge-RECHAZADO { background:#fee2e2; }
 
 .table {
     width:100%;
@@ -111,18 +113,12 @@ input, select, textarea {
     padding:6px 10px;
     border-radius:6px;
     cursor:pointer;
+    margin-right:5px;
 }
 
 .ok { background:var(--success); color:white; }
 .no { background:var(--danger); color:white; }
 
-.info-box {
-    background:#eff6ff;
-    border:1px solid #bfdbfe;
-    padding:10px;
-    border-radius:8px;
-    margin-bottom:10px;
-}
 </style>
 </head>
 
@@ -130,21 +126,41 @@ input, select, textarea {
 
 <div class="container">
 
-<!-- FORM -->
+<!-- FORMULARIO -->
 <div class="card">
 <h3>Registrar Solicitud</h3>
 
-<label>Empleado</label>
-<select id="sel_empleado"></select>
+<div style="display:flex; gap:10px;">
+<select id="f_area" onchange="filtrarEmpleados()">
+<option value="">Área</option>
+</select>
 
-<div class="info-box">
-Vacaciones disponibles: <b id="txt_vacas">0</b> días
+<select id="f_turno" onchange="filtrarEmpleados()">
+<option value="">Turno</option>
+<option value="1">Turno 1</option>
+<option value="2">Turno 2</option>
+</select>
+</div>
+
+<label>Empleado</label>
+<select id="sel_empleado" onchange="mostrarInfoEmpleado()"></select>
+
+<div class="info-box" id="info_emp" style="display:none;">
+<div><b id="emp_nombre"></b></div>
+<div>Puesto: <span id="emp_puesto"></span></div>
+<div>Antigüedad: <span id="emp_anti"></span></div>
+<div>Vacaciones disponibles: <b id="txt_vacas"></b></div>
 </div>
 
 <label>Tipo</label>
 <select id="sel_tipo" onchange="ajustarCampos()">
 <option value="VACACIONES">Vacaciones</option>
+<option value="INCAPACIDAD_ENFERMEDAD">Incapacidad Enfermedad</option>
+<option value="INCAPACIDAD_MATERNIDAD">Incapacidad Maternidad</option>
 <option value="PERMISO_SIN_GOCE">Permiso sin goce</option>
+<option value="SUSPENSION">Suspensión</option>
+<option value="DEFUNCION">Defunción</option>
+<option value="MATRIMONIO">Matrimonio</option>
 <option value="SALIDA_TEMPRANO">Salida temprano</option>
 <option value="IDA_VUELTA">Ida y vuelta</option>
 </select>
@@ -152,21 +168,28 @@ Vacaciones disponibles: <b id="txt_vacas">0</b> días
 <label>Fecha inicio</label>
 <input type="date" id="f_ini" onchange="procesarFechas()">
 
+<div id="box_fin">
 <label>Fecha fin</label>
 <input type="date" id="f_fin">
+</div>
 
-<label>Hora (si aplica)</label>
-<input type="time" id="h_sol" style="display:none;">
+<div id="box_hora" style="display:none;">
+<label>Hora salida</label>
+<input type="time" id="h_sol">
+</div>
+
+<label>Autoriza</label>
+<select id="sel_autoriza"></select>
 
 <label>Observaciones</label>
 <textarea id="txt_obs"></textarea>
 
-<button class="btn btn-primary" onclick="guardarRegistro()">Guardar solicitud</button>
+<button class="btn" onclick="guardarRegistro()">Guardar solicitud</button>
 </div>
 
 <!-- TABLA -->
 <div class="card">
-<h3>Historial de Solicitudes</h3>
+<h3>Historial</h3>
 
 <table class="table">
 <thead>
@@ -186,88 +209,130 @@ Vacaciones disponibles: <b id="txt_vacas">0</b> días
 </div>
 
 <script>
-let empleados=[];
+let empleados = [];
+let empleadosFiltrados = [];
 
 async function init(){
-    const { data } = await client.from('rh_empleados').select('*').eq('estatus','ACTIVO');
-    empleados=data||[];
+    const { data } = await client
+        .from('rh_empleados')
+        .select('*, rh_puestos(nombre), rh_areas(nombre)')
+        .eq('estatus','ACTIVO');
 
-    const sel=document.getElementById('sel_empleado');
-    sel.innerHTML='<option value="">Seleccionar</option>';
-    empleados.forEach(e=>{
-        sel.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`;
+    empleados = data || [];
+
+    const areas = [...new Set(empleados.map(e=>e.area_id))];
+    const selArea = document.getElementById('f_area');
+
+    areas.forEach(a=>{
+        const nombre = empleados.find(e=>e.area_id==a)?.rh_areas?.nombre || 'Área';
+        selArea.innerHTML += `<option value="${a}">${nombre}</option>`;
     });
 
-    sel.addEventListener('change', calcularVacaciones);
-
+    filtrarEmpleados();
     cargarHistorial();
 }
 
-function calcularVacaciones(){
-    const id=document.getElementById('sel_empleado').value;
-    const emp=empleados.find(e=>e.id==id);
+function filtrarEmpleados(){
+    const area = document.getElementById('f_area').value;
+    const turno = document.getElementById('f_turno').value;
+
+    empleadosFiltrados = empleados.filter(e =>
+        (!area || e.area_id == area) &&
+        (!turno || e.turno_id == turno)
+    );
+
+    const sel = document.getElementById('sel_empleado');
+    sel.innerHTML = '<option value="">Seleccionar</option>';
+
+    empleadosFiltrados.forEach(e=>{
+        sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+    });
+
+    document.getElementById('sel_autoriza').innerHTML = sel.innerHTML;
+}
+
+function mostrarInfoEmpleado(){
+    const id = document.getElementById('sel_empleado').value;
+    const emp = empleados.find(e=>e.id==id);
     if(!emp) return;
 
-    const ingreso=new Date(emp.fecha_ingreso);
-    const hoy=new Date();
-    let anios=hoy.getFullYear()-ingreso.getFullYear();
+    document.getElementById('info_emp').style.display = 'block';
+    document.getElementById('emp_nombre').innerText = emp.nombre_completo;
+    document.getElementById('emp_puesto').innerText = emp.rh_puestos?.nombre || 'General';
 
-    const tabla=[0,12,14,16,18,20,22,22,22,22,22,24];
-    const dias=anios>=11?24:(tabla[anios]||0);
+    const ingreso = new Date(emp.fecha_ingreso);
+    const hoy = new Date();
 
-    document.getElementById('txt_vacas').innerText=dias;
+    let anios = hoy.getFullYear() - ingreso.getFullYear();
+    let meses = hoy.getMonth() - ingreso.getMonth();
+
+    if(meses < 0){ anios--; meses += 12; }
+
+    document.getElementById('emp_anti').innerText = `${anios} años ${meses} meses`;
+
+    const tabla = [0,12,14,16,18,20,22,22,22,22,22,24];
+    const dias = anios >= 11 ? 24 : (tabla[anios] || 0);
+
+    document.getElementById('txt_vacas').innerText = dias;
 }
 
 function ajustarCampos(){
-    const tipo=document.getElementById('sel_tipo').value;
-    document.getElementById('h_sol').style.display=
-    (tipo==="SALIDA_TEMPRANO"||tipo==="IDA_VUELTA")?"block":"none";
+    const tipo = document.getElementById('sel_tipo').value;
+    const esHora = ["SALIDA_TEMPRANO","IDA_VUELTA"].includes(tipo);
+
+    document.getElementById('box_hora').style.display = esHora ? 'block':'none';
+    document.getElementById('box_fin').style.display = esHora ? 'none':'block';
 }
 
 function procesarFechas(){
-    const tipo=document.getElementById('sel_tipo').value;
-    const f=document.getElementById('f_ini').value;
-    if(tipo==="SALIDA_TEMPRANO"||tipo==="IDA_VUELTA"){
-        document.getElementById('f_fin').value=f;
+    const tipo = document.getElementById('sel_tipo').value;
+    const f = document.getElementById('f_ini').value;
+
+    if(["SALIDA_TEMPRANO","IDA_VUELTA"].includes(tipo)){
+        document.getElementById('f_fin').value = f;
+    }
+
+    if(tipo === 'INCAPACIDAD_MATERNIDAD'){
+        let d = new Date(f);
+        d.setDate(d.getDate()+84);
+        document.getElementById('f_fin').value = d.toISOString().split('T')[0];
     }
 }
 
 async function guardarRegistro(){
-    const empId=document.getElementById('sel_empleado').value;
-    const tipo=document.getElementById('sel_tipo').value;
-    const fIni=document.getElementById('f_ini').value;
-    const fFin=document.getElementById('f_fin').value||fIni;
+    const empId = document.getElementById('sel_empleado').value;
+    const tipo = document.getElementById('sel_tipo').value;
+    const fIni = document.getElementById('f_ini').value;
+    const fFin = document.getElementById('f_fin').value || fIni;
 
     if(!empId) return alert("Selecciona empleado");
 
-    const d1=new Date(fIni);
-    const d2=new Date(fFin);
+    const d1 = new Date(fIni);
+    const d2 = new Date(fFin);
 
-    let dias=Math.floor((d2-d1)/(1000*60*60*24))+1;
+    let dias = Math.floor((d2-d1)/(1000*60*60*24))+1;
 
-    if(tipo==="VACACIONES"){
-        const disp=parseInt(document.getElementById('txt_vacas').innerText);
-        if(dias>disp) return alert("Sin días suficientes");
-    }
+    const { data:existentes } = await client
+        .from('rh_solicitudes')
+        .select('*')
+        .eq('empleado_id',empId);
 
-    const { data:existentes }=await client.from('rh_solicitudes')
-    .select('*').eq('empleado_id',empId);
-
-    const traslape=(existentes||[]).some(s=>{
-        const i=new Date(s.fecha_inicio);
-        const f=new Date(s.fecha_fin);
+    const traslape = (existentes||[]).some(s=>{
+        const i = new Date(s.fecha_inicio);
+        const f = new Date(s.fecha_fin);
         return (d1<=f && d2>=i);
     });
 
-    if(traslape) return alert("Fechas ya ocupadas");
+    if(traslape) return alert("Fechas ocupadas");
 
     await client.from('rh_solicitudes').insert([{
         empleado_id:empId,
         tipo,
         fecha_inicio:fIni,
         fecha_fin:fFin,
-        hora_salida:document.getElementById('h_sol').value||null,
+        hora_salida:document.getElementById('h_sol').value || null,
         dias_solicitados:dias,
+        autorizado_por:document.getElementById('sel_autoriza').selectedOptions[0]?.text,
         observaciones:document.getElementById('txt_obs').value,
         estatus:'PENDIENTE'
     }]);
@@ -276,11 +341,12 @@ async function guardarRegistro(){
 }
 
 async function cargarHistorial(){
-    const { data }=await client.from('rh_solicitudes')
-    .select('*,rh_empleados(nombre_completo)')
-    .order('created_at',{ascending:false});
+    const { data } = await client
+        .from('rh_solicitudes')
+        .select('*, rh_empleados(nombre_completo)')
+        .order('created_at',{ascending:false});
 
-    document.getElementById('lista_sol').innerHTML=(data||[]).map(s=>`
+    document.getElementById('lista_sol').innerHTML = (data||[]).map(s=>`
     <tr>
     <td>${s.rh_empleados?.nombre_completo}</td>
     <td>${s.tipo}</td>
