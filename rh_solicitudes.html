@@ -2,224 +2,62 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM | Solicitudes RH PRO</title>
+<title>KRAEM | RH PRO FINAL</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-:root {
-    --primary:#0f172a;
-    --accent:#2563eb;
-    --bg:#f8fafc;
-    --card:#ffffff;
-    --border:#e2e8f0;
-    --success:#22c55e;
-    --danger:#ef4444;
-}
+body{font-family:Arial;background:#f5f5f5;padding:20px}
+.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px}
+input,select,textarea{width:100%;padding:8px;margin-bottom:10px}
+button{padding:10px;cursor:pointer}
+.ok{background:green;color:white}
+.no{background:red;color:white}
 
-body {
-    font-family: 'Inter', sans-serif;
-    background: var(--bg);
-    margin:0;
-    padding:20px;
-}
-
-.container {
-    max-width:1400px;
-    margin:auto;
-    display:grid;
-    grid-template-columns: 420px 1fr;
-    gap:20px;
-}
-
-.card {
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:20px;
-}
-
-label {
-    font-size:11px;
-    font-weight:700;
-    color:#64748b;
-}
-
-input, select, textarea {
-    width:100%;
-    padding:10px;
-    border-radius:8px;
-    border:1px solid #cbd5e1;
-    margin-bottom:12px;
-}
-
-.btn {
-    width:100%;
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    font-weight:700;
-    cursor:pointer;
-    background:var(--accent);
-    color:white;
-}
-
-.info-box {
-    background:#eff6ff;
-    border:1px solid #bfdbfe;
-    padding:12px;
-    border-radius:10px;
-    margin-bottom:12px;
-    font-size:13px;
-}
-
-.badge {
-    padding:4px 8px;
-    border-radius:6px;
-    font-size:10px;
-    font-weight:bold;
-}
-
-.badge-PENDIENTE { background:#fef9c3; }
-.badge-APROBADO { background:#dcfce7; }
-.badge-RECHAZADO { background:#fee2e2; }
-
-.table {
-    width:100%;
-    border-collapse:collapse;
-}
-
-.table th, .table td {
-    padding:10px;
-    border-bottom:1px solid #e2e8f0;
-}
-
-.actions button {
-    padding:5px 8px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-}
-
-.ok { background:var(--success); color:white; }
-.no { background:var(--danger); color:white; }
-
-/* calendario */
-#calendario {
-    display:grid;
-    grid-template-columns: repeat(7,1fr);
-    gap:5px;
-}
-
-.dia {
-    background:white;
-    border:1px solid #e2e8f0;
-    border-radius:8px;
-    min-height:100px;
-    padding:5px;
-    font-size:11px;
-}
-
-.dia-header {
-    font-weight:bold;
-    margin-bottom:5px;
-}
-
-.evento {
-    background:#dbeafe;
-    border-radius:4px;
-    padding:2px 4px;
-    margin-bottom:2px;
-    font-size:10px;
-}
+#calendario{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dia{background:white;border:1px solid #ddd;padding:5px;min-height:90px}
+.evento{background:#dbeafe;margin:2px;padding:2px;font-size:10px}
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-<!-- FORM -->
 <div class="card">
-<h3>Registrar Solicitud</h3>
+<h3>Solicitud</h3>
 
-<div style="display:flex; gap:10px;">
-<select id="f_area" onchange="filtrarEmpleados()"><option value="">Área</option></select>
-<select id="f_turno" onchange="filtrarEmpleados()">
-<option value="">Turno</option>
-<option value="1">Turno 1</option>
-<option value="2">Turno 2</option>
-</select>
-</div>
+<select id="sel_empleado"></select>
 
-<select id="sel_empleado" onchange="mostrarInfoEmpleado()"></select>
-
-<div id="info_emp" class="info-box" style="display:none;">
-<div><b id="emp_nombre"></b></div>
-<div>Puesto: <span id="emp_puesto"></span></div>
-<div>Antigüedad: <span id="emp_anti"></span></div>
-<div>Vacaciones: <b id="txt_vacas"></b></div>
-</div>
-
-<select id="sel_tipo" onchange="ajustarCampos()">
+<select id="sel_tipo">
 <option value="VACACIONES">Vacaciones</option>
-<option value="INCAPACIDAD_ENFERMEDAD">Incapacidad Enfermedad</option>
-<option value="INCAPACIDAD_MATERNIDAD">Maternidad</option>
-<option value="PERMISO_SIN_GOCE">Permiso</option>
-<option value="SUSPENSION">Suspensión</option>
-<option value="DEFUNCION">Defunción</option>
-<option value="MATRIMONIO">Matrimonio</option>
+<option value="PERMISO">Permiso</option>
 <option value="SALIDA_TEMPRANO">Salida temprano</option>
-<option value="IDA_VUELTA">Ida y vuelta</option>
 </select>
 
-<input type="date" id="f_ini" onchange="procesarFechas()">
-
-<div id="box_fin">
+<input type="date" id="f_ini">
 <input type="date" id="f_fin">
-</div>
-
-<div id="box_hora" style="display:none;">
 <input type="time" id="h_sol">
-</div>
-
-<!-- AUTORIZADOR -->
-<div style="display:flex; gap:10px;">
-<select id="f_area_aut" onchange="filtrarAutorizadores()"><option value="">Área</option></select>
-<select id="f_turno_aut" onchange="filtrarAutorizadores()">
-<option value="">Turno</option>
-<option value="1">Turno 1</option>
-<option value="2">Turno 2</option>
-</select>
-</div>
 
 <select id="sel_autoriza"></select>
 
-<textarea id="txt_obs" placeholder="Observaciones"></textarea>
+<textarea id="obs"></textarea>
 
-<button class="btn" onclick="guardarRegistro()">Guardar</button>
+<button onclick="guardar()">Guardar</button>
 </div>
 
-<!-- TABLA -->
 <div class="card">
 <h3>Historial</h3>
-<table class="table">
-<thead>
-<tr><th>Empleado</th><th>Tipo</th><th>Días</th><th>Estatus</th><th>Acción</th></tr>
-</thead>
-<tbody id="lista_sol"></tbody>
+<table border="1" width="100%">
+<thead><tr><th>Emp</th><th>Tipo</th><th>Estatus</th><th></th></tr></thead>
+<tbody id="hist"></tbody>
 </table>
 </div>
 
-<!-- CALENDARIO -->
-<div class="card" style="grid-column: span 2;">
+<div class="card">
 <h3>Calendario</h3>
 <div id="calendario"></div>
-</div>
-
 </div>
 
 <script>
@@ -227,174 +65,128 @@ let empleados=[];
 
 // INIT
 async function init(){
-const { data } = await client.from('rh_empleados')
-.select('*,rh_puestos(nombre),rh_areas(nombre)')
-.eq('estatus','ACTIVO');
-
+const {data}=await client.from('rh_empleados').select('*');
 empleados=data||[];
 
-cargarFiltros();
-filtrarEmpleados();
-filtrarAutorizadores();
-cargarHistorial();
-cargarCalendario();
-}
-
-// FILTROS
-function cargarFiltros(){
-const areas=[...new Set(empleados.map(e=>e.area_id))];
-
-areas.forEach(a=>{
-const nombre=empleados.find(e=>e.area_id==a)?.rh_areas?.nombre;
-document.getElementById('f_area').innerHTML+=`<option value="${a}">${nombre}</option>`;
-document.getElementById('f_area_aut').innerHTML+=`<option value="${a}">${nombre}</option>`;
-});
-}
-
-function filtrarEmpleados(){
-const area=document.getElementById('f_area').value;
-const turno=document.getElementById('f_turno').value;
-
-const list=empleados.filter(e=>
-(!area||e.area_id==area)&&(!turno||e.turno_id==turno));
-
 const sel=document.getElementById('sel_empleado');
-sel.innerHTML='<option value="">Empleado</option>';
+const selAut=document.getElementById('sel_autoriza');
 
-list.forEach(e=> sel.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`);
+empleados.forEach(e=>{
+sel.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`;
+selAut.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`;
+});
+
+cargarHist();
+cargarCal();
 }
 
-function filtrarAutorizadores(){
-const area=document.getElementById('f_area_aut').value;
-const turno=document.getElementById('f_turno_aut').value;
-
-const list=empleados.filter(e=>
-(!area||e.area_id==area)&&(!turno||e.turno_id==turno));
-
-const sel=document.getElementById('sel_autoriza');
-sel.innerHTML='<option value="">Autoriza</option>';
-
-list.forEach(e=> sel.innerHTML+=`<option value="${e.id}">${e.nombre_completo}</option>`);
-}
-
-// INFO EMPLEADO
-function mostrarInfoEmpleado(){
-const id=document.getElementById('sel_empleado').value;
-const emp=empleados.find(e=>e.id==id);
-if(!emp)return;
-
-document.getElementById('info_emp').style.display='block';
-document.getElementById('emp_nombre').innerText=emp.nombre_completo;
-document.getElementById('emp_puesto').innerText=emp.rh_puestos?.nombre;
-
-const ingreso=new Date(emp.fecha_ingreso);
-const hoy=new Date();
-let anios=hoy.getFullYear()-ingreso.getFullYear();
-let meses=hoy.getMonth()-ingreso.getMonth();
-if(meses<0){anios--;meses+=12;}
-
-document.getElementById('emp_anti').innerText=`${anios} años ${meses} meses`;
-
-const tabla=[0,12,14,16,18,20,22,22,22,22,22,24];
-document.getElementById('txt_vacas').innerText=anios>=11?24:(tabla[anios]||0);
-}
-
-// CAMPOS
-function ajustarCampos(){
-const tipo=document.getElementById('sel_tipo').value;
-const esHora=["SALIDA_TEMPRANO","IDA_VUELTA"].includes(tipo);
-
-document.getElementById('box_hora').style.display=esHora?'block':'none';
-document.getElementById('box_fin').style.display=esHora?'none':'block';
-}
-
-// FECHAS
-function procesarFechas(){
-const tipo=document.getElementById('sel_tipo').value;
-const f=document.getElementById('f_ini').value;
-
-if(["SALIDA_TEMPRANO","IDA_VUELTA"].includes(tipo)){
-document.getElementById('f_fin').value=f;
-}
-
-if(tipo==="INCAPACIDAD_MATERNIDAD"){
-let d=new Date(f);
-d.setDate(d.getDate()+84);
-document.getElementById('f_fin').value=d.toISOString().split('T')[0];
-}
+// FOLIO
+async function generarFolio(){
+const {count}=await client.from('rh_solicitudes').select('*',{count:'exact',head:true});
+return 'FRH-'+String((count||0)+1).padStart(5,'0');
 }
 
 // GUARDAR
-async function guardarRegistro(){
-const empId=document.getElementById('sel_empleado').value;
-const tipo=document.getElementById('sel_tipo').value;
-const fIni=document.getElementById('f_ini').value;
-const fFin=document.getElementById('f_fin').value||fIni;
-
-if(!empId) return alert("Selecciona empleado");
-
-const d1=new Date(fIni);
-const d2=new Date(fFin);
-
-const { data:exist }=await client.from('rh_solicitudes')
-.select('*').eq('empleado_id',empId);
-
-const traslape=(exist||[]).some(s=>{
-const i=new Date(s.fecha_inicio);
-const f=new Date(s.fecha_fin);
-return (d1<=f && d2>=i);
-});
-
-if(traslape) return alert("Traslape detectado");
-
+async function guardar(){
 await client.from('rh_solicitudes').insert([{
-empleado_id:empId,
-tipo,
-fecha_inicio:fIni,
-fecha_fin:fFin,
-hora_salida:document.getElementById('h_sol').value||null,
-dias_solicitados:1,
-autorizado_por:document.getElementById('sel_autoriza').selectedOptions[0]?.text,
-observaciones:document.getElementById('txt_obs').value,
+empleado_id:sel_empleado.value,
+tipo:sel_tipo.value,
+fecha_inicio:f_ini.value,
+fecha_fin:f_fin.value,
+hora_salida:h_sol.value,
+observaciones:obs.value,
+autorizado_por:sel_autoriza.selectedOptions[0].text,
 estatus:'PENDIENTE'
 }]);
 
 location.reload();
 }
 
+// PDF
+async function generarPDF(s){
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+
+doc.text("FORMATO PERMISO RH",70,10);
+
+doc.text(`Folio: ${s.folio}`,10,20);
+doc.text(`Empleado: ${s.nombre}`,10,30);
+doc.text(`Tipo: ${s.tipo}`,10,40);
+doc.text(`Motivo: ${s.motivo}`,10,50);
+
+doc.text("Solicita (Digital)",10,80);
+doc.text("✔ AUTORIZADO",10,85);
+
+doc.text("Autoriza (Digital)",80,80);
+doc.text(s.autoriza,80,85);
+
+doc.text("Director Operaciones",150,80);
+doc.line(150,85,190,85);
+
+doc.save(s.folio+".pdf");
+}
+
+// CAMBIAR
+async function cambiar(id,estatus){
+
+const {data}=await client
+.from('rh_solicitudes')
+.select('*,rh_empleados(nombre_completo,telefono)')
+.eq('id',id)
+.single();
+
+await client.from('rh_solicitudes').update({estatus}).eq('id',id);
+
+if(estatus==="APROBADO"){
+
+const folio=await generarFolio();
+
+await client.from('rh_solicitudes').update({folio}).eq('id',id);
+
+await generarPDF({
+folio,
+nombre:data.rh_empleados.nombre_completo,
+tipo:data.tipo,
+motivo:data.observaciones,
+autoriza:data.autorizado_por
+});
+
+// WHATSAPP
+window.open(`https://wa.me/52${data.rh_empleados.telefono}?text=Tu solicitud ${folio} fue aprobada`);
+}
+
+if(estatus==="RECHAZADO"){
+window.open(`https://wa.me/52${data.rh_empleados.telefono}?text=Tu solicitud fue rechazada`);
+}
+
+cargarHist();
+cargarCal();
+}
+
 // HISTORIAL
-async function cargarHistorial(){
-const { data }=await client.from('rh_solicitudes')
+async function cargarHist(){
+const {data}=await client
+.from('rh_solicitudes')
 .select('*,rh_empleados(nombre_completo)');
 
-document.getElementById('lista_sol').innerHTML=(data||[]).map(s=>`
+hist.innerHTML=(data||[]).map(s=>`
 <tr>
 <td>${s.rh_empleados?.nombre_completo}</td>
 <td>${s.tipo}</td>
-<td>${s.dias_solicitados}</td>
-<td><span class="badge badge-${s.estatus}">${s.estatus}</span></td>
+<td>${s.estatus}</td>
 <td>
 ${s.estatus==='PENDIENTE'?`
 <button class="ok" onclick="cambiar('${s.id}','APROBADO')">✔</button>
 <button class="no" onclick="cambiar('${s.id}','RECHAZADO')">✖</button>
-`:'-'}
+`:''}
 </td>
 </tr>
 `).join('');
 }
 
-// CAMBIAR ESTATUS
-async function cambiar(id,estatus){
-await client.from('rh_solicitudes').update({estatus}).eq('id',id);
-cargarHistorial();
-cargarCalendario();
-}
-
 // CALENDARIO
-async function cargarCalendario(){
-const { data }=await client.from('rh_solicitudes')
-.select('*,rh_empleados(nombre_completo)')
-.eq('estatus','APROBADO');
+async function cargarCal(){
+const {data}=await client.from('rh_solicitudes').select('*').eq('estatus','APROBADO');
 
 const cont=document.getElementById('calendario');
 cont.innerHTML='';
@@ -403,23 +195,19 @@ const hoy=new Date();
 const año=hoy.getFullYear();
 const mes=hoy.getMonth();
 
-const primer=new Date(año,mes,1).getDay();
-const diasMes=new Date(año,mes+1,0).getDate();
+const dias=new Date(año,mes+1,0).getDate();
 
-for(let i=0;i<primer;i++) cont.innerHTML+='<div></div>';
-
-for(let d=1; d<=diasMes; d++){
-const fecha=new Date(año,mes,d);
-const fStr=fecha.toISOString().split('T')[0];
-
-const eventos=data.filter(s=>fStr>=s.fecha_inicio&&fStr<=s.fecha_fin);
+for(let d=1;d<=dias;d++){
+let eventos=data.filter(s=>{
+return d>=new Date(s.fecha_inicio).getDate() &&
+d<=new Date(s.fecha_fin).getDate();
+});
 
 cont.innerHTML+=`
 <div class="dia">
-<div class="dia-header">${d}</div>
-${eventos.map(e=>`<div class="evento">${e.rh_empleados?.nombre_completo}</div>`).join('')}
-</div>
-`;
+<b>${d}</b>
+${eventos.map(e=>`<div class="evento">${e.tipo}</div>`).join('')}
+</div>`;
 }
 }
 
