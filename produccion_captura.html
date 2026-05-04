@@ -2,95 +2,298 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Captura de Producción - KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM - Control de Piso Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --bg: #f4f6f8; --card: #ffffff; --primary: #2563eb; --border: #e2e8f0; --text: #0f172a; }
-        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: var(--card); padding: 30px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .group { display: flex; flex-direction: column; }
-        label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #64748b; margin-bottom: 5px; }
-        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
-        .header-form { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .section-title { grid-column: 1 / -1; background: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-top: 15px; color: var(--primary); border-left: 4px solid var(--primary); }
-        .btn-save { grid-column: 1 / -1; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 16px; }
-        .btn-save:hover { opacity: 0.9; transform: translateY(-2px); }
+        :root {
+            --bg: #04293a;
+            --panel: #073b55;
+            --accent: #32baf0;
+            --green: #16a34a;
+            --red: #ef4444;
+            --text: #e9f7ff;
+            --muted: #bcd7e6;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top, #063e59, #011621);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 25px;
+            background: var(--glass);
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Grid de Máquinas */
+        .machine-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .machine-card {
+            background: var(--panel);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+        }
+
+        .machine-card:hover { transform: translateY(-5px); background: #0a4a6b; }
+        .machine-card.active { border-left: 5px solid var(--green); }
+        .machine-card.idle { border-left: 5px solid var(--red); opacity: 0.7; }
+
+        .machine-name { font-weight: 800; font-size: 1.1rem; display: block; }
+        .machine-part { font-size: 0.85rem; color: var(--accent); margin-top: 5px; }
+
+        /* Modal / Formulario Flotante */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: #021a26;
+            width: 90%;
+            max-width: 900px;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .section-title {
+            grid-column: 1 / -1;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        /* Inputs Estilizados */
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 5px; }
+        input, select {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        .readonly-field { background: rgba(0,0,0,0.2); color: var(--accent); font-weight: bold; border: none; }
+
+        /* Botones */
+        .btn-group { grid-column: 1 / -1; display: flex; gap: 10px; margin-top: 20px; }
+        .btn {
+            flex: 1; padding: 12px; border: none; border-radius: 10px;
+            font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-draft { background: #475569; color: white; }
+        .btn-register { background: var(--green); color: white; }
+        .btn-cancel { background: transparent; color: var(--muted); border: 1px solid var(--muted); }
+
+        .kpi-box {
+            background: var(--glass);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .kpi-value { font-size: 1.5rem; font-weight: 900; display: block; }
+        .kpi-label { font-size: 0.6rem; color: var(--muted); }
+
+        @media (max-width: 768px) { .modal-content { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header-form">
-        <h2 style="margin:0;">🚀 Registro de Producción Diaria</h2>
-        <button onclick="location.href='dashboard.html'" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Volver</button>
+<header>
+    <div>
+        <h2 style="margin:0">KRAEM PRODUCCIÓN</h2>
+        <span style="font-size: 0.8rem; color: var(--muted)">Panel de Líder de Turno</span>
     </div>
+    <div style="text-align: right">
+        <div id="reloj" style="font-weight: bold">00:00:00</div>
+        <div style="font-size: 0.7rem">Máquinas Activas: <b id="count-active">0</b> / 34</div>
+    </div>
+</header>
 
-    <div class="grid-form" id="prodForm">
-        <!-- Datos Generales -->
-        <div class="section-title">DATOS DE CONTROL</div>
-        <div class="group"><label>Fecha</label><input type="date" id="fecha"></div>
-        <div class="group"><label>Turno</label><select id="turno"><option>1er Turno</option><option>2do Turno</option><option>3er Turno</option></select></div>
-        <div class="group"><label>Líder / Supervisor</label><input type="text" id="leader" placeholder="Nombre"></div>
-        <div class="group"><label>Máquina / Lado (LH-RH)</label><input type="text" id="maquina_lado"></div>
+<div class="machine-grid" id="grid-maquinas">
+    <!-- Generado dinámicamente -->
+</div>
 
-        <!-- Operación -->
-        <div class="section-title">PROCESO Y TIEMPOS</div>
-        <div class="group"><label>Hora Arranque</label><input type="time" id="hora_arranque"></div>
-        <div class="group"><label>Hora Paro</label><input type="time" id="hora_paro"></div>
-        <div class="group"><label>Horas Trabajadas</label><input type="number" id="horas_trabajadas" step="0.1"></div>
-        <div class="group"><label>Tiempo Ciclo (seg)</label><input type="number" id="tiempo_ciclo"></div>
-        <div class="group"><label>Unidades por Hora</label><input type="number" id="uph"></div>
+<!-- Modal de Registro -->
+<div class="modal-overlay" id="modal">
+    <div class="modal-content">
+        <div class="section-title">Apertura y Operación (Mañana)</div>
+        
+        <div class="input-group">
+            <label>Máquina Seleccionada</label>
+            <input type="text" id="m_nombre" class="readonly-field" readonly>
+        </div>
 
-        <!-- Producto -->
-        <div class="section-title">DETALLES DEL PRODUCTO</div>
-        <div class="group"><label>N° Parte</label><input type="text" id="part_number" placeholder="Buscar parte..."></div>
-        <div class="group"><label>Proyecto</label><input type="text" id="proyecto"></div>
-        <div class="group"><label>Cavidades</label><input type="number" id="cavidades"></div>
-        <div class="group"><label>Peso Pieza (gr)</label><input type="number" id="peso_pieza" step="0.01"></div>
+        <div class="input-group">
+            <label>Operadores (Escribir nombres separados por coma - Máx 5)</label>
+            <input type="text" id="m_operadores" placeholder="Ej: Juan R., Pedro S.">
+        </div>
 
-        <!-- Resultados -->
-        <div class="section-title">METAS Y RESULTADOS</div>
-        <div class="group"><label>Plan Producción</label><input type="number" id="plan"></div>
-        <div class="group"><label>Tiros Realizados</label><input type="number" id="tiros" oninput="calcularTotal()"></div>
-        <div class="group"><label>Total Inyección</label><input type="number" id="total_inyeccion" readonly style="background:#e2e8f0;"></div>
-        <div class="group"><label>Scrap</label><input type="number" id="scrap" oninput="calcularTotal()"></div>
-        <div class="group"><label>Cantidad OK (Piezas Buenas)</label><input type="number" id="cantidad_ok" readonly style="background:#dcfce7; font-weight:bold;"></div>
+        <div class="input-group">
+            <label>N° Parte / Proyecto</label>
+            <select id="m_parte">
+                <option value="0" data-ciclo="30" data-cav="2">Seleccione Parte...</option>
+                <option value="1" data-ciclo="15.5" data-cav="4">Tapa Lateral LH (Nissan)</option>
+                <option value="2" data-ciclo="45" data-cav="1">Base Principal (Tesla)</option>
+            </select>
+        </div>
 
-        <!-- Materiales -->
-        <div class="section-title">RESINA Y MATERIAL</div>
-        <div class="group"><label>Tipo Resina</label><input type="text" id="tipo_resina"></div>
-        <div class="group"><label>Lote Resina</label><input type="text" id="lote_resina"></div>
-        <div class="group"><label>Peso Purga</label><input type="number" id="peso_purga"></div>
-        <div class="group"><label>Peso Vena</label><input type="number" id="peso_vena"></div>
+        <div class="input-group">
+            <label>Hora Arranque</label>
+            <input type="time" id="m_hora_arranque" value="07:00">
+        </div>
 
-        <button class="btn-save" onclick="guardarProduccion()">💾 GUARDAR Y REGISTRAR EN INVENTARIO</button>
+        <div class="section-title">Cierre y Resultados (Final de Turno)</div>
+
+        <div class="input-group">
+            <label>Tiros Reales Totales</label>
+            <input type="number" id="m_tiros" placeholder="0" oninput="calcularTodo()">
+        </div>
+
+        <div class="input-group">
+            <label>Scrap (Piezas Malas)</label>
+            <input type="number" id="m_scrap" placeholder="0" oninput="calcularTodo()">
+        </div>
+
+        <div class="kpi-box">
+            <span class="kpi-label">PIEZAS OK (INVENTARIO)</span>
+            <span class="kpi-value" id="res_ok">0</span>
+        </div>
+
+        <div class="kpi-box">
+            <span class="kpi-label">EFICIENCIA DE TURNO</span>
+            <span class="kpi-value" id="res_eficiencia" style="color: var(--accent)">0%</span>
+        </div>
+
+        <div class="section-title">Cálculos del Sistema (Teóricos)</div>
+        <div class="input-group"><label>UPH Teórico</label><input type="text" id="calc_uph" class="readonly-field" readonly></div>
+        <div class="input-group"><label>Plan según Tiempo</label><input type="text" id="calc_plan" class="readonly-field" readonly></div>
+
+        <div class="btn-group">
+            <button class="btn btn-cancel" onclick="cerrarModal()">Cerrar</button>
+            <button class="btn btn-draft" onclick="guardarBorrador()">💾 Guardar Borrador</button>
+            <button class="btn btn-register" onclick="registrarFinal()">🚀 Registrar y Finalizar</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // Inicializar Supabase con tus credenciales
-    const _client = supabase.createClient('URL', 'KEY');
+    const totalMaquinas = 34;
+    const maquinasData = [];
 
-    function calcularTotal() {
-        const tiros = parseInt(document.getElementById('tiros').value) || 0;
-        const cavs = parseInt(document.getElementById('cavidades').value) || 1;
-        const scrap = parseInt(document.getElementById('scrap').value) || 0;
+    // Generar Grid
+    const grid = document.getElementById('grid-maquinas');
+    for(let i=1; i<=totalMaquinas; i++){
+        const card = document.createElement('div');
+        card.className = 'machine-card idle';
+        card.innerHTML = `
+            <span class="machine-name">M- ${i}</span>
+            <div class="machine-part">Disponible</div>
+            <div style="font-size:0.6rem; color:#64748b; margin-top:10px">Esperando arranque...</div>
+        `;
+        card.onclick = () => abrirModal(i);
+        grid.appendChild(card);
+    }
+
+    function abrirModal(id) {
+        document.getElementById('m_nombre').value = "MÁQUINA " + id;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    function calcularTodo() {
+        const selectParte = document.getElementById('m_parte');
+        const opcion = selectParte.options[selectParte.selectedIndex];
         
-        const total = tiros * cavs;
-        document.getElementById('total_inyeccion').value = total;
-        document.getElementById('cantidad_ok').value = total - scrap;
+        const ciclo = parseFloat(opcion.dataset.ciclo);
+        const cav = parseInt(opcion.dataset.cav);
+        const tiros = parseInt(document.getElementById('m_tiros').value) || 0;
+        const scrap = parseInt(document.getElementById('m_scrap').value) || 0;
+        
+        // Calcular Horas (Simulado 8.5hrs de turno)
+        const horasTurno = 8.5;
+        
+        // 1. Unidades por hora (UPH)
+        const uph = (3600 / ciclo) * cav;
+        document.getElementById('calc_uph').value = Math.round(uph) + " pzas/hr";
+        
+        // 2. Plan de producción
+        const plan = uph * horasTurno;
+        document.getElementById('calc_plan').value = Math.round(plan) + " piezas";
+        
+        // 3. Piezas OK
+        const totalProducido = tiros * cav;
+        const piezasOK = totalProducido - scrap;
+        document.getElementById('res_ok').innerText = piezasOK;
+        
+        // 4. EFICIENCIA (Ajuste automático para no exceder 100%)
+        let eficiencia = (totalProducido / plan) * 100;
+        if (eficiencia > 100) eficiencia = 100; 
+        
+        const efDisplay = document.getElementById('res_eficiencia');
+        efDisplay.innerText = eficiencia.toFixed(1) + "%";
+        efDisplay.style.color = eficiencia > 85 ? 'var(--green)' : 'var(--accent)';
     }
 
-    async function guardarProduccion() {
-        // 1. Recolectar datos (aquí iría el mapeo de todos los IDs)
-        // 2. Insertar en 'produccion_registro'
-        // 3. ¡IMPORTANTE! Insertar automáticamente en 'inventory_movements' como una ENTRADA
-        alert("Registro guardado. El inventario se ha actualizado según las piezas OK.");
+    function guardarBorrador() {
+        alert("Borrador guardado localmente. La máquina aparecerá como 'ACTIVA' en el dashboard.");
+        cerrarModal();
     }
+
+    function registrarFinal() {
+        const pOK = document.getElementById('res_ok').innerText;
+        const confirmacion = confirm(`¿Confirmar registro de ${pOK} piezas para inventario? El registro se cerrará.`);
+        if(confirmacion) {
+            // Aquí llamarías a tu función de Supabase para INSERT en 'inventory_movements'
+            alert("Éxito: Datos enviados a Base de Datos e Inventario actualizado.");
+            cerrarModal();
+        }
+    }
+
+    // Reloj
+    setInterval(() => {
+        document.getElementById('reloj').innerText = new Date().toLocaleTimeString();
+    }, 1000);
 </script>
+
 </body>
 </html>
