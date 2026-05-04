@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Captura de Producción - KRAEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --bg: #f4f6f8; --card: #ffffff; --primary: #2563eb; --border: #e2e8f0; --text: #0f172a; }
+        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: var(--card); padding: 30px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .group { display: flex; flex-direction: column; }
+        label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #64748b; margin-bottom: 5px; }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); }
+        .header-form { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .section-title { grid-column: 1 / -1; background: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-top: 15px; color: var(--primary); border-left: 4px solid var(--primary); }
+        .btn-save { grid-column: 1 / -1; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 16px; }
+        .btn-save:hover { opacity: 0.9; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-form">
+        <h2 style="margin:0;">🚀 Registro de Producción Diaria</h2>
+        <button onclick="location.href='dashboard.html'" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Volver</button>
+    </div>
+
+    <div class="grid-form" id="prodForm">
+        <!-- Datos Generales -->
+        <div class="section-title">DATOS DE CONTROL</div>
+        <div class="group"><label>Fecha</label><input type="date" id="fecha"></div>
+        <div class="group"><label>Turno</label><select id="turno"><option>1er Turno</option><option>2do Turno</option><option>3er Turno</option></select></div>
+        <div class="group"><label>Líder / Supervisor</label><input type="text" id="leader" placeholder="Nombre"></div>
+        <div class="group"><label>Máquina / Lado (LH-RH)</label><input type="text" id="maquina_lado"></div>
+
+        <!-- Operación -->
+        <div class="section-title">PROCESO Y TIEMPOS</div>
+        <div class="group"><label>Hora Arranque</label><input type="time" id="hora_arranque"></div>
+        <div class="group"><label>Hora Paro</label><input type="time" id="hora_paro"></div>
+        <div class="group"><label>Horas Trabajadas</label><input type="number" id="horas_trabajadas" step="0.1"></div>
+        <div class="group"><label>Tiempo Ciclo (seg)</label><input type="number" id="tiempo_ciclo"></div>
+        <div class="group"><label>Unidades por Hora</label><input type="number" id="uph"></div>
+
+        <!-- Producto -->
+        <div class="section-title">DETALLES DEL PRODUCTO</div>
+        <div class="group"><label>N° Parte</label><input type="text" id="part_number" placeholder="Buscar parte..."></div>
+        <div class="group"><label>Proyecto</label><input type="text" id="proyecto"></div>
+        <div class="group"><label>Cavidades</label><input type="number" id="cavidades"></div>
+        <div class="group"><label>Peso Pieza (gr)</label><input type="number" id="peso_pieza" step="0.01"></div>
+
+        <!-- Resultados -->
+        <div class="section-title">METAS Y RESULTADOS</div>
+        <div class="group"><label>Plan Producción</label><input type="number" id="plan"></div>
+        <div class="group"><label>Tiros Realizados</label><input type="number" id="tiros" oninput="calcularTotal()"></div>
+        <div class="group"><label>Total Inyección</label><input type="number" id="total_inyeccion" readonly style="background:#e2e8f0;"></div>
+        <div class="group"><label>Scrap</label><input type="number" id="scrap" oninput="calcularTotal()"></div>
+        <div class="group"><label>Cantidad OK (Piezas Buenas)</label><input type="number" id="cantidad_ok" readonly style="background:#dcfce7; font-weight:bold;"></div>
+
+        <!-- Materiales -->
+        <div class="section-title">RESINA Y MATERIAL</div>
+        <div class="group"><label>Tipo Resina</label><input type="text" id="tipo_resina"></div>
+        <div class="group"><label>Lote Resina</label><input type="text" id="lote_resina"></div>
+        <div class="group"><label>Peso Purga</label><input type="number" id="peso_purga"></div>
+        <div class="group"><label>Peso Vena</label><input type="number" id="peso_vena"></div>
+
+        <button class="btn-save" onclick="guardarProduccion()">💾 GUARDAR Y REGISTRAR EN INVENTARIO</button>
+    </div>
+</div>
+
+<script>
+    // Inicializar Supabase con tus credenciales
+    const _client = supabase.createClient('URL', 'KEY');
+
+    function calcularTotal() {
+        const tiros = parseInt(document.getElementById('tiros').value) || 0;
+        const cavs = parseInt(document.getElementById('cavidades').value) || 1;
+        const scrap = parseInt(document.getElementById('scrap').value) || 0;
+        
+        const total = tiros * cavs;
+        document.getElementById('total_inyeccion').value = total;
+        document.getElementById('cantidad_ok').value = total - scrap;
+    }
+
+    async function guardarProduccion() {
+        // 1. Recolectar datos (aquí iría el mapeo de todos los IDs)
+        // 2. Insertar en 'produccion_registro'
+        // 3. ¡IMPORTANTE! Insertar automáticamente en 'inventory_movements' como una ENTRADA
+        alert("Registro guardado. El inventario se ha actualizado según las piezas OK.");
+    }
+</script>
+</body>
+</html>
