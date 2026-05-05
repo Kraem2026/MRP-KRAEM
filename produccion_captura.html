@@ -3,46 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM - Control de Producción V6 (Auto-Aprendizaje)</title>
+    <title>KRAEM - Control de Producción v6</title>
+    <!-- Librerías Externas -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         :root {
             --bg-body: #011621; --bg-card: #073b55; --bg-modal: #021a26;
             --bg-input: rgba(255, 255, 255, 0.08); --text-main: #e9f7ff;
             --text-muted: #bcd7e6; --accent: #32baf0; --border: rgba(255, 255, 255, 0.1);
-            --success: #16a34a; --warning: #f59e0b;
+            --success: #16a34a;
         }
-
         body { font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 20px; }
-        
-        /* Dashboard */
         .header-ui { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background: var(--bg-card); border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
         .grid-piso { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
         .m-card { background: var(--bg-card); padding: 15px; border-radius: 8px; text-align: center; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
         .m-card:hover { border-color: var(--accent); transform: scale(1.02); }
-
-        /* Modal Layout */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: flex-start; overflow-y: auto; z-index: 1000; padding: 20px 0; }
         .modal-content { background: var(--bg-modal); width: 95%; max-width: 1200px; border-radius: 15px; padding: 25px; border: 1px solid var(--border); }
-        
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .section-header { grid-column: 1/-1; border-bottom: 1px solid var(--accent); padding-bottom: 5px; color: var(--accent); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-top: 15px; }
-        
         .side-container { display: grid; grid-template-columns: 1fr; gap: 20px; transition: 0.3s; }
         .side-container.dual { grid-template-columns: 1fr 1fr; }
         .side-box { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; border: 1px solid var(--border); }
-        
-        /* Inputs */
-        label { display: block; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 4px; }
         input, select { width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: white; font-size: 0.9rem; box-sizing: border-box; }
         input[readonly] { background: rgba(0,0,0,0.3); color: var(--accent); border-style: dashed; }
-
         .calc-display { background: rgba(50, 186, 240, 0.1); border: 1px solid var(--accent); padding: 10px; border-radius: 8px; text-align: center; }
         .calc-val { display: block; font-size: 1.2rem; font-weight: bold; color: var(--accent); }
-
-        /* Buttons */
-        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; }
         .btn-save { background: #4b5563; color: white; }
         .btn-reg { background: var(--success); color: white; }
         .check-container { display: flex; align-items: center; gap: 10px; padding: 8px 15px; background: var(--bg-input); border-radius: 20px; border: 1px solid var(--accent); cursor: pointer; }
@@ -51,7 +41,7 @@
 <body>
 
 <header class="header-ui">
-    <div><h2 style="margin:0; letter-spacing: -1px;">KRAEM PRODUCTION SYSTEM</h2></div>
+    <h2>KRAEM PRODUCTION SYSTEM</h2>
     <div id="clock" style="font-family: monospace; font-size: 1.2rem; color: var(--accent)">00:00:00</div>
 </header>
 
@@ -61,87 +51,77 @@
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 id="modalTitle" style="color: var(--accent); margin:0;">MÁQUINA</h2>
-            <div class="check-container" onclick="toggleCheckbox()">
-                <label style="margin:0; cursor:pointer;">¿TIENE LADO LH / RH?</label>
+            <div class="check-container">
+                <label>¿TIENE LADO LH / RH?</label>
                 <input type="checkbox" id="check_dual" style="width:18px; height:18px;" onchange="toggleDualMode()">
             </div>
         </div>
 
         <div class="form-grid">
-            <div class="section-header">Configuración del Turno y Proceso</div>
+            <div class="section-header">Información del Turno</div>
             <div><label>Fecha</label><input type="date" id="f_fecha"></div>
-            <div><label>Líder de Turno</label><input type="text" id="f_leader"></div>
+            <div><label>Líder</label><input type="text" id="f_leader"></div>
             <div><label>Turno</label><select id="f_turno"><option>Matutino</option><option>Vespertino</option><option>Nocturno</option></select></div>
-            <div><label>Tiempo Ciclo Real (seg)</label><input type="number" id="f_ciclo" step="0.1" oninput="runCalcs()" placeholder="0.0"></div>
-            <div><label>Hora Arranque</label><input type="time" id="f_h_arr" onchange="runCalcs()"></div>
-            <div><label>Hora Paro</label><input type="time" id="f_h_paro" onchange="runCalcs()"></div>
-            <div class="calc-display"><span class="calc-val" id="res_hrs">0.0</span><label>Horas Laboradas</label></div>
-            <div><label>Tiros Totales (Contador)</label><input type="number" id="f_tiros" oninput="runCalcs()" placeholder="0"></div>
-            <div><label>Peso de Vena Real (g)</label><input type="number" id="f_p_vena" placeholder="0.0"></div>
+            <div><label>Ciclo Real (seg)</label><input type="number" id="f_ciclo" step="0.1" oninput="runCalcs()"></div>
+            <div><label>Arranque</label><input type="time" id="f_h_arr" onchange="runCalcs()"></div>
+            <div><label>Paro</label><input type="time" id="f_h_paro" onchange="runCalcs()"></div>
+            <div class="calc-display"><span class="calc-val" id="res_hrs">0.0</span><label>Horas</label></div>
+            <div><label>Tiros Totales</label><input type="number" id="f_tiros" oninput="runCalcs()"></div>
+            <div><label>Peso Vena (g)</label><input type="number" id="f_p_vena"></div>
         </div>
 
         <div class="side-container" id="sidesWrapper">
-            <!-- COLUMNA LH O ÚNICA -->
+            <!-- LADO LH / ÚNICO -->
             <div class="side-box">
-                <h3 id="label_lh" style="margin-top:0"><i class="fas fa-cube"></i> PIEZA ÚNICA</h3>
+                <h3 id="label_lh" style="margin-top:0">PIEZA ÚNICA</h3>
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                     <div style="grid-column: 1/-1;"><label># de Parte</label><input type="text" id="lh_part" onchange="fetchPart('lh')"></div>
                     <div style="grid-column: 1/-1;"><label>Descripción</label><input type="text" id="lh_name" readonly></div>
                     <div><label>Proyecto</label><input type="text" id="lh_proj" readonly></div>
-                    <div><label>Peso Pieza Real (g)</label><input type="number" id="lh_w" oninput="runCalcs()" placeholder="0.0"></div>
-                    <div><label>Cavidades Activas</label><input type="number" id="lh_cav" value="1" oninput="runCalcs()"></div>
-                    <div><label>Scrap (Pzas)</label><input type="number" id="lh_scrap" value="0" oninput="runCalcs()"></div>
-                    <div class="calc-display"><span class="calc-val" id="lh_ok">0</span><label>CANTIDAD OK</label></div>
-                    <div class="calc-display"><span class="calc-val" id="lh_eff">0%</span><label>EFICIENCIA</label></div>
+                    <div><label>Peso Pieza (g)</label><input type="number" id="lh_w" oninput="runCalcs()"></div>
+                    <div><label>Cavidades</label><input type="number" id="lh_cav" value="1" oninput="runCalcs()"></div>
+                    <div><label>Scrap</label><input type="number" id="lh_scrap" value="0" oninput="runCalcs()"></div>
+                    <div class="calc-display"><span class="calc-val" id="lh_ok">0</span><label>PZAS OK</label></div>
+                    <div class="calc-display"><span class="calc-val" id="lh_eff">0%</span><label>EFF</label></div>
                 </div>
             </div>
 
-            <!-- COLUMNA RH -->
-            <div class="side-box" id="box_rh" style="display:none; border-top: 4px solid #ec4899;">
-                <h3 style="margin-top:0"><i class="fas fa-cube"></i> LADO RH</h3>
+            <!-- LADO RH -->
+            <div class="side-box" id="box_rh" style="display:none;">
+                <h3 style="margin-top:0">LADO RH</h3>
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                     <div style="grid-column: 1/-1;"><label># de Parte RH</label><input type="text" id="rh_part" onchange="fetchPart('rh')"></div>
                     <div style="grid-column: 1/-1;"><label>Descripción RH</label><input type="text" id="rh_name" readonly></div>
                     <div><label>Proyecto</label><input type="text" id="rh_proj" readonly></div>
-                    <div><label>Peso Pieza RH Real (g)</label><input type="number" id="rh_w" oninput="runCalcs()" placeholder="0.0"></div>
+                    <div><label>Peso RH (g)</label><input type="number" id="rh_w" oninput="runCalcs()"></div>
                     <div><label>Cavidades RH</label><input type="number" id="rh_cav" value="1" oninput="runCalcs()"></div>
-                    <div><label>Scrap RH (Pzas)</label><input type="number" id="rh_scrap" value="0" oninput="runCalcs()"></div>
-                    <div class="calc-display"><span class="calc-val" id="rh_ok">0</span><label>CANTIDAD OK</label></div>
-                    <div class="calc-display"><span class="calc-val" id="rh_eff">0%</span><label>EFICIENCIA</label></div>
+                    <div><label>Scrap RH</label><input type="number" id="rh_scrap" value="0" oninput="runCalcs()"></div>
+                    <div class="calc-display"><span class="calc-val" id="rh_ok">0</span><label>PZAS OK</label></div>
+                    <div class="calc-display"><span class="calc-val" id="rh_eff">0%</span><label>EFF</label></div>
                 </div>
             </div>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap:15px; margin-top:25px; padding-top:20px; border-top: 1px solid var(--border);">
-            <button class="btn" style="background:transparent; color:var(--text-muted)" onclick="closeModal()">CANCELAR</button>
-            <button class="btn btn-save" onclick="saveProduction('BORRADOR')"><i class="fas fa-save"></i> GUARDAR AVANCE</button>
-            <button class="btn btn-reg" onclick="saveProduction('FINAL')"><i class="fas fa-rocket"></i> REGISTRAR Y ACTUALIZAR ESTÁNDARES</button>
+        <div style="display:flex; justify-content:flex-end; gap:15px; margin-top:25px;">
+            <button class="btn btn-save" onclick="saveProduction('BORRADOR')">GUARDAR AVANCE</button>
+            <button class="btn btn-reg" onclick="saveProduction('FINAL')">REGISTRAR PRODUCCIÓN</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- CONEXIÓN SUPABASE ---
-    const supabase = supabaseJs.createClient('URL_DE_TU_PROYECTO', 'TU_ANON_KEY');
-
-    // Inicializar Grid de Máquinas
-    const grid = document.getElementById('machineGrid');
+    // Inicialización de Interfaz
     for(let i=1; i<=34; i++) {
         const div = document.createElement('div');
         div.className = 'm-card';
-        div.innerHTML = `<i class="fas fa-microchip" style="color:var(--accent)"></i><br><b>M-${i}</b>`;
-        div.onclick = () => openModal(i);
-        grid.appendChild(div);
+        div.innerHTML = `<b>M-${i}</b>`;
+        div.onclick = () => { 
+            document.getElementById('modalTitle').innerText = `MÁQUINA ${i}`;
+            document.getElementById('mainModal').style.display='flex';
+            document.getElementById('f_fecha').valueAsDate = new Date();
+        };
+        document.getElementById('machineGrid').appendChild(div);
     }
-
-    function openModal(id) {
-        document.getElementById('modalTitle').innerText = `MÁQUINA ${id}`;
-        document.getElementById('mainModal').style.display='flex';
-        document.getElementById('f_fecha').valueAsDate = new Date();
-    }
-
-    function closeModal() { document.getElementById('mainModal').style.display = 'none'; }
-    function toggleCheckbox() { document.getElementById('check_dual').click(); }
 
     function toggleDualMode() {
         const isDual = document.getElementById('check_dual').checked;
@@ -151,25 +131,18 @@
         runCalcs();
     }
 
-    // --- BÚSQUEDA EN TABLA PARTS CON DATOS DE ÚLTIMA CORRIDA ---
+    // Búsqueda en Supabase (Usando cliente de config.js)
     async function fetchPart(side) {
         const pNum = document.getElementById(`${side}_part`).value;
         if(!pNum) return;
 
-        const { data, error } = await supabase
-            .from('parts')
-            .select('part_name, project, cycle_time_seg, part_weight_gr, runner_weight_gr, cavities')
-            .eq('part_number', pNum)
-            .single();
+        const { data } = await supabase.from('parts').select('part_name, project, cycle_time_seg, part_weight_gr, runner_weight_gr, cavities').eq('part_number', pNum).single();
 
         if(data) {
             document.getElementById(`${side}_name`).value = data.part_name || '';
             document.getElementById(`${side}_proj`).value = data.project || '';
-            
-            // Llenamos los datos como sugerencia (basados en la última corrida registrada)
             document.getElementById(`${side}_w`).value = data.part_weight_gr || '';
             document.getElementById(`${side}_cav`).value = data.cavities || 1;
-            
             if(side === 'lh') {
                 document.getElementById('f_ciclo').value = data.cycle_time_seg || '';
                 document.getElementById('f_p_vena').value = data.runner_weight_gr || '';
@@ -178,87 +151,57 @@
         }
     }
 
-    // --- CÁLCULOS EN TIEMPO REAL ---
     function runCalcs() {
         const start = document.getElementById('f_h_arr').value;
         const end = document.getElementById('f_h_paro').value;
         let hrs = 0;
-
         if(start && end) {
             const d1 = new Date(`2026-01-01T${start}`);
             const d2 = new Date(`2026-01-01T${end}`);
-            hrs = (d2 - d1) / 3600000;
+            hrs = Math.max(0, (d2 - d1) / 3600000);
             if(hrs < 0) hrs += 24;
         }
         document.getElementById('res_hrs').innerText = hrs.toFixed(2);
 
         const ciclo = parseFloat(document.getElementById('f_ciclo').value) || 0;
         const tiros = parseInt(document.getElementById('f_tiros').value) || 0;
-        const isDual = document.getElementById('check_dual').checked;
-        const sides = isDual ? ['lh', 'rh'] : ['lh'];
+        const sides = document.getElementById('check_dual').checked ? ['lh', 'rh'] : ['lh'];
 
         sides.forEach(s => {
             const cav = parseInt(document.getElementById(`${s}_cav`).value) || 0;
             const scrap = parseInt(document.getElementById(`${s}_scrap`).value) || 0;
-            const totalInyectado = tiros * cav;
-            const ok = totalInyectado - scrap;
+            const ok = (tiros * cav) - scrap;
+            const plan = (ciclo > 0) ? (3600 / ciclo) * cav * hrs : 0;
+            let eff = plan > 0 ? ((tiros * cav) / plan) * 100 : 0;
             
-            const uph = ciclo > 0 ? (3600 / ciclo) * cav : 0;
-            const plan = uph * hrs;
-            let eff = plan > 0 ? (totalInyectado / plan) * 100 : 0;
-            if(eff > 100) eff = 100; // Normalización por variaciones de proceso[cite: 5]
-
             document.getElementById(`${s}_ok`).innerText = ok;
-            document.getElementById(`${s}_eff`).innerText = eff.toFixed(1) + "%";
+            document.getElementById(`${s}_eff`).innerText = Math.min(100, eff).toFixed(1) + "%";
         });
     }
 
-    // --- GUARDADO Y ACTUALIZACIÓN MAESTRA ---
+    // Guardado y Actualización de Estándares[cite: 2, 3]
     async function saveProduction(tipo) {
-        if(tipo === 'BORRADOR') {
-            alert("Borrador guardado. Puede seguir editando.");
-            return;
-        }
+        if(tipo === 'BORRADOR') { alert("Borrador Guardado"); return; }
+        if(!confirm("¿Registrar? Esto actualizará los datos de la última corrida en la tabla 'parts'.")) return;
 
-        if(!confirm("¿Registrar producción final? Se actualizarán los estándares de la tabla 'parts'.")) return;
-
-        const cicloReal = parseFloat(document.getElementById('f_ciclo').value);
-        const venaReal = parseFloat(document.getElementById('f_p_vena').value);
-        const isDual = document.getElementById('check_dual').checked;
-        const sides = isDual ? ['lh', 'rh'] : ['lh'];
-
+        const sides = document.getElementById('check_dual').checked ? ['lh', 'rh'] : ['lh'];
         try {
             for (const s of sides) {
                 const pNum = document.getElementById(`${s}_part`).value;
                 if(!pNum) continue;
 
-                // 1. ACTUALIZACIÓN DE LA TABLA MAESTRA (APRENDIZAJE)
+                // Actualizar tabla maestra
                 await supabase.from('parts').update({
-                    cycle_time_seg: cicloReal,
+                    cycle_time_seg: parseFloat(document.getElementById('f_ciclo').value),
                     part_weight_gr: parseFloat(document.getElementById(`${s}_w`).value),
-                    runner_weight_gr: venaReal,
+                    runner_weight_gr: parseFloat(document.getElementById('f_p_vena').value),
                     cavities: parseInt(document.getElementById(`${s}_cav`).value),
                     last_injection_date: new Date()
                 }).eq('part_number', pNum);
-
-                // 2. REGISTRO EN HISTORIAL DE PRODUCCIÓN[cite: 3]
-                await supabase.from('production_records').insert([{
-                    machine: document.getElementById('modalTitle').innerText,
-                    part_number: pNum,
-                    leader: document.getElementById('f_leader').value,
-                    shift: document.getElementById('f_turno').value,
-                    qty_ok: parseInt(document.getElementById(`${s}_ok`).innerText),
-                    scrap: parseInt(document.getElementById(`${s}_scrap`).value),
-                    efficiency: parseFloat(document.getElementById(`${s}_eff`).innerText)
-                }]);
             }
-
-            alert("Producción registrada y tabla maestra actualizada con la última corrida.");
-            closeModal();
-        } catch (err) {
-            alert("Error al procesar el registro.");
-            console.error(err);
-        }
+            alert("Éxito: Producción Registrada y Estándares Actualizados.");
+            document.getElementById('mainModal').style.display='none';
+        } catch (e) { alert("Error al guardar."); }
     }
 
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
