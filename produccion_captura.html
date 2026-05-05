@@ -2,209 +2,221 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM - Control de Producción v6</title>
-    <!-- Librerías Externas -->
+    <title>KRAEM - Sistema de Producción Industrial</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script> 
+    <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <style>
         :root {
-            --bg-body: #011621; --bg-card: #073b55; --bg-modal: #021a26;
-            --bg-input: rgba(255, 255, 255, 0.08); --text-main: #e9f7ff;
-            --text-muted: #bcd7e6; --accent: #32baf0; --border: rgba(255, 255, 255, 0.1);
-            --success: #16a34a;
+            --bg-body: #010c12; --bg-card: #0a1f2c; --bg-modal: #05141c;
+            --bg-input: rgba(255, 255, 255, 0.05); --text-main: #e2e8f0;
+            --accent: #38bdf8; --border: rgba(56, 189, 248, 0.2);
+            --success: #22c55e; --warning: #eab308;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 20px; }
-        .header-ui { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background: var(--bg-card); border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); }
-        .grid-piso { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-        .m-card { background: var(--bg-card); padding: 15px; border-radius: 8px; text-align: center; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }
-        .m-card:hover { border-color: var(--accent); transform: scale(1.02); }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: flex-start; overflow-y: auto; z-index: 1000; padding: 20px 0; }
-        .modal-content { background: var(--bg-modal); width: 95%; max-width: 1200px; border-radius: 15px; padding: 25px; border: 1px solid var(--border); }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .section-header { grid-column: 1/-1; border-bottom: 1px solid var(--accent); padding-bottom: 5px; color: var(--accent); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-top: 15px; }
-        .side-container { display: grid; grid-template-columns: 1fr; gap: 20px; transition: 0.3s; }
-        .side-container.dual { grid-template-columns: 1fr 1fr; }
-        .side-box { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 10px; border: 1px solid var(--border); }
-        input, select { width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: white; font-size: 0.9rem; box-sizing: border-box; }
-        input[readonly] { background: rgba(0,0,0,0.3); color: var(--accent); border-style: dashed; }
-        .calc-display { background: rgba(50, 186, 240, 0.1); border: 1px solid var(--accent); padding: 10px; border-radius: 8px; text-align: center; }
-        .calc-val { display: block; font-size: 1.2rem; font-weight: bold; color: var(--accent); }
-        .btn { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; }
-        .btn-save { background: #4b5563; color: white; }
-        .btn-reg { background: var(--success); color: white; }
-        .check-container { display: flex; align-items: center; gap: 10px; padding: 8px 15px; background: var(--bg-input); border-radius: 20px; border: 1px solid var(--accent); cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding: 20px; }
+        
+        /* Grid de Máquinas */
+        .grid-piso { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+        .m-card { background: var(--bg-card); padding: 20px; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid var(--border); transition: 0.3s; }
+        .m-card:hover { border-color: var(--accent); box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+
+        /* Modal e Inputs */
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:none; justify-content:center; align-items:start; overflow-y:auto; padding: 20px 0; z-index:1000; }
+        .modal-content { background: var(--bg-modal); width: 95%; max-width: 1300px; border-radius: 12px; padding: 30px; border: 1px solid var(--border); }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .section-header { grid-column: 1/-1; border-bottom: 2px solid var(--accent); padding: 10px 0 5px; color: var(--accent); font-weight: bold; font-size: 0.8rem; text-transform: uppercase; margin-top: 15px; }
+        
+        input, select, textarea { width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 4px; color: white; box-sizing: border-box; }
+        input[readonly] { background: rgba(0,0,0,0.4); color: #94a3b8; cursor: not-allowed; }
+        
+        .operator-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; }
+        
+        /* Displays de Cálculo */
+        .kpi-box { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); padding: 15px; border-radius: 8px; text-align: center; }
+        .kpi-val { display: block; font-size: 1.5rem; font-weight: bold; color: var(--accent); }
+        .kpi-label { font-size: 0.7rem; text-transform: uppercase; color: #94a3b8; }
+
+        .btn-group { display: flex; justify-content: flex-end; gap: 15px; margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; }
+        .btn { padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-success { background: var(--success); color: white; }
     </style>
 </head>
 <body>
-
-<header class="header-ui">
-    <h2>KRAEM PRODUCTION SYSTEM</h2>
-    <div id="clock" style="font-family: monospace; font-size: 1.2rem; color: var(--accent)">00:00:00</div>
-</header>
 
 <div class="grid-piso" id="machineGrid"></div>
 
 <div class="modal-overlay" id="mainModal">
     <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 id="modalTitle" style="color: var(--accent); margin:0;">MÁQUINA</h2>
-            <div class="check-container">
-                <label>¿TIENE LADO LH / RH?</label>
-                <input type="checkbox" id="check_dual" style="width:18px; height:18px;" onchange="toggleDualMode()">
-            </div>
+        <h2 id="modalTitle" style="margin:0 0 20px 0; color: var(--accent);">REGISTRO DE PRODUCCIÓN</h2>
+
+        <!-- SECCIÓN 1: DATOS GENERALES Y PROCESO -->
+        <div class="form-grid">
+            <div class="section-header">Información de Proceso y Material</div>
+            <div><label>Líder</label><input type="text" id="f_leader"></div>
+            <div><label>Turno</label><select id="f_turno"><option>1ero</option><option>2do</option><option>3ero</option></select></div>
+            <div><label>Tipo de Resina</label><input type="text" id="f_resina_tipo"></div>
+            <div><label>Lote de Resina</label><input type="text" id="f_resina_lote"></div>
+            <div><label>Peso Purga (g)</label><input type="number" id="f_purga" value="0"></div>
+            <div><label>Ciclo Real (seg)</label><input type="number" id="f_ciclo" step="0.1" oninput="runCalcs()"></div>
+            <div><label>Peso Vena (g)</label><input type="number" id="f_p_vena"></div>
+            <div class="kpi-box"><span class="kpi-val" id="res_uph">0</span><label class="kpi-label">UPH Teórico</label></div>
         </div>
 
-        <div class="form-grid">
-            <div class="section-header">Información del Turno</div>
-            <div><label>Fecha</label><input type="date" id="f_fecha"></div>
-            <div><label>Líder</label><input type="text" id="f_leader"></div>
-            <div><label>Turno</label><select id="f_turno"><option>Matutino</option><option>Vespertino</option><option>Nocturno</option></select></div>
-            <div><label>Ciclo Real (seg)</label><input type="number" id="f_ciclo" step="0.1" oninput="runCalcs()"></div>
+        <!-- SECCIÓN 2: TIEMPOS Y TIROS -->
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+            <div class="section-header">Tiempos y Contador</div>
             <div><label>Arranque</label><input type="time" id="f_h_arr" onchange="runCalcs()"></div>
             <div><label>Paro</label><input type="time" id="f_h_paro" onchange="runCalcs()"></div>
-            <div class="calc-display"><span class="calc-val" id="res_hrs">0.0</span><label>Horas</label></div>
-            <div><label>Tiros Totales</label><input type="number" id="f_tiros" oninput="runCalcs()"></div>
-            <div><label>Peso Vena (g)</label><input type="number" id="f_p_vena"></div>
+            <div><label>Hrs Laboradas</label><input type="text" id="res_hrs" readonly value="0.0"></div>
+            <div><label>Tiros Totales (Contador)</label><input type="number" id="f_tiros" oninput="runCalcs()"></div>
+            <div class="kpi-box" style="border-color: var(--warning);"><span class="kpi-val" id="res_eff" style="color:var(--warning)">0%</span><label class="kpi-label">Eficiencia</label></div>
         </div>
 
-        <div class="side-container" id="sidesWrapper">
+        <!-- SECCIÓN 3: OPERADORES (DINÁMICO) -->
+        <div class="section-header">Personal Operativo (Hasta 5 Operadores)</div>
+        <div class="operator-grid">
+            <input type="text" id="op1" placeholder="Operador 1">
+            <input type="text" id="op2" placeholder="Operador 2">
+            <input type="text" id="op3" placeholder="Operador 3">
+            <input type="text" id="op4" placeholder="Operador 4">
+            <input type="text" id="op5" placeholder="Operador 5">
+        </div>
+
+        <!-- SECCIÓN 4: DETALLE POR LADO (Doble Columna) -->
+        <div style="display: flex; gap: 20px; margin-top: 20px;">
             <!-- LADO LH / ÚNICO -->
-            <div class="side-box">
-                <h3 id="label_lh" style="margin-top:0">PIEZA ÚNICA</h3>
+            <div style="flex: 1; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <h4 id="label_lh" style="margin-top:0">PIEZA LH / ÚNICA</h4>
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div style="grid-column: 1/-1;"><label># de Parte</label><input type="text" id="lh_part" onchange="fetchPart('lh')"></div>
-                    <div style="grid-column: 1/-1;"><label>Descripción</label><input type="text" id="lh_name" readonly></div>
-                    <div><label>Proyecto</label><input type="text" id="lh_proj" readonly></div>
-                    <div><label>Peso Pieza (g)</label><input type="number" id="lh_w" oninput="runCalcs()"></div>
+                    <div style="grid-column: 1/-1;"><label># Parte</label><input type="text" id="lh_part" onchange="fetchPart('lh')"></div>
+                    <div style="grid-column: 1/-1;"><label>Descripción</label><input type="text" id="lh_desc" readonly></div>
                     <div><label>Cavidades</label><input type="number" id="lh_cav" value="1" oninput="runCalcs()"></div>
-                    <div><label>Scrap</label><input type="number" id="lh_scrap" value="0" oninput="runCalcs()"></div>
-                    <div class="calc-display"><span class="calc-val" id="lh_ok">0</span><label>PZAS OK</label></div>
-                    <div class="calc-display"><span class="calc-val" id="lh_eff">0%</span><label>EFF</label></div>
+                    <div><label>Peso Pza (g)</label><input type="number" id="lh_w"></div>
+                    <div><label>Scrap (Pzas)</label><input type="number" id="lh_scrap" value="0" oninput="runCalcs()"></div>
+                    <div class="kpi-box"><span class="kpi-val" id="lh_ok">0</span><label class="kpi-label">Pzas OK</label></div>
                 </div>
             </div>
 
-            <!-- LADO RH -->
-            <div class="side-box" id="box_rh" style="display:none;">
-                <h3 style="margin-top:0">LADO RH</h3>
+            <!-- LADO RH (Opcional) -->
+            <div id="box_rh" style="flex: 1; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <h4 style="margin-top:0">LADO RH</h4>
                 <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div style="grid-column: 1/-1;"><label># de Parte RH</label><input type="text" id="rh_part" onchange="fetchPart('rh')"></div>
-                    <div style="grid-column: 1/-1;"><label>Descripción RH</label><input type="text" id="rh_name" readonly></div>
-                    <div><label>Proyecto</label><input type="text" id="rh_proj" readonly></div>
-                    <div><label>Peso RH (g)</label><input type="number" id="rh_w" oninput="runCalcs()"></div>
+                    <div style="grid-column: 1/-1;"><label># Parte RH</label><input type="text" id="rh_part" onchange="fetchPart('rh')"></div>
+                    <div style="grid-column: 1/-1;"><label>Descripción RH</label><input type="text" id="rh_desc" readonly></div>
                     <div><label>Cavidades RH</label><input type="number" id="rh_cav" value="1" oninput="runCalcs()"></div>
+                    <div><label>Peso RH (g)</label><input type="number" id="rh_w"></div>
                     <div><label>Scrap RH</label><input type="number" id="rh_scrap" value="0" oninput="runCalcs()"></div>
-                    <div class="calc-display"><span class="calc-val" id="rh_ok">0</span><label>PZAS OK</label></div>
-                    <div class="calc-display"><span class="calc-val" id="rh_eff">0%</span><label>EFF</label></div>
+                    <div class="kpi-box"><span class="kpi-val" id="rh_ok">0</span><label class="kpi-label">Pzas OK</label></div>
                 </div>
             </div>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap:15px; margin-top:25px;">
-            <button class="btn btn-save" onclick="saveProduction('BORRADOR')">GUARDAR AVANCE</button>
-            <button class="btn btn-reg" onclick="saveProduction('FINAL')">REGISTRAR PRODUCCIÓN</button>
+        <div class="btn-group">
+            <button class="btn" style="background:#475569; color:white" onclick="closeModal()">CANCELAR</button>
+            <button class="btn btn-success" onclick="saveRecord()">REGISTRAR PRODUCCIÓN FINAL</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Inicialización de Interfaz
-    for(let i=1; i<=34; i++) {
-        const div = document.createElement('div');
-        div.className = 'm-card';
-        div.innerHTML = `<b>M-${i}</b>`;
-        div.onclick = () => { 
-            document.getElementById('modalTitle').innerText = `MÁQUINA ${i}`;
-            document.getElementById('mainModal').style.display='flex';
-            document.getElementById('f_fecha').valueAsDate = new Date();
-        };
-        document.getElementById('machineGrid').appendChild(div);
+    // Iniciar Grid
+    for(let i=1; i<=34; i++){
+        const d = document.createElement('div');
+        d.className = 'm-card';
+        d.innerHTML = `<i class="fas fa-industry"></i><br><b>M-${i}</b>`;
+        d.onclick = () => { document.getElementById('modalTitle').innerText = `MÁQUINA ${i}`; document.getElementById('mainModal').style.display='flex'; };
+        document.getElementById('machineGrid').appendChild(d);
     }
 
-    function toggleDualMode() {
-        const isDual = document.getElementById('check_dual').checked;
-        document.getElementById('sidesWrapper').classList.toggle('dual', isDual);
-        document.getElementById('box_rh').style.display = isDual ? 'block' : 'none';
-        document.getElementById('label_lh').innerText = isDual ? 'LADO LH' : 'PIEZA ÚNICA';
-        runCalcs();
-    }
+    function closeModal() { document.getElementById('mainModal').style.display='none'; }
 
-    // Búsqueda en Supabase (Usando cliente de config.js)
     async function fetchPart(side) {
         const pNum = document.getElementById(`${side}_part`).value;
-        if(!pNum) return;
-
-        const { data } = await supabase.from('parts').select('part_name, project, cycle_time_seg, part_weight_gr, runner_weight_gr, cavities').eq('part_number', pNum).single();
-
+        const { data } = await supabase.from('parts').select('*').eq('part_number', pNum).single();
         if(data) {
-            document.getElementById(`${side}_name`).value = data.part_name || '';
-            document.getElementById(`${side}_proj`).value = data.project || '';
+            document.getElementById(`${side}_desc`).value = data.part_name || '';
             document.getElementById(`${side}_w`).value = data.part_weight_gr || '';
             document.getElementById(`${side}_cav`).value = data.cavities || 1;
             if(side === 'lh') {
                 document.getElementById('f_ciclo').value = data.cycle_time_seg || '';
                 document.getElementById('f_p_vena').value = data.runner_weight_gr || '';
+                document.getElementById('f_resina_tipo').value = data.resin_type || '';
             }
             runCalcs();
         }
     }
 
     function runCalcs() {
-        const start = document.getElementById('f_h_arr').value;
-        const end = document.getElementById('f_h_paro').value;
+        // Horas
+        const s = document.getElementById('f_h_arr').value, e = document.getElementById('f_h_paro').value;
         let hrs = 0;
-        if(start && end) {
-            const d1 = new Date(`2026-01-01T${start}`);
-            const d2 = new Date(`2026-01-01T${end}`);
-            hrs = Math.max(0, (d2 - d1) / 3600000);
+        if(s && e) {
+            const d1 = new Date(`2026-01-01T${s}`), d2 = new Date(`2026-01-01T${e}`);
+            hrs = (d2 - d1) / 3600000;
             if(hrs < 0) hrs += 24;
         }
-        document.getElementById('res_hrs').innerText = hrs.toFixed(2);
+        document.getElementById('res_hrs').value = hrs.toFixed(2);
 
+        // UPH y Eficiencia
         const ciclo = parseFloat(document.getElementById('f_ciclo').value) || 0;
         const tiros = parseInt(document.getElementById('f_tiros').value) || 0;
-        const sides = document.getElementById('check_dual').checked ? ['lh', 'rh'] : ['lh'];
+        const uph = ciclo > 0 ? (3600 / ciclo) : 0;
+        document.getElementById('res_uph').innerText = Math.round(uph);
 
-        sides.forEach(s => {
-            const cav = parseInt(document.getElementById(`${s}_cav`).value) || 0;
-            const scrap = parseInt(document.getElementById(`${s}_scrap`).value) || 0;
+        // Cálculo por lado
+        let totalOk = 0, totalPlan = 0;
+        ['lh', 'rh'].forEach(side => {
+            const cav = parseInt(document.getElementById(`${side}_cav`).value) || 0;
+            const scrap = parseInt(document.getElementById(`${side}_scrap`).value) || 0;
             const ok = (tiros * cav) - scrap;
-            const plan = (ciclo > 0) ? (3600 / ciclo) * cav * hrs : 0;
-            let eff = plan > 0 ? ((tiros * cav) / plan) * 100 : 0;
-            
-            document.getElementById(`${s}_ok`).innerText = ok;
-            document.getElementById(`${s}_eff`).innerText = Math.min(100, eff).toFixed(1) + "%";
+            document.getElementById(`${side}_ok`).innerText = ok;
+            totalOk += (tiros * cav);
+            totalPlan += (uph * cav * hrs);
         });
+
+        const eff = totalPlan > 0 ? (totalOk / totalPlan) * 100 : 0;
+        document.getElementById('res_eff').innerText = Math.min(100, eff).toFixed(1) + "%";
     }
 
-    // Guardado y Actualización de Estándares[cite: 2, 3]
-    async function saveProduction(tipo) {
-        if(tipo === 'BORRADOR') { alert("Borrador Guardado"); return; }
-        if(!confirm("¿Registrar? Esto actualizará los datos de la última corrida en la tabla 'parts'.")) return;
+    async function saveRecord() {
+        if(!confirm("¿Registrar producción final?")) return;
+        
+        // Recopilar Operadores (solo los que tengan nombre)
+        const ops = [1,2,3,4,5].map(i => document.getElementById(`op${i}`).value).filter(v => v !== "").join(", ");
 
-        const sides = document.getElementById('check_dual').checked ? ['lh', 'rh'] : ['lh'];
         try {
-            for (const s of sides) {
-                const pNum = document.getElementById(`${s}_part`).value;
-                if(!pNum) continue;
+            const record = {
+                machine: document.getElementById('modalTitle').innerText,
+                leader: document.getElementById('f_leader').value,
+                operators: ops,
+                resin_type: document.getElementById('f_resina_tipo').value,
+                resin_batch: document.getElementById('f_resina_lote').value,
+                purge_weight: parseFloat(document.getElementById('f_purga').value),
+                cycle_real: parseFloat(document.getElementById('f_ciclo').value),
+                total_shots: parseInt(document.getElementById('f_tiros').value),
+                created_at: new Date()
+            };
 
-                // Actualizar tabla maestra
-                await supabase.from('parts').update({
-                    cycle_time_seg: parseFloat(document.getElementById('f_ciclo').value),
-                    part_weight_gr: parseFloat(document.getElementById(`${s}_w`).value),
-                    runner_weight_gr: parseFloat(document.getElementById('f_p_vena').value),
-                    cavities: parseInt(document.getElementById(`${s}_cav`).value),
-                    last_injection_date: new Date()
-                }).eq('part_number', pNum);
-            }
-            alert("Éxito: Producción Registrada y Estándares Actualizados.");
-            document.getElementById('mainModal').style.display='none';
+            // Guardar en Historial y Actualizar Maestra 'parts' (Aprendizaje)[cite: 2, 3]
+            ['lh', 'rh'].forEach(async side => {
+                const pNum = document.getElementById(`${side}_part`).value;
+                if(pNum) {
+                    await supabase.from('parts').update({
+                        cycle_time_seg: record.cycle_real,
+                        part_weight_gr: parseFloat(document.getElementById(`${side}_w`).value),
+                        runner_weight_gr: parseFloat(document.getElementById('f_p_vena').value),
+                        cavities: parseInt(document.getElementById(`${side}_cav`).value)
+                    }).eq('part_number', pNum);
+                }
+            });
+
+            alert("Producción registrada con éxito.");
+            closeModal();
         } catch (e) { alert("Error al guardar."); }
     }
 
-    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+    setInterval(() => { /* Reloj opcional */ }, 1000);
 </script>
 </body>
 </html>
