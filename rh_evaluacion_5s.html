@@ -1,161 +1,126 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Auditoría 5'S Técnica</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --card: #ffffff; --success: #22c55e; --danger: #ef4444; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--primary); }
-        .wizard-container { max-width: 500px; margin: auto; background: var(--card); min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-        .step-header { padding: 20px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; background: white; z-index: 10; }
-        .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: 0.4s ease; }
-        .step-content { padding: 20px; flex-grow: 1; display: none; }
-        .step-content.active { display: block; animation: fadeIn 0.3s ease; }
-        h2 { font-size: 1.3rem; margin: 0 0 5px 0; }
-        .subtitle { color: #64748b; font-size: 0.85rem; margin-bottom: 20px; display: block; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
-        select, input, textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .question-card { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
-        .question-text { font-size: 14px; margin-bottom: 12px; font-weight: 500; }
-        .options { display: flex; gap: 10px; }
-        .btn-opt { flex: 1; padding: 12px; border: 2px solid #e2e8f0; background: white; border-radius: 10px; font-weight: 800; cursor: pointer; }
-        .active-si { background: var(--success) !important; color: white !important; border-color: var(--success) !important; }
-        .active-no { background: var(--danger) !important; color: white !important; border-color: var(--danger) !important; }
-        .obs-container { margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 15px; }
-        .obs-container textarea { background: #fffbeb; font-size: 14px; height: 80px; }
-        .nav-footer { padding: 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; background: white; }
-        .btn-nav { flex: 1; padding: 16px; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; font-size: 15px; }
-        .btn-prev { background: #f1f5f9; color: #475569; }
-        .btn-next { background: var(--primary); color: white; }
-        .btn-save { background: var(--success); color: white; width: 100%; }
-        #score-result { text-align: center; padding: 40px 20px; }
-        .big-score { font-size: 5rem; font-weight: 900; color: var(--accent); margin: 20px 0; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM | Auditoría 5S</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<style>
+body{font-family:Arial;background:#f1f5f9;margin:0}
+.container{max-width:500px;margin:auto;background:white;min-height:100vh;padding:20px}
+
+.question{background:#f8fafc;padding:12px;border-radius:10px;margin-bottom:10px}
+
+.options{display:flex;gap:5px;margin-top:10px}
+
+button{flex:1;padding:10px;border:none;border-radius:8px;cursor:pointer;font-weight:bold}
+
+.si{background:#22c55e;color:white}
+.parcial{background:#f59e0b;color:white}
+.no{background:#ef4444;color:white}
+</style>
 </head>
+
 <body>
-<div class="wizard-container">
-    <div class="step-header">
-        <div id="step-title" style="font-weight: 800; color: var(--accent); font-size: 0.8rem; text-transform: uppercase;">Cargando...</div>
-        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
-    </div>
 
-    <div class="step-content active" id="step0">
-        <h2>Nueva Auditoría</h2>
-        <span class="subtitle">Seleccione área y operador para iniciar.</span>
-        <div class="input-group"><label>Área</label><select id="area_select"></select></div>
-        <div class="input-group"><label>Máquina / Celda</label><input type="text" id="maquina_input"></div>
-        <div class="input-group"><label>Operador</label><select id="operador_select"></select></div>
-    </div>
+<div class="container">
 
-    <div id="container-s"></div>
+<h3>Auditoría 5S</h3>
 
-    <div class="step-content" id="step6">
-        <div id="score-result">
-            <h2>Puntaje Obtenido</h2>
-            <div class="big-score" id="val-score">0%</div>
-            <button class="btn-nav btn-save" onclick="guardarTodo()">GUARDAR AUDITORÍA</button>
-        </div>
-    </div>
+<select id="area_select"></select>
+<input id="maquina_input" placeholder="Máquina">
+<select id="operador_select"></select>
+<select id="auditor_select"></select>
 
-    <div class="nav-footer" id="footer-nav">
-        <button class="btn-nav btn-prev" id="btnPrev" onclick="navegar(-1)" style="visibility: hidden;">Atrás</button>
-        <button class="btn-nav btn-next" id="btnNext" onclick="navegar(1)">Siguiente</button>
-    </div>
+<div id="preguntas"></div>
+
+<h2 id="score">0%</h2>
+
+<button onclick="guardar()">Guardar</button>
+
 </div>
 
 <script>
-    let step = 0;
-    let auditoria = { respuestas: {}, observaciones: {} };
-    const secciones = [
-        { t: "1. SEIRI (Selección)", q: ["¿Solo artículos necesarios en el área?", "¿Área libre de basura y cartón?"] },
-        { t: "2. SEITON (Orden)", q: ["¿Herramientas en su lugar?", "¿Pasillos y racks despejados?", "¿Material identificado?"] },
-        { t: "3. SEISO (Limpieza)", q: ["¿Máquina/Piso sin aceite o pellets?", "¿Botes de basura vacíos?"] },
-        { t: "4. SEIKETSU (Estandarizar)", q: ["¿Ayudas visuales visibles?", "¿Operador usa EPP?"] },
-        { t: "5. SHITSUKE (Disciplina)", q: ["¿Bitácora de limpieza al día?", "¿Se respetan reglas de seguridad?"] }
-    ];
 
-    async function init() {
-        const cont = document.getElementById('container-s');
-        secciones.forEach((sec, i) => {
-            let html = `<div class="step-content" id="step${i+1}"><h2>${sec.t}</h2>`;
-            sec.q.forEach((p, j) => {
-                const id = `s${i+1}_p${j+1}`;
-                html += `<div class="question-card"><div class="question-text">${p}</div>
-                    <div class="options">
-                        <button class="btn-opt" id="btn-${id}-si" onclick="marcar('${id}', 1)">SÍ</button>
-                        <button class="btn-opt" id="btn-${id}-no" onclick="marcar('${id}', 0)">NO</button>
-                    </div></div>`;
-            });
-            html += `<div class="obs-container"><label>Hallazgos</label>
-                <textarea id="obs-s${i+1}"></textarea></div></div>`;
-            cont.innerHTML += html;
-        });
-        await cargarCatalogos();
-        actualizarUI();
-    }
+let data={respuestas:{}}
 
-    async function cargarCatalogos() {
-        const { data: a } = await client.from('areas').select('*').eq('active', true);
-        const { data: e } = await client.from('rh_empleados').select('*').eq('estatus','ACTIVO');
-        
-        const selA = document.getElementById('area_select');
-        selA.innerHTML = '<option value="">Seleccione Área</option>';
-        a.forEach(i => selA.innerHTML += `<option value="${i.id}">${i.area_name}</option>`);
+const secciones=[
+["¿Área solo con material necesario?","¿Scrap en contenedor?","¿Sin objetos innecesarios?","¿Herramientas en uso?","¿Sin objetos personales?"],
+["¿Herramientas en su lugar?","¿Cajas identificadas?","¿Sin obstáculos?","¿Material organizado?","¿Señalización correcta?"],
+["¿Mesa limpia?","¿Parte inferior limpia?","¿Contenedores OK?","¿Piso limpio?","¿Limpieza constante?"],
+["¿Estándares visibles?","¿Contenedores identificados?","¿Se siguen métodos?","¿Conoce proceso?","¿Cumple estándar?"],
+["¿Conoce 5S?","¿Aplica 5S?","¿Usa EPP?","¿Corrige fallas?","¿Mantiene orden?"]
+];
 
-        const selE = document.getElementById('operador_select');
-        selE.innerHTML = '<option value="">Seleccione Operador</option>';
-        e.forEach(i => selE.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`);
-    }
+function crear(){
+const cont=document.getElementById("preguntas")
 
-    function marcar(id, val) {
-        auditoria.respuestas[id] = val;
-        document.getElementById(`btn-${id}-si`).className = val === 1 ? 'btn-opt active-si' : 'btn-opt';
-        document.getElementById(`btn-${id}-no`).className = val === 0 ? 'btn-opt active-no' : 'btn-opt';
-    }
+secciones.forEach((s,i)=>{
+s.forEach((p,j)=>{
+const id=`${i}_${j}`
+cont.innerHTML+=`
+<div class="question">
+${p}
+<div class="options">
+<button class="si" onclick="set('${id}',1)">Cumple</button>
+<button class="parcial" onclick="set('${id}',0.5)">Parcial</button>
+<button class="no" onclick="set('${id}',0)">No</button>
+</div>
+</div>`
+})
+})
+}
 
-    function navegar(dir) {
-        if(step === 0 && dir === 1 && (!area_select.value || !operador_select.value)) return alert("Llene los datos iniciales");
-        if(step >= 1 && step <= 5) auditoria.observaciones[`s${step}`] = document.getElementById(`obs-s${step}`).value;
-        
-        document.getElementById(`step${step}`).classList.remove('active');
-        step += dir;
-        document.getElementById(`step${step}`).classList.add('active');
-        actualizarUI();
-    }
+function set(id,val){
+data.respuestas[id]=val
+calc()
+}
 
-    function actualizarUI() {
-        btnPrev.style.visibility = step === 0 ? 'hidden' : 'visible';
-        btnNext.innerText = step === 5 ? "VER RESULTADO" : "Siguiente";
-        if(step === 6) {
-            footer_nav.style.display = 'none';
-            const r = Object.values(auditoria.respuestas);
-            const score = Math.round((r.filter(v => v===1).length / r.length) * 100) || 0;
-            val_score.innerText = score + "%";
-            auditoria.score = score;
-        }
-        progress.style.width = `${(step/6)*100}%`;
-        step_title.innerText = step === 0 ? "CONFIGURACIÓN" : (step === 6 ? "RESUMEN" : secciones[step-1].t);
-    }
+function calc(){
+const vals=Object.values(data.respuestas)
+const total=vals.reduce((a,b)=>a+b,0)
+const score=Math.round((total/vals.length)*100)||0
+document.getElementById("score").innerText=score+"%"
+data.score=score
+}
 
-    async function guardarTodo() {
-        const { error } = await client.from('rh_evaluaciones_5s').insert([{
-            empleado_id: operador_select.value,
-            area_id: parseInt(area_select.value),
-            maquina_id: maquina_input.value,
-            puntuacion: auditoria.score,
-            respuestas_json: auditoria.respuestas,
-            observaciones_json: auditoria.observaciones
-        }]);
-        if(!error) { alert("✅ Guardado"); location.href='dashboard.html'; }
-    }
-    init();
+async function cargar(){
+const {data:a}=await client.from('rh_areas').select('*')
+const {data:e}=await client.from('rh_empleados').select('*')
+
+area_select.innerHTML='<option>Área</option>'
+operador_select.innerHTML='<option>Operador</option>'
+auditor_select.innerHTML='<option>Auditor</option>'
+
+a.forEach(i=>area_select.innerHTML+=`<option value="${i.id}">${i.nombre}</option>`)
+e.forEach(i=>{
+operador_select.innerHTML+=`<option value="${i.id}">${i.nombre_completo}</option>`
+auditor_select.innerHTML+=`<option value="${i.id}">${i.nombre_completo}</option>`
+})
+}
+
+async function guardar(){
+await client.from('rh_evaluaciones_5s').insert([{
+empleado_id:operador_select.value,
+auditor_id:auditor_select.value,
+area_id:area_select.value,
+maquina_id:maquina_input.value,
+puntuacion:data.score,
+respuestas_json:data.respuestas,
+created_at:new Date().toISOString()
+}])
+
+alert("Guardado")
+location.reload()
+}
+
+crear()
+cargar()
+
 </script>
+
 </body>
 </html>
