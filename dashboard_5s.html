@@ -3,139 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard 5S | KRAEM</title>
+    <title>Panel 5S | KRAEM BI</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #2563eb; --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --success: #22c55e; --danger: #ef4444; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        select { padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
-        .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .stat-card h1 { margin: 10px 0; font-size: 2.5rem; color: var(--primary); }
-        .chart-container { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .btn-new { background: var(--primary); color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        
+        .header-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Filtros Pro */
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--primary); }
+        select, input { padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; }
+
+        /* KPIs de las 5S */
+        .s-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 25px; }
+        .s-card { background: var(--card); padding: 15px; border-radius: 12px; text-align: center; border-bottom: 4px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .s-card h4 { margin: 0; font-size: 12px; color: #64748b; }
+        .s-card div { font-size: 1.5rem; font-weight: 800; margin: 5px 0; }
+        
+        .grid-charts { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; margin-bottom: 25px; }
+        .chart-box { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        /* Observaciones */
+        .obs-container { background: var(--card); padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .obs-list { max-height: 300px; overflow-y: auto; margin-top: 15px; }
+        .obs-item { padding: 12px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 15px; align-items: start; }
+        .obs-tag { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; min-width: 60px; text-align: center; }
+
+        .btn-action { background: var(--primary); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; }
+        
+        @media (max-width: 768px) { .s-grid { grid-template-columns: repeat(2, 1fr); } .grid-charts { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <h2><i class="fas fa-chart-line"></i> Dashboard 5S KRAEM</h2>
-    <a href="rh_evaluacion_5s.html" class="btn-new"><i class="fas fa-plus"></i> Nueva Auditoría</a>
+<div class="header-panel">
+    <div>
+        <h2 style="margin:0;"><i class="fas fa-broom" style="color: var(--primary);"></i> Panel Inteligente 5S</h2>
+        <p style="margin:0; color: #64748b; font-size: 14px;">Métricas de Orden y Limpieza KRAEM</p>
+    </div>
+    <a href="dashboard.html" class="btn-action" style="background:#64748b;"><i class="fas fa-arrow-left"></i> Volver</a>
 </div>
 
-<div class="filters">
-    <select id="f-area" onchange="loadData()"><option value="">Todas las Áreas</option></select>
-    <select id="f-periodo" onchange="loadData()">
-        <option value="7">Últimos 7 días</option>
-        <option value="30">Último Mes</option>
-        <option value="90">Trimestre</option>
-    </select>
-    <button onclick="resetFilters()" style="cursor:pointer; border:none; background:#e2e8f0; border-radius:8px;">Limpiar</button>
+<div class="filter-bar">
+    <div class="filter-group">
+        <label>Rango de Tiempo</label>
+        <select id="f-periodo" onchange="loadData()">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Último Mes</option>
+            <option value="90">Trimestre</option>
+            <option value="365">Año</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Área</label>
+        <select id="f-area" onchange="loadData()"><option value="">Todas</option></select>
+    </div>
+    <div class="filter-group">
+        <label>Máquina</label>
+        <select id="f-maquina" onchange="loadData()"><option value="">Todas</option></select>
+    </div>
+    <div class="filter-group">
+        <label>Operador</label>
+        <select id="f-operador" onchange="loadData()"><option value="">Todos</option></select>
+    </div>
 </div>
 
-<div class="grid-stats">
-    <div class="stat-card">
-        <span>Cumplimiento Promedio</span>
-        <h1 id="avg-total">0%</h1>
-    </div>
-    <div class="stat-card">
-        <span>Auditorías Realizadas</span>
-        <h1 id="count-total">0</h1>
-    </div>
+<div class="s-grid">
+    <div class="s-card" id="card-s1"><h4>SEIRI</h4><div id="val-s1">0%</div></div>
+    <div class="s-card" id="card-s2"><h4>SEITON</h4><div id="val-s2">0%</div></div>
+    <div class="s-card" id="card-s3"><h4>SEISO</h4><div id="val-s3">0%</div></div>
+    <div class="s-card" id="card-s4"><h4>SEIKETSU</h4><div id="val-s4">0%</div></div>
+    <div class="s-card" id="card-s5"><h4>SHITSUKE</h4><div id="val-s5">0%</div></div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-    <div class="chart-container">
-        <h3>Tendencia de Cumplimiento</h3>
-        <canvas id="lineChart"></canvas>
-    </div>
-    <div class="chart-container">
-        <h3>Promedio por Sección (5S)</h3>
+<div class="grid-charts">
+    <div class="chart-box">
+        <h3>Perfil 5S (Radar)</h3>
         <canvas id="radarChart"></canvas>
     </div>
+    <div class="chart-box">
+        <h3>Histórico de Cumplimiento</h3>
+        <canvas id="lineChart"></canvas>
+    </div>
+</div>
+
+<div class="obs-container">
+    <h3><i class="fas fa-comment-dots"></i> Observaciones Detectadas en el Periodo</h3>
+    <div class="obs-list" id="obs-list">
+        </div>
 </div>
 
 <script>
 let lineChart, radarChart;
 
-async function loadData() {
-    const area = document.getElementById('f-area').value;
-    const dias = document.getElementById('f-periodo').value;
+async function init() {
+    // Cargar selectores
+    const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
+    const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').order('nombre_completo');
     
-    let query = client.from('rh_evaluaciones_5s').select(`
-        *,
-        rh_areas(nombre),
-        rh_empleados!empleado_id(nombre_completo)
-    `).order('created_at', { ascending: true });
+    const aSel = document.getElementById('f-area');
+    areas.forEach(a => aSel.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
+    
+    const oSel = document.getElementById('f-operador');
+    emps.forEach(e => oSel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
 
-    if(area) query = query.eq('area_id', area);
-    
-    const { data, error } = await query;
-    if(data) processCharts(data);
+    // Máquinas (Carga genérica o según área)
+    const mSel = document.getElementById('f-maquina');
+    for(let i=1; i<=26; i++) mSel.innerHTML += `<option value="${i}">${i}</option>`;
+
+    loadData();
 }
 
-function processCharts(data) {
-    if(data.length === 0) return;
+async function loadData() {
+    const area = document.getElementById('f-area').value;
+    const maquina = document.getElementById('f-maquina').value;
+    const operador = document.getElementById('f-operador').value;
+    const dias = document.getElementById('f-periodo').value;
 
-    // Estadísticas rápidas
-    const avg = Math.round(data.reduce((acc, curr) => acc + curr.puntuacion, 0) / data.length);
-    document.getElementById('avg-total').innerText = avg + "%";
-    document.getElementById('count-total').innerText = data.length;
+    let fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - dias);
 
-    // Datos para Línea (Tiempo)
-    const labels = data.map(d => new Date(d.created_at).toLocaleDateString());
-    const scores = data.map(d => d.puntuacion);
+    let query = client.from('rh_evaluaciones_5s').select('*, rh_areas(nombre), rh_empleados!empleado_id(nombre_completo)')
+        .gte('created_at', fechaLimite.toISOString())
+        .order('created_at', { ascending: true });
 
-    if(lineChart) lineChart.destroy();
-    lineChart = new Chart(document.getElementById('lineChart'), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '% Cumplimiento',
-                data: scores,
-                borderColor: '#2563eb',
-                tension: 0.3,
-                fill: true,
-                backgroundColor: 'rgba(37, 99, 235, 0.1)'
-            }]
-        },
-        options: { scales: { y: { min: 0, max: 100 } } }
+    if(area) query = query.eq('area_id', area);
+    if(maquina) query = query.eq('maquina_id', maquina);
+    if(operador) query = query.eq('empleado_id', operador);
+
+    const { data, error } = await query;
+    if(data) processDashboard(data);
+}
+
+function processDashboard(data) {
+    const s_values = [0, 0, 0, 0, 0]; // Para S1, S2, S3, S4, S5
+    const s_counts = [0, 0, 0, 0, 0];
+    let obsHtml = "";
+
+    data.forEach(audit => {
+        const resp = audit.respuestas_json;
+        // Procesar respuestas para promediar cada S
+        // Estructura de ID: "S_Pregunta" (ej: "0_2" es S1, pregunta 3)
+        Object.entries(resp).forEach(([key, val]) => {
+            const sIndex = parseInt(key.split('_')[0]);
+            s_values[sIndex] += val;
+            s_counts[sIndex]++;
+        });
+
+        // Procesar Observaciones
+        if(audit.observaciones) {
+            Object.entries(audit.observaciones).forEach(([sKey, text]) => {
+                if(text.trim() !== "") {
+                    const sNum = sKey.replace('s', '');
+                    obsHtml += `
+                        <div class="obs-item">
+                            <span class="obs-tag" style="background:var(--primary)">S${sNum}</span>
+                            <div>
+                                <strong>${audit.rh_empleados.nombre_completo} (${audit.rh_areas.nombre} - M${audit.maquina_id})</strong><br>
+                                <span style="font-size:13px;">${text}</span>
+                            </div>
+                        </div>`;
+                }
+            });
+        }
     });
 
-    // Radar Chart (Ejemplo de cálculo por S1..S5)
-    // Aquí podrías desglosar el JSON de respuestas_json para ser más exacto
+    // Calcular promedios finales por S
+    const s_averages = s_values.map((v, i) => Math.round((v / (s_counts[i] || 1)) * 100));
+    
+    // Actualizar Tarjetas
+    s_averages.forEach((avg, i) => {
+        const el = document.getElementById(`val-s${i+1}`);
+        const card = document.getElementById(`card-s${i+1}`);
+        el.innerText = avg + "%";
+        card.style.borderColor = avg < 70 ? 'var(--danger)' : 'var(--success)';
+    });
+
+    document.getElementById('obs-list').innerHTML = obsHtml || "<p style='text-align:center; color:gray;'>No hay observaciones en este periodo.</p>";
+
+    updateCharts(data, s_averages);
+}
+
+function updateCharts(data, s_averages) {
+    // Radar Chart
     if(radarChart) radarChart.destroy();
     radarChart = new Chart(document.getElementById('radarChart'), {
         type: 'radar',
         data: {
             labels: ['Seiri', 'Seiton', 'Seiso', 'Seiketsu', 'Shitsuke'],
             datasets: [{
-                label: 'Desempeño',
-                data: [avg-5, avg+2, avg-10, avg+5, avg], // Esto debería venir del desglose de respuestas_json
-                backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                borderColor: '#22c55e'
+                label: 'Promedio de Cumplimiento',
+                data: s_averages,
+                backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                borderColor: '#2563eb',
+                pointBackgroundColor: '#2563eb'
             }]
         },
-        options: { scales: { r: { min: 0, max: 100 } } }
+        options: { scales: { r: { min: 0, max: 100, ticks: { display: false } } } }
     });
-}
 
-async function init() {
-    const { data: areas } = await client.from('rh_areas').select('*');
-    const aSel = document.getElementById('f-area');
-    areas.forEach(a => aSel.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
-    loadData();
-}
-
-function resetFilters() {
-    document.getElementById('f-area').value = "";
-    loadData();
+    // Line Chart
+    if(lineChart) lineChart.destroy();
+    lineChart = new Chart(document.getElementById('lineChart'), {
+        type: 'line',
+        data: {
+            labels: data.map(d => new Date(d.created_at).toLocaleDateString()),
+            datasets: [{
+                label: '% Puntaje Total',
+                data: data.map(d => d.puntuacion),
+                borderColor: '#22c55e',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: { scales: { y: { min: 0, max: 100 } } }
+    });
 }
 
 window.onload = init;
