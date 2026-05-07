@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Auditoría 5S</title>
+    <title>KRAEM | Auditoría 5S Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <style>
@@ -13,22 +13,22 @@
         header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
         .setup-group { display: grid; gap: 12px; margin-bottom: 20px; }
         label { font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; margin-bottom: -8px; }
-        select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: white; }
+        select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: white; outline: none; }
         .progress-container { background: #eee; border-radius: 10px; height: 8px; margin-bottom: 20px; overflow: hidden; }
         .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: 0.3s; }
         .question-card { background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 12px; border-left: 5px solid var(--border); }
         .options { display: flex; gap: 8px; margin-top: 10px; }
         
-        /* ESTO CORRIGE EL PROBLEMA VISUAL */
-        .btn-opt { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: bold; background: white; transition: 0.2s; }
-        .btn-opt:hover { background: #f1f5f9; }
+        /* Estilos de botones de respuesta */
+        .btn-opt { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: bold; background: white; transition: all 0.2s; font-size: 12px; }
         
-        /* Colores cuando están activos */
+        /* Colores cuando el botón está activo/seleccionado */
         .btn-opt.active[data-score="1"] { background: var(--success) !important; color: white; border-color: #16a34a; }
         .btn-opt.active[data-score="0.5"] { background: var(--warning) !important; color: white; border-color: #d97706; }
         .btn-opt.active[data-score="0"] { background: var(--danger) !important; color: white; border-color: #dc2626; }
 
-        .btn-nav { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; background: var(--primary); color: white; }
+        .btn-nav { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; background: var(--primary); color: white; transition: 0.3s; }
+        .btn-nav:active { transform: scale(0.98); }
         .hidden { display: none; }
         #score-badge { font-size: 3.5rem; font-weight: 800; text-align: center; color: var(--primary); margin: 20px 0; }
     </style>
@@ -44,28 +44,32 @@
             <select id="area_select" onchange="actualizarMaquinas()"><option value="">Cargando...</option></select>
             <label>Máquina</label>
             <select id="maquina_select"><option value="">Seleccione área...</option></select>
-            <label>Operador</label>
+            <label>Operador Auditado</label>
             <select id="operador_select"><option value="">Cargando...</option></select>
             <label>Auditor</label>
             <select id="auditor_select"><option value="">Cargando...</option></select>
         </div>
-        <button class="btn-nav" onclick="nextStep()">EMPEZAR</button>
+        <button class="btn-nav" onclick="nextStep()">EMPEZAR AUDITORÍA</button>
     </div>
 
     <div id="audit-flow" class="hidden">
         <div class="progress-container"><div id="progress-bar" class="progress-bar"></div></div>
-        <div id="section-label" style="font-weight:bold; color:var(--primary); text-align:center; margin-bottom:15px;"></div>
+        <div id="section-label" style="font-weight:bold; color:var(--primary); text-align:center; margin-bottom:15px; font-size: 1.2rem;"></div>
         <div id="preguntas_cont"></div>
-        <button class="btn-nav" onclick="nextStep()">SIGUIENTE</button>
+        <button class="btn-nav" onclick="nextStep()">SIGUIENTE SECCIÓN</button>
     </div>
 
     <div id="step-result" class="hidden">
+        <h4 style="text-align:center">PUNTUACIÓN OBTENIDA</h4>
         <div id="score-badge">0%</div>
-        <button class="btn-nav" style="background:var(--success)" onclick="guardar()">GUARDAR</button>
+        <button class="btn-nav" style="background:var(--success)" onclick="guardar()">FINALIZAR Y GUARDAR</button>
+        <button class="btn-nav" style="background:none; color:var(--text); margin-top:10px;" onclick="location.reload()">CANCELAR</button>
     </div>
 </div>
 
 <script>
+// El objeto 'client' NO se declara aquí porque ya viene de config.js
+
 let currentStep = 0;
 let auditData = { respuestas: {}, score: 0 };
 
@@ -75,7 +79,7 @@ const maquinasPorArea = {
     "PLANTA B": ["V1", "V2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"]
 };
 
-const nombres5S = ["1. SEIRI", "2. SEITON", "3. SEISO", "4. SEIKETSU", "5. SHITSUKE"];
+const nombres5S = ["1. SEIRI (Clasificar)", "2. SEITON (Ordenar)", "3. SEISO (Limpiar)", "4. SEIKETSU (Estandarizar)", "5. SHITSUKE (Disciplina)"];
 const preguntas = [
     ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
     ["¿Herramientas en su lugar?", "¿Material en su celda?", "¿Caminos libres?", "¿Identificación visible?", "¿Orden en estantes?"],
@@ -89,7 +93,12 @@ function actualizarMaquinas() {
     const areaTxt = sel.options[sel.selectedIndex].text.toUpperCase();
     const mSel = document.getElementById("maquina_select");
     mSel.innerHTML = '<option value="">Seleccione...</option>';
-    let lista = areaTxt.includes("LS") ? maquinasPorArea.LS : areaTxt.includes("NISSEI") ? maquinasPorArea.NISSEI : areaTxt.includes("PLANTA B") ? maquinasPorArea["PLANTA B"] : [];
+    
+    let lista = [];
+    if(areaTxt.includes("LS")) lista = maquinasPorArea.LS;
+    else if(areaTxt.includes("NISSEI")) lista = maquinasPorArea.NISSEI;
+    else if(areaTxt.includes("PLANTA B")) lista = maquinasPorArea["PLANTA B"];
+    
     lista.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
 }
 
@@ -98,16 +107,24 @@ async function init() {
         const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
         const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
         
-        document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
-        const empOpts = '<option value="">Seleccione...</option>' + emps.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+        document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + 
+            areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+            
+        const empOpts = '<option value="">Seleccione...</option>' + 
+            emps.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+            
         document.getElementById('operador_select').innerHTML = empOpts;
         document.getElementById('auditor_select').innerHTML = empOpts;
-    } catch (e) { alert("Error de conexión"); }
+    } catch (e) { 
+        console.error(e);
+        alert("Error cargando datos: Revisa tu conexión o config.js"); 
+    }
 }
 
 function nextStep() {
     if (currentStep === 0) {
-        if (!document.getElementById('area_select').value || !document.getElementById('operador_select').value) return alert("Faltan datos");
+        const check = ['area_select', 'maquina_select', 'operador_select', 'auditor_select'];
+        if (check.some(id => !document.getElementById(id).value)) return alert("Por favor complete los datos iniciales.");
     }
     currentStep++;
     render();
@@ -118,15 +135,17 @@ function render() {
     document.getElementById("audit-flow").classList.add("hidden");
     document.getElementById("step-result").classList.add("hidden");
 
-    if (currentStep === 0) document.getElementById("step-setup").classList.remove("hidden");
-    else if (currentStep <= 5) {
+    if (currentStep === 0) {
+        document.getElementById("step-setup").classList.remove("hidden");
+    } else if (currentStep <= 5) {
         document.getElementById("audit-flow").classList.remove("hidden");
         const idx = currentStep - 1;
         document.getElementById("section-label").innerText = nombres5S[idx];
         document.getElementById("progress-bar").style.width = (currentStep * 20) + "%";
+        
         document.getElementById("preguntas_cont").innerHTML = preguntas[idx].map((p, j) => `
             <div class="question-card">
-                <div style="font-weight:600">${p}</div>
+                <div style="font-weight:600; margin-bottom:10px;">${p}</div>
                 <div class="options">
                     <button class="btn-opt" data-score="1" onclick="setAns('${idx}_${j}', 1, this)">SI</button>
                     <button class="btn-opt" data-score="0.5" onclick="setAns('${idx}_${j}', 0.5, this)">PARCIAL</button>
@@ -134,8 +153,15 @@ function render() {
                 </div>
             </div>
         `).join('');
+        window.scrollTo(0,0);
     } else {
         const vals = Object.values(auditData.respuestas);
+        if (vals.length < 25) {
+            alert("⚠️ Aún faltan preguntas por responder en esta sección.");
+            currentStep--;
+            render();
+            return;
+        }
         auditData.score = Math.round((vals.reduce((a,b)=>a+b,0)/25)*100);
         document.getElementById("score-badge").innerText = auditData.score + "%";
         document.getElementById("step-result").classList.remove("hidden");
@@ -143,26 +169,30 @@ function render() {
 }
 
 function setAns(id, v, btn) {
-    // Quitar activo de los hermanos
-    const buttons = btn.parentElement.querySelectorAll('.btn-opt');
-    buttons.forEach(b => b.classList.remove('active'));
-    
-    // Activar el presionado
+    const parent = btn.parentElement;
+    parent.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     auditData.respuestas[id] = v;
 }
 
 async function guardar() {
-    const { error } = await client.from('rh_evaluaciones_5s').insert([{
-        empleado_id: document.getElementById('operador_select').value,
-        auditor_id: document.getElementById('auditor_select').value,
-        area_id: document.getElementById('area_select').value,
-        maquina_id: document.getElementById('maquina_select').value,
-        puntuacion: auditData.score,
-        respuestas_json: auditData.respuestas
-    }]);
-    if (error) alert(error.message);
-    else { alert("¡Guardado!"); location.reload(); }
+    try {
+        const { error } = await client.from('rh_evaluaciones_5s').insert([{
+            empleado_id: document.getElementById('operador_select').value,
+            auditor_id: document.getElementById('auditor_select').value,
+            area_id: document.getElementById('area_select').value,
+            maquina_id: document.getElementById('maquina_select').value,
+            puntuacion: auditData.score,
+            respuestas_json: auditData.respuestas,
+            created_at: new Date().toISOString()
+        }]);
+
+        if (error) throw error;
+        alert("✅ Auditoría guardada correctamente.");
+        location.reload();
+    } catch (e) {
+        alert("❌ Error al guardar: " + e.message);
+    }
 }
 
 window.onload = init;
