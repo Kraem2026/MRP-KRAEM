@@ -21,40 +21,39 @@
         --border: #e2e8f0;
     }
 
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-    .container { max-width: 500px; margin: auto; background: var(--card); border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 25px; min-height: 80vh; display: flex; flex-direction: column; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+    .container { max-width: 500px; margin: auto; background: var(--card); border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 20px; min-height: 85vh; display: flex; flex-direction: column; }
 
     header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
-    h3 { margin: 0; color: var(--primary); letter-spacing: 1px; }
+    h3 { margin: 0; color: var(--primary); letter-spacing: 1px; font-size: 1.4rem; }
 
-    .setup-group { display: grid; gap: 10px; margin-bottom: 20px; }
-    select, input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
+    .setup-group { display: grid; gap: 12px; margin-bottom: 20px; }
+    label { font-size: 12px; font-weight: bold; color: var(--primary); margin-bottom: -8px; margin-left: 5px; }
+    select, input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: white; }
     
-    /* Progress Bar */
     .progress-container { background: #eee; border-radius: 10px; height: 8px; margin-bottom: 20px; overflow: hidden; }
     .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: 0.3s; }
 
-    .section-title { font-weight: bold; color: var(--primary); font-size: 1.2rem; margin-bottom: 15px; text-transform: uppercase; text-align: center; }
+    .section-title { font-weight: bold; color: var(--primary); font-size: 1.1rem; margin-bottom: 15px; text-transform: uppercase; text-align: center; }
     
-    .question-card { background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid var(--border); }
-    .question-text { font-size: 15px; font-weight: 500; margin-bottom: 12px; display: block; }
+    .question-card { background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 12px; border-left: 5px solid var(--border); }
+    .question-text { font-size: 14px; font-weight: 500; margin-bottom: 12px; display: block; }
 
     .options { display: flex; gap: 8px; }
-    .btn-opt { flex: 1; padding: 10px 5px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; background: white; color: #64748b; transition: 0.2s; }
+    .btn-opt { flex: 1; padding: 10px 5px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; background: white; color: #64748b; transition: 0.2s; }
     
-    /* Estados seleccionados */
     .btn-opt.active[data-val="1"] { background: var(--success); color: white; border-color: var(--success); }
     .btn-opt.active[data-val="0.5"] { background: var(--warning); color: white; border-color: var(--warning); }
     .btn-opt.active[data-val="0"] { background: var(--danger); color: white; border-color: var(--danger); }
 
     .nav-buttons { margin-top: auto; display: flex; gap: 10px; padding-top: 20px; }
-    .btn-nav { flex: 1; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; }
+    .btn-nav { flex: 1; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px; }
     .btn-prev { background: #e2e8f0; color: #475569; }
     .btn-next { background: var(--primary); color: white; }
-    .btn-save { background: var(--success); color: white; width: 100%; margin-top: 20px; }
+    .btn-save { background: var(--success); color: white; width: 100%; margin-top: 15px; }
 
-    #score-badge { font-size: 2rem; font-weight: 800; text-align: center; margin: 20px 0; color: var(--primary); }
     .hidden { display: none; }
+    #score-badge { font-size: 2.5rem; font-weight: 800; text-align: center; margin: 15px 0; color: var(--primary); }
 </style>
 </head>
 
@@ -62,17 +61,26 @@
 
 <div class="container">
     <header>
-        <h3><i class="fas fa-check-double"></i> AUDITORÍA 5S</h3>
+        <h3><i class="fas fa-industry"></i> AUDITORÍA 5S</h3>
     </header>
 
     <div id="step-setup">
         <div class="setup-group">
-            <select id="area_select"></select>
-            <input id="maquina_input" placeholder="Nombre de Máquina / Celda">
+            <label>ÁREA / PLANTA</label>
+            <select id="area_select" onchange="actualizarMaquinas()"></select>
+
+            <label>MÁQUINA / CELDA</label>
+            <select id="maquina_select">
+                <option value="">Primero selecciona área...</option>
+            </select>
+
+            <label>OPERADOR A EVALUAR</label>
             <select id="operador_select"></select>
+
+            <label>AUDITOR RESPONSABLE</label>
             <select id="auditor_select"></select>
         </div>
-        <button class="btn-nav btn-next" onclick="nextStep(1)">Comenzar Auditoría <i class="fas fa-arrow-right"></i></button>
+        <button class="btn-nav btn-next" onclick="nextStep(1)">Iniciar Auditoría <i class="fas fa-play"></i></button>
     </div>
 
     <div id="audit-flow" class="hidden">
@@ -83,28 +91,34 @@
         <div id="preguntas_cont"></div>
 
         <div class="nav-buttons">
-            <button id="btn-prev" class="btn-nav btn-prev" onclick="prevStep()"><i class="fas fa-chevron-left"></i> Anterior</button>
-            <button id="btn-next" class="btn-nav btn-next" onclick="nextStep()">Siguiente <i class="fas fa-chevron-right"></i></button>
+            <button id="btn-prev" class="btn-nav btn-prev" onclick="prevStep()">Atrás</button>
+            <button id="btn-next" class="btn-nav btn-next" onclick="nextStep()">Siguiente</button>
         </div>
     </div>
 
     <div id="step-result" class="hidden">
         <div style="text-align: center;">
-            <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--success);"></i>
-            <h4>Resultado de Evaluación</h4>
+            <i class="fas fa-medal" style="font-size: 3rem; color: var(--warning);"></i>
+            <h4>Resultado Final</h4>
             <div id="score-badge">0%</div>
-            <p id="resumen-texto" style="color: #64748b;"></p>
+            <p id="resumen-texto"></p>
         </div>
         <button class="btn-nav btn-save" onclick="guardar()">
-            <i class="fas fa-save"></i> FINALIZAR Y GUARDAR
+            <i class="fas fa-cloud-upload-alt"></i> GUARDAR EN SISTEMA
         </button>
-        <button class="btn-nav btn-prev" onclick="currentStep=5; showStep()" style="width: 100%; margin-top: 10px; background: none; border: 1px solid #ccc;">Corregir respuestas</button>
     </div>
 </div>
 
 <script>
 let currentStep = 0;
 let auditData = { respuestas: {}, score: 0 };
+
+// Diccionario de máquinas por área según tu instrucción
+const maquinasPorArea = {
+    "LS": Array.from({length: 10}, (_, i) => `Máquina ${i + 1}`),
+    "NISSEI": Array.from({length: 16}, (_, i) => `Máquina ${i + 11}`),
+    "PLANTA B": ["Vertical 1", "Vertical 2", "Gas 3", "Gas 4", "Gas 5", "Gas 6", "Gas 7", "Gas 8", "Gas 9", "Gas 10"]
+};
 
 const nombres5S = ["1. SEIRI (Clasificar)", "2. SEITON (Ordenar)", "3. SEISO (Limpiar)", "4. SEIKETSU (Estandarizar)", "5. SHITSUKE (Disciplina)"];
 
@@ -116,8 +130,22 @@ const secciones = [
     ["¿Conoce 5S?", "¿Aplica 5S?", "¿Usa EPP?", "¿Corrige fallas?", "¿Mantiene orden?"]
 ];
 
+function actualizarMaquinas() {
+    const areaNombre = area_select.options[area_select.selectedIndex].text.toUpperCase();
+    const mSelect = document.getElementById("maquina_select");
+    mSelect.innerHTML = '<option value="">Selecciona Máquina...</option>';
+
+    let lista = [];
+    if (areaNombre.includes("LS")) lista = maquinasPorArea["LS"];
+    else if (areaNombre.includes("NISSEI")) lista = maquinasPorArea["NISSEI"];
+    else if (areaNombre.includes("PLANTA B")) lista = maquinasPorArea["PLANTA B"];
+
+    lista.forEach(m => {
+        mSelect.innerHTML += `<option value="${m}">${m}</option>`;
+    });
+}
+
 function showStep() {
-    // Ocultar todo
     document.getElementById("step-setup").classList.add("hidden");
     document.getElementById("audit-flow").classList.add("hidden");
     document.getElementById("step-result").classList.add("hidden");
@@ -160,24 +188,20 @@ function renderQuestions(index) {
     });
 
     document.getElementById("btn-prev").style.visibility = index === 0 ? "hidden" : "visible";
-    document.getElementById("btn-next").innerText = index === 4 ? "Revisar Resultado" : "Siguiente";
+    document.getElementById("btn-next").innerText = index === 4 ? "Finalizar" : "Siguiente";
 }
 
 function setAnswer(id, val, btn) {
-    // UI: Quitar active de hermanos
     const parent = btn.parentElement;
     parent.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
-    // Data
     auditData.respuestas[id] = val;
 }
 
 function nextStep() {
     if (currentStep === 0) {
-        // Validar que se llenaron datos básicos
-        if(!area_select.value || !operador_select.value) {
-            alert("Por favor selecciona Área y Operador");
+        if(!area_select.value || !operador_select.value || !maquina_select.value) {
+            alert("Completa todos los campos antes de iniciar");
             return;
         }
     }
@@ -192,61 +216,48 @@ function prevStep() {
 
 function calc() {
     const vals = Object.values(auditData.respuestas);
-    const totalPosible = 25; // 5 preguntas * 5 secciones
+    const totalPosible = 25; 
     const totalObtenido = vals.reduce((a, b) => a + b, 0);
     const score = Math.round((totalObtenido / totalPosible) * 100) || 0;
-    
     document.getElementById("score-badge").innerText = score + "%";
     auditData.score = score;
-    
-    let msg = score >= 90 ? "Excelente mantenimiento de estándares." : 
-              score >= 70 ? "Buen trabajo, pero hay áreas de mejora." : "Se requiere atención inmediata en esta área.";
-    document.getElementById("resumen-texto").innerText = msg;
 }
 
 async function cargar() {
-    try {
-        const {data: a} = await client.from('rh_areas').select('*').order('nombre');
-        const {data: e} = await client.from('rh_empleados').select('*').eq('activo', true).order('nombre_completo');
+    // Carga de Áreas
+    const {data: a} = await client.from('rh_areas').select('*').order('nombre');
+    area_select.innerHTML = '<option value="">Seleccionar Área...</option>';
+    a.forEach(i => area_select.innerHTML += `<option value="${i.id}">${i.nombre}</option>`);
 
-        area_select.innerHTML = '<option value="">Seleccionar Área...</option>';
-        operador_select.innerHTML = '<option value="">Seleccionar Operador...</option>';
-        auditor_select.innerHTML = '<option value="">Seleccionar Auditor...</option>';
-
-        a.forEach(i => area_select.innerHTML += `<option value="${i.id}">${i.nombre}</option>`);
-        e.forEach(i => {
-            operador_select.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`;
-            auditor_select.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`;
-        });
-    } catch (error) {
-        console.log("Error cargando catálogos", error);
-    }
+    // Carga de Empleados (para operador y auditor)
+    const {data: e} = await client.from('rh_empleados').select('*').eq('activo', true).order('nombre_completo');
+    operador_select.innerHTML = '<option value="">¿Quién es el operador?</option>';
+    auditor_select.innerHTML = '<option value="">¿Quién audita?</option>';
+    
+    e.forEach(i => {
+        const opt = `<option value="${i.id}">${i.nombre_completo}</option>`;
+        operador_select.innerHTML += opt;
+        auditor_select.innerHTML += opt;
+    });
 }
 
 async function guardar() {
-    const btn = document.querySelector('.btn-save');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
     try {
         const { error } = await client.from('rh_evaluaciones_5s').insert([{
             empleado_id: operador_select.value,
             auditor_id: auditor_select.value,
             area_id: area_select.value,
-            maquina_id: maquina_input.value,
+            maquina_id: maquina_select.value, // Ahora toma el valor del Select
             puntuacion: auditData.score,
             respuestas_json: auditData.respuestas,
             created_at: new Date().toISOString()
         }]);
 
         if (error) throw error;
-
-        alert("Auditoría guardada exitosamente en el historial.");
+        alert("Guardado correctamente");
         location.reload();
     } catch (e) {
-        alert("Error al guardar: " + e.message);
-        btn.disabled = false;
-        btn.innerText = "FINALIZAR Y GUARDAR";
+        alert("Error: " + e.message);
     }
 }
 
