@@ -3,123 +3,254 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRAEM | Auditoría 5S</title>
+<title>KRAEM | Auditoría 5S Pro</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
-body{font-family:Arial;background:#f1f5f9;margin:0}
-.container{max-width:500px;margin:auto;background:white;min-height:100vh;padding:20px}
+    :root {
+        --primary: #2563eb;
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #1e293b;
+        --border: #e2e8f0;
+    }
 
-.question{background:#f8fafc;padding:12px;border-radius:10px;margin-bottom:10px}
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+    .container { max-width: 500px; margin: auto; background: var(--card); border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 25px; min-height: 80vh; display: flex; flex-direction: column; }
 
-.options{display:flex;gap:5px;margin-top:10px}
+    header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+    h3 { margin: 0; color: var(--primary); letter-spacing: 1px; }
 
-button{flex:1;padding:10px;border:none;border-radius:8px;cursor:pointer;font-weight:bold}
+    .setup-group { display: grid; gap: 10px; margin-bottom: 20px; }
+    select, input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
+    
+    /* Progress Bar */
+    .progress-container { background: #eee; border-radius: 10px; height: 8px; margin-bottom: 20px; overflow: hidden; }
+    .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: 0.3s; }
 
-.si{background:#22c55e;color:white}
-.parcial{background:#f59e0b;color:white}
-.no{background:#ef4444;color:white}
+    .section-title { font-weight: bold; color: var(--primary); font-size: 1.2rem; margin-bottom: 15px; text-transform: uppercase; text-align: center; }
+    
+    .question-card { background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid var(--border); }
+    .question-text { font-size: 15px; font-weight: 500; margin-bottom: 12px; display: block; }
+
+    .options { display: flex; gap: 8px; }
+    .btn-opt { flex: 1; padding: 10px 5px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; background: white; color: #64748b; transition: 0.2s; }
+    
+    /* Estados seleccionados */
+    .btn-opt.active[data-val="1"] { background: var(--success); color: white; border-color: var(--success); }
+    .btn-opt.active[data-val="0.5"] { background: var(--warning); color: white; border-color: var(--warning); }
+    .btn-opt.active[data-val="0"] { background: var(--danger); color: white; border-color: var(--danger); }
+
+    .nav-buttons { margin-top: auto; display: flex; gap: 10px; padding-top: 20px; }
+    .btn-nav { flex: 1; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.3s; }
+    .btn-prev { background: #e2e8f0; color: #475569; }
+    .btn-next { background: var(--primary); color: white; }
+    .btn-save { background: var(--success); color: white; width: 100%; margin-top: 20px; }
+
+    #score-badge { font-size: 2rem; font-weight: 800; text-align: center; margin: 20px 0; color: var(--primary); }
+    .hidden { display: none; }
 </style>
 </head>
 
 <body>
 
 <div class="container">
+    <header>
+        <h3><i class="fas fa-check-double"></i> AUDITORÍA 5S</h3>
+    </header>
 
-<h3>Auditoría 5S</h3>
+    <div id="step-setup">
+        <div class="setup-group">
+            <select id="area_select"></select>
+            <input id="maquina_input" placeholder="Nombre de Máquina / Celda">
+            <select id="operador_select"></select>
+            <select id="auditor_select"></select>
+        </div>
+        <button class="btn-nav btn-next" onclick="nextStep(1)">Comenzar Auditoría <i class="fas fa-arrow-right"></i></button>
+    </div>
 
-<select id="area_select"></select>
-<input id="maquina_input" placeholder="Máquina">
-<select id="operador_select"></select>
-<select id="auditor_select"></select>
+    <div id="audit-flow" class="hidden">
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <div id="section-label" class="section-title"></div>
+        <div id="preguntas_cont"></div>
 
-<div id="preguntas"></div>
+        <div class="nav-buttons">
+            <button id="btn-prev" class="btn-nav btn-prev" onclick="prevStep()"><i class="fas fa-chevron-left"></i> Anterior</button>
+            <button id="btn-next" class="btn-nav btn-next" onclick="nextStep()">Siguiente <i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
 
-<h2 id="score">0%</h2>
-
-<button onclick="guardar()">Guardar</button>
-
+    <div id="step-result" class="hidden">
+        <div style="text-align: center;">
+            <i class="fas fa-chart-line" style="font-size: 3rem; color: var(--success);"></i>
+            <h4>Resultado de Evaluación</h4>
+            <div id="score-badge">0%</div>
+            <p id="resumen-texto" style="color: #64748b;"></p>
+        </div>
+        <button class="btn-nav btn-save" onclick="guardar()">
+            <i class="fas fa-save"></i> FINALIZAR Y GUARDAR
+        </button>
+        <button class="btn-nav btn-prev" onclick="currentStep=5; showStep()" style="width: 100%; margin-top: 10px; background: none; border: 1px solid #ccc;">Corregir respuestas</button>
+    </div>
 </div>
 
 <script>
+let currentStep = 0;
+let auditData = { respuestas: {}, score: 0 };
 
-let data={respuestas:{}}
+const nombres5S = ["1. SEIRI (Clasificar)", "2. SEITON (Ordenar)", "3. SEISO (Limpiar)", "4. SEIKETSU (Estandarizar)", "5. SHITSUKE (Disciplina)"];
 
-const secciones=[
-["¿Área solo con material necesario?","¿Scrap en contenedor?","¿Sin objetos innecesarios?","¿Herramientas en uso?","¿Sin objetos personales?"],
-["¿Herramientas en su lugar?","¿Cajas identificadas?","¿Sin obstáculos?","¿Material organizado?","¿Señalización correcta?"],
-["¿Mesa limpia?","¿Parte inferior limpia?","¿Contenedores OK?","¿Piso limpio?","¿Limpieza constante?"],
-["¿Estándares visibles?","¿Contenedores identificados?","¿Se siguen métodos?","¿Conoce proceso?","¿Cumple estándar?"],
-["¿Conoce 5S?","¿Aplica 5S?","¿Usa EPP?","¿Corrige fallas?","¿Mantiene orden?"]
+const secciones = [
+    ["¿Área solo con material necesario?", "¿Scrap en contenedor?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Sin objetos personales?"],
+    ["¿Herramientas en su lugar?", "¿Cajas identificadas?", "¿Sin obstáculos?", "¿Material organizado?", "¿Señalización correcta?"],
+    ["¿Mesa limpia?", "¿Parte inferior limpia?", "¿Contenedores OK?", "¿Piso limpio?", "¿Limpieza constante?"],
+    ["¿Estándares visibles?", "¿Contenedores identificados?", "¿Se siguen métodos?", "¿Conoce proceso?", "¿Cumple estándar?"],
+    ["¿Conoce 5S?", "¿Aplica 5S?", "¿Usa EPP?", "¿Corrige fallas?", "¿Mantiene orden?"]
 ];
 
-function crear(){
-const cont=document.getElementById("preguntas")
+function showStep() {
+    // Ocultar todo
+    document.getElementById("step-setup").classList.add("hidden");
+    document.getElementById("audit-flow").classList.add("hidden");
+    document.getElementById("step-result").classList.add("hidden");
 
-secciones.forEach((s,i)=>{
-s.forEach((p,j)=>{
-const id=`${i}_${j}`
-cont.innerHTML+=`
-<div class="question">
-${p}
-<div class="options">
-<button class="si" onclick="set('${id}',1)">Cumple</button>
-<button class="parcial" onclick="set('${id}',0.5)">Parcial</button>
-<button class="no" onclick="set('${id}',0)">No</button>
-</div>
-</div>`
-})
-})
+    if (currentStep === 0) {
+        document.getElementById("step-setup").classList.remove("hidden");
+    } else if (currentStep >= 1 && currentStep <= 5) {
+        document.getElementById("audit-flow").classList.remove("hidden");
+        renderQuestions(currentStep - 1);
+    } else if (currentStep === 6) {
+        calc();
+        document.getElementById("step-result").classList.remove("hidden");
+    }
 }
 
-function set(id,val){
-data.respuestas[id]=val
-calc()
+function renderQuestions(index) {
+    const cont = document.getElementById("preguntas_cont");
+    const label = document.getElementById("section-label");
+    const progress = document.getElementById("progress-bar");
+    
+    label.innerText = nombres5S[index];
+    progress.style.width = (index + 1) * 20 + "%";
+    cont.innerHTML = "";
+
+    secciones[index].forEach((p, j) => {
+        const id = `${index}_${j}`;
+        const currentVal = auditData.respuestas[id];
+
+        const card = document.createElement("div");
+        card.className = "question-card";
+        card.innerHTML = `
+            <span class="question-text">${p}</span>
+            <div class="options">
+                <button class="btn-opt ${currentVal === 1 ? 'active' : ''}" data-val="1" onclick="setAnswer('${id}', 1, this)">Cumple</button>
+                <button class="btn-opt ${currentVal === 0.5 ? 'active' : ''}" data-val="0.5" onclick="setAnswer('${id}', 0.5, this)">Parcial</button>
+                <button class="btn-opt ${currentVal === 0 ? 'active' : ''}" data-val="0" onclick="setAnswer('${id}', 0, this)">No</button>
+            </div>
+        `;
+        cont.appendChild(card);
+    });
+
+    document.getElementById("btn-prev").style.visibility = index === 0 ? "hidden" : "visible";
+    document.getElementById("btn-next").innerText = index === 4 ? "Revisar Resultado" : "Siguiente";
 }
 
-function calc(){
-const vals=Object.values(data.respuestas)
-const total=vals.reduce((a,b)=>a+b,0)
-const score=Math.round((total/vals.length)*100)||0
-document.getElementById("score").innerText=score+"%"
-data.score=score
+function setAnswer(id, val, btn) {
+    // UI: Quitar active de hermanos
+    const parent = btn.parentElement;
+    parent.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Data
+    auditData.respuestas[id] = val;
 }
 
-async function cargar(){
-const {data:a}=await client.from('rh_areas').select('*')
-const {data:e}=await client.from('rh_empleados').select('*')
-
-area_select.innerHTML='<option>Área</option>'
-operador_select.innerHTML='<option>Operador</option>'
-auditor_select.innerHTML='<option>Auditor</option>'
-
-a.forEach(i=>area_select.innerHTML+=`<option value="${i.id}">${i.nombre}</option>`)
-e.forEach(i=>{
-operador_select.innerHTML+=`<option value="${i.id}">${i.nombre_completo}</option>`
-auditor_select.innerHTML+=`<option value="${i.id}">${i.nombre_completo}</option>`
-})
+function nextStep() {
+    if (currentStep === 0) {
+        // Validar que se llenaron datos básicos
+        if(!area_select.value || !operador_select.value) {
+            alert("Por favor selecciona Área y Operador");
+            return;
+        }
+    }
+    currentStep++;
+    showStep();
 }
 
-async function guardar(){
-await client.from('rh_evaluaciones_5s').insert([{
-empleado_id:operador_select.value,
-auditor_id:auditor_select.value,
-area_id:area_select.value,
-maquina_id:maquina_input.value,
-puntuacion:data.score,
-respuestas_json:data.respuestas,
-created_at:new Date().toISOString()
-}])
-
-alert("Guardado")
-location.reload()
+function prevStep() {
+    currentStep--;
+    showStep();
 }
 
-crear()
-cargar()
+function calc() {
+    const vals = Object.values(auditData.respuestas);
+    const totalPosible = 25; // 5 preguntas * 5 secciones
+    const totalObtenido = vals.reduce((a, b) => a + b, 0);
+    const score = Math.round((totalObtenido / totalPosible) * 100) || 0;
+    
+    document.getElementById("score-badge").innerText = score + "%";
+    auditData.score = score;
+    
+    let msg = score >= 90 ? "Excelente mantenimiento de estándares." : 
+              score >= 70 ? "Buen trabajo, pero hay áreas de mejora." : "Se requiere atención inmediata en esta área.";
+    document.getElementById("resumen-texto").innerText = msg;
+}
 
+async function cargar() {
+    try {
+        const {data: a} = await client.from('rh_areas').select('*').order('nombre');
+        const {data: e} = await client.from('rh_empleados').select('*').eq('activo', true).order('nombre_completo');
+
+        area_select.innerHTML = '<option value="">Seleccionar Área...</option>';
+        operador_select.innerHTML = '<option value="">Seleccionar Operador...</option>';
+        auditor_select.innerHTML = '<option value="">Seleccionar Auditor...</option>';
+
+        a.forEach(i => area_select.innerHTML += `<option value="${i.id}">${i.nombre}</option>`);
+        e.forEach(i => {
+            operador_select.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`;
+            auditor_select.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`;
+        });
+    } catch (error) {
+        console.log("Error cargando catálogos", error);
+    }
+}
+
+async function guardar() {
+    const btn = document.querySelector('.btn-save');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+    try {
+        const { error } = await client.from('rh_evaluaciones_5s').insert([{
+            empleado_id: operador_select.value,
+            auditor_id: auditor_select.value,
+            area_id: area_select.value,
+            maquina_id: maquina_input.value,
+            puntuacion: auditData.score,
+            respuestas_json: auditData.respuestas,
+            created_at: new Date().toISOString()
+        }]);
+
+        if (error) throw error;
+
+        alert("Auditoría guardada exitosamente en el historial.");
+        location.reload();
+    } catch (e) {
+        alert("Error al guardar: " + e.message);
+        btn.disabled = false;
+        btn.innerText = "FINALIZAR Y GUARDAR";
+    }
+}
+
+window.onload = cargar;
 </script>
 
 </body>
