@@ -2,115 +2,327 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>KRAEM - Terminal de Producción</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Terminal de Producción Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
-        .console { background: #000; border: 1px solid #334155; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #4ade80; margin-bottom: 20px; max-height: 150px; overflow-y: auto; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #334155; cursor: pointer; }
-        .card:hover { border-color: #38bdf8; background: #334155; }
-        .card i { font-size: 2rem; color: #38bdf8; }
-        .btn-fix { background: #e11d48; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
-        
-        /* Modal simple */
-        .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); padding:20px; }
-        .modal-content { background:#fff; color:#000; padding:20px; border-radius:10px; max-width:500px; margin:auto; }
-        input, select { width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:5px; box-sizing:border-box; }
+        :root {
+            --primary: #0ea5e9;
+            --primary-dark: #0284c7;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            color: var(--text-main); 
+            margin: 0; 
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Navbar Estilizada */
+        .navbar {
+            background: #1e293b;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .navbar h1 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; font-weight: 800; }
+        .navbar span { color: var(--primary); }
+
+        /* Contenedor Principal */
+        main { padding: 1.5rem; flex: 1; overflow-y: auto; }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: var(--card);
+            padding: 1rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .search-box { flex: 1; position: relative; }
+        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+        .search-box input { 
+            width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem; 
+            border: 1px solid #e2e8f0; border-radius: 8px; outline: none;
+        }
+
+        select { padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-weight: 600; cursor: pointer; }
+
+        /* Grid de Máquinas */
+        .machine-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .machine-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .machine-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary);
+        }
+
+        .machine-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .machine-card i { font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem; }
+        .machine-card h3 { margin: 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; }
+        .machine-card p { margin: 0; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+
+        /* Modal Ultra-Pro */
+        .modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            place-items: center;
+        }
+
+        .modal-content {
+            background: white; width: 95%; max-width: 650px;
+            border-radius: 20px; padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+        .full-width { grid-column: 1 / -1; }
+
+        .input-group label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+        .input-group input, .input-group select { 
+            width: 100%; padding: 0.8rem; border: 2px solid #f1f5f9; border-radius: 10px; font-size: 1rem; box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus { border-color: var(--primary); outline: none; }
+
+        .modal-actions { display: flex; gap: 1rem; margin-top: 2rem; }
+        .btn { 
+            flex: 1; padding: 1rem; border: none; border-radius: 12px; 
+            font-weight: 700; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-cancel { background: #f1f5f9; color: var(--text-muted); }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-save:hover { background: var(--primary-dark); }
+
+        /* Notificaciones */
+        #toast {
+            position: fixed; bottom: 20px; right: 20px; padding: 1rem 2rem; 
+            border-radius: 10px; color: white; font-weight: 600; display: none; z-index: 2000;
+        }
     </style>
 </head>
 <body>
 
-    <h2><i class="fas fa-microchip"></i> Panel de Piso - KRAEM</h2>
-    
-    <div class="console" id="log">
-        > Sistema iniciado...<br>
-    </div>
+    <nav class="navbar">
+        <h1>KRAEM <span>PRO-PISO</span></h1>
+        <div id="user-info" style="font-size: 0.8rem; font-weight: 600; opacity: 0.8;">
+            <i class="fas fa-clock"></i> <span id="clock" style="color:white">--:--</span>
+        </div>
+    </nav>
 
-    <div id="setup-helper" style="display:none; background: #1e293b; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #e11d48;">
-        <strong>¡Atención!</strong> La tabla 'machines' no devolvió datos. <br>
-        <button class="btn-fix" onclick="crearMaquinaPrueba()">Crear Máquina de Prueba (NISSEI 1)</button>
-    </div>
+    <main>
+        <div class="controls">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="m-search" placeholder="Buscar máquina..." oninput="filtrar()">
+            </div>
+            <select id="f-area" onchange="filtrar()">
+                <option value="ALL">TODAS LAS AREAS</option>
+            </select>
+        </div>
 
-    <div class="grid" id="machine-grid"></div>
+        <div id="grid" class="machine-grid">
+            </div>
+    </main>
 
     <div id="modal" class="modal">
         <div class="modal-content">
-            <h3 id="m-title"></h3>
-            <label>N/P Parte</label>
-            <input type="text" id="f_parte" placeholder="Ingrese parte">
-            <label>Cantidad OK</label>
-            <input type="number" id="f_ok" value="0">
-            <button onclick="guardar()" style="width:100%; padding:15px; background:#16a34a; color:white; border:none; border-radius:5px; font-weight:bold;">GUARDAR EN PRODUCCIÓN</button>
-            <button onclick="document.getElementById('modal').style.display='none'" style="width:100%; margin-top:10px; background:none; border:none; color:gray;">Cerrar</button>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <h2 id="modal-m-name" style="margin:0; color:var(--primary); font-size: 1.8rem;">---</h2>
+                    <p id="modal-m-area" style="margin:0; color:var(--text-muted); font-weight:700;"></p>
+                </div>
+                <i class="fas fa-robot" style="font-size: 2.5rem; color: #f1f5f9;"></i>
+            </div>
+
+            <div class="form-grid">
+                <div class="input-group">
+                    <label>Turno Actual</label>
+                    <select id="f_turno"></select>
+                </div>
+                <div class="input-group">
+                    <label>Líder / Operador</label>
+                    <select id="f_lider"></select>
+                </div>
+                <div class="input-group full-width">
+                    <label>Número de Parte (N/P)</label>
+                    <input type="text" id="f_parte" placeholder="Ej. KRM-9922">
+                </div>
+                <div class="input-group">
+                    <label>Piezas OK</label>
+                    <input type="number" id="f_ok" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Scrap (Pzas)</label>
+                    <input type="number" id="f_scrap" value="0">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeModal()">CANCELAR</button>
+                <button class="btn btn-save" onclick="saveData()">
+                    <i class="fas fa-cloud-upload-alt"></i> REGISTRAR PRODUCCIÓN
+                </button>
+            </div>
         </div>
     </div>
 
-<script>
-    const db = client; // Usamos tu objeto de config.js
-    const logDiv = document.getElementById('log');
+    <div id="toast"></div>
 
-    function print(msg) { logDiv.innerHTML += `> ${msg}<br>`; logDiv.scrollTop = logDiv.scrollHeight; }
+<script>
+    const db = client; // Usando tu cliente de config.js
+    let machinesData = [];
+    let selectedMachine = null;
+
+    // Reloj en tiempo real
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+    }, 1000);
 
     async function init() {
+        showToast("Conectando con Supabase...", "#334155");
         try {
-            print("Consultando tabla 'machines'...");
-            const { data, error } = await db.from('machines').select('id, machine_name, area');
-            
-            if (error) {
-                print(`ERROR: ${error.message}`);
-                return;
-            }
+            // Carga masiva de datos (Optimizado)
+            const [mRes, aRes, tRes, lRes] = await Promise.all([
+                db.from('machines').select('id, machine_name, area'),
+                db.from('rh_areas').select('nombre').eq('activo', true),
+                db.from('rh_turnos').select('id, nombre'),
+                db.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo')
+            ]);
 
-            if (!data || data.length === 0) {
-                print("ADVERTENCIA: La tabla está vacía (0 máquinas).");
-                document.getElementById('setup-helper').style.display = 'block';
-            } else {
-                print(`ÉXITO: Se cargaron ${data.length} máquinas.`);
-                document.getElementById('setup-helper').style.display = 'none';
-                render(data);
-            }
+            machinesData = mRes.data || [];
+            
+            // Llenar Selectores
+            const fArea = document.getElementById('f-area');
+            aRes.data?.forEach(a => fArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+            
+            tRes.data?.forEach(t => document.getElementById('f_turno').innerHTML += `<option value="${t.id}">${t.nombre}</option>`);
+            
+            lRes.data?.forEach(l => document.getElementById('f_lider').innerHTML += `<option value="${l.id}">${l.nombre_completo}</option>`);
+
+            filtrar();
         } catch (err) {
-            print(`FALLO CRÍTICO: ${err.message}`);
+            showToast("Error de conexión", "#ef4444");
         }
     }
 
-    function render(list) {
-        const grid = document.getElementById('machine-grid');
-        grid.innerHTML = '';
-        list.forEach(m => {
+    function filtrar() {
+        const search = document.getElementById('m-search').value.toLowerCase();
+        const area = document.getElementById('f-area').value;
+        const container = document.getElementById('grid');
+        
+        container.innerHTML = '';
+        
+        const filtered = machinesData.filter(m => {
+            const matchesSearch = m.machine_name.toLowerCase().includes(search);
+            const matchesArea = area === 'ALL' || m.area === area;
+            return matchesSearch && matchesArea;
+        });
+
+        filtered.forEach(m => {
             const card = document.createElement('div');
-            card.className = 'card';
-            card.onclick = () => {
-                document.getElementById('m-title').innerText = m.machine_name;
-                document.getElementById('modal').style.display = 'block';
-            };
-            card.innerHTML = `<i class="fas fa-industry"></i><h3>${m.machine_name}</h3><span>${m.area}</span>`;
-            grid.appendChild(card);
+            card.className = 'machine-card';
+            card.onclick = () => openModal(m);
+            card.innerHTML = `
+                <i class="fas fa-charging-station"></i>
+                <h3>${m.machine_name}</h3>
+                <p>${m.area || 'GENERAL'}</p>
+            `;
+            container.appendChild(card);
         });
     }
 
-    // FUNCIÓN PARA REPARAR SI NO HAY DATOS
-    async function crearMaquinaPrueba() {
-        print("Intentando crear máquina de prueba...");
-        const { error } = await db.from('machines').insert([
-            { machine_name: 'NISSEI 1', area: 'INYECCION' }
-        ]);
-        if (error) {
-            print(`Error al insertar: ${error.message}. ¿Tienes habilitado RLS?`);
-            alert("Error: " + error.message);
+    function openModal(m) {
+        selectedMachine = m;
+        document.getElementById('modal-m-name').innerText = m.machine_name;
+        document.getElementById('modal-m-area').innerText = m.area;
+        document.getElementById('modal').style.display = 'grid';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    async function saveData() {
+        const payload = {
+            maquina_id: selectedMachine.id,
+            turno_id: document.getElementById('f_turno').value,
+            lider_id: document.getElementById('f_lider').value,
+            parte: document.getElementById('f_parte').value,
+            cantidad_ok: parseInt(document.getElementById('f_ok').value) || 0,
+            scrap: parseInt(document.getElementById('f_scrap').value) || 0,
+            fecha: new Date().toISOString()
+        };
+
+        if(!payload.parte) {
+            showToast("Indique el Número de Parte", "#d97706");
+            return;
+        }
+
+        const { error } = await db.from('produccion_registros').insert([payload]);
+
+        if(error) {
+            showToast("Error: " + error.message, "#ef4444");
         } else {
-            print("Máquina creada. Recargando...");
-            location.reload();
+            showToast("✅ Registro Guardado", "#10b981");
+            closeModal();
+            // Reset campos
+            document.getElementById('f_parte').value = '';
+            document.getElementById('f_ok').value = '0';
+            document.getElementById('f_scrap').value = '0';
         }
     }
 
-    async function guardar() {
-        // Aquí va tu lógica de guardado que ya teníamos
-        alert("Simulación de guardado exitosa");
-        document.getElementById('modal').style.display = 'none';
+    function showToast(msg, color) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.background = color;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 3000);
     }
 
     window.onload = init;
