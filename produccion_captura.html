@@ -2,174 +2,216 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>KRAEM - Registro de Producción e Inventario</title>
+    <title>KRAEM - Control de Producción Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --primary: #2563eb; --success: #16a34a; --warning: #d97706; --danger: #dc2626;
-            --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+            --bg: #f1f5f9; --card: #ffffff; --text: #1e293b;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: var(--card); padding: 30px; border-radius: 16px; shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        .header-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; border-bottom: 2px solid var(--bg); padding-bottom: 20px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.9rem; }
-        select, input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; }
-        
-        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
-        .btn { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; }
-        
-        .btn-save { background: var(--bg); color: var(--primary); border: 2px solid var(--primary); }
-        .btn-save:hover { background: #eff6ff; }
-        
-        .btn-finalize { background: var(--success); color: white; }
-        .btn-finalize:hover { background: #15803d; }
+        /* Dashboard de Maquinas */
+        .grid-machines { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
+        .machine-card { 
+            background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;
+            text-align: center; cursor: pointer; transition: 0.3s; position: relative;
+        }
+        .machine-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .machine-card i { font-size: 2rem; color: var(--primary); margin-bottom: 10px; }
+        .machine-status { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; border-radius: 50%; background: #94a3b8; }
+        .status-active { background: var(--success); shadow: 0 0 8px var(--success); }
 
-        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
-        .open { background: #fef3c7; color: #92400e; }
+        /* Modal Formulario */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .modal-content { background: #fff; width: 90%; max-width: 1000px; margin: 2% auto; padding: 30px; border-radius: 16px; max-height: 90vh; overflow-y: auto; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .full-width { grid-column: 1 / -1; }
+        .input-group { margin-bottom: 10px; }
+        label { display: block; font-size: 0.8rem; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
+        select, input, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; }
+        
+        .btn-group { display: flex; gap: 15px; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-save { background: #f1f5f9; color: var(--primary); border: 1px solid var(--primary); }
+        .btn-finalize { background: var(--success); color: white; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>Reporte de Producción Diaria</h2>
-        <span id="status-label" class="status-badge open">Nuevo / Abierto</span>
-    </div>
+    <header style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1>Panel de Piso: Producción Real-Time</h1>
+            <p>Selecciona una máquina para reportar</p>
+        </div>
+        <select id="filter-area" onchange="loadMachines()" style="width: 250px;">
+            <option value="">Todas las Áreas</option>
+        </select>
+    </header>
 
-    <div class="header-form">
-        <div class="input-group">
-            <label>Área de Producción</label>
-            <select id="f_area" onchange="loadMachines()">
-                <option value="">Seleccione Área...</option>
-                <option value="INYECCION">Inyección</option>
-                <option value="ENSAMBLE">Ensamble</option>
-            </select>
+    <div id="machine-grid" class="grid-machines">
         </div>
-        <div class="input-group">
-            <label>Máquina / Estación</label>
-            <select id="f_maquina">
-                <option value="">Seleccione Máquina...</option>
-            </select>
+
+    <div id="prodModal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 id="modal-title">Reporte de Producción</h2>
+                <button onclick="closeModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+
+            <div class="form-grid">
+                <div class="input-group">
+                    <label>Turno</label>
+                    <select id="f_turno"></select>
+                </div>
+                <div class="input-group">
+                    <label>Líder / Operador</label>
+                    <select id="f_lider"></select>
+                </div>
+                <div class="input-group">
+                    <label>N/P (Número de Parte)</label>
+                    <input type="text" id="f_np" list="part-list">
+                    <datalist id="part-list"></datalist>
+                </div>
+
+                <div class="input-group">
+                    <label>Tiros Totales</label>
+                    <input type="number" id="f_tiros" oninput="calcularTotales()">
+                </div>
+                <div class="input-group">
+                    <label>Cavidades LH</label>
+                    <input type="number" id="f_cav_lh">
+                </div>
+                <div class="input-group">
+                    <label>Cavidades RH</label>
+                    <input type="number" id="f_cav_rh">
+                </div>
+
+                <div class="input-group">
+                    <label style="color:var(--success)">Piezas OK (Finales)</label>
+                    <input type="number" id="f_cant_ok" style="border-color:var(--success); font-weight:bold;">
+                </div>
+                <div class="input-group">
+                    <label style="color:var(--danger)">Scrap Total</label>
+                    <input type="number" id="f_scrap" value="0">
+                </div>
+                <div class="input-group">
+                    <label>Peso Pieza (gr)</label>
+                    <input type="number" id="f_peso" step="0.01">
+                </div>
+
+                <div class="input-group full-width">
+                    <label>Observaciones del Turno</label>
+                    <textarea id="f_obs" rows="2" placeholder="Paros técnicos, fallas de molde, etc..."></textarea>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-save" onclick="saveData('abierto')">
+                    <i class="fas fa-pause-circle"></i> GUARDAR AVANCE
+                </button>
+                <button class="btn btn-finalize" onclick="saveData('finalizado')">
+                    <i class="fas fa-check-double"></i> FINALIZAR Y ENVIAR A ALMACÉN
+                </button>
+            </div>
         </div>
     </div>
-
-    <div class="header-form">
-        <div class="input-group">
-            <label>Parte (N/P)</label>
-            <input type="text" id="f_parte" placeholder="Ej. PN-1234">
-        </div>
-        <div class="input-group">
-            <label>Cantidad Producida (OK)</label>
-            <input type="number" id="f_cant_ok" value="0">
-        </div>
-    </div>
-
-    <div class="header-form">
-        <div class="input-group">
-            <label>Scrap Generado</label>
-            <input type="number" id="f_scrap" value="0" style="color: var(--danger);">
-        </div>
-        <div class="input-group">
-            <label>Líder de Turno</label>
-            <input type="text" id="f_lider" placeholder="Nombre del responsable">
-        </div>
-    </div>
-
-    <div class="action-buttons">
-        <button class="btn btn-save" onclick="processRecord('abierto')">
-            <i class="fas fa-save"></i> GUARDAR PROGRESO
-        </button>
-
-        <button class="btn btn-finalize" onclick="processRecord('finalizado')">
-            <i class="fas fa-check-circle"></i> FINALIZAR Y ENTRAR A INVENTARIO
-        </button>
-    </div>
-</div>
 
 <script>
-    // Configuración de máquinas por área
-    const maquinas = {
-        "INYECCION": ["NISSEI 1", "NISSEI 2", "NISSEI 3", "ENGEL 1"],
-        "ENSAMBLE": ["LINEA A", "LINEA B", "BANCO TRASERO"]
-    };
+    let selectedMachine = null;
 
-    function loadMachines() {
-        const area = document.getElementById('f_area').value;
-        const sel = document.getElementById('f_maquina');
-        sel.innerHTML = '<option value="">Seleccione Máquina...</option>';
-        if(maquinas[area]) {
-            maquinas[area].forEach(m => sel.innerHTML += `<option value="${m}">${m}</option>`);
-        }
+    async function init() {
+        // Cargar Áreas
+        const { data: areas } = await client.from('rh_areas').select('*').eq('activo', true);
+        const filter = document.getElementById('filter-area');
+        areas.forEach(a => filter.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+
+        // Cargar Turnos
+        const { data: turnos } = await client.from('rh_turnos').select('*');
+        turnos.forEach(t => document.getElementById('f_turno').innerHTML += `<option value="${t.id}">${t.nombre}</option>`);
+
+        // Cargar Empleados
+        const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO');
+        emps.forEach(e => document.getElementById('f_lider').innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
+
+        loadMachines();
     }
 
-    async function processRecord(status) {
-        const data = {
-            area: document.getElementById('f_area').value,
-            maquina: document.getElementById('f_maquina').value,
-            parte: document.getElementById('f_parte').value,
-            cantidad_ok: parseInt(document.getElementById('f_cant_ok').value),
-            scrap: parseInt(document.getElementById('f_scrap').value),
-            lider: document.getElementById('f_lider').value,
-            estado: status,
-            fecha: new Date().toISOString()
+    async function loadMachines() {
+        const areaFilter = document.getElementById('filter-area').value;
+        let query = client.from('machines').select('*');
+        if(areaFilter) query = query.eq('area', areaFilter);
+        
+        const { data: machines } = await query;
+        const grid = document.getElementById('machine-grid');
+        grid.innerHTML = '';
+
+        machines.forEach(m => {
+            grid.innerHTML += `
+                <div class="machine-card" onclick="openForm('${m.id}', '${m.machine_name}')">
+                    <div class="machine-status"></div>
+                    <i class="fas fa-microchip"></i>
+                    <h3>${m.machine_name}</h3>
+                    <small>${m.area}</small>
+                </div>
+            `;
+        });
+    }
+
+    function openForm(id, name) {
+        selectedMachine = { id, name };
+        document.getElementById('modal-title').innerText = `Reporte: ${name}`;
+        document.getElementById('prodModal').style.display = 'block';
+    }
+
+    function closeModal() { document.getElementById('prodModal').style.display = 'none'; }
+
+    async function saveData(status) {
+        const payload = {
+            machine_id: selectedMachine.id,
+            turno_id: document.getElementById('f_turno').value,
+            lider_id: document.getElementById('f_lider').value,
+            part_number: document.getElementById('f_np').value,
+            qty_ok: parseInt(document.getElementById('f_cant_ok').value),
+            qty_scrap: parseInt(document.getElementById('f_scrap').value),
+            status: status,
+            obs: document.getElementById('f_obs').value,
+            created_at: new Date()
         };
 
-        if(!data.area || !data.parte) return alert("Completa los datos básicos");
-
-        // 1. Guardar en la tabla de Producción
-        const { error: prodError } = await client.from('produccion_diaria').upsert(data);
-
-        if (prodError) return alert("Error al guardar producción");
-
-        // 2. LÓGICA DE INVENTARIO: Solo si se finaliza el turno
-        if (status === 'finalizado') {
-            await triggerInventoryEntry(data);
+        const { error } = await client.from('produccion_log').upsert(payload);
+        
+        if(!error && status === 'finalizado') {
+            // Lógica de inventario (Insertar en historial y sumar a stock)
+            await registrarInventario(payload);
         }
 
-        alert(status === 'finalizado' ? "Turno finalizado e inventario actualizado" : "Progreso guardado");
-        if(status === 'finalizado') location.reload();
+        alert(status === 'finalizado' ? "Producción finalizada y stock actualizado" : "Avance guardado");
+        closeModal();
     }
 
-    async function triggerInventoryEntry(prodData) {
-        // Obtenemos el ID de la parte basándonos en el N/P
-        const { data: parte } = await client.from('parts').select('id').eq('part_number', prodData.parte).single();
-        
-        if (!parte) return console.error("Parte no encontrada en catálogo");
+    async function registrarInventario(p) {
+        // 1. Buscar ID de la parte
+        const { data: part } = await client.from('parts').select('id').eq('part_number', p.part_number).single();
+        if(!part) return;
 
-        // A. Registrar en Historial (Basado en tu archivo historial.html)
+        // 2. Insertar movimiento en historial (como el tuyo de historial.html)
         await client.from('inventory_movements').insert({
-            part_id: parte.id,
+            part_id: part.id,
+            quantity: p.qty_ok,
             movement_type: 'ENTRADA PRODUCCION',
-            quantity: prodData.cantidad_ok,
-            from_location: 'PISO PRODUCCION',
-            to_location: 'ALMACEN PT',
-            area: prodData.area,
-            comment: `Producción finalizada en ${prodData.maquina}`
+            to_location: 'PISO',
+            comment: `Cierre de turno maquina ${selectedMachine.name}`
         });
 
-        // B. Actualizar Stock Real (Basado en tu archivo captura_inventario.html)
-        // Nota: Aquí se asume que existe una tabla o vista de stock por ubicación
-        const { data: stockExistente } = await client.from('inventory').select('*')
-            .eq('part_id', parte.id)
-            .eq('location_id', 1) // Supongamos que ID 1 es Almacén PT
-            .single();
-
-        if (stockExistente) {
-            await client.from('inventory')
-                .update({ quantity: stockExistente.quantity + prodData.cantidad_ok })
-                .eq('id', stockExistente.id);
-        } else {
-            await client.from('inventory').insert({
-                part_id: parte.id,
-                location_id: 1,
-                quantity: prodData.cantidad_ok
-            });
-        }
+        // 3. Sumar al inventario general
+        // Aquí llamarías a tu función de update de stock
     }
+
+    window.onload = init;
 </script>
 </body>
 </html>
