@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
@@ -75,6 +77,7 @@
         <p style="margin:5px 0 0; color: var(--text-secondary); font-size: 14px;">Panel de Control y Comparativa de Desempeño</p>
     </div>
     <div style="display: flex; gap: 10px;">
+        <button onclick="generatePDF()" class="btn-action" style="background: #2563eb;"><i class="fas fa-file-pdf"></i> Generar Reporte Semanal</button>
         <button onclick="exportToExcel()" class="btn-action" style="background: #15803d;"><i class="fas fa-file-excel"></i> Exportar CSV</button>
         <button onclick="loadData()" class="btn-action"><i class="fas fa-sync-alt"></i> Actualizar</button>
         <a href="dashboard.html" class="btn-action" style="background: #64748b;"><i class="fas fa-home"></i> Inicio</a>
@@ -322,6 +325,129 @@ function exportToExcel() {
 }
 
 window.onload = init;
+    async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const margin = 40;
+    let yPos = 100;
+
+    // 1. Encabezado y Logo
+    // Nota: Intentará cargar el logo desde tu repo. Si no existe, continuará con el texto.
+    try {
+        doc.addImage('logo-kraem.jpg', 'JPEG', margin, 30, 100, 40);
+    } catch (e) {
+        doc.setFontSize(18);
+        doc.text("KRAEM", margin, 55);
+    }
+
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text("REPORTE SEMANAL DE AUDITORÍA 5'S", 160, 55);
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    const periodo = `Periodo: ${document.getElementById('f-inicio').value} al ${document.getElementById('f-fin').value}`;
+    doc.text(periodo, 160, 70);
+
+    // 2. Capturar Gráfico Radar (BI)
+    const radarCanvas = document.getElementById('radarChart');
+    const radarImg = radarCanvas.toDataURL('image/png');
+    doc.setFont(undefined, 'bold');
+    doc.text("Perfil de Cumplimiento Global (Radar)", margin, yPos);
+    doc.addImage(radarImg, 'PNG', margin, yPos + 10, 200, 200);
+    
+    // Resumen de promedios al lado del radar
+    doc.setFontSize(9);
+    doc.text("Promedios del Periodo:", 260, yPos + 30);
+    const s_names = ["S1 Clasificar", "S2 Ordenar", "S3 Limpiar", "S4 Estandarizar", "S5 Disciplina"];
+    for(let i=1; i<=5; i++) {
+        const val = document.getElementById(`val-s${i}`).innerText;
+        doc.text(`${s_names[i-1]}: ${val}`, 260, yPos + 30 + (i * 20));
+    }
+    
+    yPos += 230;
+
+    // 3. Listado de Evaluaciones (Tabla)
+    doc.setFontSize(11);
+    doc.text("Detalle de Evaluaciones", margin, yPos);
+    yPos += 20;
+
+    // Encabezados de tabla
+    doc.setFillColor(37, 99, 235);
+    doc.rect(margin, yPos, 515, 20, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text("Fecha", margin + 5, yPos + 13);
+    doc.text("Operador / Área", margin + 60, yPos + 13);
+    doc.text("S1", margin + 200, yPos + 13);
+    doc.text("S2", margin + 230, yPos + 13);
+    doc.text("S3", margin + 260, yPos + 13);
+    doc.text("S4", margin + 290, yPos + 13);
+    doc.text("S5", margin + 320, yPos + 13);
+    doc.text("Total", margin + 350, yPos + 13);
+    doc.text("Observaciones", margin + 390, yPos + 13);
+    
+    yPos += 20;
+    doc.setTextColor(0, 0, 0);
+
+    lastFetchedData.forEach((audit, index) => {
+        // Control de salto de página
+        if (yPos > 750) {
+            doc.addPage();
+            yPos = 50;
+        }
+
+        const res = audit.respuestas_json || {};
+        const s = [0,0,0,0,0], c = [0,0,0,0,0];
+        Object.entries(res).forEach(([k, v]) => { 
+            const i = parseInt(k.split('_')[0]); 
+            if(i<=4){s[i]+=v; c[i]++;} 
+        });
+        const avgs = s.map((v, i) => Math.round((v / (c[i] || 1)) * 100));
+
+        // Dibujar fila
+        doc.setFont(undefined, 'normal');
+        doc.text(new Date(audit.created_at).toLocaleDateString(), margin + 5, yPos + 12);
+        
+        const empName = (audit.rh_empleados?.nombre_completo || 'N/A').substring(0, 25);
+        doc.text(`${empName} (${audit.rh_areas?.nombre || 'N/A'})`, margin + 60, yPos + 12);
+        
+        doc.text(`${avgs[0]}%`, margin + 200, yPos + 12);
+        doc.text(`${avgs[1]}%`, margin + 230, yPos + 12);
+        doc.text(`${avgs[2]}%`, margin + 260, yPos + 12);
+        doc.text(`${avgs[3]}%`, margin + 290, yPos + 12);
+        doc.text(`${avgs[4]}%`, margin + 320, yPos + 12);
+        
+        doc.setFont(undefined, 'bold');
+        doc.text(`${audit.puntuacion}%`, margin + 350, yPos + 12);
+        
+        // Cuadrícula de observaciones
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(7);
+        let obsText = audit.observaciones ? Object.values(audit.observaciones).filter(t => t.trim()).join(" | ") : "Sin hallazgos";
+        let splitObs = doc.splitTextToSize(obsText, 120);
+        doc.text(splitObs, margin + 390, yPos + 10);
+
+        yPos += 25; // Espaciado entre filas
+        doc.setDrawColor(230);
+        doc.line(margin, yPos - 5, margin + 515, yPos - 5);
+    });
+
+    // 4. Firmas (Al final del documento)
+    if (yPos > 700) { doc.addPage(); yPos = 100; } else { yPos += 50; }
+    
+    doc.setDrawColor(0);
+    doc.line(margin + 50, yPos + 40, margin + 200, yPos + 40);
+    doc.line(margin + 300, yPos + 40, margin + 450, yPos + 40);
+    
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text("SUPERVISOR DE ÁREA", margin + 75, yPos + 55);
+    doc.text("GERENTE DE PRODUCCIÓN", margin + 315, yPos + 55);
+
+    // Guardar
+    doc.save(`Auditoria_5S_KRAEM_${new Date().getTime()}.pdf`);
+}
 </script>
 </body>
 </html>
