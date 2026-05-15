@@ -8,7 +8,8 @@
     <script src="config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
@@ -17,55 +18,29 @@
             --success: #22c55e; --danger: #ef4444; --warning: #f59e0b;
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        
-        /* Header & Botones */
         .header-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
         .btn-action { background: var(--primary); color: white; padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
-        
-        /* Filtros */
-        .filter-bar { 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 15px; background: var(--card); padding: 20px; 
-            border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
         .filter-group label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--primary); }
         select, input { padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 14px; background: #fff; outline: none; }
-
-        /* KPIs Principales */
         .main-stats { display: grid; grid-template-columns: 300px 1fr; gap: 20px; margin-bottom: 25px; }
-        .global-card {
-            background: linear-gradient(135deg, var(--primary), #4f46e5); color: white;
-            padding: 30px; border-radius: 20px; text-align: center;
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
-        }
+        .global-card { background: linear-gradient(135deg, var(--primary), #4f46e5); color: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2); }
         .global-card div { font-size: 4rem; font-weight: 900; margin: 10px 0; }
-
         .s-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
-        .s-card { 
-            background: var(--card); padding: 15px; border-radius: 16px; 
-            text-align: center; border: 1px solid #e2e8f0; border-top: 4px solid #ddd;
-        }
+        .s-card { background: var(--card); padding: 15px; border-radius: 16px; text-align: center; border: 1px solid #e2e8f0; border-top: 4px solid #ddd; }
         .s-card .jap-name { display: block; font-size: 12px; color: var(--primary); font-weight: 700; }
         .s-card .esp-name { display: block; font-size: 10px; color: var(--text-secondary); margin-bottom: 8px; }
         .s-card .percentage { font-size: 1.5rem; font-weight: 800; }
-
-        /* Gráficas */
         .grid-charts { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; margin-bottom: 25px; }
         .chart-box { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .chart-box h3 { margin-top: 0; font-size: 15px; color: var(--text-secondary); margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
-
-        /* Sección de Comparativa */
         .comparison-section { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .comp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-        /* Observaciones */
         .obs-container { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #e2e8f0; }
         .obs-list { max-height: 350px; overflow-y: auto; }
         .obs-item { padding: 12px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 15px; align-items: start; }
         .obs-tag { padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; color: white; min-width: 100px; text-align: center; text-transform: uppercase; }
-
         @media (max-width: 1024px) { .main-stats, .grid-charts { grid-template-columns: 1fr; } .s-grid { grid-template-columns: repeat(3, 1fr); } }
     </style>
 </head>
@@ -98,7 +73,6 @@
         <div id="val-global">0%</div>
         <p id="total-auditorias" style="margin:0; opacity: 0.8; font-size: 12px;">Cargando registros...</p>
     </div>
-
     <div class="s-grid">
         <div class="s-card" id="card-s1"><span class="jap-name">SEIRI</span><span class="esp-name">(Clasificar)</span><div class="percentage" id="val-s1">0%</div></div>
         <div class="s-card" id="card-s2"><span class="jap-name">SEITON</span><span class="esp-name">(Ordenar)</span><div class="percentage" id="val-s2">0%</div></div>
@@ -124,9 +98,7 @@
             </select>
         </div>
     </div>
-    <div style="height: 350px;">
-        <canvas id="barChart"></canvas>
-    </div>
+    <div style="height: 350px;"><canvas id="barChart"></canvas></div>
 </div>
 
 <div class="obs-container">
@@ -139,13 +111,11 @@ let lineChart, radarChart, barChart;
 let lastFetchedData = [];
 
 async function init() {
-    // Configurar fechas: del 1ero del mes actual a hoy
     const hoy = new Date();
     const primero = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     document.getElementById('f-inicio').value = primero.toISOString().split('T')[0];
     document.getElementById('f-fin').value = hoy.toISOString().split('T')[0];
 
-    // Cargar Catálogos desde Supabase
     const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
     const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').order('nombre_completo');
     
@@ -169,8 +139,6 @@ async function loadData() {
     const operador = document.getElementById('f-operador').value;
 
     if (!inicio || !fin) return;
-
-    // Asegurar que capturemos todo el día final (23:59:59)
     let fFin = new Date(fin);
     fFin.setHours(23,59,59,999);
 
@@ -198,7 +166,6 @@ function processDashboard(data) {
     data.forEach(audit => {
         totalPuntos += audit.puntuacion || 0;
         const resp = audit.respuestas_json || {};
-        
         Object.entries(resp).forEach(([key, val]) => {
             const sIdx = parseInt(key.split('_')[0]);
             if(sIdx >= 0 && sIdx <= 4) { s_sums[sIdx] += val; s_counts[sIdx]++; }
@@ -209,8 +176,7 @@ function processDashboard(data) {
                 if(text?.trim()) {
                     const sNum = sKey.replace('s', '');
                     const names = ["Clasificar", "Ordenar", "Limpiar", "Estandarizar", "Disciplina"];
-                    obsHtml += `
-                        <div class="obs-item">
+                    obsHtml += `<div class="obs-item">
                             <span class="obs-tag" style="background:${getSColor(sNum)}">S${sNum} ${names[sNum-1]}</span>
                             <div style="flex:1;">
                                 <strong>${audit.rh_empleados?.nombre_completo || 'N/A'}</strong> <small>(${new Date(audit.created_at).toLocaleDateString()})</small><br>
@@ -234,7 +200,6 @@ function processDashboard(data) {
     });
 
     document.getElementById('obs-list').innerHTML = obsHtml || "<p style='text-align:center; padding:20px; color:gray;'>No hay hallazgos negativos.</p>";
-    
     updateMainCharts(data, s_avgs);
     updateComparisonChart();
 }
@@ -267,42 +232,21 @@ function updateComparisonChart() {
     const type = document.getElementById('comp-type').value;
     const ctx = document.getElementById('barChart').getContext('2d');
     let grouped = {};
-
     lastFetchedData.forEach(audit => {
-        let key = "";
-        if(type === 'area') key = audit.rh_areas?.nombre || "Sin Área";
-        else if(type === 'maquina') key = "M-" + audit.maquina_id;
-        else if(type === 'operador') key = audit.rh_empleados?.nombre_completo || "N/A";
-
+        let key = (type === 'area') ? (audit.rh_areas?.nombre || "Sin Área") : (type === 'maquina') ? ("M-" + audit.maquina_id) : (audit.rh_empleados?.nombre_completo || "N/A");
         if(!grouped[key]) grouped[key] = { total: 0, count: 0 };
         grouped[key].total += audit.puntuacion;
         grouped[key].count++;
     });
-
-    // Convertir a array, calcular promedios y ordenar de mayor a menor
-    let sortedLabels = Object.keys(grouped).map(k => ({
-        label: k,
-        avg: Math.round(grouped[k].total / grouped[k].count)
-    })).sort((a, b) => b.avg - a.avg);
-
+    let sortedLabels = Object.keys(grouped).map(k => ({ label: k, avg: Math.round(grouped[k].total / grouped[k].count) })).sort((a, b) => b.avg - a.avg);
     if(barChart) barChart.destroy();
     barChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: sortedLabels.map(i => i.label),
-            datasets: [{
-                label: 'Promedio %',
-                data: sortedLabels.map(i => i.avg),
-                backgroundColor: sortedLabels.map(i => i.avg < 70 ? '#ef4444' : (i.avg < 90 ? '#f59e0b' : '#22c55e')),
-                borderRadius: 5
-            }]
+            datasets: [{ label: 'Promedio %', data: sortedLabels.map(i => i.avg), backgroundColor: sortedLabels.map(i => i.avg < 70 ? '#ef4444' : (i.avg < 90 ? '#f59e0b' : '#22c55e')), borderRadius: 5 }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { min: 0, max: 105 } },
-            plugins: { legend: { display: false } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 105 } }, plugins: { legend: { display: false } } }
     });
 }
 
@@ -324,15 +268,12 @@ function exportToExcel() {
     link.click();
 }
 
-window.onload = init;
-    async function generatePDF() {
+async function generatePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4');
     const margin = 40;
     let yPos = 100;
 
-    // 1. Encabezado y Logo
-    // Nota: Intentará cargar el logo desde tu repo. Si no existe, continuará con el texto.
     try {
         doc.addImage('logo-kraem.jpg', 'JPEG', margin, 30, 100, 40);
     } catch (e) {
@@ -343,20 +284,17 @@ window.onload = init;
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text("REPORTE SEMANAL DE AUDITORÍA 5'S", 160, 55);
-    
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     const periodo = `Periodo: ${document.getElementById('f-inicio').value} al ${document.getElementById('f-fin').value}`;
     doc.text(periodo, 160, 70);
 
-    // 2. Capturar Gráfico Radar (BI)
     const radarCanvas = document.getElementById('radarChart');
     const radarImg = radarCanvas.toDataURL('image/png');
     doc.setFont(undefined, 'bold');
     doc.text("Perfil de Cumplimiento Global (Radar)", margin, yPos);
     doc.addImage(radarImg, 'PNG', margin, yPos + 10, 200, 200);
     
-    // Resumen de promedios al lado del radar
     doc.setFontSize(9);
     doc.text("Promedios del Periodo:", 260, yPos + 30);
     const s_names = ["S1 Clasificar", "S2 Ordenar", "S3 Limpiar", "S4 Estandarizar", "S5 Disciplina"];
@@ -364,15 +302,12 @@ window.onload = init;
         const val = document.getElementById(`val-s${i}`).innerText;
         doc.text(`${s_names[i-1]}: ${val}`, 260, yPos + 30 + (i * 20));
     }
-    
     yPos += 230;
 
-    // 3. Listado de Evaluaciones (Tabla)
     doc.setFontSize(11);
     doc.text("Detalle de Evaluaciones", margin, yPos);
     yPos += 20;
 
-    // Encabezados de tabla
     doc.setFillColor(37, 99, 235);
     doc.rect(margin, yPos, 515, 20, 'F');
     doc.setTextColor(255, 255, 255);
@@ -386,29 +321,19 @@ window.onload = init;
     doc.text("S5", margin + 320, yPos + 13);
     doc.text("Total", margin + 350, yPos + 13);
     doc.text("Observaciones", margin + 390, yPos + 13);
-    
     yPos += 20;
     doc.setTextColor(0, 0, 0);
 
-    lastFetchedData.forEach((audit, index) => {
-        // Control de salto de página
-        if (yPos > 750) {
-            doc.addPage();
-            yPos = 50;
-        }
+    lastFetchedData.forEach((audit) => {
+        if (yPos > 740) { doc.addPage(); yPos = 50; }
 
         const res = audit.respuestas_json || {};
         const s = [0,0,0,0,0], c = [0,0,0,0,0];
-        Object.entries(res).forEach(([k, v]) => { 
-            const i = parseInt(k.split('_')[0]); 
-            if(i<=4){s[i]+=v; c[i]++;} 
-        });
+        Object.entries(res).forEach(([k, v]) => { const i = parseInt(k.split('_')[0]); if(i<=4){s[i]+=v; c[i]++;} });
         const avgs = s.map((v, i) => Math.round((v / (c[i] || 1)) * 100));
 
-        // Dibujar fila
         doc.setFont(undefined, 'normal');
         doc.text(new Date(audit.created_at).toLocaleDateString(), margin + 5, yPos + 12);
-        
         const empName = (audit.rh_empleados?.nombre_completo || 'N/A').substring(0, 25);
         doc.text(`${empName} (${audit.rh_areas?.nombre || 'N/A'})`, margin + 60, yPos + 12);
         
@@ -417,37 +342,37 @@ window.onload = init;
         doc.text(`${avgs[2]}%`, margin + 260, yPos + 12);
         doc.text(`${avgs[3]}%`, margin + 290, yPos + 12);
         doc.text(`${avgs[4]}%`, margin + 320, yPos + 12);
-        
         doc.setFont(undefined, 'bold');
         doc.text(`${audit.puntuacion}%`, margin + 350, yPos + 12);
         
-        // Cuadrícula de observaciones
+        // OBSERVACIONES DINÁMICAS
         doc.setFont(undefined, 'normal');
         doc.setFontSize(7);
         let obsText = audit.observaciones ? Object.values(audit.observaciones).filter(t => t.trim()).join(" | ") : "Sin hallazgos";
         let splitObs = doc.splitTextToSize(obsText, 120);
+        
+        // Calcular altura según el texto
+        let heightNeeded = splitObs.length * 9;
+        let rowHeight = Math.max(25, heightNeeded + 10); 
+        
         doc.text(splitObs, margin + 390, yPos + 10);
-
-        yPos += 25; // Espaciado entre filas
+        yPos += rowHeight; 
         doc.setDrawColor(230);
         doc.line(margin, yPos - 5, margin + 515, yPos - 5);
     });
 
-    // 4. Firmas (Al final del documento)
     if (yPos > 700) { doc.addPage(); yPos = 100; } else { yPos += 50; }
-    
     doc.setDrawColor(0);
     doc.line(margin + 50, yPos + 40, margin + 200, yPos + 40);
     doc.line(margin + 300, yPos + 40, margin + 450, yPos + 40);
-    
     doc.setFontSize(9);
     doc.setFont(undefined, 'bold');
     doc.text("SUPERVISOR DE ÁREA", margin + 75, yPos + 55);
     doc.text("GERENTE DE PRODUCCIÓN", margin + 315, yPos + 55);
-
-    // Guardar
     doc.save(`Auditoria_5S_KRAEM_${new Date().getTime()}.pdf`);
 }
+
+window.onload = init;
 </script>
 </body>
 </html>
