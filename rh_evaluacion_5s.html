@@ -4,173 +4,618 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KRAEM | Auditoría 5S</title>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
-        :root { --primary: #2563eb; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        .container { max-width: 500px; margin: auto; background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; min-height: 85vh; display: flex; flex-direction: column; }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
-        .btn-back { background: none; border: none; color: var(--primary); font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        .setup-group { display: grid; gap: 12px; margin-bottom: 20px; }
-        label { font-size: 11px; font-weight: bold; color: var(--primary); text-transform: uppercase; margin-bottom: -8px; }
-        select, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: white; font-family: inherit; }
-        .progress-container { background: #eee; border-radius: 10px; height: 8px; margin-bottom: 20px; overflow: hidden; }
-        .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: 0.3s; }
-        .question-card { background: var(--bg); padding: 15px; border-radius: 12px; margin-bottom: 12px; border-left: 5px solid var(--border); }
-        .options { display: flex; gap: 8px; margin-top: 10px; }
-        .btn-opt { flex: 1; padding: 10px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: bold; background: white; font-size: 11px; }
-        .btn-opt.active[data-score="1"] { background: var(--success) !important; color: white; border-color: #16a34a; }
-        .btn-opt.active[data-score="0.5"] { background: var(--warning) !important; color: white; border-color: #d97706; }
-        .btn-opt.active[data-score="0"] { background: var(--danger) !important; color: white; border-color: #dc2626; }
-        .btn-nav { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; background: var(--primary); color: white; }
-        .hidden { display: none; }
-        #score-badge { font-size: 3.5rem; font-weight: 800; text-align: center; color: var(--primary); margin: 20px 0; }
+
+        :root {
+            --primary: #2563eb;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+        }
+
+        .btn-back {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .setup-group {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--primary);
+            text-transform: uppercase;
+            margin-bottom: -8px;
+        }
+
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            font-family: inherit;
+        }
+
+        .progress-container {
+            background: #eee;
+            border-radius: 10px;
+            height: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: var(--primary);
+            height: 100%;
+            width: 0%;
+            transition: 0.3s;
+        }
+
+        .question-card {
+            background: var(--bg);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border-left: 5px solid var(--border);
+        }
+
+        .options {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-opt {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            background: white;
+            font-size: 11px;
+        }
+
+        .btn-opt.active[data-score="1"] {
+            background: var(--success) !important;
+            color: white;
+            border-color: #16a34a;
+        }
+
+        .btn-opt.active[data-score="0.5"] {
+            background: var(--warning) !important;
+            color: white;
+            border-color: #d97706;
+        }
+
+        .btn-opt.active[data-score="0"] {
+            background: var(--danger) !important;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        .btn-nav {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 16px;
+            background: var(--primary);
+            color: white;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #score-badge {
+            font-size: 3.5rem;
+            font-weight: 800;
+            text-align: center;
+            color: var(--primary);
+            margin: 20px 0;
+        }
+
     </style>
+
 </head>
+
 <body>
 
 <div class="container">
+
     <header>
-        <button class="btn-back" onclick="location.href='dashboard.html'"><i class="fas fa-th"></i> Panel</button>
+
+        <button class="btn-back" onclick="location.href='dashboard.html'">
+            <i class="fas fa-th"></i>
+            Panel
+        </button>
+
         <h3 style="margin:0">5S KRAEM</h3>
+
         <div style="width:60px"></div>
+
     </header>
 
     <div id="step-setup">
+
         <div class="setup-group">
+
             <label>Área</label>
-            <select id="area_select" onchange="actualizarMaquinas()"><option value="">Cargando...</option></select>
+
+            <select id="area_select" onchange="actualizarMaquinas()">
+                <option value="">Cargando...</option>
+            </select>
+
             <label>Máquina</label>
-            <select id="maquina_select"><option value="">Seleccione área...</option></select>
+
+            <select id="maquina_select">
+                <option value="">Seleccione área...</option>
+            </select>
+
             <label>Operador</label>
-            <select id="operador_select"><option value="">Cargando...</option></select>
+
+            <select id="operador_select">
+                <option value="">Cargando...</option>
+            </select>
+
             <label>Auditor</label>
-            <select id="auditor_select"><option value="">Cargando...</option></select>
+
+            <select id="auditor_select">
+                <option value="">Cargando...</option>
+            </select>
+
         </div>
-        <button class="btn-nav" onclick="nextStep()">EMPEZAR</button>
+
+        <button class="btn-nav" onclick="nextStep()">
+            EMPEZAR
+        </button>
+
     </div>
 
     <div id="audit-flow" class="hidden">
-        <div class="progress-container"><div id="progress-bar" class="progress-bar"></div></div>
-        <div id="section-label" style="font-weight:bold; color:var(--primary); text-align:center; margin-bottom:15px; font-size:1.1rem;"></div>
-        <div id="preguntas_cont"></div>
-        <div style="margin-top:20px;">
-            <label>Observaciones de esta sección</label>
-            <textarea id="obs_input" rows="3" placeholder="¿Qué se puede mejorar?"></textarea>
+
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
         </div>
-        <button class="btn-nav" style="margin-top:20px;" onclick="nextStep()">SIGUIENTE</button>
+
+        <div id="section-label"
+             style="font-weight:bold; color:var(--primary); text-align:center; margin-bottom:15px; font-size:1.1rem;">
+        </div>
+
+        <div id="preguntas_cont"></div>
+
+        <div style="margin-top:20px;">
+
+            <label>Observaciones de esta sección</label>
+
+            <textarea id="obs_input"
+                      rows="3"
+                      placeholder="¿Qué se puede mejorar?">
+            </textarea>
+
+        </div>
+
+        <button class="btn-nav"
+                style="margin-top:20px;"
+                onclick="nextStep()">
+
+            SIGUIENTE
+
+        </button>
+
     </div>
 
     <div id="step-result" class="hidden">
+
         <div id="score-badge">0%</div>
-        <button class="btn-nav" style="background:var(--success)" onclick="guardar()">GUARDAR AUDITORÍA</button>
+
+        <button class="btn-nav"
+                style="background:var(--success)"
+                onclick="guardar()">
+
+            GUARDAR AUDITORÍA
+
+        </button>
+
     </div>
+
 </div>
 
 <script>
+
 let currentStep = 0;
-let auditData = { respuestas: {}, observaciones: {}, score: 0 };
-const nombres5S = ["1. SEIRI", "2. SEITON", "3. SEISO", "4. SEIKETSU", "5. SHITSUKE"];
-const preguntas = [
-    ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
-    ["¿Herramientas en su lugar?", "¿Material en su lugar?", "¿Area libre de obstaculos?", "¿Contenedores, etiquetas y articulos correctamente identificados?", "¿Instrucciones de trabajo  y ayudas visuales colocadas y visibles?"],
-    ["¿Área libre de polvo y residuos de plastico?", "¿Piso libres de suciedad?", "¿Contenedores y cajas limpios?", "¿Máquina y banda limpia?", "¿Mesa de trabajo limpia y libre de residuos?"],
-    ["¿Instrucciones de trabajo actualizadas y visibles?", "¿Uso de Uniforme?", "¿Etiquetas correctas y acomodadas en lados correctos?", "¿Mesas y area delimitada correctamente?", "¿Cumple el estándar de orden y limpieza?"],
-    ["¿Hábito de limpieza durante el turno?", "¿Sigue instrucciones de trabajo?", "¿Operador respeta ubicacion de los materiales y herramientas?", "¿Operador reporta o corrige anomalíasdetectadas en el area?", "¿Operador conoce concepto de 5's?"]
+
+let auditData = {
+    respuestas: {},
+    observaciones: {},
+    score: 0
+};
+
+const nombres5S = [
+    "1. SEIRI",
+    "2. SEITON",
+    "3. SEISO",
+    "4. SEIKETSU",
+    "5. SHITSUKE"
 ];
 
-const maquinasPorArea = { "LS": Array.from({length: 10}, (_, i) => `${i + 1}`), "NISSEI": Array.from({length: 16}, (_, i) => `${i + 11}`), "PLANTA B": ["V1", "V2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10"] };
+const preguntas = [
 
-function actualizarMaquinas() {
-    const sel = document.getElementById("area_select");
-    const areaTxt = sel.options[sel.selectedIndex].text.toUpperCase();
+    [
+        "¿Solo material necesario?",
+        "¿Scrap identificado?",
+        "¿Sin objetos innecesarios?",
+        "¿Herramientas en uso?",
+        "¿Mesa despejada?"
+    ],
+
+    [
+        "¿Herramientas en su lugar?",
+        "¿Material en su lugar?",
+        "¿Area libre de obstaculos?",
+        "¿Contenedores, etiquetas y articulos correctamente identificados?",
+        "¿Instrucciones de trabajo y ayudas visuales colocadas y visibles?"
+    ],
+
+    [
+        "¿Área libre de polvo y residuos de plastico?",
+        "¿Piso libres de suciedad?",
+        "¿Contenedores y cajas limpios?",
+        "¿Máquina y banda limpia?",
+        "¿Mesa de trabajo limpia y libre de residuos?"
+    ],
+
+    [
+        "¿Instrucciones de trabajo actualizadas y visibles?",
+        "¿Uso de Uniforme?",
+        "¿Etiquetas correctas y acomodadas en lados correctos?",
+        "¿Mesas y area delimitada correctamente?",
+        "¿Cumple el estándar de orden y limpieza?"
+    ],
+
+    [
+        "¿Hábito de limpieza durante el turno?",
+        "¿Sigue instrucciones de trabajo?",
+        "¿Operador respeta ubicacion de los materiales y herramientas?",
+        "¿Operador reporta o corrige anomalías detectadas en el area?",
+        "¿Operador conoce concepto de 5's?"
+    ]
+];
+
+async function actualizarMaquinas() {
+
+    const areaId = document.getElementById("area_select").value;
+
     const mSel = document.getElementById("maquina_select");
-    mSel.innerHTML = '<option value="">Seleccione...</option>';
-    let lista = areaTxt.includes("LS") ? maquinasPorArea.LS : areaTxt.includes("NISSEI") ? maquinasPorArea.NISSEI : areaTxt.includes("PLANTA B") ? maquinasPorArea["PLANTA B"] : [];
-    lista.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
+
+    mSel.innerHTML = '<option value="">Cargando...</option>';
+
+    if (!areaId) {
+
+        mSel.innerHTML = '<option value="">Seleccione área...</option>';
+
+        return;
+    }
+
+    try {
+
+        const { data, error } = await client
+            .from('machines')
+            .select('id, machine_name')
+            .eq('area_id', areaId)
+            .eq('is_active', true)
+            .order('machine_name');
+
+        if (error) throw error;
+
+        mSel.innerHTML = '<option value="">Seleccione...</option>';
+
+        data.forEach(m => {
+
+            mSel.innerHTML += `
+                <option value="${m.id}">
+                    ${m.machine_name}
+                </option>
+            `;
+        });
+
+    } catch (e) {
+
+        console.error(e);
+
+        mSel.innerHTML =
+            '<option value="">Error cargando máquinas</option>';
+    }
 }
 
 async function init() {
+
     try {
-        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
-        const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
-        document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
-        const empOpts = '<option value="">Seleccione...</option>' + emps.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+
+        const { data: areas, error: areasError } = await client
+            .from('rh_areas')
+            .select('id, nombre')
+            .order('nombre');
+
+        if (areasError) throw areasError;
+
+        document.getElementById('area_select').innerHTML =
+
+            '<option value="">Seleccione...</option>' +
+
+            areas.map(a => `
+                <option value="${a.id}">
+                    ${a.nombre}
+                </option>
+            `).join('');
+
+        const { data: emps, error: empError } = await client
+            .from('rh_empleados')
+            .select('id, nombre_completo')
+            .eq('estatus', 'ACTIVO')
+            .order('nombre_completo');
+
+        if (empError) throw empError;
+
+        const empOpts =
+
+            '<option value="">Seleccione...</option>' +
+
+            emps.map(e => `
+                <option value="${e.id}">
+                    ${e.nombre_completo}
+                </option>
+            `).join('');
+
         document.getElementById('operador_select').innerHTML = empOpts;
+
         document.getElementById('auditor_select').innerHTML = empOpts;
-    } catch (e) { console.error(e); }
+
+    } catch (e) {
+
+        console.error(e);
+
+        alert(e.message);
+    }
 }
 
 function nextStep() {
-    if (currentStep === 0 && (!document.getElementById('area_select').value || !document.getElementById('operador_select').value)) return alert("Faltan datos");
-    
-    // Guardar observaciones de la S actual antes de pasar a la siguiente
+
+    if (
+        currentStep === 0 &&
+        (
+            !document.getElementById('area_select').value ||
+            !document.getElementById('maquina_select').value ||
+            !document.getElementById('operador_select').value ||
+            !document.getElementById('auditor_select').value
+        )
+    ) {
+
+        return alert("Faltan datos");
+    }
+
     if (currentStep > 0 && currentStep <= 5) {
-        auditData.observaciones[`s${currentStep}`] = document.getElementById('obs_input').value;
-        document.getElementById('obs_input').value = ""; // Limpiar para la próxima S
+
+        auditData.observaciones[`s${currentStep}`] =
+            document.getElementById('obs_input').value;
+
+        document.getElementById('obs_input').value = "";
     }
 
     currentStep++;
+
     render();
 }
 
 function render() {
+
     document.getElementById("step-setup").classList.add("hidden");
+
     document.getElementById("audit-flow").classList.add("hidden");
+
     document.getElementById("step-result").classList.add("hidden");
 
-    if (currentStep === 0) document.getElementById("step-setup").classList.remove("hidden");
+    if (currentStep === 0) {
+
+        document.getElementById("step-setup")
+            .classList.remove("hidden");
+
+    }
+
     else if (currentStep <= 5) {
-        document.getElementById("audit-flow").classList.remove("hidden");
+
+        document.getElementById("audit-flow")
+            .classList.remove("hidden");
+
         const idx = currentStep - 1;
-        document.getElementById("section-label").innerText = nombres5S[idx];
-        document.getElementById("progress-bar").style.width = (currentStep * 20) + "%";
-        document.getElementById("preguntas_cont").innerHTML = preguntas[idx].map((p, j) => `
-            <div class="question-card">
-                <div style="font-weight:600">${p}</div>
-                <div class="options">
-                    <button class="btn-opt" data-score="1" onclick="setAns('${idx}_${j}', 1, this)">SI</button>
-                    <button class="btn-opt" data-score="0.5" onclick="setAns('${idx}_${j}', 0.5, this)">PARCIAL</button>
-                    <button class="btn-opt" data-score="0" onclick="setAns('${idx}_${j}', 0, this)">NO</button>
+
+        document.getElementById("section-label").innerText =
+            nombres5S[idx];
+
+        document.getElementById("progress-bar").style.width =
+            (currentStep * 20) + "%";
+
+        document.getElementById("preguntas_cont").innerHTML =
+
+            preguntas[idx].map((p, j) => `
+
+                <div class="question-card">
+
+                    <div style="font-weight:600">
+                        ${p}
+                    </div>
+
+                    <div class="options">
+
+                        <button
+                            class="btn-opt"
+                            data-score="1"
+                            onclick="setAns('${idx}_${j}', 1, this)"
+                        >
+                            SI
+                        </button>
+
+                        <button
+                            class="btn-opt"
+                            data-score="0.5"
+                            onclick="setAns('${idx}_${j}', 0.5, this)"
+                        >
+                            PARCIAL
+                        </button>
+
+                        <button
+                            class="btn-opt"
+                            data-score="0"
+                            onclick="setAns('${idx}_${j}', 0, this)"
+                        >
+                            NO
+                        </button>
+
+                    </div>
+
                 </div>
-            </div>
-        `).join('');
+
+            `).join('');
+
         window.scrollTo(0,0);
-    } else {
+
+    }
+
+    else {
+
         const vals = Object.values(auditData.respuestas);
-        auditData.score = Math.round((vals.reduce((a,b)=>a+b,0)/25)*100);
-        document.getElementById("score-badge").innerText = auditData.score + "%";
-        document.getElementById("step-result").classList.remove("hidden");
+
+        auditData.score = Math.round(
+
+            (vals.reduce((a,b)=>a+b,0) / 25) * 100
+
+        );
+
+        document.getElementById("score-badge").innerText =
+            auditData.score + "%";
+
+        document.getElementById("step-result")
+            .classList.remove("hidden");
     }
 }
 
 function setAns(id, v, btn) {
+
     const parent = btn.parentElement;
-    parent.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
+
+    parent.querySelectorAll('.btn-opt')
+        .forEach(b => b.classList.remove('active'));
+
     btn.classList.add('active');
+
     auditData.respuestas[id] = v;
 }
 
 async function guardar() {
+
     try {
-        const { error } = await client.from('rh_evaluaciones_5s').insert([{
-            empleado_id: document.getElementById('operador_select').value,
-            auditor_id: document.getElementById('auditor_select').value,
-            area_id: document.getElementById('area_select').value,
-            maquina_id: document.getElementById('maquina_select').value,
-            puntuacion: auditData.score,
-            respuestas_json: auditData.respuestas,
-            observaciones: auditData.observaciones, // Guardamos el JSON de notas
-            created_at: new Date().toISOString()
-        }]);
+
+        const { error } = await client
+            .from('rh_evaluaciones_5s')
+            .insert([{
+
+                empleado_id:
+                    document.getElementById('operador_select').value,
+
+                auditor_id:
+                    document.getElementById('auditor_select').value,
+
+                area_id:
+                    document.getElementById('area_select').value,
+
+                maquina_id:
+                    document.getElementById('maquina_select').value,
+
+                puntuacion:
+                    auditData.score,
+
+                respuestas_json:
+                    auditData.respuestas,
+
+                observaciones:
+                    auditData.observaciones,
+
+                created_at:
+                    new Date().toISOString()
+
+            }]);
+
         if (error) throw error;
+
         alert("¡Guardado!");
+
         location.href = 'rh_evaluacion_5s.html';
-    } catch (e) { alert(e.message); }
+
+    }
+
+    catch (e) {
+
+        alert(e.message);
+    }
 }
+
 window.onload = init;
+
 </script>
+
 </body>
 </html>
