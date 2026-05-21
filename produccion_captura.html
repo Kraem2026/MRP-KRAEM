@@ -1,331 +1,602 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Terminal de Producción Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #0ea5e9;
-            --primary-dark: #0284c7;
-            --success: #10b981;
-            --danger: #ef4444;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --radius: 12px;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
+<meta charset="UTF-8">
+<title>MES - Iniciar Corrida</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        body { 
-            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-            background: var(--bg); 
-            color: var(--text-main); 
-            margin: 0; 
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        /* Navbar Estilizada */
-        .navbar {
-            background: #1e293b;
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: var(--shadow);
-        }
+<style>
+:root{
+    --bg:#f4f6f8;
+    --card:#ffffff;
+    --text:#1e293b;
+    --border:#dfe6ee;
+    --primary:#2563eb;
+    --success:#16a34a;
+    --danger:#dc2626;
+}
 
-        .navbar h1 { margin: 0; font-size: 1.25rem; letter-spacing: -0.025em; font-weight: 800; }
-        .navbar span { color: var(--primary); }
+body{
+    margin:0;
+    padding:20px;
+    background:var(--bg);
+    font-family:Segoe UI,sans-serif;
+    color:var(--text);
+}
 
-        /* Contenedor Principal */
-        main { padding: 1.5rem; flex: 1; overflow-y: auto; }
+.container{
+    max-width:1100px;
+    margin:auto;
+}
 
-        .controls {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            background: var(--card);
-            padding: 1rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-        }
+.card{
+    background:var(--card);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:20px;
+    border:1px solid var(--border);
+    box-shadow:0 4px 12px rgba(0,0,0,.05);
+}
 
-        .search-box { flex: 1; position: relative; }
-        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-        .search-box input { 
-            width: 100%; padding: 0.75rem 0.75rem 0.75rem 2.5rem; 
-            border: 1px solid #e2e8f0; border-radius: 8px; outline: none;
-        }
+h1,h2{
+    margin-top:0;
+}
 
-        select { padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-weight: 600; cursor: pointer; }
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:15px;
+}
 
-        /* Grid de Máquinas */
-        .machine-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 1.25rem;
-        }
+label{
+    display:block;
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:5px;
+    text-transform:uppercase;
+}
 
-        .machine-card {
-            background: var(--card);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
+input,select{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    box-sizing:border-box;
+    font-size:14px;
+}
 
-        .machine-card::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary);
-        }
+button{
+    border:none;
+    border-radius:12px;
+    padding:14px 18px;
+    cursor:pointer;
+    font-weight:bold;
+}
 
-        .machine-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--primary);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
+.btn-primary{
+    background:var(--primary);
+    color:white;
+}
 
-        .machine-card i { font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem; }
-        .machine-card h3 { margin: 0.5rem 0; font-size: 1.1rem; text-transform: uppercase; }
-        .machine-card p { margin: 0; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+.btn-success{
+    background:var(--success);
+    color:white;
+}
 
-        /* Modal Ultra-Pro */
-        .modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(8px);
-            z-index: 1000;
-            place-items: center;
-        }
+.btn-danger{
+    background:var(--danger);
+    color:white;
+}
 
-        .modal-content {
-            background: white; width: 95%; max-width: 650px;
-            border-radius: 20px; padding: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            animation: slideUp 0.3s ease-out;
-        }
+.table{
+    width:100%;
+    border-collapse:collapse;
+}
 
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.table th,
+.table td{
+    border-bottom:1px solid var(--border);
+    padding:10px;
+    text-align:left;
+}
 
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        .full-width { grid-column: 1 / -1; }
+.operator-row,
+.output-row{
+    border:1px solid var(--border);
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:12px;
+}
 
-        .input-group label { display: block; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
-        .input-group input, .input-group select { 
-            width: 100%; padding: 0.8rem; border: 2px solid #f1f5f9; border-radius: 10px; font-size: 1rem; box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-        .input-group input:focus { border-color: var(--primary); outline: none; }
-
-        .modal-actions { display: flex; gap: 1rem; margin-top: 2rem; }
-        .btn { 
-            flex: 1; padding: 1rem; border: none; border-radius: 12px; 
-            font-weight: 700; cursor: pointer; transition: 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        .btn-cancel { background: #f1f5f9; color: var(--text-muted); }
-        .btn-save { background: var(--primary); color: white; }
-        .btn-save:hover { background: var(--primary-dark); }
-
-        /* Notificaciones */
-        #toast {
-            position: fixed; bottom: 20px; right: 20px; padding: 1rem 2rem; 
-            border-radius: 10px; color: white; font-weight: 600; display: none; z-index: 2000;
-        }
-    </style>
+.status-box{
+    padding:12px;
+    border-radius:10px;
+    background:#ecfdf5;
+    color:#166534;
+    font-weight:bold;
+    margin-bottom:20px;
+}
+</style>
 </head>
 <body>
 
-    <nav class="navbar">
-        <h1>KRAEM <span>PRO-PISO</span></h1>
-        <div id="user-info" style="font-size: 0.8rem; font-weight: 600; opacity: 0.8;">
-            <i class="fas fa-clock"></i> <span id="clock" style="color:white">--:--</span>
-        </div>
-    </nav>
+<div class="container">
 
-    <main>
-        <div class="controls">
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="m-search" placeholder="Buscar máquina..." oninput="filtrar()">
-            </div>
-            <select id="f-area" onchange="filtrar()">
-                <option value="ALL">TODAS LAS AREAS</option>
+<div class="status-box" id="sessionInfo">
+Verificando sesión...
+</div>
+
+<h1>MES - Iniciar Corrida</h1>
+
+<div class="card">
+
+<h2>Información General</h2>
+
+<div class="grid">
+
+<div>
+<label>Área</label>
+<select id="areaSelect"></select>
+</div>
+
+<div>
+<label>Máquina</label>
+<select id="machineSelect"></select>
+</div>
+
+<div>
+<label>Turno</label>
+<select id="shift">
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+</select>
+</div>
+
+<div>
+<label>Molde</label>
+<select id="moldSelect"></select>
+</div>
+
+<div>
+<label>Tiempo Ciclo (seg)</label>
+<input type="number" id="cycleTime">
+</div>
+
+<div>
+<label>Cavidades Totales</label>
+<input type="number" id="totalCavities">
+</div>
+
+<div>
+<label>Tipo Resina</label>
+<input type="text" id="resinType">
+</div>
+
+<div>
+<label>Lote Resina</label>
+<input type="text" id="resinLot">
+</div>
+
+<div>
+<label>Color Resina</label>
+<input type="text" id="resinColor">
+</div>
+
+<div>
+<label>Peso Purga (g)</label>
+<input type="number" id="purgeWeight">
+</div>
+
+<div>
+<label>Peso Vena (g)</label>
+<input type="number" id="runnerWeight">
+</div>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<h2>Partes Producidas</h2>
+
+<button class="btn-primary" onclick="addOutputRow()">
++ Agregar Parte
+</button>
+</div>
+
+<div id="outputsContainer"></div>
+
+</div>
+
+<div class="card">
+
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<h2>Operadores</h2>
+
+<button class="btn-primary" onclick="addOperatorRow()">
++ Agregar Operador
+</button>
+</div>
+
+<div id="operatorsContainer"></div>
+
+</div>
+
+<button class="btn-success" style="width:100%;font-size:18px;" onclick="startRun()">
+INICIAR CORRIDA
+</button>
+
+</div>
+
+<script>
+
+const supabaseClient = supabase.createClient(
+'https://telntsrrschcdxczlape.supabase.co',
+'TU_ANON_KEY_AQUI'
+);
+
+let machines = [];
+let molds = [];
+let parts = [];
+let employees = [];
+
+async function init(){
+
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+
+    if(!session){
+        alert("Debes iniciar sesión");
+        location.href="/";
+        return;
+    }
+
+    sessionInfo.innerHTML =
+    "👤 " + session.user.email;
+
+    const { data:areas } = await supabaseClient
+    .from('areas')
+    .select('*')
+    .order('area_name');
+
+    areas.forEach(a=>{
+        areaSelect.innerHTML += `
+        <option value="${a.id}">
+            ${a.area_name}
+        </option>
+        `;
+    });
+
+    const { data:m } = await supabaseClient
+    .from('machines')
+    .select('*')
+    .order('id');
+
+    machines = m || [];
+
+    renderMachines();
+
+    const { data:mo } = await supabaseClient
+    .from('molds')
+    .select('*');
+
+    molds = mo || [];
+
+    molds.forEach(m=>{
+        moldSelect.innerHTML += `
+        <option value="${m.id}">
+            ${m.name || m.id}
+        </option>
+        `;
+    });
+
+    const { data:p } = await supabaseClient
+    .from('parts')
+    .select('id,part_number,part_name')
+    .limit(3000);
+
+    parts = p || [];
+
+    const { data:e } = await supabaseClient
+    .from('rh_empleados')
+    .select('id,nombre');
+
+    employees = e || [];
+
+    addOutputRow();
+    addOperatorRow();
+}
+
+function renderMachines(){
+
+    machineSelect.innerHTML='';
+
+    machines.forEach(m=>{
+
+        machineSelect.innerHTML += `
+        <option value="${m.id}">
+            ${m.machine_name || 'MAQ-'+m.id}
+        </option>
+        `;
+    });
+}
+
+function addOutputRow(){
+
+    const div = document.createElement('div');
+
+    div.className = 'output-row';
+
+    let options = '';
+
+    parts.forEach(p=>{
+        options += `
+        <option value="${p.id}">
+            ${p.part_number} - ${p.part_name || ''}
+        </option>
+        `;
+    });
+
+    div.innerHTML = `
+    <div class="grid">
+
+        <div>
+            <label>Parte</label>
+            <select class="partSelect">
+                ${options}
             </select>
         </div>
 
-        <div id="grid" class="machine-grid">
-            </div>
-    </main>
-
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div>
-                    <h2 id="modal-m-name" style="margin:0; color:var(--primary); font-size: 1.8rem;">---</h2>
-                    <p id="modal-m-area" style="margin:0; color:var(--text-muted); font-weight:700;"></p>
-                </div>
-                <i class="fas fa-robot" style="font-size: 2.5rem; color: #f1f5f9;"></i>
-            </div>
-
-            <div class="form-grid">
-                <div class="input-group">
-                    <label>Turno Actual</label>
-                    <select id="f_turno"></select>
-                </div>
-                <div class="input-group">
-                    <label>Líder / Operador</label>
-                    <select id="f_lider"></select>
-                </div>
-                <div class="input-group full-width">
-                    <label>Número de Parte (N/P)</label>
-                    <input type="text" id="f_parte" placeholder="Ej. KRM-9922">
-                </div>
-                <div class="input-group">
-                    <label>Piezas OK</label>
-                    <input type="number" id="f_ok" value="0">
-                </div>
-                <div class="input-group">
-                    <label>Scrap (Pzas)</label>
-                    <input type="number" id="f_scrap" value="0">
-                </div>
-            </div>
-
-            <div class="modal-actions">
-                <button class="btn btn-cancel" onclick="closeModal()">CANCELAR</button>
-                <button class="btn btn-save" onclick="saveData()">
-                    <i class="fas fa-cloud-upload-alt"></i> REGISTRAR PRODUCCIÓN
-                </button>
-            </div>
+        <div>
+            <label>Lado</label>
+            <select class="sideSelect">
+                <option value="LH">LH</option>
+                <option value="RH">RH</option>
+                <option value="NA">NA</option>
+            </select>
         </div>
+
+        <div>
+            <label>Cavidades</label>
+            <input type="number" class="cavitiesInput" value="1">
+        </div>
+
+        <div>
+            <label>Peso Pieza (g)</label>
+            <input type="number" class="pieceWeightInput">
+        </div>
+
     </div>
 
-    <div id="toast"></div>
+    <button
+        class="btn-danger"
+        style="margin-top:12px;"
+        onclick="this.parentElement.remove()">
+        Eliminar
+    </button>
+    `;
 
-<script>
-    const db = client; // Usando tu cliente de config.js
-    let machinesData = [];
-    let selectedMachine = null;
+    outputsContainer.appendChild(div);
+}
 
-    // Reloj en tiempo real
-    setInterval(() => {
-        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-    }, 1000);
+function addOperatorRow(){
 
-    async function init() {
-        showToast("Conectando con Supabase...", "#334155");
-        try {
-            // Carga masiva de datos (Optimizado)
-            const [mRes, aRes, tRes, lRes] = await Promise.all([
-                db.from('machines').select('id, machine_name, area'),
-                db.from('rh_areas').select('nombre').eq('activo', true),
-                db.from('rh_turnos').select('id, nombre'),
-                db.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo')
-            ]);
+    const div = document.createElement('div');
 
-            machinesData = mRes.data || [];
-            
-            // Llenar Selectores
-            const fArea = document.getElementById('f-area');
-            aRes.data?.forEach(a => fArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
-            
-            tRes.data?.forEach(t => document.getElementById('f_turno').innerHTML += `<option value="${t.id}">${t.nombre}</option>`);
-            
-            lRes.data?.forEach(l => document.getElementById('f_lider').innerHTML += `<option value="${l.id}">${l.nombre_completo}</option>`);
+    div.className='operator-row';
 
-            filtrar();
-        } catch (err) {
-            showToast("Error de conexión", "#ef4444");
-        }
-    }
+    let options='';
 
-    function filtrar() {
-        const search = document.getElementById('m-search').value.toLowerCase();
-        const area = document.getElementById('f-area').value;
-        const container = document.getElementById('grid');
-        
-        container.innerHTML = '';
-        
-        const filtered = machinesData.filter(m => {
-            const matchesSearch = m.machine_name.toLowerCase().includes(search);
-            const matchesArea = area === 'ALL' || m.area === area;
-            return matchesSearch && matchesArea;
-        });
+    employees.forEach(e=>{
+        options += `
+        <option value="${e.id}">
+            ${e.nombre}
+        </option>
+        `;
+    });
 
-        filtered.forEach(m => {
-            const card = document.createElement('div');
-            card.className = 'machine-card';
-            card.onclick = () => openModal(m);
-            card.innerHTML = `
-                <i class="fas fa-charging-station"></i>
-                <h3>${m.machine_name}</h3>
-                <p>${m.area || 'GENERAL'}</p>
-            `;
-            container.appendChild(card);
-        });
-    }
+    div.innerHTML = `
+    <div class="grid">
 
-    function openModal(m) {
-        selectedMachine = m;
-        document.getElementById('modal-m-name').innerText = m.machine_name;
-        document.getElementById('modal-m-area').innerText = m.area;
-        document.getElementById('modal').style.display = 'grid';
-    }
+        <div>
+            <label>Empleado</label>
+            <select class="employeeSelect">
+                ${options}
+            </select>
+        </div>
 
-    function closeModal() {
-        document.getElementById('modal').style.display = 'none';
-    }
+        <div>
+            <label>Rol</label>
+            <select class="roleSelect">
+                <option value="OPERADOR">OPERADOR</option>
+                <option value="LIDER">LIDER</option>
+                <option value="EMPAQUE">EMPAQUE</option>
+                <option value="INSPECCION">INSPECCION</option>
+            </select>
+        </div>
 
-    async function saveData() {
-        const payload = {
-            maquina_id: selectedMachine.id,
-            turno_id: document.getElementById('f_turno').value,
-            lider_id: document.getElementById('f_lider').value,
-            parte: document.getElementById('f_parte').value,
-            cantidad_ok: parseInt(document.getElementById('f_ok').value) || 0,
-            scrap: parseInt(document.getElementById('f_scrap').value) || 0,
-            fecha: new Date().toISOString()
-        };
+    </div>
 
-        if(!payload.parte) {
-            showToast("Indique el Número de Parte", "#d97706");
+    <button
+        class="btn-danger"
+        style="margin-top:12px;"
+        onclick="this.parentElement.remove()">
+        Eliminar
+    </button>
+    `;
+
+    operatorsContainer.appendChild(div);
+}
+
+async function startRun(){
+
+    try{
+
+        const machine_id = machineSelect.value;
+
+        const mold_id = moldSelect.value;
+
+        const shift = shift.value;
+
+        const cycle_time = parseFloat(cycleTime.value || 0);
+
+        const total_cavities = parseInt(totalCavities.value || 0);
+
+        const resin_type = resinType.value;
+
+        const resin_lot = resinLot.value;
+
+        const resin_color = resinColor.value;
+
+        const purge_weight_g = parseFloat(purgeWeight.value || 0);
+
+        const runner_weight_g = parseFloat(runnerWeight.value || 0);
+
+        const outputsRows =
+        document.querySelectorAll('.output-row');
+
+        if(outputsRows.length===0){
+            alert("Agrega al menos una parte");
             return;
         }
 
-        const { error } = await db.from('produccion_registros').insert([payload]);
+        const runPayload = {
 
-        if(error) {
-            showToast("Error: " + error.message, "#ef4444");
-        } else {
-            showToast("✅ Registro Guardado", "#10b981");
-            closeModal();
-            // Reset campos
-            document.getElementById('f_parte').value = '';
-            document.getElementById('f_ok').value = '0';
-            document.getElementById('f_scrap').value = '0';
-        }
+            machine_id,
+            mold_id,
+            shift,
+
+            cycle_time,
+            cavities: total_cavities,
+
+            resin_type,
+            resin_lot,
+            resin_color,
+
+            purge_weight_g,
+            runner_weight_g,
+
+            status:'RUNNING',
+
+            start_time:new Date().toISOString()
+        };
+
+        const { data:runData, error:runError } =
+        await supabaseClient
+        .from('runs')
+        .insert([runPayload])
+        .select()
+        .single();
+
+        if(runError) throw runError;
+
+        const run_id = runData.id;
+
+        let outputsToInsert = [];
+
+        outputsRows.forEach(row=>{
+
+            const part_id =
+            row.querySelector('.partSelect').value;
+
+            const side =
+            row.querySelector('.sideSelect').value;
+
+            const cavities =
+            parseInt(
+            row.querySelector('.cavitiesInput').value || 1
+            );
+
+            const piece_weight_g =
+            parseFloat(
+            row.querySelector('.pieceWeightInput').value || 0
+            );
+
+            outputsToInsert.push({
+
+                run_id,
+                part_id,
+                side,
+                cavities,
+                piece_weight_g
+            });
+        });
+
+        const { error:outputError } =
+        await supabaseClient
+        .from('run_outputs')
+        .insert(outputsToInsert);
+
+        if(outputError) throw outputError;
+
+        const operatorRows =
+        document.querySelectorAll('.operator-row');
+
+        let operatorsToInsert = [];
+
+        operatorRows.forEach(row=>{
+
+            operatorsToInsert.push({
+
+                run_id,
+
+                employee_id:
+                row.querySelector('.employeeSelect').value,
+
+                role:
+                row.querySelector('.roleSelect').value
+            });
+        });
+
+        const { error:operatorError } =
+        await supabaseClient
+        .from('run_operators')
+        .insert(operatorsToInsert);
+
+        if(operatorError) throw operatorError;
+
+        const { error:updateMachineError } =
+        await supabaseClient
+        .from('machines')
+        .update({
+
+            status:'RUNNING',
+
+            current_run_id:run_id,
+
+            current_mold_id:mold_id,
+
+            last_start_time:new Date().toISOString()
+        })
+        .eq('id',machine_id);
+
+        if(updateMachineError)
+        throw updateMachineError;
+
+        alert("CORRIDA INICIADA");
+
+        location.reload();
+
+    }catch(err){
+
+        console.error(err);
+
+        alert(err.message);
     }
+}
 
-    function showToast(msg, color) {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.style.background = color;
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 3000);
-    }
+areaSelect?.addEventListener('change',()=>{
 
-    window.onload = init;
+    renderMachines();
+});
+
+init();
+
 </script>
+
 </body>
 </html>
