@@ -338,15 +338,21 @@ const preguntas = [
 
 async function actualizarMaquinas() {
 
-    const areaId = document.getElementById("area_select").value;
+    const areaSelect = document.getElementById("area_select");
+
+    const areaTexto =
+        areaSelect.options[areaSelect.selectedIndex]
+        ?.text
+        ?.trim();
 
     const mSel = document.getElementById("maquina_select");
 
     mSel.innerHTML = '<option value="">Cargando...</option>';
 
-    if (!areaId) {
+    if (!areaTexto) {
 
-        mSel.innerHTML = '<option value="">Seleccione área...</option>';
+        mSel.innerHTML =
+            '<option value="">Seleccione área...</option>';
 
         return;
     }
@@ -356,13 +362,22 @@ async function actualizarMaquinas() {
         const { data, error } = await client
             .from('machines')
             .select('id, machine_name')
-            .eq('area', areaId)
+            .eq('area', areaTexto)
             .eq('is_active', true)
             .order('machine_name');
 
         if (error) throw error;
 
-        mSel.innerHTML = '<option value="">Seleccione...</option>';
+        mSel.innerHTML =
+            '<option value="">Seleccione...</option>';
+
+        if (!data || data.length === 0) {
+
+            mSel.innerHTML =
+                '<option value="">Sin máquinas</option>';
+
+            return;
+        }
 
         data.forEach(m => {
 
@@ -375,7 +390,7 @@ async function actualizarMaquinas() {
 
     } catch (e) {
 
-        console.error(e);
+        console.error("ERROR AL CARGAR MAQUINAS", e);
 
         mSel.innerHTML =
             '<option value="">Error cargando máquinas</option>';
@@ -608,6 +623,8 @@ async function guardar() {
     }
 
     catch (e) {
+
+        console.error(e);
 
         alert(e.message);
     }
