@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+
 <meta charset="UTF-8">
 <title>MES - Iniciar Corrida</title>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script src="config.js"></script>
+
 <style>
+
 :root{
     --bg:#f4f6f8;
     --card:#ffffff;
@@ -90,18 +95,6 @@ button{
     color:white;
 }
 
-.table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-.table th,
-.table td{
-    border-bottom:1px solid var(--border);
-    padding:10px;
-    text-align:left;
-}
-
 .operator-row,
 .output-row{
     border:1px solid var(--border);
@@ -118,8 +111,10 @@ button{
     font-weight:bold;
     margin-bottom:20px;
 }
+
 </style>
 </head>
+
 <body>
 
 <div class="container">
@@ -148,10 +143,12 @@ Verificando sesión...
 
 <div>
 <label>Turno</label>
-<select id="shift">
-<option value="1">1</option>
-<option value="2">2</option>
-<option value="3">3</option>
+<select id="shiftSelect">
+
+<option value="1">Turno 1</option>
+<option value="2">Turno 2</option>
+<option value="3">Turno 3</option>
+
 </select>
 </div>
 
@@ -196,17 +193,18 @@ Verificando sesión...
 </div>
 
 </div>
-
 </div>
 
 <div class="card">
 
 <div style="display:flex;justify-content:space-between;align-items:center;">
+
 <h2>Partes Producidas</h2>
 
 <button class="btn-primary" onclick="addOutputRow()">
 + Agregar Parte
 </button>
+
 </div>
 
 <div id="outputsContainer"></div>
@@ -216,113 +214,230 @@ Verificando sesión...
 <div class="card">
 
 <div style="display:flex;justify-content:space-between;align-items:center;">
+
 <h2>Operadores</h2>
 
 <button class="btn-primary" onclick="addOperatorRow()">
 + Agregar Operador
 </button>
+
 </div>
 
 <div id="operatorsContainer"></div>
 
 </div>
 
-<button class="btn-success" style="width:100%;font-size:18px;" onclick="startRun()">
+<button
+class="btn-success"
+style="width:100%;font-size:18px;"
+onclick="startRun()">
+
 INICIAR CORRIDA
+
 </button>
 
 </div>
 
 <script>
 
-const supabaseClient = supabase.createClient(
-'https://telntsrrschcdxczlape.supabase.co',
-'TU_ANON_KEY_AQUI'
-);
-
 let machines = [];
 let molds = [];
 let parts = [];
 let employees = [];
+let areas = [];
 
 async function init(){
 
-    const { data:{ session } } = await supabaseClient.auth.getSession();
+    try{
 
-    if(!session){
-        alert("Debes iniciar sesión");
-        location.href="/";
-        return;
+        const { data:{ session }, error:sessionError } =
+        await supabaseClient.auth.getSession();
+
+        if(sessionError){
+            console.error(sessionError);
+        }
+
+        if(!session){
+
+            alert("Debes iniciar sesión");
+
+            location.href = "/";
+
+            return;
+        }
+
+        sessionInfo.innerHTML =
+        "👤 " + session.user.email;
+
+        await loadAreas();
+
+        await loadMachines();
+
+        await loadMolds();
+
+        await loadParts();
+
+        await loadEmployees();
+
+        addOutputRow();
+
+        addOperatorRow();
+
+    }catch(err){
+
+        console.error(err);
+
+        alert(err.message);
     }
+}
 
-    sessionInfo.innerHTML =
-    "👤 " + session.user.email;
+async function loadAreas(){
 
-    const { data:areas } = await supabaseClient
+    const { data, error } = await supabaseClient
     .from('areas')
     .select('*')
     .order('area_name');
 
-    areas.forEach(a=>{
+    if(error){
+
+        console.error(error);
+
+        alert("Error cargando áreas");
+
+        return;
+    }
+
+    areas = data || [];
+
+    areaSelect.innerHTML = '';
+
+    areas.forEach(area=>{
+
         areaSelect.innerHTML += `
-        <option value="${a.id}">
-            ${a.area_name}
+        <option value="${area.id}">
+            ${area.area_name}
         </option>
         `;
     });
+}
 
-    const { data:m } = await supabaseClient
+async function loadMachines(){
+
+    const { data, error } = await supabaseClient
     .from('machines')
-    .select('*')
-    .order('id');
+    .select(`
+        id,
+        machine_name,
+        area_id,
+        status
+    `)
+    .order('machine_name');
 
-    machines = m || [];
+    if(error){
+
+        console.error(error);
+
+        alert("Error cargando máquinas");
+
+        return;
+    }
+
+    machines = data || [];
 
     renderMachines();
-
-    const { data:mo } = await supabaseClient
-    .from('molds')
-    .select('*');
-
-    molds = mo || [];
-
-    molds.forEach(m=>{
-        moldSelect.innerHTML += `
-        <option value="${m.id}">
-            ${m.name || m.id}
-        </option>
-        `;
-    });
-
-    const { data:p } = await supabaseClient
-    .from('parts')
-    .select('id,part_number,part_name')
-    .limit(3000);
-
-    parts = p || [];
-
-    const { data:e } = await supabaseClient
-    .from('rh_empleados')
-    .select('id,nombre');
-
-    employees = e || [];
-
-    addOutputRow();
-    addOperatorRow();
 }
 
 function renderMachines(){
 
-    machineSelect.innerHTML='';
+    machineSelect.innerHTML = '';
 
-    machines.forEach(m=>{
+    const selectedArea = areaSelect.value;
+
+    const filteredMachines = machines.filter(m =>
+        String(m.area_id) === String(selectedArea)
+    );
+
+    if(filteredMachines.length === 0){
+
+        machineSelect.innerHTML = `
+        <option value="">
+            Sin máquinas
+        </option>
+        `;
+
+        return;
+    }
+
+    filteredMachines.forEach(machine=>{
 
         machineSelect.innerHTML += `
-        <option value="${m.id}">
-            ${m.machine_name || 'MAQ-'+m.id}
+        <option value="${machine.id}">
+            ${machine.machine_name}
         </option>
         `;
     });
+}
+
+async function loadMolds(){
+
+    const { data, error } = await supabaseClient
+    .from('molds')
+    .select('*')
+    .order('name');
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    molds = data || [];
+
+    moldSelect.innerHTML = '';
+
+    molds.forEach(mold=>{
+
+        moldSelect.innerHTML += `
+        <option value="${mold.id}">
+            ${mold.name || mold.id}
+        </option>
+        `;
+    });
+}
+
+async function loadParts(){
+
+    const { data, error } = await supabaseClient
+    .from('parts')
+    .select('id,part_number,part_name')
+    .limit(3000);
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    parts = data || [];
+}
+
+async function loadEmployees(){
+
+    const { data, error } = await supabaseClient
+    .from('rh_empleados')
+    .select('id,nombre')
+    .order('nombre');
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    employees = data || [];
 }
 
 function addOutputRow(){
@@ -333,15 +448,17 @@ function addOutputRow(){
 
     let options = '';
 
-    parts.forEach(p=>{
+    parts.forEach(part=>{
+
         options += `
-        <option value="${p.id}">
-            ${p.part_number} - ${p.part_name || ''}
+        <option value="${part.id}">
+            ${part.part_number} - ${part.part_name || ''}
         </option>
         `;
     });
 
     div.innerHTML = `
+
     <div class="grid">
 
         <div>
@@ -354,29 +471,38 @@ function addOutputRow(){
         <div>
             <label>Lado</label>
             <select class="sideSelect">
+
                 <option value="LH">LH</option>
                 <option value="RH">RH</option>
                 <option value="NA">NA</option>
+
             </select>
         </div>
 
         <div>
             <label>Cavidades</label>
-            <input type="number" class="cavitiesInput" value="1">
+            <input
+            type="number"
+            class="cavitiesInput"
+            value="1">
         </div>
 
         <div>
             <label>Peso Pieza (g)</label>
-            <input type="number" class="pieceWeightInput">
+            <input
+            type="number"
+            class="pieceWeightInput">
         </div>
 
     </div>
 
     <button
-        class="btn-danger"
-        style="margin-top:12px;"
-        onclick="this.parentElement.remove()">
-        Eliminar
+    class="btn-danger"
+    style="margin-top:12px;"
+    onclick="this.parentElement.remove()">
+
+    Eliminar
+
     </button>
     `;
 
@@ -387,45 +513,68 @@ function addOperatorRow(){
 
     const div = document.createElement('div');
 
-    div.className='operator-row';
+    div.className = 'operator-row';
 
-    let options='';
+    let options = '';
 
-    employees.forEach(e=>{
+    employees.forEach(emp=>{
+
         options += `
-        <option value="${e.id}">
-            ${e.nombre}
+        <option value="${emp.id}">
+            ${emp.nombre}
         </option>
         `;
     });
 
     div.innerHTML = `
+
     <div class="grid">
 
         <div>
+
             <label>Empleado</label>
+
             <select class="employeeSelect">
                 ${options}
             </select>
+
         </div>
 
         <div>
+
             <label>Rol</label>
+
             <select class="roleSelect">
-                <option value="OPERADOR">OPERADOR</option>
-                <option value="LIDER">LIDER</option>
-                <option value="EMPAQUE">EMPAQUE</option>
-                <option value="INSPECCION">INSPECCION</option>
+
+                <option value="OPERADOR">
+                    OPERADOR
+                </option>
+
+                <option value="LIDER">
+                    LIDER
+                </option>
+
+                <option value="EMPAQUE">
+                    EMPAQUE
+                </option>
+
+                <option value="INSPECCION">
+                    INSPECCION
+                </option>
+
             </select>
+
         </div>
 
     </div>
 
     <button
-        class="btn-danger"
-        style="margin-top:12px;"
-        onclick="this.parentElement.remove()">
-        Eliminar
+    class="btn-danger"
+    style="margin-top:12px;"
+    onclick="this.parentElement.remove()">
+
+    Eliminar
+
     </button>
     `;
 
@@ -436,59 +585,44 @@ async function startRun(){
 
     try{
 
-        const machine_id = machineSelect.value;
+        const payload = {
 
-        const mold_id = moldSelect.value;
+            area_id: areaSelect.value,
 
-        const shift = shift.value;
+            machine_id: machineSelect.value,
 
-        const cycle_time = parseFloat(cycleTime.value || 0);
+            mold_id: moldSelect.value,
 
-        const total_cavities = parseInt(totalCavities.value || 0);
+            shift: shiftSelect.value,
 
-        const resin_type = resinType.value;
+            cycle_time:
+            parseFloat(cycleTime.value || 0),
 
-        const resin_lot = resinLot.value;
+            cavities:
+            parseInt(totalCavities.value || 0),
 
-        const resin_color = resinColor.value;
+            resin_type: resinType.value,
 
-        const purge_weight_g = parseFloat(purgeWeight.value || 0);
+            resin_lot: resinLot.value,
 
-        const runner_weight_g = parseFloat(runnerWeight.value || 0);
+            resin_color: resinColor.value,
 
-        const outputsRows =
-        document.querySelectorAll('.output-row');
+            purge_weight_g:
+            parseFloat(purgeWeight.value || 0),
 
-        if(outputsRows.length===0){
-            alert("Agrega al menos una parte");
-            return;
-        }
-
-        const runPayload = {
-
-            machine_id,
-            mold_id,
-            shift,
-
-            cycle_time,
-            cavities: total_cavities,
-
-            resin_type,
-            resin_lot,
-            resin_color,
-
-            purge_weight_g,
-            runner_weight_g,
+            runner_weight_g:
+            parseFloat(runnerWeight.value || 0),
 
             status:'RUNNING',
 
-            start_time:new Date().toISOString()
+            start_time:
+            new Date().toISOString()
         };
 
         const { data:runData, error:runError } =
         await supabaseClient
         .from('runs')
-        .insert([runPayload])
+        .insert([payload])
         .select()
         .single();
 
@@ -496,51 +630,48 @@ async function startRun(){
 
         const run_id = runData.id;
 
-        let outputsToInsert = [];
+        let outputs = [];
 
-        outputsRows.forEach(row=>{
+        document
+        .querySelectorAll('.output-row')
+        .forEach(row=>{
 
-            const part_id =
-            row.querySelector('.partSelect').value;
-
-            const side =
-            row.querySelector('.sideSelect').value;
-
-            const cavities =
-            parseInt(
-            row.querySelector('.cavitiesInput').value || 1
-            );
-
-            const piece_weight_g =
-            parseFloat(
-            row.querySelector('.pieceWeightInput').value || 0
-            );
-
-            outputsToInsert.push({
+            outputs.push({
 
                 run_id,
-                part_id,
-                side,
-                cavities,
-                piece_weight_g
+
+                part_id:
+                row.querySelector('.partSelect').value,
+
+                side:
+                row.querySelector('.sideSelect').value,
+
+                cavities:
+                parseInt(
+                row.querySelector('.cavitiesInput').value || 1
+                ),
+
+                piece_weight_g:
+                parseFloat(
+                row.querySelector('.pieceWeightInput').value || 0
+                )
             });
         });
 
-        const { error:outputError } =
+        const { error:outputsError } =
         await supabaseClient
         .from('run_outputs')
-        .insert(outputsToInsert);
+        .insert(outputs);
 
-        if(outputError) throw outputError;
+        if(outputsError) throw outputsError;
 
-        const operatorRows =
-        document.querySelectorAll('.operator-row');
+        let operators = [];
 
-        let operatorsToInsert = [];
+        document
+        .querySelectorAll('.operator-row')
+        .forEach(row=>{
 
-        operatorRows.forEach(row=>{
-
-            operatorsToInsert.push({
+            operators.push({
 
                 run_id,
 
@@ -552,14 +683,13 @@ async function startRun(){
             });
         });
 
-        const { error:operatorError } =
+        const { error:operatorsError } =
         await supabaseClient
         .from('run_operators')
-        .insert(operatorsToInsert);
+        .insert(operators);
 
-        if(operatorError) throw operatorError;
+        if(operatorsError) throw operatorsError;
 
-        const { error:updateMachineError } =
         await supabaseClient
         .from('machines')
         .update({
@@ -568,14 +698,12 @@ async function startRun(){
 
             current_run_id:run_id,
 
-            current_mold_id:mold_id,
+            current_mold_id:moldSelect.value,
 
-            last_start_time:new Date().toISOString()
+            last_start_time:
+            new Date().toISOString()
         })
-        .eq('id',machine_id);
-
-        if(updateMachineError)
-        throw updateMachineError;
+        .eq('id', machineSelect.value);
 
         alert("CORRIDA INICIADA");
 
@@ -589,7 +717,7 @@ async function startRun(){
     }
 }
 
-areaSelect?.addEventListener('change',()=>{
+areaSelect.addEventListener('change', ()=>{
 
     renderMachines();
 });
