@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM | Administración de Áreas</title>
+<title>KRAEM | Administración de Máquinas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -30,7 +30,7 @@ body{
 }
 
 .container{
-    max-width:1200px;
+    max-width:1300px;
     margin:auto;
 }
 
@@ -195,7 +195,7 @@ tr:hover{
 
             </button>
 
-            <h1>Administración de Áreas</h1>
+            <h1>Administración de Máquinas</h1>
 
         </div>
 
@@ -217,26 +217,29 @@ tr:hover{
 
             <div class="form-group">
 
-                <label>Código Área</label>
+                <label>Código Máquina</label>
 
-                <input id="area_code" placeholder="Ej. PROD_LS">
+                <input id="machine_code"
+                    placeholder="Ej. LS-01">
 
             </div>
 
             <div class="form-group">
 
-                <label>Nombre Área</label>
+                <label>Nombre Máquina</label>
 
-                <input id="area_name" placeholder="Producción LS">
+                <input id="machine_name"
+                    placeholder="Ej. LS 1">
 
             </div>
 
         </div>
 
-        <button class="btn btn-primary" onclick="guardarArea()">
+        <button class="btn btn-primary"
+            onclick="guardarMaquina()">
 
             <i class="fas fa-save"></i>
-            Guardar Área
+            Guardar Máquina
 
         </button>
 
@@ -338,14 +341,14 @@ async function load(){
     try{
 
         const { data, error } = await client
-            .from('areas')
+            .from('mes_machines')
             .select(`
                 *,
                 areas_generales (
                     nombre
                 )
             `)
-            .order('area_code');
+            .order('machine_code');
 
         if(error) throw error;
 
@@ -362,39 +365,39 @@ async function load(){
             return;
         }
 
-        body.innerHTML = data.map(a => `
+        body.innerHTML = data.map(m => `
 
             <tr>
 
-                <td>${a.id}</td>
+                <td>${m.id}</td>
 
                 <td>
-                    ${a.areas_generales?.nombre || '-'}
+                    ${m.areas_generales?.nombre || '-'}
                 </td>
 
-                <td>${a.area_code}</td>
+                <td>${m.machine_code}</td>
 
-                <td>${a.area_name}</td>
+                <td>${m.machine_name}</td>
 
                 <td>
-                    <span class="status ${a.active ? 'active' : 'inactive'}">
-                        ${a.active ? 'ACTIVA' : 'INACTIVA'}
+                    <span class="status ${m.active ? 'active' : 'inactive'}">
+                        ${m.active ? 'ACTIVA' : 'INACTIVA'}
                     </span>
                 </td>
 
                 <td>
 
                     <button class="action-btn btn-edit"
-                        onclick='editar(${JSON.stringify(a)})'>
+                        onclick='editar(${JSON.stringify(m)})'>
 
                         <i class="fas fa-edit"></i>
 
                     </button>
 
                     <button class="action-btn btn-toggle"
-                        onclick="toggle(${a.id}, ${a.active})">
+                        onclick="toggle(${m.id}, ${m.active})">
 
-                        ${a.active ? 'Desactivar' : 'Activar'}
+                        ${m.active ? 'Desactivar' : 'Activar'}
 
                     </button>
 
@@ -410,26 +413,30 @@ async function load(){
 
         body.innerHTML = `
             <tr>
-                <td colspan="6" class="empty" style="color:red;">
-                    Error cargando áreas
+                <td colspan="6"
+                    class="empty"
+                    style="color:red;">
+
+                    Error cargando máquinas
+
                 </td>
             </tr>
         `;
     }
 }
 
-function editar(a){
+function editar(m){
 
-    editId = a.id;
+    editId = m.id;
 
     document.getElementById('area_general_id').value =
-        a.area_general_id || '';
+        m.area_general_id || '';
 
-    document.getElementById('area_code').value =
-        a.area_code || '';
+    document.getElementById('machine_code').value =
+        m.machine_code || '';
 
-    document.getElementById('area_name').value =
-        a.area_name || '';
+    document.getElementById('machine_name').value =
+        m.machine_name || '';
 
     window.scrollTo({
         top:0,
@@ -437,18 +444,18 @@ function editar(a){
     });
 }
 
-async function guardarArea(){
+async function guardarMaquina(){
 
     const areaGeneral =
         document.getElementById('area_general_id').value;
 
-    const areaCode =
-        document.getElementById('area_code').value;
+    const machineCode =
+        document.getElementById('machine_code').value;
 
-    const areaName =
-        document.getElementById('area_name').value;
+    const machineName =
+        document.getElementById('machine_name').value;
 
-    if(!areaGeneral || !areaCode || !areaName){
+    if(!areaGeneral || !machineCode || !machineName){
 
         return alert('Completa todos los campos');
     }
@@ -457,9 +464,16 @@ async function guardarArea(){
 
         area_general_id: areaGeneral,
 
-        area_code: areaCode.toUpperCase(),
+        machine_code: machineCode.toUpperCase(),
 
-        area_name: areaName,
+        machine_name: machineName,
+
+        production_area:
+            document.getElementById('area_general_id')
+            .options[
+                document.getElementById('area_general_id')
+                .selectedIndex
+            ].text,
 
         active: true
     };
@@ -471,7 +485,7 @@ async function guardarArea(){
         if(editId){
 
             const res = await client
-                .from('areas')
+                .from('mes_machines')
                 .update(obj)
                 .eq('id', editId);
 
@@ -480,7 +494,7 @@ async function guardarArea(){
         }else{
 
             const res = await client
-                .from('areas')
+                .from('mes_machines')
                 .insert([obj]);
 
             error = res.error;
@@ -488,7 +502,7 @@ async function guardarArea(){
 
         if(error) throw error;
 
-        alert('Área guardada');
+        alert('Máquina guardada');
 
         limpiar();
 
@@ -505,7 +519,7 @@ async function guardarArea(){
 async function toggle(id,state){
 
     await client
-        .from('areas')
+        .from('mes_machines')
         .update({
             active: !state
         })
@@ -520,9 +534,9 @@ function limpiar(){
 
     document.getElementById('area_general_id').value = '';
 
-    document.getElementById('area_code').value = '';
+    document.getElementById('machine_code').value = '';
 
-    document.getElementById('area_name').value = '';
+    document.getElementById('machine_name').value = '';
 }
 
 async function init(){
