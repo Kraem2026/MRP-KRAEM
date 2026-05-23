@@ -42,7 +42,7 @@
 <body>
 <div class="wizard-container">
     <div class="step-header">
-        <div id="step_title" style="font-weight: 800; color: var(--accent); font-size: 0.8rem; text-transform: uppercase;">Cargando...</div>
+        <div id="step-title" style="font-weight: 800; color: var(--accent); font-size: 0.8rem; text-transform: uppercase;">Cargando...</div>
         <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
     </div>
 
@@ -59,12 +59,12 @@
     <div class="step-content" id="step6">
         <div id="score-result">
             <h2>Puntaje Obtenido</h2>
-            <div class="big-score" id="val_score">0%</div>
+            <div class="big-score" id="val-score">0%</div>
             <button class="btn-nav btn-save" onclick="guardarTodo()">GUARDAR AUDITORÍA</button>
         </div>
     </div>
 
-    <div class="nav-footer" id="footer_nav">
+    <div class="nav-footer" id="footer-nav">
         <button class="btn-nav btn-prev" id="btnPrev" onclick="navegar(-1)" style="visibility: hidden;">Atrás</button>
         <button class="btn-nav btn-next" id="btnNext" onclick="navegar(1)">Siguiente</button>
     </div>
@@ -73,8 +73,6 @@
 <script>
     let step = 0;
     let auditoria = { respuestas: {}, observaciones: {} };
-    let totalPreguntas = 0; // Para el cálculo real del Score
-
     const secciones = [
         { t: "1. SEIRI (Selección)", q: ["¿Solo artículos necesarios en el área?", "¿Área libre de basura y cartón?"] },
         { t: "2. SEITON (Orden)", q: ["¿Herramientas en su lugar?", "¿Pasillos y racks despejados?", "¿Material identificado?"] },
@@ -85,12 +83,9 @@
 
     async function init() {
         const cont = document.getElementById('container-s');
-        totalPreguntas = 0;
-
         secciones.forEach((sec, i) => {
             let html = `<div class="step-content" id="step${i+1}"><h2>${sec.t}</h2>`;
             sec.q.forEach((p, j) => {
-                totalPreguntas++;
                 const id = `s${i+1}_p${j+1}`;
                 html += `<div class="question-card"><div class="question-text">${p}</div>
                     <div class="options">
@@ -102,27 +97,22 @@
                 <textarea id="obs-s${i+1}"></textarea></div></div>`;
             cont.innerHTML += html;
         });
-        
-        // NOTA: Si en tu config.js la variable se llama 'supabase', cambia 'client' por 'supabase'
         await cargarCatalogos();
         actualizarUI();
     }
 
     async function cargarCatalogos() {
-        try {
-            const { data: a } = await client.from('areas').select('*').eq('active', true);
-            const { data: e } = await client.from('rh_empleados').select('*').eq('estatus','ACTIVO');
-            
-            const selA = document.getElementById('area_select');
-            selA.innerHTML = '<option value="">Seleccione Área</option>';
-            if(a) a.forEach(i => selA.innerHTML += `<option value="${i.id}">${i.area_name}</option>`);
+        // Carga de datos desde Supabase mapeando las tablas correctas
+        const { data: a } = await client.from('areas').select('*').eq('active', true);
+        const { data: e } = await client.from('rh_empleados').select('*').eq('estatus','ACTIVO');
+        
+        const selA = document.getElementById('area_select');
+        selA.innerHTML = '<option value="">Seleccione Área</option>';
+        a.forEach(i => selA.innerHTML += `<option value="${i.id}">${i.area_name}</option>`);
 
-            const selE = document.getElementById('operador_select');
-            selE.innerHTML = '<option value="">Seleccione Operador</option>';
-            if(e) e.forEach(i => selE.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`);
-        } catch (err) {
-            console.error("Error cargando catálogos:", err);
-        }
+        const selE = document.getElementById('operador_select');
+        selE.innerHTML = '<option value="">Seleccione Operador</option>';
+        e.forEach(i => selE.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`);
     }
 
     function marcar(id, val) {
@@ -132,13 +122,8 @@
     }
 
     function navegar(dir) {
-        if(step === 0 && dir === 1 && (!area_select.value || !operador_select.value)) {
-            return alert("Por favor, seleccione el área y el operador antes de continuar.");
-        }
-        
-        if(step >= 1 && step <= 5) {
-            auditoria.observaciones[`s${step}`] = document.getElementById(`obs-s${step}`).value;
-        }
+        if(step === 0 && dir === 1 && (!area_select.value || !operador_select.value)) return alert("Llene los datos iniciales");
+        if(step >= 1 && step <= 5) auditoria.observaciones[`s${step}`] = document.getElementById(`obs-s${step}`).value;
         
         document.getElementById(`step${step}`).classList.remove('active');
         step += dir;
@@ -147,26 +132,17 @@
     }
 
     function actualizarUI() {
-        // Control de visibilidad de botones inferiores
         btnPrev.style.visibility = step === 0 ? 'hidden' : 'visible';
-        
-        if (step === 6) {
-            btnNext.style.display = 'none'; // En el paso final ocultamos el botón Siguiente
-            
-            // Cálculo del Score real basado en el total de preguntas existentes
-            const respuestasArray = Object.values(auditoria.respuestas);
-            const aciertos = respuestasArray.filter(v => v === 1).length;
-            const score = Math.round((aciertos / totalPreguntas) * 100) || 0;
-            
-            document.getElementById('val_score').innerText = score + "%";
+        btnNext.innerText = step === 5 ? "VER RESULTADO" : "Siguiente";
+        if(step === 6) {
+            footer-nav.style.display = 'none';
+            const r = Object.values(auditoria.respuestas);
+            const score = Math.round((r.filter(v => v===1).length / r.length) * 100) || 0;
+            val-score.innerText = score + "%";
             auditoria.score = score;
-        } else {
-            btnNext.style.display = 'inline-block';
-            btnNext.innerText = step === 5 ? "VER RESULTADO" : "Siguiente";
         }
-        
         progress.style.width = `${(step/6)*100}%`;
-        document.getElementById('step_title').innerText = step === 0 ? "CONFIGURACIÓN" : (step === 6 ? "RESUMEN" : secciones[step-1].t);
+        step-title.innerText = step === 0 ? "CONFIGURACIÓN" : (step === 6 ? "RESUMEN" : secciones[step-1].t);
     }
 
     async function guardarTodo() {
@@ -178,15 +154,8 @@
             respuestas_json: auditoria.respuestas,
             observaciones_json: auditoria.observaciones
         }]);
-        
-        if(!error) { 
-            alert("✅ Auditoría guardada exitosamente."); 
-            location.href='dashboard.html'; 
-        } else {
-            alert("❌ Error al guardar: " + error.message);
-        }
+        if(!error) { alert("✅ Guardado"); location.href='dashboard.html'; }
     }
-    
     init();
 </script>
 </body>
