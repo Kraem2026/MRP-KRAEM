@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
+
 :root{
   --primary:#2563eb;
   --primary-dark:#1d4ed8;
@@ -20,7 +21,6 @@
   --border:#e2e8f0;
   --success:#22c55e;
   --danger:#ef4444;
-  --warning:#f59e0b;
 }
 
 *{
@@ -144,7 +144,8 @@ input,select{
   background:white;
 }
 
-input:focus,select:focus{
+input:focus,
+select:focus{
   outline:none;
   border-color:var(--primary);
 }
@@ -156,7 +157,7 @@ input:focus,select:focus{
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:900px;
+  min-width:1000px;
 }
 
 th{
@@ -214,6 +215,11 @@ tr:hover{
   color:#166534;
 }
 
+.btn-edit{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
 .section-title{
   font-size:18px;
   font-weight:700;
@@ -228,6 +234,7 @@ tr:hover{
   padding:40px;
   color:#64748b;
 }
+
 </style>
 </head>
 
@@ -238,6 +245,7 @@ tr:hover{
   <div class="header">
 
     <div class="title-box">
+
       <div class="title-icon">
         <i class="fas fa-map-marker-alt"></i>
       </div>
@@ -248,11 +256,15 @@ tr:hover{
           Administración de ubicaciones físicas del sistema
         </div>
       </div>
+
     </div>
 
-    <button class="btn btn-secondary" onclick="location.href='ingenieria_catalogos.html'">
+    <button class="btn btn-secondary"
+      onclick="location.href='ingenieria_catalogos.html'">
+
       <i class="fas fa-arrow-left"></i>
       Volver
+
     </button>
 
   </div>
@@ -268,35 +280,64 @@ tr:hover{
 
       <div class="group">
         <label>Área General</label>
-        <select id="area_general_id" onchange="cargarAreas()">
-          <option value="">Seleccione...</option>
+
+        <select id="area_general_id"
+          onchange="cargarAreas()">
+
+          <option value="">
+            Seleccione...
+          </option>
+
         </select>
       </div>
 
       <div class="group">
+
         <label>Área</label>
+
         <select id="area_id">
-          <option value="">Seleccione área general...</option>
+
+          <option value="">
+            Seleccione área general...
+          </option>
+
         </select>
+
       </div>
 
       <div class="group">
+
         <label>Código Ubicación</label>
-        <input id="location_code" placeholder="Ej. WIP">
+
+        <input id="location_code"
+          placeholder="Ej. WIP">
+
       </div>
 
       <div class="group">
+
         <label>Nombre Ubicación</label>
-        <input id="location_name" placeholder="Ej. WIP LS">
+
+        <input id="location_name"
+          placeholder="Ej. WIP LS">
+
       </div>
 
     </div>
 
     <div style="margin-top:20px;">
-      <button class="btn btn-primary" onclick="crearUbicacion()">
+
+      <button class="btn btn-primary"
+        onclick="crearUbicacion()">
+
         <i class="fas fa-save"></i>
-        Guardar Ubicación
+
+        <span id="btn_text">
+          Guardar Ubicación
+        </span>
+
       </button>
+
     </div>
 
   </div>
@@ -309,18 +350,25 @@ tr:hover{
     </div>
 
     <table>
+
       <thead>
+
         <tr>
+
           <th>Área General</th>
           <th>Área</th>
           <th>Código</th>
           <th>Ubicación</th>
           <th>Estatus</th>
-          <th>Acción</th>
+          <th>Activar</th>
+          <th>Editar</th>
+
         </tr>
+
       </thead>
 
       <tbody id="body"></tbody>
+
     </table>
 
   </div>
@@ -330,6 +378,7 @@ tr:hover{
 <script>
 
 let todasAreas = [];
+let editandoId = null;
 
 async function cargarAreasGenerales(){
 
@@ -359,31 +408,6 @@ async function cargarAreasGenerales(){
 
 }
 
-async function cargarAreas(){
-
-  const generalId = area_general_id.value;
-
-  area_id.innerHTML =
-    '<option value="">Seleccione...</option>';
-
-  if(!generalId) return;
-
-  const areasFiltradas = todasAreas.filter(
-    a => a.area_general_id == generalId
-  );
-
-  areasFiltradas.forEach(a => {
-
-    area_id.innerHTML += `
-      <option value="${a.id}">
-        ${a.area_name}
-      </option>
-    `;
-
-  });
-
-}
-
 async function loadAreas(){
 
   const { data, error } = await client
@@ -398,6 +422,31 @@ async function loadAreas(){
   }
 
   todasAreas = data;
+
+}
+
+async function cargarAreas(){
+
+  const generalId = area_general_id.value;
+
+  area_id.innerHTML =
+    '<option value="">Seleccione...</option>';
+
+  if(!generalId) return;
+
+  const filtradas = todasAreas.filter(
+    a => a.area_general_id == generalId
+  );
+
+  filtradas.forEach(a => {
+
+    area_id.innerHTML += `
+      <option value="${a.id}">
+        ${a.area_name}
+      </option>
+    `;
+
+  });
 
 }
 
@@ -428,7 +477,7 @@ async function load(){
 
     body.innerHTML = `
       <tr>
-        <td colspan="6" class="empty">
+        <td colspan="7" class="empty">
           No hay ubicaciones registradas
         </td>
       </tr>
@@ -446,6 +495,7 @@ async function load(){
       l.areas?.area_name || '-';
 
     body.innerHTML += `
+
       <tr>
 
         <td>
@@ -461,9 +511,13 @@ async function load(){
         <td>${l.location_name || '-'}</td>
 
         <td>
+
           <span class="badge ${l.active ? 'active' : 'inactive'}">
+
             ${l.active ? 'ACTIVA' : 'INACTIVA'}
+
           </span>
+
         </td>
 
         <td>
@@ -472,14 +526,69 @@ async function load(){
             class="action-btn ${l.active ? 'btn-on' : 'btn-off'}"
             onclick="toggle(${l.id}, ${l.active})"
           >
+
             ${l.active ? 'Desactivar' : 'Activar'}
+
+          </button>
+
+        </td>
+
+        <td>
+
+          <button
+            class="action-btn btn-edit"
+            onclick="editarUbicacion(
+              ${l.id},
+              '${l.location_code}',
+              '${l.location_name || ''}',
+              ${l.area_id},
+              ${l.areas?.area_general_id || 'null'}
+            )"
+          >
+
+            Editar
+
           </button>
 
         </td>
 
       </tr>
+
     `;
 
+  });
+
+}
+
+function editarUbicacion(
+  id,
+  code,
+  name,
+  area,
+  areaGeneral
+){
+
+  editandoId = id;
+
+  area_general_id.value = areaGeneral;
+
+  cargarAreas();
+
+  setTimeout(() => {
+
+    area_id.value = area;
+
+  }, 200);
+
+  location_code.value = code;
+
+  location_name.value = name;
+
+  btn_text.innerText = 'Actualizar Ubicación';
+
+  window.scrollTo({
+    top:0,
+    behavior:'smooth'
   });
 
 }
@@ -492,33 +601,78 @@ async function crearUbicacion(){
   if(!location_code.value)
     return alert('Ingrese código');
 
-  const { error } = await client
-    .from('locations')
-    .insert({
+  let error;
 
-      area_id: area_id.value,
+  if(editandoId){
 
-      location_code:
-        location_code.value.toUpperCase(),
+    const res = await client
+      .from('locations')
+      .update({
 
-      location_name:
-        location_name.value,
+        area_id: area_id.value,
 
-      active: true
+        location_code:
+          location_code.value.toUpperCase(),
 
-    });
+        location_name:
+          location_name.value
+
+      })
+      .eq('id', editandoId);
+
+    error = res.error;
+
+  } else {
+
+    const res = await client
+      .from('locations')
+      .insert({
+
+        area_id: area_id.value,
+
+        location_code:
+          location_code.value.toUpperCase(),
+
+        location_name:
+          location_name.value,
+
+        active:true
+
+      });
+
+    error = res.error;
+
+  }
 
   if(error){
     alert(error.message);
     return;
   }
 
-  alert('Ubicación creada');
+  alert(
+    editandoId
+      ? 'Ubicación actualizada'
+      : 'Ubicación creada'
+  );
+
+  limpiarFormulario();
+
+  load();
+
+}
+
+function limpiarFormulario(){
+
+  editandoId = null;
+
+  area_general_id.value = '';
+  area_id.innerHTML =
+    '<option value="">Seleccione área general...</option>';
 
   location_code.value = '';
   location_name.value = '';
 
-  load();
+  btn_text.innerText = 'Guardar Ubicación';
 
 }
 
