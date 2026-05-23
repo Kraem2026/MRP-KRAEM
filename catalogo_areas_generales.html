@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>KRAEM | Catálogo Áreas Generales</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+
+:root{
+    --primary:#0f172a;
+    --accent:#2563eb;
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --text:#1e293b;
+    --border:#e2e8f0;
+    --success:#22c55e;
+    --danger:#ef4444;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:20px;
+    background:var(--bg);
+    font-family:'Segoe UI',sans-serif;
+    color:var(--text);
+}
+
+.container{
+    max-width:1400px;
+    margin:auto;
+}
+
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+    flex-wrap:wrap;
+    gap:15px;
+}
+
+.top-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.btn-back{
+    width:45px;
+    height:45px;
+    border-radius:10px;
+    border:none;
+    background:white;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    cursor:pointer;
+    font-size:18px;
+    color:var(--accent);
+}
+
+.title-box h1{
+    margin:0;
+    font-size:28px;
+}
+
+.title-box p{
+    margin:3px 0 0 0;
+    color:#64748b;
+    font-size:14px;
+}
+
+.btn-add{
+    background:var(--accent);
+    color:white;
+    border:none;
+    border-radius:12px;
+    padding:14px 20px;
+    font-weight:bold;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:14px;
+}
+
+.table-card{
+    background:white;
+    border-radius:18px;
+    border:1px solid var(--border);
+    overflow:hidden;
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:#f8fafc;
+    padding:16px;
+    text-align:left;
+    font-size:12px;
+    text-transform:uppercase;
+    color:#64748b;
+    border-bottom:1px solid var(--border);
+}
+
+td{
+    padding:16px;
+    border-bottom:1px solid #f1f5f9;
+    font-size:14px;
+}
+
+tr:hover{
+    background:#f8fafc;
+}
+
+.status{
+    padding:6px 10px;
+    border-radius:8px;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.status.active{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.status.inactive{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.action-btn{
+    border:none;
+    background:#eff6ff;
+    color:var(--accent);
+    width:36px;
+    height:36px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+}
+
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.5);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+    padding:20px;
+}
+
+.modal-content{
+    width:100%;
+    max-width:500px;
+    background:white;
+    border-radius:18px;
+    padding:25px;
+}
+
+.modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+}
+
+.modal-header h2{
+    margin:0;
+}
+
+.close-btn{
+    border:none;
+    background:none;
+    font-size:28px;
+    cursor:pointer;
+}
+
+.form-group{
+    display:flex;
+    flex-direction:column;
+    margin-bottom:18px;
+}
+
+label{
+    font-size:11px;
+    text-transform:uppercase;
+    font-weight:bold;
+    color:#64748b;
+    margin-bottom:6px;
+}
+
+input, select{
+    padding:13px;
+    border:1px solid #cbd5e1;
+    border-radius:10px;
+    font-size:14px;
+}
+
+.btn-save{
+    width:100%;
+    border:none;
+    background:var(--accent);
+    color:white;
+    padding:15px;
+    border-radius:12px;
+    font-size:15px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.empty-box{
+    padding:50px;
+    text-align:center;
+    color:#64748b;
+}
+
+@media(max-width:700px){
+
+    body{
+        padding:15px;
+    }
+
+    .title-box h1{
+        font-size:22px;
+    }
+
+    table{
+        min-width:700px;
+    }
+
+    .table-card{
+        overflow:auto;
+    }
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="topbar">
+
+        <div class="top-left">
+
+            <button class="btn-back" onclick="location.href='ingenieria_catalogos.html'">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+
+            <div class="title-box">
+                <h1>Áreas Generales</h1>
+                <p>Configuración maestra de áreas principales</p>
+            </div>
+
+        </div>
+
+        <button class="btn-add" onclick="abrirModal()">
+            <i class="fas fa-plus"></i>
+            Nueva Área General
+        </button>
+
+    </div>
+
+    <div class="table-card">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Estatus</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody id="tbody_areas">
+
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-box">
+                            Cargando áreas generales...
+                        </div>
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- MODAL -->
+
+<div class="modal" id="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h2 id="modal_title">
+                Nueva Área General
+            </h2>
+
+            <button class="close-btn" onclick="cerrarModal()">
+                &times;
+            </button>
+
+        </div>
+
+        <input type="hidden" id="edit_id">
+
+        <div class="form-group">
+            <label>Código</label>
+            <input type="text" id="code" placeholder="Ejemplo: LS">
+        </div>
+
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="nombre" placeholder="Ejemplo: LS">
+        </div>
+
+        <div class="form-group">
+            <label>Estatus</label>
+
+            <select id="active">
+                <option value="true">ACTIVO</option>
+                <option value="false">INACTIVO</option>
+            </select>
+        </div>
+
+        <button class="btn-save" onclick="guardarAreaGeneral()">
+            GUARDAR
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+let areasGenerales = [];
+
+async function cargarAreasGenerales(){
+
+    try{
+
+        const { data, error } = await client
+        .from('areas_generales')
+        .select('*')
+        .order('id');
+
+        if(error) throw error;
+
+        areasGenerales = data || [];
+
+        renderTabla();
+
+    }catch(err){
+
+        console.error(err);
+
+        document.getElementById('tbody_areas').innerHTML = `
+            <tr>
+                <td colspan="5">
+                    <div class="empty-box">
+                        Error cargando información
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+}
+
+function renderTabla(){
+
+    const tbody = document.getElementById('tbody_areas');
+
+    if(areasGenerales.length === 0){
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    <div class="empty-box">
+                        No existen áreas generales registradas
+                    </div>
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML = areasGenerales.map(area => `
+
+        <tr>
+
+            <td>
+                ${area.id}
+            </td>
+
+            <td>
+                <b>${area.code || '-'}</b>
+            </td>
+
+            <td>
+                ${area.nombre || '-'}
+            </td>
+
+            <td>
+                <span class="status ${area.active ? 'active' : 'inactive'}">
+                    ${area.active ? 'ACTIVO' : 'INACTIVO'}
+                </span>
+            </td>
+
+            <td>
+
+                <button class="action-btn" onclick="editarArea(${area.id})">
+                    <i class="fas fa-pen"></i>
+                </button>
+
+            </td>
+
+        </tr>
+
+    `).join('');
+
+}
+
+function abrirModal(){
+
+    document.getElementById('modal').style.display = 'flex';
+
+    document.getElementById('modal_title').innerText = 'Nueva Área General';
+
+    document.getElementById('edit_id').value = '';
+
+    document.getElementById('code').value = '';
+
+    document.getElementById('nombre').value = '';
+
+    document.getElementById('active').value = 'true';
+
+}
+
+function cerrarModal(){
+
+    document.getElementById('modal').style.display = 'none';
+
+}
+
+function editarArea(id){
+
+    const area = areasGenerales.find(a => a.id == id);
+
+    if(!area) return;
+
+    document.getElementById('modal').style.display = 'flex';
+
+    document.getElementById('modal_title').innerText = 'Editar Área General';
+
+    document.getElementById('edit_id').value = area.id;
+
+    document.getElementById('code').value = area.code || '';
+
+    document.getElementById('nombre').value = area.nombre || '';
+
+    document.getElementById('active').value = area.active ? 'true' : 'false';
+
+}
+
+async function guardarAreaGeneral(){
+
+    try{
+
+        const id = document.getElementById('edit_id').value;
+
+        const obj = {
+
+            code: document.getElementById('code').value.trim(),
+
+            nombre: document.getElementById('nombre').value.trim(),
+
+            active: document.getElementById('active').value === 'true'
+
+        };
+
+        if(!obj.code || !obj.nombre){
+
+            return alert('Completa la información');
+
+        }
+
+        let error;
+
+        if(id){
+
+            ({ error } = await client
+            .from('areas_generales')
+            .update(obj)
+            .eq('id', id));
+
+        }else{
+
+            ({ error } = await client
+            .from('areas_generales')
+            .insert([obj]));
+
+        }
+
+        if(error) throw error;
+
+        cerrarModal();
+
+        await cargarAreasGenerales();
+
+        alert('Guardado correctamente');
+
+    }catch(err){
+
+        console.error(err);
+
+        alert(err.message);
+
+    }
+
+}
+
+window.onload = cargarAreasGenerales;
+
+</script>
+
+</body>
+</html>
