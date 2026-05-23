@@ -1,771 +1,193 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>MES - Iniciar Corrida</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-
-<style>
-
-:root{
-    --bg:#f4f6f8;
-    --card:#ffffff;
-    --text:#1e293b;
-    --border:#dfe6ee;
-    --primary:#2563eb;
-    --success:#16a34a;
-    --danger:#dc2626;
-}
-
-body{
-    margin:0;
-    padding:20px;
-    background:var(--bg);
-    font-family:Segoe UI,sans-serif;
-    color:var(--text);
-}
-
-.container{
-    max-width:1100px;
-    margin:auto;
-}
-
-.card{
-    background:var(--card);
-    border-radius:16px;
-    padding:20px;
-    margin-bottom:20px;
-    border:1px solid var(--border);
-    box-shadow:0 4px 12px rgba(0,0,0,.05);
-}
-
-h1,h2{
-    margin-top:0;
-}
-
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:15px;
-}
-
-label{
-    display:block;
-    font-size:12px;
-    font-weight:bold;
-    margin-bottom:5px;
-    text-transform:uppercase;
-}
-
-input,select{
-    width:100%;
-    padding:12px;
-    border-radius:10px;
-    border:1px solid var(--border);
-    box-sizing:border-box;
-    font-size:14px;
-}
-
-button{
-    border:none;
-    border-radius:12px;
-    padding:14px 18px;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-.btn-primary{
-    background:var(--primary);
-    color:white;
-}
-
-.btn-success{
-    background:var(--success);
-    color:white;
-}
-
-.btn-danger{
-    background:var(--danger);
-    color:white;
-}
-
-.operator-row,
-.output-row{
-    border:1px solid var(--border);
-    padding:15px;
-    border-radius:12px;
-    margin-bottom:12px;
-}
-
-.status-box{
-    padding:12px;
-    border-radius:10px;
-    background:#ecfdf5;
-    color:#166534;
-    font-weight:bold;
-    margin-bottom:20px;
-}
-
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Auditoría 5'S Técnica</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --card: #ffffff; --success: #22c55e; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--primary); }
+        .wizard-container { max-width: 500px; margin: auto; background: var(--card); min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .step-header { padding: 20px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; background: white; z-index: 10; }
+        .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: 0.4s ease; }
+        .step-content { padding: 20px; flex-grow: 1; display: none; }
+        .step-content.active { display: block; animation: fadeIn 0.3s ease; }
+        h2 { font-size: 1.3rem; margin: 0 0 5px 0; }
+        .subtitle { color: #64748b; font-size: 0.85rem; margin-bottom: 20px; display: block; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
+        select, input, textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .question-card { background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        .question-text { font-size: 14px; margin-bottom: 12px; font-weight: 500; }
+        .options { display: flex; gap: 10px; }
+        .btn-opt { flex: 1; padding: 12px; border: 2px solid #e2e8f0; background: white; border-radius: 10px; font-weight: 800; cursor: pointer; }
+        .active-si { background: var(--success) !important; color: white !important; border-color: var(--success) !important; }
+        .active-no { background: var(--danger) !important; color: white !important; border-color: var(--danger) !important; }
+        .obs-container { margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 15px; }
+        .obs-container textarea { background: #fffbeb; font-size: 14px; height: 80px; }
+        .nav-footer { padding: 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; background: white; }
+        .btn-nav { flex: 1; padding: 16px; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; font-size: 15px; }
+        .btn-prev { background: #f1f5f9; color: #475569; }
+        .btn-next { background: var(--primary); color: white; }
+        .btn-save { background: var(--success); color: white; width: 100%; }
+        #score-result { text-align: center; padding: 40px 20px; }
+        .big-score { font-size: 5rem; font-weight: 900; color: var(--accent); margin: 20px 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-
 <body>
+<div class="wizard-container">
+    <div class="step-header">
+        <div id="step_title" style="font-weight: 800; color: var(--accent); font-size: 0.8rem; text-transform: uppercase;">Cargando...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    </div>
 
-<div class="container">
+    <div class="step-content active" id="step0">
+        <h2>Nueva Auditoría</h2>
+        <span class="subtitle">Seleccione área y operador para iniciar.</span>
+        <div class="input-group"><label>Área</label><select id="area_select"></select></div>
+        <div class="input-group"><label>Máquina / Celda</label><input type="text" id="maquina_input"></div>
+        <div class="input-group"><label>Operador</label><select id="operador_select"></select></div>
+    </div>
 
-<div class="status-box" id="sessionInfo">
-Validando sesión...
-</div>
+    <div id="container-s"></div>
 
-<h1>MES - Iniciar Corrida</h1>
+    <div class="step-content" id="step6">
+        <div id="score-result">
+            <h2>Puntaje Obtenido</h2>
+            <div class="big-score" id="val_score">0%</div>
+            <button class="btn-nav btn-save" onclick="guardarTodo()">GUARDAR AUDITORÍA</button>
+        </div>
+    </div>
 
-<div class="card">
-
-<h2>Información General</h2>
-
-<div class="grid">
-
-<div>
-<label>Área</label>
-<select id="areaSelect"></select>
-</div>
-
-<div>
-<label>Máquina</label>
-<select id="machineSelect"></select>
-</div>
-
-<div>
-<label>Turno</label>
-<select id="shiftSelect">
-<option value="1">1</option>
-<option value="2">2</option>
-<option value="3">3</option>
-</select>
-</div>
-
-<div>
-<label>Molde</label>
-<select id="moldSelect"></select>
-</div>
-
-<div>
-<label>Tiempo Ciclo (seg)</label>
-<input type="number" id="cycleTime">
-</div>
-
-<div>
-<label>Cavidades Totales</label>
-<input type="number" id="totalCavities">
-</div>
-
-<div>
-<label>Tipo Resina</label>
-<input type="text" id="resinType">
-</div>
-
-<div>
-<label>Lote Resina</label>
-<input type="text" id="resinLot">
-</div>
-
-<div>
-<label>Color Resina</label>
-<input type="text" id="resinColor">
-</div>
-
-<div>
-<label>Peso Purga (g)</label>
-<input type="number" id="purgeWeight">
-</div>
-
-<div>
-<label>Peso Vena (g)</label>
-<input type="number" id="runnerWeight">
-</div>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<div style="display:flex;justify-content:space-between;align-items:center;">
-<h2>Partes Producidas</h2>
-
-<button class="btn-primary" onclick="addOutputRow()">
-+ Agregar Parte
-</button>
-</div>
-
-<div id="outputsContainer"></div>
-
-</div>
-
-<div class="card">
-
-<div style="display:flex;justify-content:space-between;align-items:center;">
-<h2>Operadores</h2>
-
-<button class="btn-primary" onclick="addOperatorRow()">
-+ Agregar Operador
-</button>
-</div>
-
-<div id="operatorsContainer"></div>
-
-</div>
-
-<button class="btn-success" style="width:100%;font-size:18px;" onclick="startRun()">
-INICIAR CORRIDA
-</button>
-
+    <div class="nav-footer" id="footer_nav">
+        <button class="btn-nav btn-prev" id="btnPrev" onclick="navegar(-1)" style="visibility: hidden;">Atrás</button>
+        <button class="btn-nav btn-next" id="btnNext" onclick="navegar(1)">Siguiente</button>
+    </div>
 </div>
 
 <script>
-
-let machines = [];
-let molds = [];
-let parts = [];
-let employees = [];
-
-async function init(){
-
-    try{
-
-        sessionInfo.innerHTML = "Conectando con Supabase...";
-
-        const {
-            data:{ session },
-            error:sessionError
-        } = await client.auth.getSession();
-
-        console.log("SESSION:", session);
-        console.log("SESSION ERROR:", sessionError);
-
-        if(sessionError){
-            console.error(sessionError);
-        }
-
-        sessionInfo.innerHTML =
-        session?.user?.email
-        ? "👤 " + session.user.email
-        : "⚠️ Sin sesión activa";
-
-        /*
-        =========================
-        AREAS
-        =========================
-        */
-
-        const {
-            data:areas,
-            error:areasError
-        } = await client
-        .from('areas')
-        .select('*')
-        .order('area_name');
-
-        console.log("AREAS:", areas);
-        console.log("AREAS ERROR:", areasError);
-
-        if(areasError){
-            alert("Error cargando areas: " + areasError.message);
-            return;
-        }
-
-        areaSelect.innerHTML = `
-        <option value="">
-            Seleccione área
-        </option>
-        `;
-
-        (areas || []).forEach(a=>{
-
-            areaSelect.innerHTML += `
-            <option value="${a.id}">
-                ${a.area_name}
-            </option>
-            `;
-        });
-
-        /*
-        =========================
-        MAQUINAS
-        =========================
-        */
-
-        const {
-            data:machinesData,
-            error:machinesError
-        } = await client
-        .from('machines')
-        .select('*')
-        .order('machine_name');
-
-        console.log("MACHINES:", machinesData);
-        console.log("MACHINES ERROR:", machinesError);
-
-        if(machinesError){
-            alert("Error cargando máquinas: " + machinesError.message);
-            return;
-        }
-
-        machines = machinesData || [];
-
-        renderMachines();
-
-        /*
-        =========================
-        MOLDES
-        =========================
-        */
-
-        const {
-            data:moldsData
-        } = await client
-        .from('molds')
-        .select('*')
-        .order('name');
-
-        molds = moldsData || [];
-
-        moldSelect.innerHTML = `
-        <option value="">
-            Seleccione molde
-        </option>
-        `;
-
-        molds.forEach(m=>{
-
-            moldSelect.innerHTML += `
-            <option value="${m.id}">
-                ${m.name || m.id}
-            </option>
-            `;
-        });
-
-        /*
-        =========================
-        PARTES
-        =========================
-        */
-
-        const {
-            data:partsData
-        } = await client
-        .from('parts')
-        .select('id,part_number,part_name')
-        .limit(3000);
-
-        parts = partsData || [];
-
-        /*
-        =========================
-        EMPLEADOS
-        =========================
-        */
-
-        const {
-            data:employeesData
-        } = await client
-        .from('rh_empleados')
-        .select('id,nombre_completo')
-        .order('nombre_completo');
-
-        employees = employeesData || [];
-
-        addOutputRow();
-        addOperatorRow();
-
-        sessionInfo.innerHTML += " ✅";
-
-    }catch(err){
-
-        console.error(err);
-
-        alert(err.message);
-
-        sessionInfo.innerHTML =
-        "❌ Error inicializando";
-    }
-}
-
-function renderMachines(){
-
-    const area_id = areaSelect.value;
-
-    machineSelect.innerHTML = `
-    <option value="">
-        Seleccione máquina
-    </option>
-    `;
-
-    let filteredMachines = machines;
-
-    /*
-    FILTRA POR AREA
-    */
-
-    if(area_id){
-
-        filteredMachines = machines.filter(m=>{
-
-            return String(m.area_id) === String(area_id);
-
-        });
-    }
-
-    filteredMachines.forEach(m=>{
-
-        machineSelect.innerHTML += `
-        <option value="${m.id}">
-            ${m.machine_name || ('MAQ-' + m.id)}
-        </option>
-        `;
-    });
-}
-
-function addOutputRow(){
-
-    const div = document.createElement('div');
-
-    div.className = 'output-row';
-
-    let options = '';
-
-    parts.forEach(p=>{
-
-        options += `
-        <option value="${p.id}">
-            ${p.part_number || ''} - ${p.part_name || ''}
-        </option>
-        `;
-    });
-
-    div.innerHTML = `
-
-    <div class="grid">
-
-        <div>
-            <label>Parte</label>
-
-            <select class="partSelect">
-                ${options}
-            </select>
-        </div>
-
-        <div>
-            <label>Lado</label>
-
-            <select class="sideSelect">
-                <option value="LH">LH</option>
-                <option value="RH">RH</option>
-                <option value="NA">NA</option>
-            </select>
-        </div>
-
-        <div>
-            <label>Cavidades</label>
-
-            <input
-                type="number"
-                class="cavitiesInput"
-                value="1">
-        </div>
-
-        <div>
-            <label>Peso Pieza (g)</label>
-
-            <input
-                type="number"
-                class="pieceWeightInput">
-        </div>
-
-    </div>
-
-    <button
-        class="btn-danger"
-        style="margin-top:12px;"
-        onclick="this.parentElement.remove()">
-
-        Eliminar
-
-    </button>
-    `;
-
-    outputsContainer.appendChild(div);
-}
-
-function addOperatorRow(){
-
-    const div = document.createElement('div');
-
-    div.className='operator-row';
-
-    let options='';
-
-    employees.forEach(e=>{
-
-        options += `
-        <option value="${e.id}">
-            ${e.nombre_completo || 'SIN NOMBRE'}
-        </option>
-        `;
-    });
-
-    div.innerHTML = `
-
-    <div class="grid">
-
-        <div>
-
-            <label>Empleado</label>
-
-            <select class="employeeSelect">
-                ${options}
-            </select>
-
-        </div>
-
-        <div>
-
-            <label>Rol</label>
-
-            <select class="roleSelect">
-
-                <option value="OPERADOR">
-                    OPERADOR
-                </option>
-
-                <option value="LIDER">
-                    LIDER
-                </option>
-
-                <option value="EMPAQUE">
-                    EMPAQUE
-                </option>
-
-                <option value="INSPECCION">
-                    INSPECCION
-                </option>
-
-            </select>
-
-        </div>
-
-    </div>
-
-    <button
-        class="btn-danger"
-        style="margin-top:12px;"
-        onclick="this.parentElement.remove()">
-
-        Eliminar
-
-    </button>
-    `;
-
-    operatorsContainer.appendChild(div);
-}
-
-async function startRun(){
-
-    try{
-
-        const machine_id = machineSelect.value;
-
-        const mold_id = moldSelect.value;
-
-        const shift =
-        shiftSelect.value;
-
-        const cycle_time =
-        parseFloat(cycleTime.value || 0);
-
-        const total_cavities =
-        parseInt(totalCavities.value || 0);
-
-        const resin_type =
-        resinType.value;
-
-        const resin_lot =
-        resinLot.value;
-
-        const resin_color =
-        resinColor.value;
-
-        const purge_weight_g =
-        parseFloat(purgeWeight.value || 0);
-
-        const runner_weight_g =
-        parseFloat(runnerWeight.value || 0);
-
-        if(!machine_id){
-
-            alert("Selecciona máquina");
-            return;
-        }
-
-        const runPayload = {
-
-            machine_id,
-            mold_id,
-            shift,
-
-            cycle_time,
-
-            cavities:total_cavities,
-
-            resin_type,
-            resin_lot,
-            resin_color,
-
-            purge_weight_g,
-            runner_weight_g,
-
-            status:'RUNNING',
-
-            start_time:new Date().toISOString()
-        };
-
-        console.log(runPayload);
-
-        const {
-            data:runData,
-            error:runError
-        } = await client
-        .from('runs')
-        .insert([runPayload])
-        .select()
-        .single();
-
-        if(runError) throw runError;
-
-        const run_id = runData.id;
-
-        /*
-        OUTPUTS
-        */
-
-        const outputsRows =
-        document.querySelectorAll('.output-row');
-
-        let outputsToInsert = [];
-
-        outputsRows.forEach(row=>{
-
-            outputsToInsert.push({
-
-                run_id,
-
-                part_id:
-                row.querySelector('.partSelect').value,
-
-                side:
-                row.querySelector('.sideSelect').value,
-
-                cavities:
-                parseInt(
-                row.querySelector('.cavitiesInput').value || 1
-                ),
-
-                piece_weight_g:
-                parseFloat(
-                row.querySelector('.pieceWeightInput').value || 0
-                )
+    let step = 0;
+    let auditoria = { respuestas: {}, observaciones: {} };
+    let totalPreguntas = 0; // Para el cálculo real del Score
+
+    const secciones = [
+        { t: "1. SEIRI (Selección)", q: ["¿Solo artículos necesarios en el área?", "¿Área libre de basura y cartón?"] },
+        { t: "2. SEITON (Orden)", q: ["¿Herramientas en su lugar?", "¿Pasillos y racks despejados?", "¿Material identificado?"] },
+        { t: "3. SEISO (Limpieza)", q: ["¿Máquina/Piso sin aceite o pellets?", "¿Botes de basura vacíos?"] },
+        { t: "4. SEIKETSU (Estandarizar)", q: ["¿Ayudas visuales visibles?", "¿Operador usa EPP?"] },
+        { t: "5. SHITSUKE (Disciplina)", q: ["¿Bitácora de limpieza al día?", "¿Se respetan reglas de seguridad?"] }
+    ];
+
+    async function init() {
+        const cont = document.getElementById('container-s');
+        totalPreguntas = 0;
+
+        secciones.forEach((sec, i) => {
+            let html = `<div class="step-content" id="step${i+1}"><h2>${sec.t}</h2>`;
+            sec.q.forEach((p, j) => {
+                totalPreguntas++;
+                const id = `s${i+1}_p${j+1}`;
+                html += `<div class="question-card"><div class="question-text">${p}</div>
+                    <div class="options">
+                        <button class="btn-opt" id="btn-${id}-si" onclick="marcar('${id}', 1)">SÍ</button>
+                        <button class="btn-opt" id="btn-${id}-no" onclick="marcar('${id}', 0)">NO</button>
+                    </div></div>`;
             });
+            html += `<div class="obs-container"><label>Hallazgos</label>
+                <textarea id="obs-s${i+1}"></textarea></div></div>`;
+            cont.innerHTML += html;
         });
-
-        if(outputsToInsert.length){
-
-            const { error } = await client
-            .from('run_outputs')
-            .insert(outputsToInsert);
-
-            if(error) throw error;
-        }
-
-        /*
-        OPERADORES
-        */
-
-        const operatorRows =
-        document.querySelectorAll('.operator-row');
-
-        let operatorsToInsert = [];
-
-        operatorRows.forEach(row=>{
-
-            operatorsToInsert.push({
-
-                run_id,
-
-                employee_id:
-                row.querySelector('.employeeSelect').value,
-
-                role:
-                row.querySelector('.roleSelect').value
-            });
-        });
-
-        if(operatorsToInsert.length){
-
-            const { error } = await client
-            .from('run_operators')
-            .insert(operatorsToInsert);
-
-            if(error) throw error;
-        }
-
-        /*
-        UPDATE MACHINE
-        */
-
-        const { error:updateMachineError } =
-        await client
-        .from('machines')
-        .update({
-
-            status:'RUNNING',
-
-            current_run_id:run_id,
-
-            current_mold_id:mold_id,
-
-            last_start_time:new Date().toISOString()
-        })
-        .eq('id',machine_id);
-
-        if(updateMachineError)
-        throw updateMachineError;
-
-        alert("✅ CORRIDA INICIADA");
-
-        location.reload();
-
-    }catch(err){
-
-        console.error(err);
-
-        alert("ERROR: " + err.message);
+        
+        // NOTA: Si en tu config.js la variable se llama 'supabase', cambia 'client' por 'supabase'
+        await cargarCatalogos();
+        actualizarUI();
     }
-}
 
-areaSelect.addEventListener(
-'change',
-renderMachines
-);
+    async function cargarCatalogos() {
+        try {
+            const { data: a } = await client.from('areas').select('*').eq('active', true);
+            const { data: e } = await client.from('rh_empleados').select('*').eq('estatus','ACTIVO');
+            
+            const selA = document.getElementById('area_select');
+            selA.innerHTML = '<option value="">Seleccione Área</option>';
+            if(a) a.forEach(i => selA.innerHTML += `<option value="${i.id}">${i.area_name}</option>`);
 
-document.addEventListener(
-'DOMContentLoaded',
-init
-);
+            const selE = document.getElementById('operador_select');
+            selE.innerHTML = '<option value="">Seleccione Operador</option>';
+            if(e) e.forEach(i => selE.innerHTML += `<option value="${i.id}">${i.nombre_completo}</option>`);
+        } catch (err) {
+            console.error("Error cargando catálogos:", err);
+        }
+    }
 
+    function marcar(id, val) {
+        auditoria.respuestas[id] = val;
+        document.getElementById(`btn-${id}-si`).className = val === 1 ? 'btn-opt active-si' : 'btn-opt';
+        document.getElementById(`btn-${id}-no`).className = val === 0 ? 'btn-opt active-no' : 'btn-opt';
+    }
+
+    function navegar(dir) {
+        if(step === 0 && dir === 1 && (!area_select.value || !operador_select.value)) {
+            return alert("Por favor, seleccione el área y el operador antes de continuar.");
+        }
+        
+        if(step >= 1 && step <= 5) {
+            auditoria.observaciones[`s${step}`] = document.getElementById(`obs-s${step}`).value;
+        }
+        
+        document.getElementById(`step${step}`).classList.remove('active');
+        step += dir;
+        document.getElementById(`step${step}`).classList.add('active');
+        actualizarUI();
+    }
+
+    function actualizarUI() {
+        // Control de visibilidad de botones inferiores
+        btnPrev.style.visibility = step === 0 ? 'hidden' : 'visible';
+        
+        if (step === 6) {
+            btnNext.style.display = 'none'; // En el paso final ocultamos el botón Siguiente
+            
+            // Cálculo del Score real basado en el total de preguntas existentes
+            const respuestasArray = Object.values(auditoria.respuestas);
+            const aciertos = respuestasArray.filter(v => v === 1).length;
+            const score = Math.round((aciertos / totalPreguntas) * 100) || 0;
+            
+            document.getElementById('val_score').innerText = score + "%";
+            auditoria.score = score;
+        } else {
+            btnNext.style.display = 'inline-block';
+            btnNext.innerText = step === 5 ? "VER RESULTADO" : "Siguiente";
+        }
+        
+        progress.style.width = `${(step/6)*100}%`;
+        document.getElementById('step_title').innerText = step === 0 ? "CONFIGURACIÓN" : (step === 6 ? "RESUMEN" : secciones[step-1].t);
+    }
+
+    async function guardarTodo() {
+        const { error } = await client.from('rh_evaluaciones_5s').insert([{
+            empleado_id: operador_select.value,
+            area_id: parseInt(area_select.value),
+            maquina_id: maquina_input.value,
+            puntuacion: auditoria.score,
+            respuestas_json: auditoria.respuestas,
+            observaciones_json: auditoria.observaciones
+        }]);
+        
+        if(!error) { 
+            alert("✅ Auditoría guardada exitosamente."); 
+            location.href='dashboard.html'; 
+        } else {
+            alert("❌ Error al guardar: " + error.message);
+        }
+    }
+    
+    init();
 </script>
-
 </body>
 </html>
