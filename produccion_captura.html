@@ -1,14 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
 <meta charset="UTF-8">
 <title>MES - Iniciar Corrida</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="config.js"></script>
 
 <style>
@@ -120,7 +117,7 @@ button{
 <div class="container">
 
 <div class="status-box" id="sessionInfo">
-Verificando sesión...
+Validando sesión...
 </div>
 
 <h1>MES - Iniciar Corrida</h1>
@@ -144,11 +141,9 @@ Verificando sesión...
 <div>
 <label>Turno</label>
 <select id="shiftSelect">
-
-<option value="1">Turno 1</option>
-<option value="2">Turno 2</option>
-<option value="3">Turno 3</option>
-
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
 </select>
 </div>
 
@@ -193,18 +188,17 @@ Verificando sesión...
 </div>
 
 </div>
+
 </div>
 
 <div class="card">
 
 <div style="display:flex;justify-content:space-between;align-items:center;">
-
 <h2>Partes Producidas</h2>
 
 <button class="btn-primary" onclick="addOutputRow()">
 + Agregar Parte
 </button>
-
 </div>
 
 <div id="outputsContainer"></div>
@@ -214,26 +208,19 @@ Verificando sesión...
 <div class="card">
 
 <div style="display:flex;justify-content:space-between;align-items:center;">
-
 <h2>Operadores</h2>
 
 <button class="btn-primary" onclick="addOperatorRow()">
 + Agregar Operador
 </button>
-
 </div>
 
 <div id="operatorsContainer"></div>
 
 </div>
 
-<button
-class="btn-success"
-style="width:100%;font-size:18px;"
-onclick="startRun()">
-
+<button class="btn-success" style="width:100%;font-size:18px;" onclick="startRun()">
 INICIAR CORRIDA
-
 </button>
 
 </div>
@@ -244,200 +231,202 @@ let machines = [];
 let molds = [];
 let parts = [];
 let employees = [];
-let areas = [];
 
 async function init(){
 
     try{
 
-        const { data:{ session }, error:sessionError } =
-        await supabaseClient.auth.getSession();
+        sessionInfo.innerHTML = "Conectando con Supabase...";
+
+        const {
+            data:{ session },
+            error:sessionError
+        } = await client.auth.getSession();
+
+        console.log("SESSION:", session);
+        console.log("SESSION ERROR:", sessionError);
 
         if(sessionError){
             console.error(sessionError);
         }
 
-        if(!session){
+        sessionInfo.innerHTML =
+        session?.user?.email
+        ? "👤 " + session.user.email
+        : "⚠️ Sin sesión activa";
 
-            alert("Debes iniciar sesión");
+        /*
+        =========================
+        AREAS
+        =========================
+        */
 
-            location.href = "/";
+        const {
+            data:areas,
+            error:areasError
+        } = await client
+        .from('areas')
+        .select('*')
+        .order('area_name');
 
+        console.log("AREAS:", areas);
+        console.log("AREAS ERROR:", areasError);
+
+        if(areasError){
+            alert("Error cargando areas: " + areasError.message);
             return;
         }
 
-        sessionInfo.innerHTML =
-        "👤 " + session.user.email;
+        areaSelect.innerHTML = `
+        <option value="">
+            Seleccione área
+        </option>
+        `;
 
-        await loadAreas();
+        (areas || []).forEach(a=>{
 
-        await loadMachines();
+            areaSelect.innerHTML += `
+            <option value="${a.id}">
+                ${a.area_name}
+            </option>
+            `;
+        });
 
-        await loadMolds();
+        /*
+        =========================
+        MAQUINAS
+        =========================
+        */
 
-        await loadParts();
+        const {
+            data:machinesData,
+            error:machinesError
+        } = await client
+        .from('machines')
+        .select('*')
+        .order('machine_name');
 
-        await loadEmployees();
+        console.log("MACHINES:", machinesData);
+        console.log("MACHINES ERROR:", machinesError);
+
+        if(machinesError){
+            alert("Error cargando máquinas: " + machinesError.message);
+            return;
+        }
+
+        machines = machinesData || [];
+
+        renderMachines();
+
+        /*
+        =========================
+        MOLDES
+        =========================
+        */
+
+        const {
+            data:moldsData
+        } = await client
+        .from('molds')
+        .select('*')
+        .order('name');
+
+        molds = moldsData || [];
+
+        moldSelect.innerHTML = `
+        <option value="">
+            Seleccione molde
+        </option>
+        `;
+
+        molds.forEach(m=>{
+
+            moldSelect.innerHTML += `
+            <option value="${m.id}">
+                ${m.name || m.id}
+            </option>
+            `;
+        });
+
+        /*
+        =========================
+        PARTES
+        =========================
+        */
+
+        const {
+            data:partsData
+        } = await client
+        .from('parts')
+        .select('id,part_number,part_name')
+        .limit(3000);
+
+        parts = partsData || [];
+
+        /*
+        =========================
+        EMPLEADOS
+        =========================
+        */
+
+        const {
+            data:employeesData
+        } = await client
+        .from('rh_empleados')
+        .select('id,nombre_completo')
+        .order('nombre_completo');
+
+        employees = employeesData || [];
 
         addOutputRow();
-
         addOperatorRow();
+
+        sessionInfo.innerHTML += " ✅";
 
     }catch(err){
 
         console.error(err);
 
         alert(err.message);
+
+        sessionInfo.innerHTML =
+        "❌ Error inicializando";
     }
-}
-
-async function loadAreas(){
-
-    const { data, error } = await supabaseClient
-    .from('areas')
-    .select('*')
-    .order('area_name');
-
-    if(error){
-
-        console.error(error);
-
-        alert("Error cargando áreas");
-
-        return;
-    }
-
-    areas = data || [];
-
-    areaSelect.innerHTML = '';
-
-    areas.forEach(area=>{
-
-        areaSelect.innerHTML += `
-        <option value="${area.id}">
-            ${area.area_name}
-        </option>
-        `;
-    });
-}
-
-async function loadMachines(){
-
-    const { data, error } = await supabaseClient
-    .from('machines')
-    .select(`
-        id,
-        machine_name,
-        area_id,
-        status
-    `)
-    .order('machine_name');
-
-    if(error){
-
-        console.error(error);
-
-        alert("Error cargando máquinas");
-
-        return;
-    }
-
-    machines = data || [];
-
-    renderMachines();
 }
 
 function renderMachines(){
 
-    machineSelect.innerHTML = '';
+    const area_id = areaSelect.value;
 
-    const selectedArea = areaSelect.value;
+    machineSelect.innerHTML = `
+    <option value="">
+        Seleccione máquina
+    </option>
+    `;
 
-    const filteredMachines = machines.filter(m =>
-        String(m.area_id) === String(selectedArea)
-    );
+    let filteredMachines = machines;
 
-    if(filteredMachines.length === 0){
+    /*
+    FILTRA POR AREA
+    */
 
-        machineSelect.innerHTML = `
-        <option value="">
-            Sin máquinas
-        </option>
-        `;
+    if(area_id){
 
-        return;
+        filteredMachines = machines.filter(m=>{
+
+            return String(m.area_id) === String(area_id);
+
+        });
     }
 
-    filteredMachines.forEach(machine=>{
+    filteredMachines.forEach(m=>{
 
         machineSelect.innerHTML += `
-        <option value="${machine.id}">
-            ${machine.machine_name}
+        <option value="${m.id}">
+            ${m.machine_name || ('MAQ-' + m.id)}
         </option>
         `;
     });
-}
-
-async function loadMolds(){
-
-    const { data, error } = await supabaseClient
-    .from('molds')
-    .select('*')
-    .order('name');
-
-    if(error){
-
-        console.error(error);
-
-        return;
-    }
-
-    molds = data || [];
-
-    moldSelect.innerHTML = '';
-
-    molds.forEach(mold=>{
-
-        moldSelect.innerHTML += `
-        <option value="${mold.id}">
-            ${mold.name || mold.id}
-        </option>
-        `;
-    });
-}
-
-async function loadParts(){
-
-    const { data, error } = await supabaseClient
-    .from('parts')
-    .select('id,part_number,part_name')
-    .limit(3000);
-
-    if(error){
-
-        console.error(error);
-
-        return;
-    }
-
-    parts = data || [];
-}
-
-async function loadEmployees(){
-
-    const { data, error } = await supabaseClient
-    .from('rh_empleados')
-    .select('id,nombre')
-    .order('nombre');
-
-    if(error){
-
-        console.error(error);
-
-        return;
-    }
-
-    employees = data || [];
 }
 
 function addOutputRow(){
@@ -448,11 +437,11 @@ function addOutputRow(){
 
     let options = '';
 
-    parts.forEach(part=>{
+    parts.forEach(p=>{
 
         options += `
-        <option value="${part.id}">
-            ${part.part_number} - ${part.part_name || ''}
+        <option value="${p.id}">
+            ${p.part_number || ''} - ${p.part_name || ''}
         </option>
         `;
     });
@@ -463,6 +452,7 @@ function addOutputRow(){
 
         <div>
             <label>Parte</label>
+
             <select class="partSelect">
                 ${options}
             </select>
@@ -470,38 +460,39 @@ function addOutputRow(){
 
         <div>
             <label>Lado</label>
-            <select class="sideSelect">
 
+            <select class="sideSelect">
                 <option value="LH">LH</option>
                 <option value="RH">RH</option>
                 <option value="NA">NA</option>
-
             </select>
         </div>
 
         <div>
             <label>Cavidades</label>
+
             <input
-            type="number"
-            class="cavitiesInput"
-            value="1">
+                type="number"
+                class="cavitiesInput"
+                value="1">
         </div>
 
         <div>
             <label>Peso Pieza (g)</label>
+
             <input
-            type="number"
-            class="pieceWeightInput">
+                type="number"
+                class="pieceWeightInput">
         </div>
 
     </div>
 
     <button
-    class="btn-danger"
-    style="margin-top:12px;"
-    onclick="this.parentElement.remove()">
+        class="btn-danger"
+        style="margin-top:12px;"
+        onclick="this.parentElement.remove()">
 
-    Eliminar
+        Eliminar
 
     </button>
     `;
@@ -513,15 +504,15 @@ function addOperatorRow(){
 
     const div = document.createElement('div');
 
-    div.className = 'operator-row';
+    div.className='operator-row';
 
-    let options = '';
+    let options='';
 
-    employees.forEach(emp=>{
+    employees.forEach(e=>{
 
         options += `
-        <option value="${emp.id}">
-            ${emp.nombre}
+        <option value="${e.id}">
+            ${e.nombre_completo || 'SIN NOMBRE'}
         </option>
         `;
     });
@@ -569,11 +560,11 @@ function addOperatorRow(){
     </div>
 
     <button
-    class="btn-danger"
-    style="margin-top:12px;"
-    onclick="this.parentElement.remove()">
+        class="btn-danger"
+        style="margin-top:12px;"
+        onclick="this.parentElement.remove()">
 
-    Eliminar
+        Eliminar
 
     </button>
     `;
@@ -585,44 +576,70 @@ async function startRun(){
 
     try{
 
-        const payload = {
+        const machine_id = machineSelect.value;
 
-            area_id: areaSelect.value,
+        const mold_id = moldSelect.value;
 
-            machine_id: machineSelect.value,
+        const shift =
+        shiftSelect.value;
 
-            mold_id: moldSelect.value,
+        const cycle_time =
+        parseFloat(cycleTime.value || 0);
 
-            shift: shiftSelect.value,
+        const total_cavities =
+        parseInt(totalCavities.value || 0);
 
-            cycle_time:
-            parseFloat(cycleTime.value || 0),
+        const resin_type =
+        resinType.value;
 
-            cavities:
-            parseInt(totalCavities.value || 0),
+        const resin_lot =
+        resinLot.value;
 
-            resin_type: resinType.value,
+        const resin_color =
+        resinColor.value;
 
-            resin_lot: resinLot.value,
+        const purge_weight_g =
+        parseFloat(purgeWeight.value || 0);
 
-            resin_color: resinColor.value,
+        const runner_weight_g =
+        parseFloat(runnerWeight.value || 0);
 
-            purge_weight_g:
-            parseFloat(purgeWeight.value || 0),
+        if(!machine_id){
 
-            runner_weight_g:
-            parseFloat(runnerWeight.value || 0),
+            alert("Selecciona máquina");
+            return;
+        }
+
+        const runPayload = {
+
+            machine_id,
+            mold_id,
+            shift,
+
+            cycle_time,
+
+            cavities:total_cavities,
+
+            resin_type,
+            resin_lot,
+            resin_color,
+
+            purge_weight_g,
+            runner_weight_g,
 
             status:'RUNNING',
 
-            start_time:
-            new Date().toISOString()
+            start_time:new Date().toISOString()
         };
 
-        const { data:runData, error:runError } =
-        await supabaseClient
+        console.log(runPayload);
+
+        const {
+            data:runData,
+            error:runError
+        } = await client
         .from('runs')
-        .insert([payload])
+        .insert([runPayload])
         .select()
         .single();
 
@@ -630,13 +647,18 @@ async function startRun(){
 
         const run_id = runData.id;
 
-        let outputs = [];
+        /*
+        OUTPUTS
+        */
 
-        document
-        .querySelectorAll('.output-row')
-        .forEach(row=>{
+        const outputsRows =
+        document.querySelectorAll('.output-row');
 
-            outputs.push({
+        let outputsToInsert = [];
+
+        outputsRows.forEach(row=>{
+
+            outputsToInsert.push({
 
                 run_id,
 
@@ -658,20 +680,27 @@ async function startRun(){
             });
         });
 
-        const { error:outputsError } =
-        await supabaseClient
-        .from('run_outputs')
-        .insert(outputs);
+        if(outputsToInsert.length){
 
-        if(outputsError) throw outputsError;
+            const { error } = await client
+            .from('run_outputs')
+            .insert(outputsToInsert);
 
-        let operators = [];
+            if(error) throw error;
+        }
 
-        document
-        .querySelectorAll('.operator-row')
-        .forEach(row=>{
+        /*
+        OPERADORES
+        */
 
-            operators.push({
+        const operatorRows =
+        document.querySelectorAll('.operator-row');
+
+        let operatorsToInsert = [];
+
+        operatorRows.forEach(row=>{
+
+            operatorsToInsert.push({
 
                 run_id,
 
@@ -683,14 +712,21 @@ async function startRun(){
             });
         });
 
-        const { error:operatorsError } =
-        await supabaseClient
-        .from('run_operators')
-        .insert(operators);
+        if(operatorsToInsert.length){
 
-        if(operatorsError) throw operatorsError;
+            const { error } = await client
+            .from('run_operators')
+            .insert(operatorsToInsert);
 
-        await supabaseClient
+            if(error) throw error;
+        }
+
+        /*
+        UPDATE MACHINE
+        */
+
+        const { error:updateMachineError } =
+        await client
         .from('machines')
         .update({
 
@@ -698,14 +734,16 @@ async function startRun(){
 
             current_run_id:run_id,
 
-            current_mold_id:moldSelect.value,
+            current_mold_id:mold_id,
 
-            last_start_time:
-            new Date().toISOString()
+            last_start_time:new Date().toISOString()
         })
-        .eq('id', machineSelect.value);
+        .eq('id',machine_id);
 
-        alert("CORRIDA INICIADA");
+        if(updateMachineError)
+        throw updateMachineError;
+
+        alert("✅ CORRIDA INICIADA");
 
         location.reload();
 
@@ -713,16 +751,19 @@ async function startRun(){
 
         console.error(err);
 
-        alert(err.message);
+        alert("ERROR: " + err.message);
     }
 }
 
-areaSelect.addEventListener('change', ()=>{
+areaSelect.addEventListener(
+'change',
+renderMachines
+);
 
-    renderMachines();
-});
-
-init();
+document.addEventListener(
+'DOMContentLoaded',
+init
+);
 
 </script>
 
