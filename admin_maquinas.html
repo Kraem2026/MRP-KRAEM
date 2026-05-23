@@ -6,8 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 
 <style>
+
 :root{
   --primary:#2563eb;
   --success:#22c55e;
@@ -16,7 +18,6 @@
   --bg:#f1f5f9;
   --card:#ffffff;
   --text:#1e293b;
-  --border:#dbeafe;
 }
 
 *{
@@ -41,14 +42,16 @@ body{
   justify-content:space-between;
   align-items:center;
   margin-bottom:20px;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 .back-btn{
   background:#64748b;
   color:white;
   border:none;
-  padding:10px 16px;
-  border-radius:10px;
+  padding:12px 18px;
+  border-radius:12px;
   cursor:pointer;
   font-weight:bold;
 }
@@ -112,6 +115,11 @@ button{
   color:white;
 }
 
+.btn-cancel{
+  background:#dc2626;
+  color:white;
+}
+
 .table-container{
   overflow:auto;
 }
@@ -151,12 +159,14 @@ td{
 }
 
 @media(max-width:768px){
+
   .header{
     flex-direction:column;
-    gap:10px;
     align-items:flex-start;
   }
+
 }
+
 </style>
 </head>
 
@@ -165,11 +175,14 @@ td{
 <div class="container">
 
   <div class="header">
-    <button class="back-btn" onclick="location.href='ingenieria_catalogos.html'">
+
+    <button class="back-btn"
+      onclick="location.href='ingenieria_catalogos.html'">
       ← Volver
     </button>
 
     <h1>⚙️ Catálogo de Máquinas</h1>
+
   </div>
 
   <div class="card">
@@ -178,26 +191,43 @@ td{
 
       <div>
         <label>Área General</label>
-        <select id="area_general_id"></select>
+
+        <select id="area_general_id">
+          <option value="">Cargando...</option>
+        </select>
       </div>
 
       <div>
         <label>Código Máquina</label>
-        <input id="machine_code" placeholder="Ej. LS-01">
+
+        <input id="machine_code"
+          placeholder="Ej. LS-01">
       </div>
 
       <div>
         <label>Nombre Máquina</label>
-        <input id="machine_name" placeholder="Ej. LS 1">
+
+        <input id="machine_name"
+          placeholder="Ej. LS 1">
       </div>
 
     </div>
 
     <br>
 
-    <button class="btn-save" onclick="guardarMaquina()">
-      💾 Guardar Máquina
-    </button>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+      <button class="btn-save"
+        onclick="guardarMaquina()">
+        💾 Guardar Máquina
+      </button>
+
+      <button class="btn-cancel"
+        onclick="limpiar()">
+        ❌ Cancelar
+      </button>
+
+    </div>
 
   </div>
 
@@ -206,6 +236,7 @@ td{
     <table>
 
       <thead>
+
         <tr>
           <th>Área General</th>
           <th>Código</th>
@@ -213,6 +244,7 @@ td{
           <th>Estatus</th>
           <th>Acciones</th>
         </tr>
+
       </thead>
 
       <tbody id="body"></tbody>
@@ -225,10 +257,7 @@ td{
 
 <script>
 
-const client = supabase.createClient(
-'https://telntsrrschcdxczlape.supabase.co',
-'TU_SUPABASE_ANON_KEY'
-);
+const client = supabaseClient;
 
 let editId = null;
 
@@ -241,15 +270,18 @@ async function loadAreasGenerales(){
     .order('nombre');
 
   if(error){
-    alert(error.message);
+
+    console.error(error);
+    alert('Error cargando áreas generales');
     return;
+
   }
 
   area_general_id.innerHTML = `
     <option value="">Seleccione...</option>
   `;
 
-  data.forEach(a => {
+  data.forEach(a=>{
 
     area_general_id.innerHTML += `
       <option value="${a.id}" data-code="${a.code}">
@@ -267,7 +299,8 @@ async function loadMaquinas(){
     .from('mes_machines')
     .select(`
       *,
-      areas_generales (
+      areas_generales(
+        id,
         nombre,
         code
       )
@@ -275,15 +308,19 @@ async function loadMaquinas(){
     .order('machine_code');
 
   if(error){
-    alert(error.message);
+
+    console.error(error);
+    alert('Error cargando máquinas');
     return;
+
   }
 
   body.innerHTML = '';
 
-  data.forEach(m => {
+  data.forEach(m=>{
 
     body.innerHTML += `
+
       <tr>
 
         <td>
@@ -299,7 +336,9 @@ async function loadMaquinas(){
         </td>
 
         <td class="${m.active ? 'badge-active' : 'badge-inactive'}">
+
           ${m.active ? 'Activa' : 'Inactiva'}
+
         </td>
 
         <td>
@@ -313,7 +352,9 @@ async function loadMaquinas(){
 
             <button class="btn-toggle"
               onclick='toggleMaquina(${m.id}, ${m.active})'>
+
               ${m.active ? 'Desactivar' : 'Activar'}
+
             </button>
 
           </div>
@@ -321,6 +362,7 @@ async function loadMaquinas(){
         </td>
 
       </tr>
+
     `;
 
   });
@@ -337,19 +379,29 @@ async function guardarMaquina(){
     return alert('Completa todos los campos');
   }
 
-  const option = area_general_id.options[
-    area_general_id.selectedIndex
-  ];
+  const selectedOption =
+    area_general_id.options[
+      area_general_id.selectedIndex
+    ];
 
-  const productionArea = option.dataset.code;
+  const productionArea =
+    selectedOption.dataset.code;
 
   const payload = {
 
-    machine_code: machine_code.value.toUpperCase(),
-    machine_name: machine_name.value,
-    area_general_id: parseInt(area_general_id.value),
-    production_area: productionArea,
-    active: true
+    machine_code:
+      machine_code.value.toUpperCase(),
+
+    machine_name:
+      machine_name.value,
+
+    area_general_id:
+      parseInt(area_general_id.value),
+
+    production_area:
+      productionArea,
+
+    active:true
 
   };
 
@@ -371,7 +423,10 @@ async function guardarMaquina(){
   }
 
   if(error){
+
+    console.error(error);
     return alert(error.message);
+
   }
 
   limpiar();
@@ -384,9 +439,14 @@ function editarMaquina(m){
 
   editId = m.id;
 
-  machine_code.value = m.machine_code;
-  machine_name.value = m.machine_name;
-  area_general_id.value = m.area_general_id;
+  machine_code.value =
+    m.machine_code;
+
+  machine_name.value =
+    m.machine_name;
+
+  area_general_id.value =
+    m.area_general_id;
 
   window.scrollTo({
     top:0,
@@ -405,7 +465,10 @@ async function toggleMaquina(id,state){
     .eq('id', id);
 
   if(error){
+
+    console.error(error);
     return alert(error.message);
+
   }
 
   loadMaquinas();
