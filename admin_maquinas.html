@@ -2,169 +2,178 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Administración de Máquinas</title>
+<title>KRAEM | Administración de Áreas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 <style>
 
 :root{
-  --primary:#2563eb;
-  --success:#22c55e;
-  --danger:#ef4444;
-  --warning:#f59e0b;
-  --bg:#f1f5f9;
-  --card:#ffffff;
-  --text:#1e293b;
-}
-
-*{
-  box-sizing:border-box;
+    --primary:#2563eb;
+    --bg:#f8fafc;
+    --text:#1e293b;
+    --border:#e2e8f0;
+    --success:#22c55e;
+    --danger:#ef4444;
 }
 
 body{
-  margin:0;
-  padding:20px;
-  background:var(--bg);
-  font-family:'Segoe UI',sans-serif;
-  color:var(--text);
+    margin:0;
+    padding:20px;
+    background:var(--bg);
+    font-family:'Segoe UI', sans-serif;
+    color:var(--text);
 }
 
 .container{
-  max-width:1200px;
-  margin:auto;
+    max-width:1200px;
+    margin:auto;
 }
 
 .header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:20px;
-  gap:10px;
-  flex-wrap:wrap;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+    gap:10px;
 }
 
-.back-btn{
-  background:#64748b;
-  color:white;
-  border:none;
-  padding:12px 18px;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:bold;
+.title-box{
+    display:flex;
+    align-items:center;
+    gap:15px;
 }
 
-h1{
-  margin:0;
-  color:var(--primary);
+.title-box h1{
+    margin:0;
+    font-size:24px;
+}
+
+.btn{
+    border:none;
+    padding:12px 18px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.btn-primary{
+    background:var(--primary);
+    color:white;
+}
+
+.btn-back{
+    background:white;
+    border:1px solid var(--border);
+    color:var(--text);
 }
 
 .card{
-  background:var(--card);
-  border-radius:18px;
-  padding:20px;
-  box-shadow:0 4px 12px rgba(0,0,0,.08);
-  margin-bottom:20px;
+    background:white;
+    border-radius:15px;
+    padding:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.06);
+    border:1px solid var(--border);
 }
 
 .form-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:15px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:15px;
+    margin-bottom:25px;
+}
+
+.form-group{
+    display:flex;
+    flex-direction:column;
 }
 
 label{
-  font-size:12px;
-  font-weight:bold;
-  color:var(--primary);
-  text-transform:uppercase;
-  display:block;
-  margin-bottom:5px;
+    margin-bottom:6px;
+    font-size:12px;
+    font-weight:bold;
+    color:#475569;
+    text-transform:uppercase;
 }
 
 input,select{
-  width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #cbd5e1;
-  font-size:14px;
-}
-
-button{
-  border:none;
-  border-radius:10px;
-  padding:12px 16px;
-  cursor:pointer;
-  font-weight:bold;
-}
-
-.btn-save{
-  background:var(--primary);
-  color:white;
-}
-
-.btn-edit{
-  background:var(--warning);
-  color:white;
-}
-
-.btn-toggle{
-  background:#334155;
-  color:white;
-}
-
-.btn-cancel{
-  background:#dc2626;
-  color:white;
-}
-
-.table-container{
-  overflow:auto;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    font-size:14px;
 }
 
 table{
-  width:100%;
-  border-collapse:collapse;
+    width:100%;
+    border-collapse:collapse;
 }
 
 th{
-  background:var(--primary);
-  color:white;
-  padding:12px;
-  text-align:left;
+    background:#f1f5f9;
+    padding:14px;
+    text-align:left;
+    font-size:12px;
+    text-transform:uppercase;
+    color:#64748b;
 }
 
 td{
-  padding:12px;
-  border-bottom:1px solid #e2e8f0;
-  background:white;
+    padding:14px;
+    border-bottom:1px solid #f1f5f9;
 }
 
-.badge-active{
-  color:var(--success);
-  font-weight:bold;
+tr:hover{
+    background:#f8fafc;
 }
 
-.badge-inactive{
-  color:var(--danger);
-  font-weight:bold;
+.status{
+    padding:5px 10px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:bold;
 }
 
-.actions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
+.active{
+    background:#dcfce7;
+    color:#166534;
 }
 
-@media(max-width:768px){
+.inactive{
+    background:#fee2e2;
+    color:#991b1b;
+}
 
-  .header{
-    flex-direction:column;
-    align-items:flex-start;
-  }
+.action-btn{
+    border:none;
+    padding:8px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+}
 
+.btn-toggle{
+    background:#e2e8f0;
+}
+
+.btn-edit{
+    background:#dbeafe;
+    color:#1d4ed8;
+    margin-right:5px;
+}
+
+.empty{
+    text-align:center;
+    padding:40px;
+    color:#64748b;
 }
 
 </style>
@@ -174,319 +183,356 @@ td{
 
 <div class="container">
 
-  <div class="header">
+    <div class="header">
 
-    <button class="back-btn"
-      onclick="location.href='ingenieria_catalogos.html'">
-      ← Volver
-    </button>
+        <div class="title-box">
 
-    <h1>⚙️ Catálogo de Máquinas</h1>
+            <button class="btn btn-back"
+                onclick="location.href='ingenieria_catalogos.html'">
 
-  </div>
+                <i class="fas fa-arrow-left"></i>
+                Regresar
 
-  <div class="card">
+            </button>
 
-    <div class="form-grid">
+            <h1>Administración de Áreas</h1>
 
-      <div>
-        <label>Área General</label>
-
-        <select id="area_general_id">
-          <option value="">Cargando...</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Código Máquina</label>
-
-        <input id="machine_code"
-          placeholder="Ej. LS-01">
-      </div>
-
-      <div>
-        <label>Nombre Máquina</label>
-
-        <input id="machine_name"
-          placeholder="Ej. LS 1">
-      </div>
+        </div>
 
     </div>
 
-    <br>
+    <div class="card">
 
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="form-grid">
 
-      <button class="btn-save"
-        onclick="guardarMaquina()">
-        💾 Guardar Máquina
-      </button>
+            <div class="form-group">
 
-      <button class="btn-cancel"
-        onclick="limpiar()">
-        ❌ Cancelar
-      </button>
+                <label>Área General</label>
+
+                <select id="area_general_id">
+                    <option value="">Cargando...</option>
+                </select>
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Código Área</label>
+
+                <input id="area_code" placeholder="Ej. PROD_LS">
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Nombre Área</label>
+
+                <input id="area_name" placeholder="Producción LS">
+
+            </div>
+
+        </div>
+
+        <button class="btn btn-primary" onclick="guardarArea()">
+
+            <i class="fas fa-save"></i>
+            Guardar Área
+
+        </button>
 
     </div>
 
-  </div>
+    <div class="card" style="margin-top:20px;">
 
-  <div class="card table-container">
+        <table>
 
-    <table>
+            <thead>
 
-      <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Área General</th>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Estatus</th>
+                    <th>Acciones</th>
+                </tr>
 
-        <tr>
-          <th>Área General</th>
-          <th>Código</th>
-          <th>Nombre</th>
-          <th>Estatus</th>
-          <th>Acciones</th>
-        </tr>
+            </thead>
 
-      </thead>
+            <tbody id="body">
 
-      <tbody id="body"></tbody>
+                <tr>
+                    <td colspan="6" class="empty">
+                        Cargando...
+                    </td>
+                </tr>
 
-    </table>
+            </tbody>
 
-  </div>
+        </table>
+
+    </div>
 
 </div>
 
 <script>
 
-const client = supabaseClient;
+const client = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
 
 let editId = null;
 
-async function loadAreasGenerales(){
+async function cargarAreasGenerales(){
 
-  const { data, error } = await client
-    .from('areas_generales')
-    .select('*')
-    .eq('active', true)
-    .order('nombre');
+    const sel = document.getElementById('area_general_id');
 
-  if(error){
+    try{
 
-    console.error(error);
-    alert('Error cargando áreas generales');
-    return;
+        const { data, error } = await client
+            .from('areas_generales')
+            .select('*')
+            .eq('active', true)
+            .order('nombre');
 
-  }
+        if(error) throw error;
 
-  area_general_id.innerHTML = `
-    <option value="">Seleccione...</option>
-  `;
+        sel.innerHTML = `
+            <option value="">Seleccione...</option>
+        `;
 
-  data.forEach(a=>{
+        data.forEach(a => {
 
-    area_general_id.innerHTML += `
-      <option value="${a.id}" data-code="${a.code}">
-        ${a.nombre}
-      </option>
+            sel.innerHTML += `
+                <option value="${a.id}">
+                    ${a.nombre}
+                </option>
+            `;
+        });
+
+    }catch(err){
+
+        console.error(err);
+
+        sel.innerHTML = `
+            <option value="">
+                Error cargando áreas
+            </option>
+        `;
+    }
+}
+
+async function load(){
+
+    const body = document.getElementById('body');
+
+    body.innerHTML = `
+        <tr>
+            <td colspan="6" class="empty">
+                Cargando...
+            </td>
+        </tr>
     `;
 
-  });
+    try{
 
+        const { data, error } = await client
+            .from('areas')
+            .select(`
+                *,
+                areas_generales (
+                    nombre
+                )
+            `)
+            .order('area_code');
+
+        if(error) throw error;
+
+        if(!data || data.length === 0){
+
+            body.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty">
+                        No hay registros
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        body.innerHTML = data.map(a => `
+
+            <tr>
+
+                <td>${a.id}</td>
+
+                <td>
+                    ${a.areas_generales?.nombre || '-'}
+                </td>
+
+                <td>${a.area_code}</td>
+
+                <td>${a.area_name}</td>
+
+                <td>
+                    <span class="status ${a.active ? 'active' : 'inactive'}">
+                        ${a.active ? 'ACTIVA' : 'INACTIVA'}
+                    </span>
+                </td>
+
+                <td>
+
+                    <button class="action-btn btn-edit"
+                        onclick='editar(${JSON.stringify(a)})'>
+
+                        <i class="fas fa-edit"></i>
+
+                    </button>
+
+                    <button class="action-btn btn-toggle"
+                        onclick="toggle(${a.id}, ${a.active})">
+
+                        ${a.active ? 'Desactivar' : 'Activar'}
+
+                    </button>
+
+                </td>
+
+            </tr>
+
+        `).join('');
+
+    }catch(err){
+
+        console.error(err);
+
+        body.innerHTML = `
+            <tr>
+                <td colspan="6" class="empty" style="color:red;">
+                    Error cargando áreas
+                </td>
+            </tr>
+        `;
+    }
 }
 
-async function loadMaquinas(){
+function editar(a){
 
-  const { data, error } = await client
-    .from('mes_machines')
-    .select(`
-      *,
-      areas_generales(
-        id,
-        nombre,
-        code
-      )
-    `)
-    .order('machine_code');
+    editId = a.id;
 
-  if(error){
+    document.getElementById('area_general_id').value =
+        a.area_general_id || '';
 
-    console.error(error);
-    alert('Error cargando máquinas');
-    return;
+    document.getElementById('area_code').value =
+        a.area_code || '';
 
-  }
+    document.getElementById('area_name').value =
+        a.area_name || '';
 
-  body.innerHTML = '';
-
-  data.forEach(m=>{
-
-    body.innerHTML += `
-
-      <tr>
-
-        <td>
-          ${m.areas_generales?.nombre || '-'}
-        </td>
-
-        <td>
-          ${m.machine_code}
-        </td>
-
-        <td>
-          ${m.machine_name}
-        </td>
-
-        <td class="${m.active ? 'badge-active' : 'badge-inactive'}">
-
-          ${m.active ? 'Activa' : 'Inactiva'}
-
-        </td>
-
-        <td>
-
-          <div class="actions">
-
-            <button class="btn-edit"
-              onclick='editarMaquina(${JSON.stringify(m)})'>
-              ✏️ Editar
-            </button>
-
-            <button class="btn-toggle"
-              onclick='toggleMaquina(${m.id}, ${m.active})'>
-
-              ${m.active ? 'Desactivar' : 'Activar'}
-
-            </button>
-
-          </div>
-
-        </td>
-
-      </tr>
-
-    `;
-
-  });
-
+    window.scrollTo({
+        top:0,
+        behavior:'smooth'
+    });
 }
 
-async function guardarMaquina(){
+async function guardarArea(){
 
-  if(
-    !machine_code.value ||
-    !machine_name.value ||
-    !area_general_id.value
-  ){
-    return alert('Completa todos los campos');
-  }
+    const areaGeneral =
+        document.getElementById('area_general_id').value;
 
-  const selectedOption =
-    area_general_id.options[
-      area_general_id.selectedIndex
-    ];
+    const areaCode =
+        document.getElementById('area_code').value;
 
-  const productionArea =
-    selectedOption.dataset.code;
+    const areaName =
+        document.getElementById('area_name').value;
 
-  const payload = {
+    if(!areaGeneral || !areaCode || !areaName){
 
-    machine_code:
-      machine_code.value.toUpperCase(),
+        return alert('Completa todos los campos');
+    }
 
-    machine_name:
-      machine_name.value,
+    const obj = {
 
-    area_general_id:
-      parseInt(area_general_id.value),
+        area_general_id: areaGeneral,
 
-    production_area:
-      productionArea,
+        area_code: areaCode.toUpperCase(),
 
-    active:true
+        area_name: areaName,
 
-  };
+        active: true
+    };
 
-  let error;
+    try{
 
-  if(editId){
+        let error = null;
 
-    ({ error } = await client
-      .from('mes_machines')
-      .update(payload)
-      .eq('id', editId));
+        if(editId){
 
-  }else{
+            const res = await client
+                .from('areas')
+                .update(obj)
+                .eq('id', editId);
 
-    ({ error } = await client
-      .from('mes_machines')
-      .insert(payload));
+            error = res.error;
 
-  }
+        }else{
 
-  if(error){
+            const res = await client
+                .from('areas')
+                .insert([obj]);
 
-    console.error(error);
-    return alert(error.message);
+            error = res.error;
+        }
 
-  }
+        if(error) throw error;
 
-  limpiar();
+        alert('Área guardada');
 
-  loadMaquinas();
+        limpiar();
 
+        load();
+
+    }catch(err){
+
+        console.error(err);
+
+        alert(err.message);
+    }
 }
 
-function editarMaquina(m){
+async function toggle(id,state){
 
-  editId = m.id;
+    await client
+        .from('areas')
+        .update({
+            active: !state
+        })
+        .eq('id',id);
 
-  machine_code.value =
-    m.machine_code;
-
-  machine_name.value =
-    m.machine_name;
-
-  area_general_id.value =
-    m.area_general_id;
-
-  window.scrollTo({
-    top:0,
-    behavior:'smooth'
-  });
-
-}
-
-async function toggleMaquina(id,state){
-
-  const { error } = await client
-    .from('mes_machines')
-    .update({
-      active: !state
-    })
-    .eq('id', id);
-
-  if(error){
-
-    console.error(error);
-    return alert(error.message);
-
-  }
-
-  loadMaquinas();
-
+    load();
 }
 
 function limpiar(){
 
-  editId = null;
+    editId = null;
 
-  machine_code.value = '';
-  machine_name.value = '';
-  area_general_id.value = '';
+    document.getElementById('area_general_id').value = '';
 
+    document.getElementById('area_code').value = '';
+
+    document.getElementById('area_name').value = '';
 }
 
-loadAreasGenerales();
-loadMaquinas();
+async function init(){
+
+    await cargarAreasGenerales();
+
+    await load();
+}
+
+document.addEventListener('DOMContentLoaded', init);
 
 </script>
 
