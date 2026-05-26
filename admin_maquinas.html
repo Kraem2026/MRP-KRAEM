@@ -361,11 +361,6 @@ tr:hover{
 
 <script>
 
-const client = supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-);
-
 let editId = null;
 let machinesData = [];
 
@@ -385,11 +380,10 @@ async function cargarAreasGenerales(){
         const { data, error } = await client
             .from('areas_generales')
             .select('*')
+            .eq('active', true)
             .order('nombre');
 
         if(error) throw error;
-
-        console.log('ÁREAS:', data);
 
         sel.innerHTML = `
             <option value="">
@@ -428,7 +422,7 @@ async function cargarAreasGenerales(){
         `;
 
         alert(
-            'Error cargando áreas generales:\n' +
+            'Error cargando áreas:\n' +
             err.message
         );
     }
@@ -451,20 +445,12 @@ async function load(){
 
         const { data, error } = await client
             .from('mes_machines')
-            .select(`
-                *,
-                areas_generales (
-                    id,
-                    nombre
-                )
-            `)
+            .select('*')
             .order('machine_code');
 
         if(error) throw error;
 
         machinesData = data || [];
-
-        console.log('MÁQUINAS:', machinesData);
 
         if(machinesData.length === 0){
 
@@ -485,9 +471,7 @@ async function load(){
 
                 <td>${m.id}</td>
 
-                <td>
-                    ${m.areas_generales?.nombre || 'Sin área'}
-                </td>
+                <td>${m.production_area || '-'}</td>
 
                 <td>${m.machine_code || ''}</td>
 
@@ -544,11 +528,6 @@ async function load(){
                 </td>
             </tr>
         `;
-
-        alert(
-            'Error cargando máquinas:\n' +
-            err.message
-        );
     }
 }
 
@@ -615,8 +594,6 @@ async function guardarMaquina(){
 
         active: true
     };
-
-    console.log('OBJETO A GUARDAR:', obj);
 
     try{
 
