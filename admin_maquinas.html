@@ -1,36 +1,47 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+
 <meta charset="UTF-8">
-<title>KRAEM | Administración de Máquinas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>KRAEM | Administración de Máquinas</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
 
 :root{
     --primary:#2563eb;
+    --primary-dark:#1d4ed8;
     --bg:#f8fafc;
+    --card:#ffffff;
     --text:#1e293b;
     --border:#e2e8f0;
     --success:#22c55e;
     --danger:#ef4444;
+    --gray:#64748b;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
 }
 
 body{
-    margin:0;
-    padding:20px;
     background:var(--bg);
-    font-family:'Segoe UI', sans-serif;
+    font-family:'Segoe UI',sans-serif;
     color:var(--text);
+    padding:20px;
 }
 
 .container{
-    max-width:1300px;
+    max-width:1400px;
     margin:auto;
 }
 
@@ -38,9 +49,9 @@ body{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:20px;
     flex-wrap:wrap;
-    gap:10px;
+    gap:15px;
+    margin-bottom:20px;
 }
 
 .title-box{
@@ -50,45 +61,22 @@ body{
 }
 
 .title-box h1{
-    margin:0;
-    font-size:24px;
-}
-
-.btn{
-    border:none;
-    padding:12px 18px;
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:bold;
-    font-size:14px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-}
-
-.btn-primary{
-    background:var(--primary);
-    color:white;
-}
-
-.btn-back{
-    background:white;
-    border:1px solid var(--border);
-    color:var(--text);
+    font-size:28px;
+    font-weight:700;
 }
 
 .card{
-    background:white;
-    border-radius:15px;
-    padding:20px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.06);
+    background:var(--card);
+    border-radius:18px;
+    padding:25px;
     border:1px solid var(--border);
+    box-shadow:0 4px 12px rgba(0,0,0,.05);
 }
 
 .form-grid{
     display:grid;
     grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-    gap:15px;
+    gap:20px;
     margin-bottom:25px;
 }
 
@@ -98,28 +86,77 @@ body{
 }
 
 label{
-    margin-bottom:6px;
     font-size:12px;
-    font-weight:bold;
-    color:#475569;
     text-transform:uppercase;
+    font-weight:700;
+    margin-bottom:8px;
+    color:#475569;
 }
 
-input,select{
-    padding:12px;
+input,
+select{
+    padding:13px;
+    border-radius:12px;
     border:1px solid var(--border);
-    border-radius:10px;
     font-size:14px;
+    outline:none;
+    transition:.2s;
+}
+
+input:focus,
+select:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+.btn{
+    border:none;
+    border-radius:12px;
+    padding:13px 18px;
+    cursor:pointer;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition:.2s;
+    font-size:14px;
+}
+
+.btn:hover{
+    transform:translateY(-1px);
+}
+
+.btn-primary{
+    background:var(--primary);
+    color:white;
+}
+
+.btn-primary:hover{
+    background:var(--primary-dark);
+}
+
+.btn-back{
+    background:white;
+    border:1px solid var(--border);
+    color:var(--text);
+}
+
+.table-container{
+    overflow:auto;
 }
 
 table{
     width:100%;
     border-collapse:collapse;
+    min-width:800px;
+}
+
+thead{
+    background:#f1f5f9;
 }
 
 th{
-    background:#f1f5f9;
-    padding:14px;
+    padding:15px;
     text-align:left;
     font-size:12px;
     text-transform:uppercase;
@@ -127,8 +164,9 @@ th{
 }
 
 td{
-    padding:14px;
+    padding:15px;
     border-bottom:1px solid #f1f5f9;
+    font-size:14px;
 }
 
 tr:hover{
@@ -136,8 +174,8 @@ tr:hover{
 }
 
 .status{
-    padding:5px 10px;
-    border-radius:8px;
+    padding:6px 10px;
+    border-radius:10px;
     font-size:12px;
     font-weight:bold;
 }
@@ -152,31 +190,58 @@ tr:hover{
     color:#991b1b;
 }
 
-.action-btn{
-    border:none;
-    padding:8px 12px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
+.action-buttons{
+    display:flex;
+    gap:8px;
 }
 
-.btn-toggle{
-    background:#e2e8f0;
+.action-btn{
+    border:none;
+    border-radius:10px;
+    padding:9px 12px;
+    cursor:pointer;
+    font-weight:bold;
+    transition:.2s;
+}
+
+.action-btn:hover{
+    transform:scale(1.03);
 }
 
 .btn-edit{
     background:#dbeafe;
     color:#1d4ed8;
-    margin-right:5px;
+}
+
+.btn-toggle{
+    background:#e2e8f0;
+    color:#334155;
 }
 
 .empty{
     text-align:center;
     padding:40px;
-    color:#64748b;
+    color:var(--gray);
+}
+
+@media(max-width:768px){
+
+    body{
+        padding:10px;
+    }
+
+    .card{
+        padding:18px;
+    }
+
+    .title-box h1{
+        font-size:22px;
+    }
+
 }
 
 </style>
+
 </head>
 
 <body>
@@ -210,7 +275,11 @@ tr:hover{
                 <label>Área General</label>
 
                 <select id="area_general_id">
-                    <option value="">Cargando...</option>
+
+                    <option value="">
+                        Cargando...
+                    </option>
+
                 </select>
 
             </div>
@@ -219,7 +288,8 @@ tr:hover{
 
                 <label>Código Máquina</label>
 
-                <input id="machine_code"
+                <input
+                    id="machine_code"
                     placeholder="Ej. LS-01">
 
             </div>
@@ -228,8 +298,9 @@ tr:hover{
 
                 <label>Nombre Máquina</label>
 
-                <input id="machine_name"
-                    placeholder="Ej. LS 1">
+                <input
+                    id="machine_name"
+                    placeholder="Ej. Línea Soldadura 1">
 
             </div>
 
@@ -247,32 +318,42 @@ tr:hover{
 
     <div class="card" style="margin-top:20px;">
 
-        <table>
+        <div class="table-container">
 
-            <thead>
+            <table>
 
-                <tr>
-                    <th>ID</th>
-                    <th>Área General</th>
-                    <th>Código</th>
-                    <th>Nombre</th>
-                    <th>Estatus</th>
-                    <th>Acciones</th>
-                </tr>
+                <thead>
 
-            </thead>
+                    <tr>
 
-            <tbody id="body">
+                        <th>ID</th>
+                        <th>Área General</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Estatus</th>
+                        <th>Acciones</th>
 
-                <tr>
-                    <td colspan="6" class="empty">
-                        Cargando...
-                    </td>
-                </tr>
+                    </tr>
 
-            </tbody>
+                </thead>
 
-        </table>
+                <tbody id="body">
+
+                    <tr>
+
+                        <td colspan="6" class="empty">
+
+                            Cargando...
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
 
     </div>
 
@@ -286,49 +367,77 @@ const client = supabase.createClient(
 );
 
 let editId = null;
+let machinesData = [];
 
 async function cargarAreasGenerales(){
 
-    const sel = document.getElementById('area_general_id');
+    const sel =
+        document.getElementById('area_general_id');
+
+    sel.innerHTML = `
+        <option value="">
+            Cargando...
+        </option>
+    `;
 
     try{
 
         const { data, error } = await client
             .from('areas_generales')
             .select('*')
-            .eq('active', true)
             .order('nombre');
 
         if(error) throw error;
 
+        console.log('ÁREAS:', data);
+
         sel.innerHTML = `
-            <option value="">Seleccione...</option>
+            <option value="">
+                Seleccione...
+            </option>
         `;
 
-        data.forEach(a => {
+        if(!data || data.length === 0){
 
             sel.innerHTML += `
-                <option value="${a.id}">
-                    ${a.nombre}
+                <option value="">
+                    No hay áreas registradas
+                </option>
+            `;
+
+            return;
+        }
+
+        data.forEach(area => {
+
+            sel.innerHTML += `
+                <option value="${area.id}">
+                    ${area.nombre}
                 </option>
             `;
         });
 
     }catch(err){
 
-        console.error(err);
+        console.error('ERROR ÁREAS:', err);
 
         sel.innerHTML = `
             <option value="">
                 Error cargando áreas
             </option>
         `;
+
+        alert(
+            'Error cargando áreas generales:\n' +
+            err.message
+        );
     }
 }
 
 async function load(){
 
-    const body = document.getElementById('body');
+    const body =
+        document.getElementById('body');
 
     body.innerHTML = `
         <tr>
@@ -345,6 +454,7 @@ async function load(){
             .select(`
                 *,
                 areas_generales (
+                    id,
                     nombre
                 )
             `)
@@ -352,12 +462,16 @@ async function load(){
 
         if(error) throw error;
 
-        if(!data || data.length === 0){
+        machinesData = data || [];
+
+        console.log('MÁQUINAS:', machinesData);
+
+        if(machinesData.length === 0){
 
             body.innerHTML = `
                 <tr>
                     <td colspan="6" class="empty">
-                        No hay registros
+                        No hay máquinas registradas
                     </td>
                 </tr>
             `;
@@ -365,41 +479,49 @@ async function load(){
             return;
         }
 
-        body.innerHTML = data.map(m => `
+        body.innerHTML = machinesData.map((m,index) => `
 
             <tr>
 
                 <td>${m.id}</td>
 
                 <td>
-                    ${m.areas_generales?.nombre || '-'}
+                    ${m.areas_generales?.nombre || 'Sin área'}
                 </td>
 
-                <td>${m.machine_code}</td>
+                <td>${m.machine_code || ''}</td>
 
-                <td>${m.machine_name}</td>
+                <td>${m.machine_name || ''}</td>
 
                 <td>
+
                     <span class="status ${m.active ? 'active' : 'inactive'}">
+
                         ${m.active ? 'ACTIVA' : 'INACTIVA'}
+
                     </span>
+
                 </td>
 
                 <td>
 
-                    <button class="action-btn btn-edit"
-                        onclick='editar(${JSON.stringify(m)})'>
+                    <div class="action-buttons">
 
-                        <i class="fas fa-edit"></i>
+                        <button class="action-btn btn-edit"
+                            onclick="editar(${index})">
 
-                    </button>
+                            <i class="fas fa-edit"></i>
 
-                    <button class="action-btn btn-toggle"
-                        onclick="toggle(${m.id}, ${m.active})">
+                        </button>
 
-                        ${m.active ? 'Desactivar' : 'Activar'}
+                        <button class="action-btn btn-toggle"
+                            onclick="toggleMachine(${m.id}, ${m.active})">
 
-                    </button>
+                            ${m.active ? 'Desactivar' : 'Activar'}
+
+                        </button>
+
+                    </div>
 
                 </td>
 
@@ -409,7 +531,7 @@ async function load(){
 
     }catch(err){
 
-        console.error(err);
+        console.error('ERROR MÁQUINAS:', err);
 
         body.innerHTML = `
             <tr>
@@ -422,10 +544,19 @@ async function load(){
                 </td>
             </tr>
         `;
+
+        alert(
+            'Error cargando máquinas:\n' +
+            err.message
+        );
     }
 }
 
-function editar(m){
+function editar(index){
+
+    const m = machinesData[index];
+
+    if(!m) return;
 
     editId = m.id;
 
@@ -447,17 +578,24 @@ function editar(m){
 async function guardarMaquina(){
 
     const areaGeneral =
-        document.getElementById('area_general_id').value;
+        document.getElementById('area_general_id')
+        .value
+        .trim();
 
     const machineCode =
-        document.getElementById('machine_code').value;
+        document.getElementById('machine_code')
+        .value
+        .trim();
 
     const machineName =
-        document.getElementById('machine_name').value;
+        document.getElementById('machine_name')
+        .value
+        .trim();
 
     if(!areaGeneral || !machineCode || !machineName){
 
-        return alert('Completa todos los campos');
+        alert('Completa todos los campos');
+        return;
     }
 
     const obj = {
@@ -477,6 +615,8 @@ async function guardarMaquina(){
 
         active: true
     };
+
+    console.log('OBJETO A GUARDAR:', obj);
 
     try{
 
@@ -502,30 +642,44 @@ async function guardarMaquina(){
 
         if(error) throw error;
 
-        alert('Máquina guardada');
+        alert('Máquina guardada correctamente');
 
         limpiar();
 
-        load();
+        await load();
 
     }catch(err){
 
-        console.error(err);
+        console.error('ERROR GUARDANDO:', err);
 
-        alert(err.message);
+        alert(
+            'Error guardando máquina:\n' +
+            err.message
+        );
     }
 }
 
-async function toggle(id,state){
+async function toggleMachine(id,state){
 
-    await client
-        .from('mes_machines')
-        .update({
-            active: !state
-        })
-        .eq('id',id);
+    try{
 
-    load();
+        const { error } = await client
+            .from('mes_machines')
+            .update({
+                active: !state
+            })
+            .eq('id',id);
+
+        if(error) throw error;
+
+        await load();
+
+    }catch(err){
+
+        console.error('ERROR TOGGLE:', err);
+
+        alert(err.message);
+    }
 }
 
 function limpiar(){
@@ -546,7 +700,10 @@ async function init(){
     await load();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener(
+    'DOMContentLoaded',
+    init
+);
 
 </script>
 
