@@ -41,7 +41,7 @@ body{
 }
 
 .container{
-    max-width:1400px;
+    max-width:1600px;
     margin:auto;
 }
 
@@ -148,7 +148,7 @@ select:focus{
 table{
     width:100%;
     border-collapse:collapse;
-    min-width:800px;
+    min-width:1200px;
 }
 
 thead{
@@ -188,6 +188,38 @@ tr:hover{
 .inactive{
     background:#fee2e2;
     color:#991b1b;
+}
+
+.machine-status{
+    padding:6px 10px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:bold;
+}
+
+.status-disponible{
+    background:#dcfce7;
+    color:#166534;
+}
+
+.status-mantenimiento{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+.status-produccion{
+    background:#dbeafe;
+    color:#1d4ed8;
+}
+
+.status-setup{
+    background:#fef3c7;
+    color:#92400e;
+}
+
+.status-parada{
+    background:#e5e7eb;
+    color:#374151;
 }
 
 .action-buttons{
@@ -290,7 +322,7 @@ tr:hover{
 
                 <input
                     id="machine_code"
-                    placeholder="Ej. LS-01">
+                    placeholder="Ej. NIS-150">
 
             </div>
 
@@ -300,7 +332,110 @@ tr:hover{
 
                 <input
                     id="machine_name"
-                    placeholder="Ej. Línea Soldadura 1">
+                    placeholder="Ej. Máquina 1">
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Tonelaje</label>
+
+                <input
+                    type="number"
+                    id="tonnage"
+                    placeholder="Ej. 150">
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Tipo Máquina</label>
+
+                <select id="machine_type">
+
+                    <option value="">
+                        Seleccione...
+                    </option>
+
+                    <option value="Inyección">
+                        Inyección
+                    </option>
+
+                    <option value="Blow">
+                        Blow
+                    </option>
+
+                    <option value="Soldadura">
+                        Soldadura
+                    </option>
+
+                    <option value="Ensamble">
+                        Ensamble
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Marca</label>
+
+                <input
+                    id="brand"
+                    placeholder="Ej. Nissei">
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Modelo</label>
+
+                <input
+                    id="model"
+                    placeholder="Ej. FNX-150">
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Ciclo Ideal (seg)</label>
+
+                <input
+                    type="number"
+                    step="0.01"
+                    id="ideal_cycle_time"
+                    placeholder="Ej. 32.5">
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Status Máquina</label>
+
+                <select id="maintenance_status">
+
+                    <option value="Disponible">
+                        Disponible
+                    </option>
+
+                    <option value="Producción">
+                        Producción
+                    </option>
+
+                    <option value="Setup">
+                        Setup
+                    </option>
+
+                    <option value="Mantenimiento">
+                        Mantenimiento
+                    </option>
+
+                    <option value="Parada">
+                        Parada
+                    </option>
+
+                </select>
 
             </div>
 
@@ -327,10 +462,16 @@ tr:hover{
                     <tr>
 
                         <th>ID</th>
-                        <th>Área General</th>
+                        <th>Área</th>
                         <th>Código</th>
                         <th>Nombre</th>
-                        <th>Estatus</th>
+                        <th>Ton</th>
+                        <th>Tipo</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Ciclo</th>
+                        <th>Status Máquina</th>
+                        <th>Activo</th>
                         <th>Acciones</th>
 
                     </tr>
@@ -341,7 +482,7 @@ tr:hover{
 
                     <tr>
 
-                        <td colspan="6" class="empty">
+                        <td colspan="12" class="empty">
 
                             Cargando...
 
@@ -391,17 +532,6 @@ async function cargarAreasGenerales(){
             </option>
         `;
 
-        if(!data || data.length === 0){
-
-            sel.innerHTML += `
-                <option value="">
-                    No hay áreas registradas
-                </option>
-            `;
-
-            return;
-        }
-
         data.forEach(area => {
 
             sel.innerHTML += `
@@ -413,18 +543,36 @@ async function cargarAreasGenerales(){
 
     }catch(err){
 
-        console.error('ERROR ÁREAS:', err);
-
-        sel.innerHTML = `
-            <option value="">
-                Error cargando áreas
-            </option>
-        `;
+        console.error(err);
 
         alert(
             'Error cargando áreas:\n' +
             err.message
         );
+    }
+}
+
+function getStatusClass(status){
+
+    switch(status){
+
+        case 'Disponible':
+            return 'status-disponible';
+
+        case 'Mantenimiento':
+            return 'status-mantenimiento';
+
+        case 'Producción':
+            return 'status-produccion';
+
+        case 'Setup':
+            return 'status-setup';
+
+        case 'Parada':
+            return 'status-parada';
+
+        default:
+            return 'status-parada';
     }
 }
 
@@ -435,7 +583,7 @@ async function load(){
 
     body.innerHTML = `
         <tr>
-            <td colspan="6" class="empty">
+            <td colspan="12" class="empty">
                 Cargando...
             </td>
         </tr>
@@ -456,7 +604,7 @@ async function load(){
 
             body.innerHTML = `
                 <tr>
-                    <td colspan="6" class="empty">
+                    <td colspan="12" class="empty">
                         No hay máquinas registradas
                     </td>
                 </tr>
@@ -473,9 +621,29 @@ async function load(){
 
                 <td>${m.production_area || '-'}</td>
 
-                <td>${m.machine_code || ''}</td>
+                <td>${m.machine_code || '-'}</td>
 
-                <td>${m.machine_name || ''}</td>
+                <td>${m.machine_name || '-'}</td>
+
+                <td>${m.tonnage || '-'}</td>
+
+                <td>${m.machine_type || '-'}</td>
+
+                <td>${m.brand || '-'}</td>
+
+                <td>${m.model || '-'}</td>
+
+                <td>${m.ideal_cycle_time || '-'}</td>
+
+                <td>
+
+                    <span class="machine-status ${getStatusClass(m.maintenance_status)}">
+
+                        ${m.maintenance_status || 'N/A'}
+
+                    </span>
+
+                </td>
 
                 <td>
 
@@ -501,7 +669,7 @@ async function load(){
                         <button class="action-btn btn-toggle"
                             onclick="toggleMachine(${m.id}, ${m.active})">
 
-                            ${m.active ? 'Desactivar' : 'Activar'}
+                            ${m.active ? 'OFF' : 'ON'}
 
                         </button>
 
@@ -515,11 +683,11 @@ async function load(){
 
     }catch(err){
 
-        console.error('ERROR MÁQUINAS:', err);
+        console.error(err);
 
         body.innerHTML = `
             <tr>
-                <td colspan="6"
+                <td colspan="12"
                     class="empty"
                     style="color:red;">
 
@@ -548,6 +716,24 @@ function editar(index){
     document.getElementById('machine_name').value =
         m.machine_name || '';
 
+    document.getElementById('tonnage').value =
+        m.tonnage || '';
+
+    document.getElementById('machine_type').value =
+        m.machine_type || '';
+
+    document.getElementById('brand').value =
+        m.brand || '';
+
+    document.getElementById('model').value =
+        m.model || '';
+
+    document.getElementById('ideal_cycle_time').value =
+        m.ideal_cycle_time || '';
+
+    document.getElementById('maintenance_status').value =
+        m.maintenance_status || 'Disponible';
+
     window.scrollTo({
         top:0,
         behavior:'smooth'
@@ -573,7 +759,7 @@ async function guardarMaquina(){
 
     if(!areaGeneral || !machineCode || !machineName){
 
-        alert('Completa todos los campos');
+        alert('Completa los campos obligatorios');
         return;
     }
 
@@ -591,6 +777,27 @@ async function guardarMaquina(){
                 document.getElementById('area_general_id')
                 .selectedIndex
             ].text,
+
+        tonnage:
+            document.getElementById('tonnage').value || null,
+
+        machine_type:
+            document.getElementById('machine_type').value,
+
+        brand:
+            document.getElementById('brand').value,
+
+        model:
+            document.getElementById('model').value,
+
+        ideal_cycle_time:
+            document.getElementById('ideal_cycle_time').value || null,
+
+        maintenance_status:
+            document.getElementById('maintenance_status').value,
+
+        last_status_change:
+            new Date().toISOString(),
 
         active: true
     };
@@ -627,7 +834,7 @@ async function guardarMaquina(){
 
     }catch(err){
 
-        console.error('ERROR GUARDANDO:', err);
+        console.error(err);
 
         alert(
             'Error guardando máquina:\n' +
@@ -653,7 +860,7 @@ async function toggleMachine(id,state){
 
     }catch(err){
 
-        console.error('ERROR TOGGLE:', err);
+        console.error(err);
 
         alert(err.message);
     }
@@ -668,6 +875,19 @@ function limpiar(){
     document.getElementById('machine_code').value = '';
 
     document.getElementById('machine_name').value = '';
+
+    document.getElementById('tonnage').value = '';
+
+    document.getElementById('machine_type').value = '';
+
+    document.getElementById('brand').value = '';
+
+    document.getElementById('model').value = '';
+
+    document.getElementById('ideal_cycle_time').value = '';
+
+    document.getElementById('maintenance_status').value =
+        'Disponible';
 }
 
 async function init(){
