@@ -148,7 +148,7 @@ select:focus{
 table{
     width:100%;
     border-collapse:collapse;
-    min-width:1200px;
+    min-width:1100px;
 }
 
 thead{
@@ -399,18 +399,6 @@ tr:hover{
 
             <div class="form-group">
 
-                <label>Ciclo Ideal (seg)</label>
-
-                <input
-                    type="number"
-                    step="0.01"
-                    id="ideal_cycle_time"
-                    placeholder="Ej. 32.5">
-
-            </div>
-
-            <div class="form-group">
-
                 <label>Status Máquina</label>
 
                 <select id="maintenance_status">
@@ -469,7 +457,6 @@ tr:hover{
                         <th>Tipo</th>
                         <th>Marca</th>
                         <th>Modelo</th>
-                        <th>Ciclo</th>
                         <th>Status Máquina</th>
                         <th>Activo</th>
                         <th>Acciones</th>
@@ -482,7 +469,7 @@ tr:hover{
 
                     <tr>
 
-                        <td colspan="12" class="empty">
+                        <td colspan="11" class="empty">
 
                             Cargando...
 
@@ -583,7 +570,7 @@ async function load(){
 
     body.innerHTML = `
         <tr>
-            <td colspan="12" class="empty">
+            <td colspan="11" class="empty">
                 Cargando...
             </td>
         </tr>
@@ -604,7 +591,7 @@ async function load(){
 
             body.innerHTML = `
                 <tr>
-                    <td colspan="12" class="empty">
+                    <td colspan="11" class="empty">
                         No hay máquinas registradas
                     </td>
                 </tr>
@@ -632,8 +619,6 @@ async function load(){
                 <td>${m.brand || '-'}</td>
 
                 <td>${m.model || '-'}</td>
-
-                <td>${m.ideal_cycle_time || '-'}</td>
 
                 <td>
 
@@ -687,7 +672,7 @@ async function load(){
 
         body.innerHTML = `
             <tr>
-                <td colspan="12"
+                <td colspan="11"
                     class="empty"
                     style="color:red;">
 
@@ -727,9 +712,6 @@ function editar(index){
 
     document.getElementById('model').value =
         m.model || '';
-
-    document.getElementById('ideal_cycle_time').value =
-        m.ideal_cycle_time || '';
 
     document.getElementById('maintenance_status').value =
         m.maintenance_status || 'Disponible';
@@ -789,9 +771,6 @@ async function guardarMaquina(){
 
         model:
             document.getElementById('model').value,
-
-        ideal_cycle_time:
-            document.getElementById('ideal_cycle_time').value || null,
 
         maintenance_status:
             document.getElementById('maintenance_status').value,
@@ -883,8 +862,6 @@ function limpiar(){
     document.getElementById('brand').value = '';
 
     document.getElementById('model').value = '';
-
-    document.getElementById('ideal_cycle_time').value = '';
 
     document.getElementById('maintenance_status').value =
         'Disponible';
