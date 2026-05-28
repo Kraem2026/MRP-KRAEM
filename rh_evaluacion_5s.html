@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -8,9 +9,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
+
 :root{
     --primary:#2563eb;
     --success:#22c55e;
@@ -21,20 +25,25 @@
     --border:#e2e8f0;
 }
 
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
 body{
     font-family:'Segoe UI',sans-serif;
     background:var(--bg);
     color:var(--text);
-    margin:0;
     padding:15px;
 }
 
 .container{
-    max-width:500px;
+    max-width:550px;
     margin:auto;
     background:white;
-    border-radius:15px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+    border-radius:18px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.08);
     padding:20px;
     min-height:85vh;
     display:flex;
@@ -47,7 +56,7 @@ header{
     align-items:center;
     margin-bottom:20px;
     border-bottom:2px solid var(--bg);
-    padding-bottom:10px;
+    padding-bottom:12px;
 }
 
 .btn-back{
@@ -58,12 +67,13 @@ header{
     cursor:pointer;
     display:flex;
     align-items:center;
-    gap:5px;
+    gap:6px;
+    font-size:14px;
 }
 
 .setup-group{
     display:grid;
-    gap:12px;
+    gap:14px;
     margin-bottom:20px;
 }
 
@@ -75,20 +85,27 @@ label{
     margin-bottom:-8px;
 }
 
-select, textarea{
+select,
+textarea{
     width:100%;
     padding:12px;
     border:1px solid var(--border);
-    border-radius:8px;
+    border-radius:10px;
     font-size:14px;
     background:white;
     font-family:inherit;
+    outline:none;
+}
+
+select:focus,
+textarea:focus{
+    border-color:var(--primary);
 }
 
 .progress-container{
-    background:#eee;
+    background:#e5e7eb;
     border-radius:10px;
-    height:8px;
+    height:10px;
     margin-bottom:20px;
     overflow:hidden;
 }
@@ -97,32 +114,33 @@ select, textarea{
     background:var(--primary);
     height:100%;
     width:0%;
-    transition:0.3s;
+    transition:.3s;
 }
 
 .question-card{
     background:var(--bg);
     padding:15px;
-    border-radius:12px;
+    border-radius:14px;
     margin-bottom:12px;
-    border-left:5px solid var(--border);
+    border-left:5px solid var(--primary);
 }
 
 .options{
     display:flex;
     gap:8px;
-    margin-top:10px;
+    margin-top:12px;
 }
 
 .btn-opt{
     flex:1;
     padding:10px;
     border:2px solid var(--border);
-    border-radius:8px;
+    border-radius:10px;
     cursor:pointer;
     font-weight:bold;
     background:white;
     font-size:11px;
+    transition:.2s;
 }
 
 .btn-opt.active[data-score="1"]{
@@ -146,13 +164,18 @@ select, textarea{
 .btn-nav{
     padding:15px;
     border:none;
-    border-radius:10px;
+    border-radius:12px;
     cursor:pointer;
     font-weight:bold;
     width:100%;
     font-size:16px;
     background:var(--primary);
     color:white;
+    transition:.2s;
+}
+
+.btn-nav:hover{
+    opacity:.95;
 }
 
 .hidden{
@@ -160,13 +183,24 @@ select, textarea{
 }
 
 #score-badge{
-    font-size:3.5rem;
-    font-weight:800;
+    font-size:4rem;
+    font-weight:900;
     text-align:center;
     color:var(--primary);
-    margin:20px 0;
+    margin:25px 0;
 }
+
+.info-box{
+    background:#eff6ff;
+    border:1px solid #bfdbfe;
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:15px;
+    font-size:13px;
+}
+
 </style>
+
 </head>
 
 <body>
@@ -174,83 +208,173 @@ select, textarea{
 <div class="container">
 
 <header>
-    <button class="btn-back" onclick="location.href='dashboard.html'">
-        <i class="fas fa-th"></i> Panel
+
+    <button class="btn-back"
+        onclick="location.href='dashboard.html'">
+
+        <i class="fas fa-th-large"></i>
+        Panel
+
     </button>
 
-    <h3 style="margin:0">5S KRAEM</h3>
+    <h3 style="margin:0;">
+        Auditoría 5S
+    </h3>
 
-    <div style="width:60px"></div>
+    <button class="btn-back"
+        onclick="location.href='rh_5s_dashboard.html'">
+
+        <i class="fas fa-chart-line"></i>
+        Dashboard
+
+    </button>
+
 </header>
+
+<!-- ========================= -->
+<!-- SETUP -->
+<!-- ========================= -->
 
 <div id="step-setup">
 
+    <div class="info-box">
+
+        Auditoría conectada con:
+        <b>Áreas Generales</b>,
+        <b>Máquinas MES</b>
+        y disponibilidad real.
+
+    </div>
+
     <div class="setup-group">
 
-        <label>Área</label>
-        <select id="area_select" onchange="actualizarMaquinas()">
-            <option value="">Cargando...</option>
+        <label>Área General</label>
+
+        <select id="area_select"
+            onchange="actualizarMaquinas()">
+
+            <option value="">
+                Cargando...
+            </option>
+
         </select>
 
         <label>Máquina</label>
+
         <select id="maquina_select">
-            <option value="">Seleccione área...</option>
+
+            <option value="">
+                Seleccione área...
+            </option>
+
         </select>
 
         <label>Operador</label>
+
         <select id="operador_select">
-            <option value="">Cargando...</option>
+
+            <option value="">
+                Cargando...
+            </option>
+
         </select>
 
         <label>Auditor</label>
+
         <select id="auditor_select">
-            <option value="">Cargando...</option>
+
+            <option value="">
+                Cargando...
+            </option>
+
         </select>
 
     </div>
 
-    <button class="btn-nav" onclick="nextStep()">
-        EMPEZAR
+    <button class="btn-nav"
+        onclick="nextStep()">
+
+        EMPEZAR AUDITORÍA
+
     </button>
 
 </div>
 
+<!-- ========================= -->
+<!-- FLUJO -->
+<!-- ========================= -->
+
 <div id="audit-flow" class="hidden">
 
     <div class="progress-container">
-        <div id="progress-bar" class="progress-bar"></div>
+
+        <div id="progress-bar"
+            class="progress-bar"></div>
+
     </div>
 
     <div id="section-label"
-        style="font-weight:bold;color:var(--primary);text-align:center;margin-bottom:15px;font-size:1.1rem;">
+        style="
+            font-weight:bold;
+            color:var(--primary);
+            text-align:center;
+            margin-bottom:15px;
+            font-size:1.2rem;
+        ">
     </div>
 
     <div id="preguntas_cont"></div>
 
     <div style="margin-top:20px;">
-        <label>Observaciones de esta sección</label>
 
-        <textarea id="obs_input"
+        <label>
+            Observaciones de esta sección
+        </label>
+
+        <textarea
+            id="obs_input"
             rows="3"
-            placeholder="¿Qué se puede mejorar?"></textarea>
+            placeholder="Hallazgos, mejoras, problemas detectados..."></textarea>
+
     </div>
 
     <button class="btn-nav"
         style="margin-top:20px;"
         onclick="nextStep()">
+
         SIGUIENTE
+
     </button>
 
 </div>
 
+<!-- ========================= -->
+<!-- RESULTADO -->
+<!-- ========================= -->
+
 <div id="step-result" class="hidden">
 
-    <div id="score-badge">0%</div>
+    <div style="
+        text-align:center;
+        font-weight:bold;
+        font-size:1.2rem;
+    ">
+        RESULTADO FINAL
+    </div>
+
+    <div id="score-badge">
+
+        0%
+
+    </div>
 
     <button class="btn-nav"
         style="background:var(--success)"
         onclick="guardar()">
+
+        <i class="fas fa-save"></i>
         GUARDAR AUDITORÍA
+
     </button>
 
 </div>
@@ -262,17 +386,21 @@ select, textarea{
 let currentStep = 0;
 
 let auditData = {
+
     respuestas: {},
     observaciones: {},
     score: 0
+
 };
 
 const nombres5S = [
+
     "1. SEIRI",
     "2. SEITON",
     "3. SEISO",
     "4. SEIKETSU",
     "5. SHITSUKE"
+
 ];
 
 const preguntas = [
@@ -323,21 +451,23 @@ async function init(){
 
     try{
 
-        // ========= AREAS =========
-        // TOMA DE TABLA areas
+        // =========================
+        // AREAS GENERALES
+        // =========================
+
         const { data: areas, error: errAreas } =
         await client
-        .from('areas')
+        .from('areas_generales')
         .select('*')
+        .eq('active', true)
         .order('nombre');
 
-        if(errAreas){
-            console.error(errAreas);
-            alert('Error cargando áreas');
-            return;
-        }
+        if(errAreas) throw errAreas;
 
-        // ========= EMPLEADOS =========
+        // =========================
+        // EMPLEADOS
+        // =========================
+
         const { data: emps, error: errEmp } =
         await client
         .from('rh_empleados')
@@ -345,36 +475,50 @@ async function init(){
         .eq('estatus', 'ACTIVO')
         .order('nombre_completo');
 
-        if(errEmp){
-            console.error(errEmp);
-            alert('Error cargando empleados');
-            return;
-        }
+        if(errEmp) throw errEmp;
 
-        // ========= LLENAR AREAS =========
+        // =========================
+        // LLENAR AREAS
+        // =========================
+
         document.getElementById('area_select').innerHTML =
+
             '<option value="">Seleccione...</option>' +
-            areas.map(a =>
-                `<option value="${a.id}">
+
+            areas.map(a => `
+
+                <option value="${a.id}">
                     ${a.nombre}
-                </option>`
-            ).join('');
+                </option>
 
-        // ========= LLENAR EMPLEADOS =========
+            `).join('');
+
+        // =========================
+        // LLENAR EMPLEADOS
+        // =========================
+
         const empOpts =
-            '<option value="">Seleccione...</option>' +
-            emps.map(e =>
-                `<option value="${e.id}">
-                    ${e.nombre_completo}
-                </option>`
-            ).join('');
 
-        document.getElementById('operador_select').innerHTML = empOpts;
-        document.getElementById('auditor_select').innerHTML = empOpts;
+            '<option value="">Seleccione...</option>' +
+
+            emps.map(e => `
+
+                <option value="${e.id}">
+                    ${e.nombre_completo}
+                </option>
+
+            `).join('');
+
+        document.getElementById('operador_select').innerHTML =
+            empOpts;
+
+        document.getElementById('auditor_select').innerHTML =
+            empOpts;
 
     }catch(e){
 
         console.error(e);
+
         alert(e.message);
 
     }
@@ -383,42 +527,59 @@ async function init(){
 
 async function actualizarMaquinas(){
 
-    const areaId = document.getElementById('area_select').value;
+    const areaId =
+        document.getElementById('area_select').value;
 
-    const mSel = document.getElementById('maquina_select');
+    const mSel =
+        document.getElementById('maquina_select');
 
-    mSel.innerHTML = '<option value="">Cargando...</option>';
+    mSel.innerHTML =
+        '<option value="">Cargando...</option>';
 
     if(!areaId){
-        mSel.innerHTML = '<option value="">Seleccione área...</option>';
+
+        mSel.innerHTML =
+            '<option value="">Seleccione área...</option>';
+
         return;
     }
 
     try{
 
-        // ========= MAQUINAS =========
-        // CAMBIA AQUI SOLO SI TU TABLA SE LLAMA DISTINTO
         const { data: maquinas, error } =
         await client
-        .from('maquinas')
+
+        .from('mes_machines')
+
         .select('*')
-        .eq('area_id', areaId)
-        .order('nombre');
 
-        if(error){
-            console.error(error);
-            mSel.innerHTML = '<option value="">Error cargando</option>';
-            return;
-        }
+        .eq('area_general_id', areaId)
 
-        mSel.innerHTML = '<option value="">Seleccione...</option>';
+        .eq('active', true)
+
+        .eq('maintenance_status', 'Disponible')
+
+        .order('machine_code');
+
+        if(error) throw error;
+
+        mSel.innerHTML =
+            '<option value="">Seleccione...</option>';
 
         maquinas.forEach(m => {
 
             mSel.innerHTML += `
+
                 <option value="${m.id}">
-                    ${m.nombre}
+
+                    ${m.machine_code}
+                    -
+                    ${m.machine_name}
+
+                    (${m.tonnage || '-'} TON)
+
                 </option>
+
             `;
 
         });
@@ -428,8 +589,7 @@ async function actualizarMaquinas(){
         console.error(e);
 
         mSel.innerHTML =
-            '<option value="">Error</option>';
-
+            '<option value="">Error cargando</option>';
     }
 
 }
@@ -445,7 +605,9 @@ function nextStep(){
             !document.getElementById('auditor_select').value
         )
     ){
+
         return alert("Faltan datos");
+
     }
 
     if(currentStep > 0 && currentStep <= 5){
@@ -465,33 +627,43 @@ function nextStep(){
 
 function render(){
 
-    document.getElementById("step-setup").classList.add("hidden");
-    document.getElementById("audit-flow").classList.add("hidden");
-    document.getElementById("step-result").classList.add("hidden");
+    document.getElementById("step-setup")
+        .classList.add("hidden");
+
+    document.getElementById("audit-flow")
+        .classList.add("hidden");
+
+    document.getElementById("step-result")
+        .classList.add("hidden");
 
     if(currentStep === 0){
 
-        document.getElementById("step-setup").classList.remove("hidden");
+        document.getElementById("step-setup")
+            .classList.remove("hidden");
 
     }
     else if(currentStep <= 5){
 
-        document.getElementById("audit-flow").classList.remove("hidden");
+        document.getElementById("audit-flow")
+            .classList.remove("hidden");
 
         const idx = currentStep - 1;
 
-        document.getElementById("section-label").innerText =
-            nombres5S[idx];
+        document.getElementById("section-label")
+            .innerText = nombres5S[idx];
 
-        document.getElementById("progress-bar").style.width =
-            (currentStep * 20) + "%";
+        document.getElementById("progress-bar")
+            .style.width = (currentStep * 20) + "%";
 
-        document.getElementById("preguntas_cont").innerHTML =
-            preguntas[idx].map((p, j) => `
+        document.getElementById("preguntas_cont")
+            .innerHTML = preguntas[idx].map((p, j) => `
+
                 <div class="question-card">
 
                     <div style="font-weight:600">
+
                         ${p}
+
                     </div>
 
                     <div class="options">
@@ -499,24 +671,31 @@ function render(){
                         <button class="btn-opt"
                             data-score="1"
                             onclick="setAns('${idx}_${j}',1,this)">
+
                             SI
+
                         </button>
 
                         <button class="btn-opt"
                             data-score="0.5"
                             onclick="setAns('${idx}_${j}',0.5,this)">
+
                             PARCIAL
+
                         </button>
 
                         <button class="btn-opt"
                             data-score="0"
                             onclick="setAns('${idx}_${j}',0,this)">
+
                             NO
+
                         </button>
 
                     </div>
 
                 </div>
+
             `).join('');
 
         window.scrollTo(0,0);
@@ -524,17 +703,20 @@ function render(){
     }
     else{
 
-        const vals = Object.values(auditData.respuestas);
+        const vals =
+            Object.values(auditData.respuestas);
 
         auditData.score =
+
             Math.round(
                 (vals.reduce((a,b)=>a+b,0)/25)*100
             );
 
-        document.getElementById("score-badge").innerText =
-            auditData.score + "%";
+        document.getElementById("score-badge")
+            .innerText = auditData.score + "%";
 
-        document.getElementById("step-result").classList.remove("hidden");
+        document.getElementById("step-result")
+            .classList.remove("hidden");
 
     }
 
@@ -558,8 +740,11 @@ async function guardar(){
     try{
 
         const { error } =
+
         await client
+
         .from('rh_evaluaciones_5s')
+
         .insert([{
 
             empleado_id:
@@ -568,10 +753,10 @@ async function guardar(){
             auditor_id:
                 document.getElementById('auditor_select').value,
 
-            area_id:
+            area_general_id:
                 document.getElementById('area_select').value,
 
-            maquina_id:
+            machine_id:
                 document.getElementById('maquina_select').value,
 
             puntuacion:
@@ -590,9 +775,10 @@ async function guardar(){
 
         if(error) throw error;
 
-        alert("¡Guardado!");
+        alert("¡Auditoría guardada!");
 
-        location.href = 'rh_evaluacion_5s.html';
+        location.href =
+            'rh_5s_dashboard.html';
 
     }catch(e){
 
