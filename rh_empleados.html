@@ -1,129 +1,160 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRAEM | Gestión de Personal 360</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Gestión de Personal 360</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="config.js"></script>
 
-<style>
-:root{
-    --primary:#0f172a;
-    --accent:#2563eb;
-    --bg:#f8fafc;
-    --text:#1e293b;
-    --border:#e2e8f0;
-}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-body{
-    font-family:Arial,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    margin:0;
-    padding:20px;
-}
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --success: #22c55e;
+        }
 
-.container{
-    max-width:1600px;
-    margin:auto;
-}
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 15px;
+            margin: 0;
+        }
 
-.card{
-    background:white;
-    border-radius:12px;
-    padding:20px;
-    border:1px solid var(--border);
-    margin-bottom:20px;
-}
+        .container {
+            max-width: 1600px;
+            margin: auto;
+        }
 
-.nav-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:20px;
-}
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
 
-.btn-add{
-    background:var(--accent);
-    color:white;
-    border:none;
-    padding:12px 20px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-}
+        .btn-nav {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: white;
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-.inputs-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:15px;
-}
+        .btn-add {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-.group{
-    display:flex;
-    flex-direction:column;
-}
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+            margin-top: 20px;
+        }
 
-label{
-    font-size:12px;
-    font-weight:bold;
-    margin-bottom:5px;
-}
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1100px;
+        }
 
-input,select{
-    padding:10px;
-    border:1px solid #ccc;
-    border-radius:8px;
-}
+        th {
+            background: #f8fafc;
+            padding: 15px;
+            text-align: left;
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border);
+        }
 
-table{
-    width:100%;
-    border-collapse:collapse;
-}
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+            white-space: nowrap;
+        }
 
-th,td{
-    padding:12px;
-    border-bottom:1px solid #eee;
-    text-align:left;
-}
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
 
-th{
-    background:#f1f5f9;
-}
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
 
-tr:hover{
-    background:#f8fafc;
-    cursor:pointer;
-}
+        .group {
+            display: flex;
+            flex-direction: column;
+        }
 
-.modal{
-    display:none;
-    position:fixed;
-    z-index:999;
-    left:0;
-    top:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,.5);
-}
+        label {
+            font-size: 10px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
 
-.modal-content{
-    background:white;
-    width:95%;
-    max-width:900px;
-    margin:2% auto;
-    padding:25px;
-    border-radius:15px;
-    max-height:90vh;
-    overflow:auto;
-}
-</style>
+        input,
+        select {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .status-activo {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-baja {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
 </head>
 
 <body>
@@ -131,10 +162,19 @@ tr:hover{
 <div class="container">
 
     <div class="nav-header">
-        <h2>Gestión de Personal KRAEM</h2>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <a href="dashboard.html" class="btn-nav">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+
+            <h2 style="margin:0;">
+                Gestión de Personal Kraem
+            </h2>
+        </div>
 
         <button class="btn-add" onclick="abrirModal()">
-            NUEVO EMPLEADO
+            <i class="fas fa-plus"></i>
+            NUEVO REGISTRO
         </button>
     </div>
 
@@ -143,17 +183,20 @@ tr:hover{
         <div class="inputs-grid">
 
             <div class="group">
-                <label>Buscar</label>
-                <input type="text" id="f_nombre" oninput="aplicarFiltros()">
+                <label>Nombre</label>
+                <input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()">
             </div>
 
             <div class="group">
                 <label>Área</label>
+
+                <!-- ESTE YA USA AREAS_GENERALES -->
                 <select id="f_area" onchange="aplicarFiltros()"></select>
             </div>
 
             <div class="group">
                 <label>Turno</label>
+
                 <select id="f_turno" onchange="aplicarFiltros()">
                     <option value="">Todos</option>
                     <option value="1">1</option>
@@ -163,6 +206,7 @@ tr:hover{
 
             <div class="group">
                 <label>Estatus</label>
+
                 <select id="f_estatus" onchange="aplicarFiltros()">
                     <option value="">Todos</option>
                     <option value="ACTIVO">ACTIVO</option>
@@ -174,7 +218,7 @@ tr:hover{
 
     </div>
 
-    <div class="card">
+    <div class="table-card">
 
         <table>
 
@@ -196,35 +240,28 @@ tr:hover{
 
 </div>
 
-<div class="modal" id="modalRegistro">
+<div id="modalRegistro" class="modal">
 
     <div class="modal-content">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h3>Empleado</h3>
-
-            <button onclick="cerrarModal()" style="font-size:30px;border:none;background:none;cursor:pointer;">
-                &times;
-            </button>
-        </div>
+        <h3>Información del Personal</h3>
 
         <input type="hidden" id="edit_id">
 
         <div class="inputs-grid">
 
             <div class="group">
-                <label>Nombre</label>
+                <label>Nombre Completo</label>
                 <input type="text" id="nombre">
             </div>
 
             <div class="group">
-                <label>NSS</label>
-                <input type="text" id="nss">
-            </div>
 
-            <div class="group">
                 <label>Área</label>
+
+                <!-- ESTE YA USA AREAS_GENERALES -->
                 <select id="sel_area"></select>
+
             </div>
 
             <div class="group">
@@ -234,6 +271,7 @@ tr:hover{
 
             <div class="group">
                 <label>Turno</label>
+
                 <select id="sel_turno">
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -241,17 +279,8 @@ tr:hover{
             </div>
 
             <div class="group">
-                <label>Ruta</label>
-                <select id="sel_ruta"></select>
-            </div>
-
-            <div class="group">
-                <label>Fecha ingreso</label>
-                <input type="date" id="fecha_ingreso">
-            </div>
-
-            <div class="group">
                 <label>Estatus</label>
+
                 <select id="sel_estatus">
                     <option value="ACTIVO">ACTIVO</option>
                     <option value="BAJA">BAJA</option>
@@ -260,16 +289,10 @@ tr:hover{
 
         </div>
 
-        <div style="margin-top:20px;display:flex;gap:10px;">
-
+        <div style="margin-top:20px;">
             <button class="btn-add" onclick="guardarEmpleado()">
                 GUARDAR
             </button>
-
-            <button onclick="cerrarModal()">
-                CANCELAR
-            </button>
-
         </div>
 
     </div>
@@ -281,93 +304,75 @@ tr:hover{
 let db_empleados = [];
 let db_filtrados = [];
 
-async function init(){
+async function init() {
 
-    console.log("INICIANDO...");
+    // ======== CAMBIO AQUI ========
+    const { data: areas } = await client
+        .from('areas_generales')
+        .select('*')
+        .order('nombre');
+    // =============================
 
-    // ===== AREAS GENERALES =====
-    const { data: areas, error: errAreas } = await client
-    .from('areas_generales')
-    .select('*')
-    .order('nombre');
+    const { data: puestos } = await client
+        .from('rh_puestos')
+        .select('*')
+        .order('nombre');
 
-    console.log("AREAS:", areas);
-    console.log("ERROR AREAS:", errAreas);
+    const fill = (id, data, esFiltro = false) => {
 
-    // ===== PUESTOS =====
-    const { data: puestos, error: errPuestos } = await client
-    .from('rh_puestos')
-    .select('*')
-    .order('nombre');
+        const s = document.getElementById(id);
 
-    console.log("PUESTOS:", puestos);
-    console.log("ERROR PUESTOS:", errPuestos);
+        if(!s) return;
 
-    // ===== RUTAS =====
-    const { data: rutas, error: errRutas } = await client
-    .from('rh_rutas')
-    .select('*')
-    .order('nombre');
+        s.innerHTML = `
+            <option value="">
+                ${esFiltro ? 'Todas' : 'Seleccione...'}
+            </option>
+        `;
 
-    console.log("RUTAS:", rutas);
-    console.log("ERROR RUTAS:", errRutas);
+        data?.forEach(d => {
+            s.innerHTML += `
+                <option value="${d.id}">
+                    ${d.nombre}
+                </option>
+            `;
+        });
+    };
 
-    llenarSelect("sel_area", areas);
-    llenarSelect("f_area", areas, true);
+    fill('sel_area', areas);
+    fill('f_area', areas, true);
 
-    llenarSelect("sel_puesto", puestos);
-    llenarSelect("sel_ruta", rutas);
+    fill('sel_puesto', puestos);
 
     await listarEmpleados();
 }
 
-function llenarSelect(id, datos, filtro = false){
+async function listarEmpleados() {
 
-    const select = document.getElementById(id);
-
-    if(!select) return;
-
-    select.innerHTML = filtro
-    ? '<option value="">Todas</option>'
-    : '<option value="">Seleccione...</option>';
-
-    datos?.forEach(item => {
-
-        select.innerHTML += `
-            <option value="${item.id}">
-                ${item.nombre}
-            </option>
-        `;
-    });
-}
-
-async function listarEmpleados(){
-
-    console.log("LISTANDO EMPLEADOS");
-
+    // ======== CAMBIO AQUI ========
     const { data, error } = await client
-    .from('rh_empleados')
-    .select(`
-        *,
-        areas_generales(nombre),
-        rh_puestos(nombre),
-        rh_rutas(nombre)
-    `)
-    .order('nombre_completo');
-
-    console.log("EMPLEADOS:", data);
-    console.log("ERROR EMPLEADOS:", error);
+        .from('rh_empleados')
+        .select(`
+            *,
+            areas_generales!left(nombre),
+            rh_puestos!left(nombre)
+        `)
+        .order('nombre_completo');
+    // =============================
 
     if(error){
-        alert(error.message);
+        console.error(error);
         return;
     }
 
     db_empleados = data.map(e => ({
         ...e,
-        area_txt: e.areas_generales?.nombre || "-",
-        puesto_txt: e.rh_puestos?.nombre || "-",
-        ruta_txt: e.rh_rutas?.nombre || "-"
+
+        // ======== CAMBIO AQUI ========
+        area_txt: e.areas_generales?.nombre || '-',
+        // =============================
+
+        puesto_txt: e.rh_puestos?.nombre || '-'
     }));
 
     aplicarFiltros();
@@ -375,36 +380,51 @@ async function listarEmpleados(){
 
 function aplicarFiltros(){
 
-    const nombre = document.getElementById('f_nombre').value.toLowerCase();
+    const nombre = document
+        .getElementById('f_nombre')
+        .value
+        .toLowerCase();
+
     const area = document.getElementById('f_area').value;
     const turno = document.getElementById('f_turno').value;
     const estatus = document.getElementById('f_estatus').value;
 
     db_filtrados = db_empleados.filter(e =>
 
-        (!nombre || e.nombre_completo?.toLowerCase().includes(nombre))
-        &&
-        (!area || e.area_id == area)
-        &&
-        (!turno || e.turno_id == turno)
-        &&
+        (!nombre || e.nombre_completo.toLowerCase().includes(nombre)) &&
+        (!area || e.area_id == area) &&
+        (!turno || e.turno_id == turno) &&
         (!estatus || e.estatus == estatus)
-
     );
 
-    document.getElementById('lista_empleados').innerHTML = db_filtrados.map(e => `
+    document.getElementById('lista_empleados').innerHTML =
+        db_filtrados.map(e => `
+            <tr>
 
-        <tr onclick="editarEmpleado('${e.id}')">
+                <td>${e.nombre_completo}</td>
 
-            <td>${e.nombre_completo || ''}</td>
-            <td>${e.area_txt}</td>
-            <td>${e.puesto_txt}</td>
-            <td>${e.turno_id || ''}</td>
-            <td>${e.estatus || ''}</td>
+                <td>${e.area_txt}</td>
 
-        </tr>
+                <td>${e.puesto_txt}</td>
 
-    `).join('');
+                <td>${e.turno_id || '-'}</td>
+
+                <td>
+                    <span class="status-badge ${
+                        e.estatus === 'ACTIVO'
+                        ? 'status-activo'
+                        : 'status-baja'
+                    }">
+                        ${e.estatus}
+                    </span>
+                </td>
+
+            </tr>
+        `).join('');
+}
+
+function abrirModal(){
+    document.getElementById('modalRegistro').style.display = 'block';
 }
 
 async function guardarEmpleado(){
@@ -413,78 +433,48 @@ async function guardarEmpleado(){
 
     const obj = {
 
-        nombre_completo: document.getElementById('nombre').value,
-        nss: document.getElementById('nss').value,
+        nombre_completo:
+            document.getElementById('nombre').value,
 
-        area_id: document.getElementById('sel_area').value || null,
+        area_id:
+            document.getElementById('sel_area').value || null,
 
-        puesto_id: document.getElementById('sel_puesto').value || null,
+        puesto_id:
+            document.getElementById('sel_puesto').value || null,
 
-        turno_id: document.getElementById('sel_turno').value || null,
+        turno_id:
+            document.getElementById('sel_turno').value || null,
 
-        ruta_id: document.getElementById('sel_ruta').value || null,
-
-        fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
-
-        estatus: document.getElementById('sel_estatus').value
+        estatus:
+            document.getElementById('sel_estatus').value
     };
 
-    let res;
+    let error;
 
     if(id){
 
-        res = await client
-        .from('rh_empleados')
-        .update(obj)
-        .eq('id', id);
+        ({ error } = await client
+            .from('rh_empleados')
+            .update(obj)
+            .eq('id', id));
 
-    }else{
+    } else {
 
-        res = await client
-        .from('rh_empleados')
-        .insert([obj]);
+        ({ error } = await client
+            .from('rh_empleados')
+            .insert([obj]));
     }
 
-    if(res.error){
-
-        alert(res.error.message);
+    if(error){
+        alert(error.message);
         return;
     }
 
-    alert("Guardado correctamente");
-
-    cerrarModal();
-
-    await listarEmpleados();
-}
-
-function editarEmpleado(id){
-
-    const emp = db_empleados.find(x => x.id == id);
-
-    if(!emp) return;
-
-    document.getElementById('edit_id').value = emp.id;
-    document.getElementById('nombre').value = emp.nombre_completo || '';
-    document.getElementById('nss').value = emp.nss || '';
-    document.getElementById('sel_area').value = emp.area_id || '';
-    document.getElementById('sel_puesto').value = emp.puesto_id || '';
-    document.getElementById('sel_turno').value = emp.turno_id || '1';
-    document.getElementById('sel_ruta').value = emp.ruta_id || '';
-    document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || '';
-    document.getElementById('sel_estatus').value = emp.estatus || 'ACTIVO';
-
-    abrirModal();
-}
-
-function abrirModal(){
-
-    document.getElementById('modalRegistro').style.display = 'block';
-}
-
-function cerrarModal(){
+    alert('Guardado');
 
     document.getElementById('modalRegistro').style.display = 'none';
+
+    await listarEmpleados();
 }
 
 document.addEventListener('DOMContentLoaded', init);
@@ -493,3 +483,4 @@ document.addEventListener('DOMContentLoaded', init);
 
 </body>
 </html>
+```
