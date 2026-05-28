@@ -1,173 +1,188 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>KRAEM | Gestión Personal</title>
+<title>KRAEM | Gestión de Personal 360</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="config.js"></script>
 
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
-
 :root{
-    --primary:#0f172a;
-    --accent:#2563eb;
-    --bg:#f8fafc;
-    --text:#1e293b;
-    --border:#e2e8f0;
+--primary:#0f172a;
+--accent:#2563eb;
+--bg:#f8fafc;
+--text:#1e293b;
+--border:#e2e8f0;
+--success:#22c55e;
 }
 
 body{
-    margin:0;
-    padding:15px;
-    background:var(--bg);
-    font-family:Arial;
-    color:var(--text);
+font-family:'Inter',sans-serif;
+background:var(--bg);
+color:var(--text);
+padding:15px;
+margin:0;
 }
 
 .container{
-    max-width:1600px;
-    margin:auto;
+max-width:1600px;
+margin:auto;
 }
 
 .nav-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:20px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+gap:10px;
+flex-wrap:wrap;
 }
 
-.btn{
-    padding:10px 15px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
+.btn-nav{
+padding:10px 15px;
+border-radius:8px;
+border:1px solid var(--border);
+background:white;
+cursor:pointer;
+text-decoration:none;
+color:var(--text);
+font-weight:600;
+display:inline-flex;
+align-items:center;
+gap:8px;
 }
 
-.btn-primary{
-    background:var(--accent);
-    color:white;
+.btn-add{
+background:var(--accent);
+color:white;
+border:none;
+padding:12px 20px;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.btn-excel{
+background:#166534;
+color:white;
+border:none;
+padding:12px 20px;
+border-radius:8px;
+font-weight:bold;
+cursor:pointer;
+display:flex;
+align-items:center;
+gap:8px;
 }
 
 .card{
-    background:white;
-    border-radius:12px;
-    padding:20px;
-    border:1px solid var(--border);
-    margin-bottom:20px;
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 4px 12px rgba(0,0,0,0.05);
+border:1px solid var(--border);
 }
 
-.inputs-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-    gap:15px;
-}
-
-.group{
-    display:flex;
-    flex-direction:column;
-}
-
-label{
-    font-size:11px;
-    font-weight:bold;
-    margin-bottom:5px;
-    color:#64748b;
-}
-
-input,select{
-    padding:10px;
-    border-radius:8px;
-    border:1px solid #cbd5e1;
+.table-card{
+background:white;
+border-radius:12px;
+border:1px solid var(--border);
+overflow-x:auto;
+margin-top:20px;
 }
 
 table{
-    width:100%;
-    border-collapse:collapse;
+width:100%;
+border-collapse:collapse;
+min-width:1100px;
 }
 
 th{
-    background:#f8fafc;
-    padding:12px;
-    font-size:11px;
-    text-transform:uppercase;
+background:#f8fafc;
+padding:15px;
+text-align:left;
+font-size:11px;
+color:#64748b;
+text-transform:uppercase;
+border-bottom:2px solid var(--border);
 }
 
 td{
-    padding:12px;
-    border-bottom:1px solid #eee;
+padding:15px;
+border-bottom:1px solid #f1f5f9;
+font-size:13px;
+white-space:nowrap;
 }
 
 tr:hover{
-    background:#f8fafc;
-    cursor:pointer;
+background:#f8fafc;
+cursor:pointer;
 }
 
-.status-activo{
-    background:#dcfce7;
-    color:#166534;
-    padding:4px 8px;
-    border-radius:6px;
-    font-size:11px;
+.inputs-grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+gap:15px;
 }
 
-.status-baja{
-    background:#fee2e2;
-    color:#991b1b;
-    padding:4px 8px;
-    border-radius:6px;
-    font-size:11px;
+.group{
+display:flex;
+flex-direction:column;
 }
 
-.dashboard{
-    display:none;
-    grid-template-columns:350px 1fr 300px;
-    gap:20px;
-    margin-bottom:20px;
+.group.full-width{
+grid-column:1 / -1;
 }
 
-.metric-card{
-    background:white;
-    border:1px solid #eee;
-    padding:15px;
-    border-radius:10px;
-    text-align:center;
-    margin-bottom:10px;
+label{
+font-size:10px;
+font-weight:800;
+color:#64748b;
+text-transform:uppercase;
+margin-bottom:5px;
 }
 
-.metric-value{
-    font-size:24px;
-    font-weight:bold;
-    color:var(--accent);
+input,select,textarea{
+padding:10px;
+border:1px solid #cbd5e1;
+border-radius:8px;
+font-size:13px;
+width:100%;
+box-sizing:border-box;
 }
 
-.metric-label{
-    font-size:11px;
-    text-transform:uppercase;
-    color:#64748b;
+.modal{
+display:none;
+position:fixed;
+z-index:2000;
+left:0;
+top:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+backdrop-filter:blur(4px);
 }
 
-@media(max-width:1000px){
-
-    .dashboard{
-        grid-template-columns:1fr;
-    }
-
+.modal-content{
+background:white;
+width:95%;
+max-width:1000px;
+margin:2% auto;
+padding:25px;
+border-radius:15px;
+max-height:90vh;
+overflow-y:auto;
 }
-
 </style>
-
 </head>
 
 <body>
@@ -176,172 +191,85 @@ tr:hover{
 
 <div class="nav-header">
 
-    <h2>Gestión Personal KRAEM</h2>
+<div style="display:flex; gap:15px; align-items:center;">
+<a href="dashboard.html" class="btn-nav">
+<i class="fas fa-arrow-left"></i>
+</a>
 
-    <button class="btn btn-primary"
-    onclick="exportarExcel()">
+<h2 style="margin:0;">
+Gestión de Personal Kraem
+</h2>
+</div>
 
-        EXPORTAR
+<div style="display:flex; gap:10px;">
+<button class="btn-excel" onclick="exportarExcel()">
+<i class="fas fa-file-excel"></i>
+EXPORTAR
+</button>
 
-    </button>
+<button class="btn-add" onclick="abrirModal()">
+<i class="fas fa-plus"></i>
+NUEVO REGISTRO
+</button>
+</div>
 
 </div>
 
-<div id="dashboard" class="dashboard">
+<div class="card" style="margin-bottom:20px;">
 
-    <div class="card">
+<div class="inputs-grid">
 
-        <div style="text-align:center;">
-
-            <img
-            id="view_foto"
-            src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-            style="
-                width:110px;
-                height:110px;
-                border-radius:50%;
-                object-fit:cover;
-                border:4px solid var(--accent);
-            ">
-
-            <h3 id="view_nombre">-</h3>
-
-            <div id="view_puesto_area"></div>
-
-        </div>
-
-        <hr>
-
-        <p><b>NSS:</b> <span id="view_nss"></span></p>
-
-        <p><b>Ingreso:</b> <span id="view_ingreso"></span></p>
-
-        <p><b>Antigüedad:</b> <span id="view_antiguedad"></span></p>
-
-        <p><b>Dirección:</b> <span id="view_direccion"></span></p>
-
-    </div>
-
-    <div class="card">
-
-        <canvas id="chartRadar"></canvas>
-
-    </div>
-
-    <div>
-
-        <div class="metric-card">
-            <div class="metric-label">Calidad</div>
-            <div class="metric-value" id="val_yield">0%</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Asistencia</div>
-            <div class="metric-value" id="val_asistencia">0%</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Puntualidad</div>
-            <div class="metric-value" id="val_puntualidad">0%</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">5S</div>
-            <div class="metric-value" id="val_5s">0%</div>
-        </div>
-
-    </div>
-
+<div class="group">
+<label>Nombre</label>
+<input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()">
 </div>
 
-<div class="card">
-
-    <div class="inputs-grid">
-
-        <div class="group">
-
-            <label>Nombre</label>
-
-            <input
-            type="text"
-            id="f_nombre"
-            oninput="aplicarFiltros()">
-
-        </div>
-
-        <div class="group">
-
-            <label>Área</label>
-
-            <select
-            id="f_area"
-            onchange="aplicarFiltros()"></select>
-
-        </div>
-
-        <div class="group">
-
-            <label>Turno</label>
-
-            <select
-            id="f_turno"
-            onchange="aplicarFiltros()">
-
-                <option value="">Todos</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-
-            </select>
-
-        </div>
-
-        <div class="group">
-
-            <label>Ruta</label>
-
-            <select
-            id="f_ruta"
-            onchange="aplicarFiltros()"></select>
-
-        </div>
-
-        <div class="group">
-
-            <label>Estatus</label>
-
-            <select
-            id="f_estatus"
-            onchange="aplicarFiltros()">
-
-                <option value="">Todos</option>
-                <option value="ACTIVO">ACTIVO</option>
-                <option value="BAJA">BAJA</option>
-
-            </select>
-
-        </div>
-
-    </div>
-
+<div class="group">
+<label>Área</label>
+<select id="f_area" onchange="aplicarFiltros()"></select>
 </div>
 
-<div class="card">
+<div class="group">
+<label>Turno</label>
+
+<select id="f_turno" onchange="aplicarFiltros()">
+<option value="">Todos</option>
+<option value="1">1</option>
+<option value="2">2</option>
+</select>
+</div>
+
+<div class="group">
+<label>Ruta</label>
+<select id="f_ruta" onchange="aplicarFiltros()"></select>
+</div>
+
+<div class="group">
+<label>Estatus</label>
+
+<select id="f_estatus" onchange="aplicarFiltros()">
+<option value="">Todos</option>
+<option value="ACTIVO">ACTIVO</option>
+<option value="BAJA">BAJA</option>
+</select>
+</div>
+
+</div>
+</div>
+
+<div class="table-card">
 
 <table>
 
 <thead>
-
 <tr>
-
-    <th>Nombre</th>
-    <th>Área</th>
-    <th>Puesto</th>
-    <th>Turno</th>
-    <th>Ruta</th>
-    <th>Estatus</th>
-
+<th>Nombre</th>
+<th>Área</th>
+<th>Puesto</th>
+<th>Turno</th>
+<th>Ruta</th>
+<th>Estatus</th>
 </tr>
-
 </thead>
 
 <tbody id="lista_empleados"></tbody>
@@ -352,428 +280,375 @@ tr:hover{
 
 </div>
 
+<div id="modalRegistro" class="modal">
+
+<div class="modal-content">
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+
+<h3>Información del Personal</h3>
+
+<button onclick="cerrarModal()" style="border:none; background:none; font-size:30px; cursor:pointer;">
+&times;
+</button>
+
+</div>
+
+<input type="hidden" id="edit_id">
+
+<div class="inputs-grid">
+
+<div class="group full-width">
+<label>Nombre Completo</label>
+<input type="text" id="nombre">
+</div>
+
+<div class="group">
+<label>Área</label>
+<select id="sel_area"></select>
+</div>
+
+<div class="group">
+<label>Puesto</label>
+<select id="sel_puesto"></select>
+</div>
+
+<div class="group">
+<label>Turno</label>
+
+<select id="sel_turno">
+<option value="1">1</option>
+<option value="2">2</option>
+</select>
+</div>
+
+<div class="group">
+<label>Ruta</label>
+<select id="sel_ruta"></select>
+</div>
+
+<div class="group">
+<label>Fecha Ingreso</label>
+<input type="date" id="fecha_ingreso">
+</div>
+
+<div class="group">
+<label>Estatus</label>
+
+<select id="sel_estatus">
+<option value="ACTIVO">ACTIVO</option>
+<option value="BAJA">BAJA</option>
+</select>
+</div>
+
+</div>
+
+<div style="margin-top:30px; display:flex; gap:15px;">
+
+<button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">
+GUARDAR
+</button>
+
+<button class="btn-nav" style="flex:1; justify-content:center;" onclick="cerrarModal()">
+CANCELAR
+</button>
+
+</div>
+
+</div>
+
+</div>
+
 <script>
 
 let db_empleados = [];
 let db_filtrados = [];
-let chartRadar = null;
 
 async function init(){
 
-    await cargarFiltros();
-    await listarEmpleados();
+/* ===========================
+   AQUI ESTA EL CAMBIO
+=========================== */
 
-}
+const { data: areas } = await client
+.from('areas_generales')
+.select('id,nombre')
+.eq('activo', true)
+.order('nombre');
 
-async function cargarFiltros(){
+/* ===========================
+   TODO LO DEMAS IGUAL
+=========================== */
 
-    const { data: areas } =
-    await client
-    .from('areas_generales')
-    .select('*')
-    .eq('activo', true)
-    .order('nombre');
+const { data: puestos } = await client
+.from('rh_puestos')
+.select('*')
+.order('nombre');
 
-    const { data: rutas } =
-    await client
-    .from('rh_rutas')
-    .select('*')
-    .order('nombre');
+const { data: rutas } = await client
+.from('rh_rutas')
+.select('*')
+.order('nombre');
 
-    llenarSelect('f_area', areas, true);
-    llenarSelect('f_ruta', rutas, true);
+const fill = (id,data,esFiltro=false)=>{
 
-}
+const s = document.getElementById(id);
 
-function llenarSelect(id,data,filtro=false){
+if(!s) return;
 
-    const s =
-    document.getElementById(id);
+s.innerHTML = `
+<option value="">
+${esFiltro ? 'Todas' : 'Seleccione...'}
+</option>
+`;
 
-    s.innerHTML =
-    `<option value="">${filtro ? 'Todos' : 'Seleccione'}</option>`;
+data?.forEach(d=>{
 
-    data?.forEach(d => {
+s.innerHTML += `
+<option value="${d.id}">
+${d.nombre}
+</option>
+`;
 
-        s.innerHTML +=
-        `<option value="${d.id}">${d.nombre}</option>`;
+});
 
-    });
+};
+
+fill('sel_area',areas);
+fill('f_area',areas,true);
+
+fill('sel_puesto',puestos);
+fill('sel_ruta',rutas);
+fill('f_ruta',rutas,true);
+
+await listarEmpleados();
 
 }
 
 async function listarEmpleados(){
 
-    const { data, error } =
-    await client
-    .from('rh_empleados')
-    .select(`
-        *,
-        areas_generales(nombre),
-        rh_puestos(nombre),
-        rh_rutas(nombre)
-    `)
-    .order('nombre_completo');
+const { data,error } = await client
+.from('rh_empleados')
+.select(`
+*,
+areas_generales(
+nombre
+),
+rh_puestos(
+nombre
+),
+rh_rutas(
+nombre
+)
+`)
+.order('nombre_completo');
 
-    if(error){
+if(error){
+console.error(error);
+return;
+}
 
-        console.error(error);
-        alert(error.message);
-        return;
+db_empleados = data.map(e=>({
 
-    }
+...e,
 
-    db_empleados = data.map(e => ({
+area_txt:e.areas_generales?.nombre || '-',
+puesto_txt:e.rh_puestos?.nombre || '-',
+ruta_txt:e.rh_rutas?.nombre || '-'
 
-        ...e,
+}));
 
-        area_txt:
-        e.areas_generales?.nombre || '-',
-
-        puesto_txt:
-        e.rh_puestos?.nombre || '-',
-
-        ruta_txt:
-        e.rh_rutas?.nombre || '-'
-
-    }));
-
-    aplicarFiltros();
+aplicarFiltros();
 
 }
 
 function aplicarFiltros(){
 
-    const nombre =
-    document.getElementById('f_nombre')
-    .value
-    .toLowerCase();
+const n = document.getElementById('f_nombre').value.toLowerCase();
+const a = document.getElementById('f_area').value;
+const t = document.getElementById('f_turno').value;
+const r = document.getElementById('f_ruta').value;
+const s = document.getElementById('f_estatus').value;
+
+db_filtrados = db_empleados.filter(e=>
+
+(!n || e.nombre_completo?.toLowerCase().includes(n)) &&
+(!a || e.area_general_id == a) &&
+(!t || e.turno_id == t) &&
+(!r || e.ruta_id == r) &&
+(!s || e.estatus == s)
 
-    const area =
-    document.getElementById('f_area').value;
-
-    const turno =
-    document.getElementById('f_turno').value;
-
-    const ruta =
-    document.getElementById('f_ruta').value;
-
-    const estatus =
-    document.getElementById('f_estatus').value;
-
-    db_filtrados =
-    db_empleados.filter(e => {
-
-        return (
-
-            (!nombre ||
-            e.nombre_completo?.toLowerCase().includes(nombre))
-
-            &&
-
-            (!area ||
-            e.area_general_id == area)
-
-            &&
-
-            (!turno ||
-            e.turno_id == turno)
-
-            &&
-
-            (!ruta ||
-            e.ruta_id == ruta)
-
-            &&
-
-            (!estatus ||
-            e.estatus == estatus)
-
-        );
-
-    });
-
-    renderTabla();
-
-}
-
-function renderTabla(){
-
-    document.getElementById('lista_empleados')
-    .innerHTML = db_filtrados.map(e => `
-
-        <tr onclick="cargarEmpleado('${e.id}')">
-
-            <td>${e.nombre_completo || '-'}</td>
-
-            <td>${e.area_txt}</td>
-
-            <td>${e.puesto_txt}</td>
-
-            <td>${e.turno_id || '-'}</td>
-
-            <td>${e.ruta_txt}</td>
-
-            <td>
-
-                <span class="
-                ${e.estatus == 'ACTIVO'
-                    ? 'status-activo'
-                    : 'status-baja'}">
-
-                    ${e.estatus || '-'}
-
-                </span>
-
-            </td>
-
-        </tr>
-
-    `).join('');
-
-}
-
-async function cargarEmpleado(id){
-
-    const emp =
-    db_empleados.find(e => e.id == id);
-
-    if(!emp) return;
-
-    document.getElementById('dashboard')
-    .style.display = 'grid';
-
-    document.getElementById('view_nombre')
-    .innerText =
-    emp.nombre_completo || '-';
-
-    document.getElementById('view_puesto_area')
-    .innerText =
-    `${emp.puesto_txt} | ${emp.area_txt}`;
-
-    document.getElementById('view_nss')
-    .innerText =
-    emp.nss || '-';
-
-    document.getElementById('view_ingreso')
-    .innerText =
-    emp.fecha_ingreso || '-';
-
-    document.getElementById('view_direccion')
-    .innerText =
-    emp.direccion || '-';
-
-    document.getElementById('view_antiguedad')
-    .innerText =
-    calcularAntiguedad(emp.fecha_ingreso);
-
-    document.getElementById('view_foto')
-    .src =
-    emp.foto_url ||
-    'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-
-    await calcularMetricas(emp);
-
-}
-
-async function calcularMetricas(emp){
-
-    const { data: prod } =
-    await client
-    .from('inspeccion_produccion')
-    .select('cant_inspeccionada,cant_defectuosa')
-    .eq('operador', emp.nombre_completo);
-
-    let totalIns = 0;
-    let totalDef = 0;
-
-    prod?.forEach(p => {
-
-        totalIns += Number(p.cant_inspeccionada || 0);
-        totalDef += Number(p.cant_defectuosa || 0);
-
-    });
-
-    const yieldVal =
-    totalIns > 0
-    ? Number(((1 - totalDef / totalIns) * 100).toFixed(1))
-    : 0;
-
-    const { data: asist } =
-    await client
-    .from('rh_asistencia')
-    .select('estado')
-    .eq('empleado_id', emp.id);
-
-    const totalDias =
-    asist?.length || 0;
-
-    const asistencia =
-    totalDias > 0
-    ? Number(((asist.filter(a =>
-        a.estado !== 'FALTA').length
-        / totalDias) * 100).toFixed(1))
-    : 0;
-
-    const puntualidad =
-    totalDias > 0
-    ? Number(((asist.filter(a =>
-        a.estado === 'ASISTENCIA').length
-        / totalDias) * 100).toFixed(1))
-    : 0;
-
-    const { data: fives } =
-    await client
-    .from('rh_evaluaciones_5s')
-    .select('puntuacion')
-    .eq('empleado_id', emp.id);
-
-    let promedio5s = 0;
-
-    if(fives?.length > 0){
-
-        promedio5s =
-        Number((
-            fives.reduce((a,b)=>
-            a + Number(b.puntuacion || 0),0)
-            / fives.length
-        ).toFixed(1));
-
-    }
-
-    document.getElementById('val_yield')
-    .innerText =
-    yieldVal + '%';
-
-    document.getElementById('val_asistencia')
-    .innerText =
-    asistencia + '%';
-
-    document.getElementById('val_puntualidad')
-    .innerText =
-    puntualidad + '%';
-
-    document.getElementById('val_5s')
-    .innerText =
-    promedio5s + '%';
-
-    renderRadar(
-        yieldVal,
-        asistencia,
-        promedio5s,
-        puntualidad
-    );
-
-}
-
-function renderRadar(y,a,s,p){
-
-    const ctx =
-    document.getElementById('chartRadar')
-    .getContext('2d');
-
-    if(chartRadar)
-    chartRadar.destroy();
-
-    chartRadar =
-    new Chart(ctx, {
-
-        type:'radar',
-
-        data:{
-
-            labels:[
-                'Calidad',
-                'Asistencia',
-                '5S',
-                'Puntualidad'
-            ],
-
-            datasets:[{
-
-                data:[y,a,s,p],
-
-                backgroundColor:
-                'rgba(37,99,235,0.2)',
-
-                borderColor:
-                '#2563eb'
-
-            }]
-        },
-
-        options:{
-
-            scales:{
-                r:{
-                    suggestedMin:0,
-                    suggestedMax:100
-                }
-            },
-
-            plugins:{
-                legend:{
-                    display:false
-                }
-            }
-        }
-    });
-
-}
-
-function calcularAntiguedad(fecha){
-
-    if(!fecha) return '-';
-
-    const ini =
-    new Date(fecha);
-
-    const hoy =
-    new Date();
-
-    let anios =
-    hoy.getFullYear()
-    - ini.getFullYear();
-
-    return anios + ' años';
-
-}
-
-function exportarExcel(){
-
-    if(db_filtrados.length === 0){
-
-        alert('No hay datos');
-        return;
-
-    }
-
-    const ws =
-    XLSX.utils.json_to_sheet(db_filtrados);
-
-    const wb =
-    XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(
-        wb,
-        ws,
-        'Personal'
-    );
-
-    XLSX.writeFile(
-        wb,
-        `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`
-    );
-
-}
-
-document.addEventListener(
-'DOMContentLoaded',
-init
 );
+
+document.getElementById('lista_empleados').innerHTML =
+db_filtrados.map(e=>`
+
+<tr onclick="editarEmpleado('${e.id}')">
+
+<td><b>${e.nombre_completo || ''}</b></td>
+<td>${e.area_txt}</td>
+<td>${e.puesto_txt}</td>
+<td>${e.turno_id || '-'}</td>
+<td>${e.ruta_txt}</td>
+<td>${e.estatus || ''}</td>
+
+</tr>
+
+`).join('');
+
+}
+
+async function guardarEmpleado(){
+
+const id = document.getElementById('edit_id').value;
+
+const obj = {
+
+nombre_completo:document.getElementById('nombre').value,
+
+/* ===========================
+   AQUI ESTA EL CAMBIO
+=========================== */
+
+area_general_id:
+document.getElementById('sel_area').value || null,
+
+/* ===========================
+   TODO LO DEMAS IGUAL
+=========================== */
+
+puesto_id:
+document.getElementById('sel_puesto').value || null,
+
+turno_id:
+document.getElementById('sel_turno').value || null,
+
+ruta_id:
+document.getElementById('sel_ruta').value || null,
+
+fecha_ingreso:
+document.getElementById('fecha_ingreso').value || null,
+
+estatus:
+document.getElementById('sel_estatus').value
+
+};
+
+let error;
+
+if(id){
+
+({ error } = await client
+.from('rh_empleados')
+.update(obj)
+.eq('id', id));
+
+}else{
+
+({ error } = await client
+.from('rh_empleados')
+.insert([obj]));
+
+}
+
+if(error){
+
+console.error(error);
+alert(error.message);
+return;
+
+}
+
+alert('Guardado');
+
+cerrarModal();
+
+await listarEmpleados();
+
+}
+
+function editarEmpleado(id){
+
+const emp = db_empleados.find(e=>e.id == id);
+
+if(!emp) return;
+
+document.getElementById('edit_id').value = emp.id;
+
+document.getElementById('nombre').value =
+emp.nombre_completo || '';
+
+/* ===========================
+   AQUI ESTA EL CAMBIO
+=========================== */
+
+document.getElementById('sel_area').value =
+emp.area_general_id || '';
+
+/* ===========================
+   TODO LO DEMAS IGUAL
+=========================== */
+
+document.getElementById('sel_puesto').value =
+emp.puesto_id || '';
+
+document.getElementById('sel_turno').value =
+emp.turno_id || '1';
+
+document.getElementById('sel_ruta').value =
+emp.ruta_id || '';
+
+document.getElementById('fecha_ingreso').value =
+emp.fecha_ingreso || '';
+
+document.getElementById('sel_estatus').value =
+emp.estatus || 'ACTIVO';
+
+document.getElementById('modalRegistro').style.display='block';
+
+}
+
+function abrirModal(){
+
+document.getElementById('edit_id').value='';
+
+document.querySelectorAll(
+'#modalRegistro input, #modalRegistro select'
+).forEach(i=>i.value='');
+
+document.getElementById('modalRegistro').style.display='block';
+
+}
+
+function cerrarModal(){
+
+document.getElementById('modalRegistro').style.display='none';
+
+}
+
+async function exportarExcel(){
+
+if(db_filtrados.length===0){
+alert('No hay datos');
+return;
+}
+
+const ws = XLSX.utils.json_to_sheet(db_filtrados);
+
+const wb = XLSX.utils.book_new();
+
+XLSX.utils.book_append_sheet(wb,ws,'Personal');
+
+XLSX.writeFile(
+wb,
+'Personal_Kraem.xlsx'
+);
+
+}
+
+document.addEventListener('DOMContentLoaded',init);
 
 </script>
 
 </body>
 </html>
-```
