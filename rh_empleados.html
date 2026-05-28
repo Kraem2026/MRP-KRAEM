@@ -1,326 +1,129 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión de Personal 360</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM | Gestión de Personal 360</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="config.js"></script>
 
-    <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <style>
+<style>
+:root{
+    --primary:#0f172a;
+    --accent:#2563eb;
+    --bg:#f8fafc;
+    --text:#1e293b;
+    --border:#e2e8f0;
+}
 
-        :root{
-            --primary:#0f172a;
-            --accent:#2563eb;
-            --bg:#f8fafc;
-            --text:#1e293b;
-            --border:#e2e8f0;
-            --success:#22c55e;
-        }
+body{
+    font-family:Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    margin:0;
+    padding:20px;
+}
 
-        body{
-            font-family:'Inter',sans-serif;
-            background:var(--bg);
-            color:var(--text);
-            padding:15px;
-            margin:0;
-        }
+.container{
+    max-width:1600px;
+    margin:auto;
+}
 
-        .container{
-            max-width:1600px;
-            margin:auto;
-        }
+.card{
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    border:1px solid var(--border);
+    margin-bottom:20px;
+}
 
-        .nav-header{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-bottom:20px;
-            gap:10px;
-            flex-wrap:wrap;
-        }
+.nav-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
 
-        .btn-nav{
-            padding:10px 15px;
-            border-radius:8px;
-            border:1px solid var(--border);
-            background:white;
-            cursor:pointer;
-            text-decoration:none;
-            color:var(--text);
-            font-weight:600;
-            display:inline-flex;
-            align-items:center;
-            gap:8px;
-        }
+.btn-add{
+    background:var(--accent);
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+}
 
-        .btn-add{
-            background:var(--accent);
-            color:white;
-            border:none;
-            padding:12px 20px;
-            border-radius:8px;
-            font-weight:bold;
-            cursor:pointer;
-            display:flex;
-            align-items:center;
-            gap:8px;
-        }
+.inputs-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:15px;
+}
 
-        .btn-excel{
-            background:#166534;
-            color:white;
-            border:none;
-            padding:12px 20px;
-            border-radius:8px;
-            font-weight:bold;
-            cursor:pointer;
-            display:flex;
-            align-items:center;
-            gap:8px;
-        }
+.group{
+    display:flex;
+    flex-direction:column;
+}
 
-        .dashboard-360{
-            display:grid;
-            grid-template-columns:350px 1fr 300px;
-            gap:20px;
-            margin-bottom:20px;
-            display:none;
-        }
+label{
+    font-size:12px;
+    font-weight:bold;
+    margin-bottom:5px;
+}
 
-        @media (max-width:1100px){
+input,select{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:8px;
+}
 
-            .dashboard-360{
-                grid-template-columns:1fr;
-            }
+table{
+    width:100%;
+    border-collapse:collapse;
+}
 
-        }
+th,td{
+    padding:12px;
+    border-bottom:1px solid #eee;
+    text-align:left;
+}
 
-        .card{
-            background:white;
-            padding:20px;
-            border-radius:12px;
-            box-shadow:0 4px 12px rgba(0,0,0,0.05);
-            border:1px solid var(--border);
-        }
+th{
+    background:#f1f5f9;
+}
 
-        .radar-box{
-            height:300px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-        }
+tr:hover{
+    background:#f8fafc;
+    cursor:pointer;
+}
 
-        .metric-grid{
-            display:grid;
-            grid-template-columns:1fr;
-            gap:10px;
-        }
+.modal{
+    display:none;
+    position:fixed;
+    z-index:999;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.5);
+}
 
-        .metric-card{
-            text-align:center;
-            padding:12px;
-            border:1px solid #f1f5f9;
-            border-radius:10px;
-            background:#fff;
-        }
-
-        .metric-val{
-            font-size:22px;
-            font-weight:800;
-            color:var(--accent);
-        }
-
-        .metric-lab{
-            font-size:9px;
-            color:#64748b;
-            text-transform:uppercase;
-            font-weight:bold;
-        }
-
-        .table-card{
-            background:white;
-            border-radius:12px;
-            border:1px solid var(--border);
-            overflow-x:auto;
-            margin-top:20px;
-        }
-
-        table{
-            width:100%;
-            border-collapse:collapse;
-            min-width:1100px;
-        }
-
-        th{
-            background:#f8fafc;
-            padding:15px;
-            text-align:left;
-            font-size:11px;
-            color:#64748b;
-            text-transform:uppercase;
-            border-bottom:2px solid var(--border);
-        }
-
-        td{
-            padding:15px;
-            border-bottom:1px solid #f1f5f9;
-            font-size:13px;
-            white-space:nowrap;
-        }
-
-        tr:hover{
-            background:#f8fafc;
-            cursor:pointer;
-        }
-
-        .modal{
-            display:none;
-            position:fixed;
-            z-index:2000;
-            left:0;
-            top:0;
-            width:100%;
-            height:100%;
-            background:rgba(0,0,0,0.5);
-            backdrop-filter:blur(4px);
-        }
-
-        .modal-content{
-            background:white;
-            width:95%;
-            max-width:1000px;
-            margin:2% auto;
-            padding:25px;
-            border-radius:15px;
-            max-height:90vh;
-            overflow-y:auto;
-        }
-
-        .inputs-grid{
-            display:grid;
-            grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-            gap:15px;
-        }
-
-        .group{
-            display:flex;
-            flex-direction:column;
-        }
-
-        .group.full-width{
-            grid-column:1 / -1;
-        }
-
-        label{
-            font-size:10px;
-            font-weight:800;
-            color:#64748b;
-            text-transform:uppercase;
-            margin-bottom:5px;
-        }
-
-        input,
-        select,
-        textarea{
-            padding:10px;
-            border:1px solid #cbd5e1;
-            border-radius:8px;
-            font-size:13px;
-            width:100%;
-            box-sizing:border-box;
-        }
-
-        .status-badge{
-            padding:4px 8px;
-            border-radius:6px;
-            font-weight:bold;
-            font-size:10px;
-        }
-
-        .status-activo{
-            background:#dcfce7;
-            color:#166534;
-        }
-
-        .status-baja{
-            background:#fee2e2;
-            color:#991b1b;
-        }
-
-        .section-title{
-            grid-column:1/-1;
-            border-bottom:1px solid #eee;
-            padding-bottom:5px;
-            margin-top:15px;
-            color:var(--accent);
-            font-size:12px;
-            font-weight:bold;
-        }
-
-        .vacation-box{
-            background:#f0f9ff;
-            padding:10px;
-            border-radius:8px;
-            border:1px solid #bae6fd;
-            margin-top:10px;
-            text-align:center;
-        }
-
-        .photo-upload-container{
-            display:flex;
-            justify-content:center;
-            margin-bottom:25px;
-        }
-
-        .photo-btn{
-            position:relative;
-            width:120px;
-            height:120px;
-            background:#e2e8f0;
-            border-radius:50%;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            border:3px dashed #cbd5e1;
-            cursor:pointer;
-            overflow:hidden;
-            transition:all .3s;
-        }
-
-        .photo-btn:hover{
-            border-color:var(--accent);
-            background:#f1f5f9;
-        }
-
-        .photo-btn i.fa-user{
-            font-size:70px;
-            color:#94a3b8;
-        }
-
-        .photo-btn img{
-            width:100%;
-            height:100%;
-            object-fit:cover;
-            border-radius:50%;
-        }
-
-        .photo-overlay{
-            position:absolute;
-            bottom:0;
-            background:rgba(15,23,42,.6);
-            width:100%;
-            text-align:center;
-            padding:4px 0;
-        }
-
-    </style>
+.modal-content{
+    background:white;
+    width:95%;
+    max-width:900px;
+    margin:2% auto;
+    padding:25px;
+    border-radius:15px;
+    max-height:90vh;
+    overflow:auto;
+}
+</style>
 </head>
 
 <body>
@@ -328,414 +131,61 @@
 <div class="container">
 
     <div class="nav-header">
+        <h2>Gestión de Personal KRAEM</h2>
 
-        <div style="display:flex; gap:15px; align-items:center;">
-
-            <a href="dashboard.html" class="btn-nav">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-
-            <h2 style="margin:0;">
-                Gestión de Personal Kraem
-            </h2>
-
-        </div>
-
-        <div style="display:flex; gap:10px;">
-
-            <button class="btn-excel"
-                onclick="exportarExcel()">
-
-                <i class="fas fa-file-excel"></i>
-                EXPORTAR
-
-            </button>
-
-            <button class="btn-add"
-                onclick="abrirModal()">
-
-                <i class="fas fa-plus"></i>
-                NUEVO REGISTRO
-
-            </button>
-
-        </div>
-
+        <button class="btn-add" onclick="abrirModal()">
+            NUEVO EMPLEADO
+        </button>
     </div>
 
-    <div id="dash_analisis"
-        class="dashboard-360">
-
-        <div class="card"
-            style="text-align:center;">
-
-            <img id="view_foto"
-                src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                style="
-                    width:110px;
-                    height:110px;
-                    border-radius:50%;
-                    border:4px solid var(--accent);
-                    object-fit:cover;
-                ">
-
-            <h3 id="view_nombre"
-                style="margin:15px 0 5px 0;">
-
-                --
-
-            </h3>
-
-            <p id="view_puesto_area"
-                style="
-                    font-size:12px;
-                    color:#64748b;
-                    margin:0;
-                    font-weight:bold;
-                ">
-
-                --
-
-            </p>
-
-            <div class="vacation-box">
-
-                <div style="
-                    font-size:10px;
-                    font-weight:bold;
-                    color:#0369a1;
-                    text-transform:uppercase;
-                ">
-                    Días Disponibles
-                </div>
-
-                <div id="view_dias_disponibles"
-                    style="
-                        font-size:20px;
-                        font-weight:800;
-                        color:#0284c7;
-                    ">
-
-                    --
-
-                </div>
-
-                <a href="rh_solicitudes.html"
-                    class="btn-nav"
-                    style="
-                        font-size:11px;
-                        padding:5px 10px;
-                        margin-top:5px;
-                        width:90%;
-                        justify-content:center;
-                    ">
-
-                    Gestionar Vacaciones
-
-                </a>
-
-            </div>
-
-            <hr style="
-                margin:20px 0;
-                border:0;
-                border-top:1px solid #eee;
-            ">
-
-            <div style="
-                text-align:left;
-                font-size:13px;
-                line-height:1.6;
-            ">
-
-                <p>
-                    <strong>
-                        <i class="fas fa-fingerprint"></i>
-                        NSS:
-                    </strong>
-
-                    <span id="view_nss">--</span>
-                </p>
-
-                <p>
-                    <strong>
-                        <i class="fas fa-calendar"></i>
-                        Antigüedad:
-                    </strong>
-
-                    <span id="view_anti">--</span>
-                </p>
-
-                <p>
-                    <strong>
-                        <i class="fas fa-tshirt"></i>
-                        Talla:
-                    </strong>
-
-                    <span id="view_talla">--</span>
-                </p>
-
-                <p>
-                    <strong>
-                        <i class="fas fa-clock"></i>
-                        Ingreso:
-                    </strong>
-
-                    <span id="view_ingreso">--</span>
-                </p>
-
-                <p>
-                    <strong>
-                        <i class="fas fa-map-marker-alt"></i>
-                        Dirección:
-                    </strong>
-
-                    <span id="view_direccion">--</span>
-                </p>
-
-                <button class="btn-nav"
-                    style="
-                        width:100%;
-                        justify-content:center;
-                        margin-top:15px;
-                        border-color:var(--accent);
-                        color:var(--accent);
-                    "
-                    onclick="editarActual()">
-
-                    EDITAR FICHA
-
-                </button>
-
-            </div>
-
-        </div>
-
-        <div class="card">
-
-            <div style="
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                margin-bottom:10px;
-            ">
-
-                <label style="
-                    font-weight:bold;
-                    color:var(--accent);
-                ">
-
-                    DESEMPEÑO GLOBAL
-
-                </label>
-
-                <div id="rango_texto"
-                    style="
-                        font-size:10px;
-                        background:#eff6ff;
-                        padding:5px 10px;
-                        border-radius:5px;
-                        color:var(--accent);
-                        font-weight:bold;
-                    ">
-
-                    --
-
-                </div>
-
-            </div>
-
-            <div class="radar-box">
-
-                <canvas id="chartRadar"></canvas>
-
-            </div>
-
-        </div>
-
-        <div class="card metric-grid">
-
-            <div class="metric-card">
-
-                <div class="metric-lab">Calidad</div>
-
-                <div id="val_yield"
-                    class="metric-val">
-
-                    0%
-
-                </div>
-
-            </div>
-
-            <div class="metric-card">
-
-                <div class="metric-lab">Asistencia</div>
-
-                <div id="val_asistencia"
-                    class="metric-val">
-
-                    0%
-
-                </div>
-
-            </div>
-
-            <div class="metric-card">
-
-                <div class="metric-lab">Puntualidad</div>
-
-                <div id="val_puntualidad"
-                    class="metric-val">
-
-                    0%
-
-                </div>
-
-            </div>
-
-            <div class="metric-card">
-
-                <div class="metric-lab">5'S</div>
-
-                <div id="val_5s"
-                    class="metric-val">
-
-                    0%
-
-                </div>
-
-            </div>
-
-            <div class="metric-card"
-                style="
-                    background:#f0f9ff;
-                    grid-column:1/-1;
-                ">
-
-                <div class="metric-lab">
-                    Versatilidad
-                </div>
-
-                <div id="val_versatilidad"
-                    class="metric-val">
-
-                    0%
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="card"
-        style="margin-bottom:20px;">
+    <div class="card">
 
         <div class="inputs-grid">
 
             <div class="group">
-
-                <label>Nombre</label>
-
-                <input type="text"
-                    id="f_nombre"
-                    placeholder="Buscar..."
-                    oninput="aplicarFiltros()">
-
+                <label>Buscar</label>
+                <input type="text" id="f_nombre" oninput="aplicarFiltros()">
             </div>
 
             <div class="group">
-
-                <label>Desde</label>
-
-                <input type="date"
-                    id="f_desde"
-                    onchange="actualizarTodo()">
-
-            </div>
-
-            <div class="group">
-
-                <label>Hasta</label>
-
-                <input type="date"
-                    id="f_hasta"
-                    onchange="actualizarTodo()">
-
-            </div>
-
-            <div class="group">
-
                 <label>Área</label>
-
-                <select id="f_area"
-                    onchange="aplicarFiltros()"></select>
-
+                <select id="f_area" onchange="aplicarFiltros()"></select>
             </div>
 
             <div class="group">
-
                 <label>Turno</label>
-
-                <select id="f_turno"
-                    onchange="aplicarFiltros()">
-
+                <select id="f_turno" onchange="aplicarFiltros()">
                     <option value="">Todos</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
-
                 </select>
-
             </div>
 
             <div class="group">
-
-                <label>Ruta</label>
-
-                <select id="f_ruta"
-                    onchange="aplicarFiltros()"></select>
-
-            </div>
-
-            <div class="group">
-
                 <label>Estatus</label>
-
-                <select id="f_estatus"
-                    onchange="aplicarFiltros()">
-
+                <select id="f_estatus" onchange="aplicarFiltros()">
                     <option value="">Todos</option>
                     <option value="ACTIVO">ACTIVO</option>
                     <option value="BAJA">BAJA</option>
-
                 </select>
-
             </div>
 
         </div>
 
     </div>
 
-    <div class="table-card">
+    <div class="card">
 
         <table>
 
             <thead>
-
                 <tr>
-
                     <th>Nombre</th>
                     <th>Área</th>
                     <th>Puesto</th>
-                    <th>Antigüedad</th>
                     <th>Turno</th>
-                    <th>Ruta</th>
                     <th>Estatus</th>
-
                 </tr>
-
             </thead>
 
             <tbody id="lista_empleados"></tbody>
@@ -746,271 +196,78 @@
 
 </div>
 
-<!-- ===================================================== -->
-<!-- MODAL -->
-<!-- ===================================================== -->
-
-<div id="modalRegistro"
-    class="modal">
+<div class="modal" id="modalRegistro">
 
     <div class="modal-content">
 
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-bottom:20px;
-        ">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3>Empleado</h3>
 
-            <h3 id="modal_titulo">
-                Información del Personal
-            </h3>
-
-            <button onclick="cerrarModal()"
-                style="
-                    border:none;
-                    background:none;
-                    font-size:30px;
-                    cursor:pointer;
-                ">
-
+            <button onclick="cerrarModal()" style="font-size:30px;border:none;background:none;cursor:pointer;">
                 &times;
-
             </button>
-
         </div>
 
-        <div class="photo-upload-container">
-
-            <div class="photo-btn"
-                onclick="document.getElementById('input_foto').click()">
-
-                <i class="fas fa-user"
-                    id="modal_icon_user"></i>
-
-                <img id="img_preview"
-                    style="display:none;">
-
-                <div class="photo-overlay">
-
-                    <i class="fas fa-camera"
-                        style="
-                            color:white;
-                            font-size:12px;
-                        "></i>
-
-                </div>
-
-                <input type="file"
-                    id="input_foto"
-                    style="display:none;"
-                    accept="image/*"
-                    onchange="previewImage(event)">
-
-            </div>
-
-        </div>
-
-        <input type="hidden"
-            id="edit_id">
+        <input type="hidden" id="edit_id">
 
         <div class="inputs-grid">
 
-            <div class="section-title">
-                LABORALES
-            </div>
-
-            <div class="group full-width">
-
-                <label>Nombre Completo</label>
-
-                <input type="text"
-                    id="nombre">
-
+            <div class="group">
+                <label>Nombre</label>
+                <input type="text" id="nombre">
             </div>
 
             <div class="group">
-
-                <label># Seguro Social (NSS)</label>
-
-                <input type="text"
-                    id="nss">
-
+                <label>NSS</label>
+                <input type="text" id="nss">
             </div>
 
-            <!-- ================================================= -->
-            <!-- AREA GENERAL -->
-            <!-- ================================================= -->
-
             <div class="group">
-
-                <label>Área General</label>
-
+                <label>Área</label>
                 <select id="sel_area"></select>
-
             </div>
 
             <div class="group">
-
                 <label>Puesto</label>
-
                 <select id="sel_puesto"></select>
-
             </div>
 
             <div class="group">
-
                 <label>Turno</label>
-
                 <select id="sel_turno">
-
                     <option value="1">1</option>
                     <option value="2">2</option>
-
                 </select>
-
             </div>
 
             <div class="group">
-
                 <label>Ruta</label>
-
                 <select id="sel_ruta"></select>
-
             </div>
 
             <div class="group">
-
-                <label>Fecha Ingreso</label>
-
-                <input type="date"
-                    id="fecha_ingreso">
-
+                <label>Fecha ingreso</label>
+                <input type="date" id="fecha_ingreso">
             </div>
 
             <div class="group">
-
                 <label>Estatus</label>
-
                 <select id="sel_estatus">
-
                     <option value="ACTIVO">ACTIVO</option>
                     <option value="BAJA">BAJA</option>
-
                 </select>
-
-            </div>
-
-            <div class="section-title">
-                PERSONAL / MÉDICO
-            </div>
-
-            <div class="group">
-
-                <label>Teléfono Personal</label>
-
-                <input type="tel"
-                    id="telefono_personal">
-
-            </div>
-
-            <div class="group">
-
-                <label>Tipo de Sangre</label>
-
-                <input type="text"
-                    id="tipo_sangre">
-
-            </div>
-
-            <div class="group">
-
-                <label>Talla</label>
-
-                <select id="sel_talla">
-
-                    <option value="S">S</option>
-                    <option value="M">M</option>
-                    <option value="L">L</option>
-                    <option value="XL">XL</option>
-
-                </select>
-
-            </div>
-
-            <div class="group full-width">
-
-                <label>Dirección</label>
-
-                <input type="text"
-                    id="direccion">
-
-            </div>
-
-            <div class="group">
-
-                <label>Contacto Emergencia</label>
-
-                <input type="text"
-                    id="emergencia_nombre">
-
-            </div>
-
-            <div class="group">
-
-                <label>Parentesco</label>
-
-                <input type="text"
-                    id="emergencia_parentesco">
-
-            </div>
-
-            <div class="group">
-
-                <label>Tel. Emergencia</label>
-
-                <input type="tel"
-                    id="emergencia_tel">
-
-            </div>
-
-            <div class="group full-width">
-
-                <label>Alergias / Padecimientos</label>
-
-                <textarea id="alergias"
-                    rows="2"></textarea>
-
             </div>
 
         </div>
 
-        <div style="
-            margin-top:30px;
-            display:flex;
-            gap:15px;
-        ">
+        <div style="margin-top:20px;display:flex;gap:10px;">
 
-            <button class="btn-add"
-                style="
-                    flex:2;
-                    justify-content:center;
-                "
-                onclick="guardarEmpleado()">
-
+            <button class="btn-add" onclick="guardarEmpleado()">
                 GUARDAR
-
             </button>
 
-            <button class="btn-nav"
-                style="
-                    flex:1;
-                    justify-content:center;
-                "
-                onclick="cerrarModal()">
-
+            <button onclick="cerrarModal()">
                 CANCELAR
-
             </button>
 
         </div>
@@ -1019,248 +276,218 @@
 
 </div>
 
-<!-- ===================================================== -->
-<!-- SCRIPT -->
-<!-- ===================================================== -->
-
 <script>
 
-    let db_empleados = [];
-    let db_filtrados = [];
-    let chartRadar;
-    let currentEmpId = null;
+let db_empleados = [];
+let db_filtrados = [];
 
-    function obtenerDiasLey(anios){
+async function init(){
 
-        if(anios < 1) return 0;
-        if(anios === 1) return 12;
-        if(anios === 2) return 14;
-        if(anios === 3) return 16;
-        if(anios === 4) return 18;
-        if(anios === 5) return 20;
-        if(anios >= 6 && anios <= 10) return 22;
-        if(anios >= 11 && anios <= 15) return 24;
-        if(anios >= 16 && anios <= 20) return 26;
-        if(anios >= 21 && anios <= 25) return 28;
-        if(anios >= 26 && anios <= 30) return 30;
+    console.log("INICIANDO...");
 
-        return 32;
+    // ===== AREAS GENERALES =====
+    const { data: areas, error: errAreas } = await client
+    .from('areas_generales')
+    .select('*')
+    .order('nombre');
 
+    console.log("AREAS:", areas);
+    console.log("ERROR AREAS:", errAreas);
+
+    // ===== PUESTOS =====
+    const { data: puestos, error: errPuestos } = await client
+    .from('rh_puestos')
+    .select('*')
+    .order('nombre');
+
+    console.log("PUESTOS:", puestos);
+    console.log("ERROR PUESTOS:", errPuestos);
+
+    // ===== RUTAS =====
+    const { data: rutas, error: errRutas } = await client
+    .from('rh_rutas')
+    .select('*')
+    .order('nombre');
+
+    console.log("RUTAS:", rutas);
+    console.log("ERROR RUTAS:", errRutas);
+
+    llenarSelect("sel_area", areas);
+    llenarSelect("f_area", areas, true);
+
+    llenarSelect("sel_puesto", puestos);
+    llenarSelect("sel_ruta", rutas);
+
+    await listarEmpleados();
+}
+
+function llenarSelect(id, datos, filtro = false){
+
+    const select = document.getElementById(id);
+
+    if(!select) return;
+
+    select.innerHTML = filtro
+    ? '<option value="">Todas</option>'
+    : '<option value="">Seleccione...</option>';
+
+    datos?.forEach(item => {
+
+        select.innerHTML += `
+            <option value="${item.id}">
+                ${item.nombre}
+            </option>
+        `;
+    });
+}
+
+async function listarEmpleados(){
+
+    console.log("LISTANDO EMPLEADOS");
+
+    const { data, error } = await client
+    .from('rh_empleados')
+    .select(`
+        *,
+        areas_generales(nombre),
+        rh_puestos(nombre),
+        rh_rutas(nombre)
+    `)
+    .order('nombre_completo');
+
+    console.log("EMPLEADOS:", data);
+    console.log("ERROR EMPLEADOS:", error);
+
+    if(error){
+        alert(error.message);
+        return;
     }
 
-    async function init(){
+    db_empleados = data.map(e => ({
+        ...e,
+        area_txt: e.areas_generales?.nombre || "-",
+        puesto_txt: e.rh_puestos?.nombre || "-",
+        ruta_txt: e.rh_rutas?.nombre || "-"
+    }));
 
-        // =====================================================
-        // AREAS GENERALES
-        // =====================================================
+    aplicarFiltros();
+}
 
-        const { data: areasGenerales } =
-        await client
+function aplicarFiltros(){
 
-        .from('areas_generales')
+    const nombre = document.getElementById('f_nombre').value.toLowerCase();
+    const area = document.getElementById('f_area').value;
+    const turno = document.getElementById('f_turno').value;
+    const estatus = document.getElementById('f_estatus').value;
 
-        .select('*')
+    db_filtrados = db_empleados.filter(e =>
 
-        .eq('active', true)
+        (!nombre || e.nombre_completo?.toLowerCase().includes(nombre))
+        &&
+        (!area || e.area_id == area)
+        &&
+        (!turno || e.turno_id == turno)
+        &&
+        (!estatus || e.estatus == estatus)
 
-        .order('nombre');
+    );
 
-        // =====================================================
-        // PUESTOS
-        // =====================================================
+    document.getElementById('lista_empleados').innerHTML = db_filtrados.map(e => `
 
-        const { data: puestos } =
-        await client
+        <tr onclick="editarEmpleado('${e.id}')">
 
-        .from('rh_puestos')
+            <td>${e.nombre_completo || ''}</td>
+            <td>${e.area_txt}</td>
+            <td>${e.puesto_txt}</td>
+            <td>${e.turno_id || ''}</td>
+            <td>${e.estatus || ''}</td>
 
-        .select('*')
+        </tr>
 
-        .order('nombre');
+    `).join('');
+}
 
-        // =====================================================
-        // RUTAS
-        // =====================================================
+async function guardarEmpleado(){
 
-        const { data: rutas } =
-        await client
+    const id = document.getElementById('edit_id').value;
 
-        .from('rh_rutas')
+    const obj = {
 
-        .select('*')
+        nombre_completo: document.getElementById('nombre').value,
+        nss: document.getElementById('nss').value,
 
-        .order('nombre');
+        area_id: document.getElementById('sel_area').value || null,
 
-        // =====================================================
-        // FUNCION LLENADO
-        // =====================================================
+        puesto_id: document.getElementById('sel_puesto').value || null,
 
-        const fill = (id, data, esFiltro = false) => {
+        turno_id: document.getElementById('sel_turno').value || null,
 
-            const s =
-                document.getElementById(id);
+        ruta_id: document.getElementById('sel_ruta').value || null,
 
-            if(!s) return;
+        fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
 
-            s.innerHTML = `
-                <option value="">
-                    ${esFiltro ? 'Todas' : 'Seleccione...'}
-                </option>
-            `;
+        estatus: document.getElementById('sel_estatus').value
+    };
 
-            data?.forEach(d => {
+    let res;
 
-                s.innerHTML += `
-                    <option value="${d.id}">
-                        ${d.nombre}
-                    </option>
-                `;
+    if(id){
 
-            });
-
-        };
-
-        fill('sel_area', areasGenerales);
-        fill('f_area', areasGenerales, true);
-
-        fill('sel_puesto', puestos);
-
-        fill('sel_ruta', rutas);
-        fill('f_ruta', rutas, true);
-
-        const d = new Date();
-
-        document.getElementById('f_desde').value =
-            new Date(
-                d.getFullYear(),
-                d.getMonth(),
-                1
-            ).toISOString().split('T')[0];
-
-        document.getElementById('f_hasta').value =
-            new Date(
-                d.getFullYear(),
-                d.getMonth()+1,
-                0
-            ).toISOString().split('T')[0];
-
-        await listarEmpleados();
-
-    }
-
-    async function listarEmpleados(){
-
-        const { data, error } =
-        await client
-
+        res = await client
         .from('rh_empleados')
+        .update(obj)
+        .eq('id', id);
 
-        .select(`
-            *,
-            areas_generales!left(nombre),
-            rh_puestos!left(nombre),
-            rh_rutas!left(nombre)
-        `)
+    }else{
 
-        .order('nombre_completo');
-
-        if(error){
-
-            console.error(error);
-            return;
-
-        }
-
-        db_empleados = data.map(e => ({
-
-            ...e,
-
-            area_txt:
-                e.areas_generales?.nombre || '-',
-
-            puesto_txt:
-                e.rh_puestos?.nombre || '-',
-
-            ruta_txt:
-                e.rh_rutas?.nombre || '-',
-
-            antiguedad_txt:
-                calcularAntiguedadExacta(e.fecha_ingreso)
-
-        }));
-
-        aplicarFiltros();
-
+        res = await client
+        .from('rh_empleados')
+        .insert([obj]);
     }
 
-    function aplicarFiltros(){
+    if(res.error){
 
-        const n =
-            document.getElementById('f_nombre')
-            .value.toLowerCase();
-
-        const a =
-            document.getElementById('f_area').value;
-
-        const t =
-            document.getElementById('f_turno').value;
-
-        const r =
-            document.getElementById('f_ruta').value;
-
-        const s =
-            document.getElementById('f_estatus').value;
-
-        db_filtrados = db_empleados.filter(e =>
-
-            (!n || e.nombre_completo.toLowerCase().includes(n))
-            &&
-            (!a || e.area_general_id == a)
-            &&
-            (!t || e.turno_id == t)
-            &&
-            (!r || e.ruta_id == r)
-            &&
-            (!s || e.estatus == s)
-
-        );
-
-        document.getElementById('lista_empleados').innerHTML =
-
-            db_filtrados.map(e => `
-
-                <tr onclick="cargarAnalisis('${e.id}')">
-
-                    <td><b>${e.nombre_completo}</b></td>
-
-                    <td>${e.area_txt}</td>
-
-                    <td>${e.puesto_txt}</td>
-
-                    <td>${e.antiguedad_txt}</td>
-
-                    <td>Turno ${e.turno_id || '-'}</td>
-
-                    <td>${e.ruta_txt}</td>
-
-                    <td>
-
-                        <span class="status-badge
-                            ${e.estatus === 'ACTIVO'
-                                ? 'status-activo'
-                                : 'status-baja'}">
-
-                            ${e.estatus || 'N/A'}
-
-                        </span>
-
-                    </td>
-
-                </tr>
-
-            `).join('');
-
+        alert(res.error.message);
+        return;
     }
+
+    alert("Guardado correctamente");
+
+    cerrarModal();
+
+    await listarEmpleados();
+}
+
+function editarEmpleado(id){
+
+    const emp = db_empleados.find(x => x.id == id);
+
+    if(!emp) return;
+
+    document.getElementById('edit_id').value = emp.id;
+    document.getElementById('nombre').value = emp.nombre_completo || '';
+    document.getElementById('nss').value = emp.nss || '';
+    document.getElementById('sel_area').value = emp.area_id || '';
+    document.getElementById('sel_puesto').value = emp.puesto_id || '';
+    document.getElementById('sel_turno').value = emp.turno_id || '1';
+    document.getElementById('sel_ruta').value = emp.ruta_id || '';
+    document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || '';
+    document.getElementById('sel_estatus').value = emp.estatus || 'ACTIVO';
+
+    abrirModal();
+}
+
+function abrirModal(){
+
+    document.getElementById('modalRegistro').style.display = 'block';
+}
+
+function cerrarModal(){
+
+    document.getElementById('modalRegistro').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', init);
 
 </script>
 
