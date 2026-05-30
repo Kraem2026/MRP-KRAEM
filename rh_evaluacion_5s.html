@@ -1,784 +1,417 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>KRAEM | Auditoría 5S</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-
-<link rel="stylesheet"
-href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-<style>
-
-:root{
-    --primary:#2563eb;
-    --success:#22c55e;
-    --warning:#f59e0b;
-    --danger:#ef4444;
-    --bg:#f8fafc;
-    --text:#1e293b;
-    --border:#e2e8f0;
-}
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    font-family:'Segoe UI',sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    padding:15px;
-}
-
-.container{
-    max-width:550px;
-    margin:auto;
-    background:white;
-    border-radius:18px;
-    box-shadow:0 4px 15px rgba(0,0,0,0.08);
-    padding:20px;
-    min-height:85vh;
-    display:flex;
-    flex-direction:column;
-}
-
-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:20px;
-    border-bottom:2px solid var(--bg);
-    padding-bottom:12px;
-}
-
-.btn-back{
-    background:none;
-    border:none;
-    color:var(--primary);
-    font-weight:bold;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    gap:6px;
-    font-size:14px;
-}
-
-.setup-group{
-    display:grid;
-    gap:14px;
-    margin-bottom:20px;
-}
-
-label{
-    font-size:11px;
-    font-weight:bold;
-    color:var(--primary);
-    text-transform:uppercase;
-    margin-bottom:-8px;
-}
-
-select,
-textarea{
-    width:100%;
-    padding:12px;
-    border:1px solid var(--border);
-    border-radius:10px;
-    font-size:14px;
-    background:white;
-    font-family:inherit;
-    outline:none;
-}
-
-select:focus,
-textarea:focus{
-    border-color:var(--primary);
-}
-
-.progress-container{
-    background:#e5e7eb;
-    border-radius:10px;
-    height:10px;
-    margin-bottom:20px;
-    overflow:hidden;
-}
-
-.progress-bar{
-    background:var(--primary);
-    height:100%;
-    width:0%;
-    transition:.3s;
-}
-
-.question-card{
-    background:var(--bg);
-    padding:15px;
-    border-radius:14px;
-    margin-bottom:12px;
-    border-left:5px solid var(--primary);
-}
-
-.options{
-    display:flex;
-    gap:8px;
-    margin-top:12px;
-}
-
-.btn-opt{
-    flex:1;
-    padding:10px;
-    border:2px solid var(--border);
-    border-radius:10px;
-    cursor:pointer;
-    font-weight:bold;
-    background:white;
-    font-size:11px;
-    transition:.2s;
-}
-
-.btn-opt.active[data-score="1"]{
-    background:var(--success)!important;
-    color:white;
-    border-color:#16a34a;
-}
-
-.btn-opt.active[data-score="0.5"]{
-    background:var(--warning)!important;
-    color:white;
-    border-color:#d97706;
-}
-
-.btn-opt.active[data-score="0"]{
-    background:var(--danger)!important;
-    color:white;
-    border-color:#dc2626;
-}
-
-.btn-nav{
-    padding:15px;
-    border:none;
-    border-radius:12px;
-    cursor:pointer;
-    font-weight:bold;
-    width:100%;
-    font-size:16px;
-    background:var(--primary);
-    color:white;
-    transition:.2s;
-}
-
-.btn-nav:hover{
-    opacity:.95;
-}
-
-.hidden{
-    display:none;
-}
-
-#score-badge{
-    font-size:4rem;
-    font-weight:900;
-    text-align:center;
-    color:var(--primary);
-    margin:25px 0;
-}
-
-.info-box{
-    background:#eff6ff;
-    border:1px solid #bfdbfe;
-    padding:12px;
-    border-radius:12px;
-    margin-bottom:15px;
-    font-size:13px;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Auditoría 5S</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root{
+            --primary:#2563eb;
+            --success:#22c55e;
+            --warning:#f59e0b;
+            --danger:#ef4444;
+            --bg:#f8fafc;
+            --text:#1e293b;
+            --border:#e2e8f0;
+        }
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+        body{
+            font-family:'Segoe UI',sans-serif;
+            background:var(--bg);
+            color:var(--text);
+            padding:15px;
+        }
+        .container{
+            max-width:550px;
+            margin:auto;
+            background:white;
+            border-radius:18px;
+            box-shadow:0 4px 15px rgba(0,0,0,0.08);
+            padding:20px;
+            min-height:85vh;
+            display:flex;
+            flex-direction:column;
+        }
+        header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:20px;
+            border-bottom:2px solid var(--bg);
+            padding-bottom:12px;
+        }
+        .btn-back{
+            background:none;
+            border:none;
+            color:var(--primary);
+            font-weight:bold;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            gap:6px;
+            font-size:14px;
+        }
+        .setup-group{
+            display:grid;
+            gap:14px;
+            margin-bottom:20px;
+        }
+        label{
+            font-size:11px;
+            font-weight:bold;
+            color:var(--primary);
+            text-transform:uppercase;
+            margin-bottom:-8px;
+        }
+        select, textarea{
+            width:100%;
+            padding:12px;
+            border:1px solid var(--border);
+            border-radius:10px;
+            font-size:14px;
+            background:white;
+            font-family:inherit;
+            outline:none;
+        }
+        select:focus, textarea:focus{
+            border-color:var(--primary);
+        }
+        .progress-container{
+            background:#e5e7eb;
+            border-radius:10px;
+            height:10px;
+            margin-bottom:20px;
+            overflow:hidden;
+        }
+        .progress-bar{
+            background:var(--primary);
+            height:100%;
+            width:0%;
+            transition:.3s;
+        }
+        .question-card{
+            background:var(--bg);
+            padding:15px;
+            border-radius:14px;
+            margin-bottom:12px;
+            border-left:5px solid var(--primary);
+        }
+        .options{
+            display:flex;
+            gap:8px;
+            margin-top:12px;
+        }
+        .btn-opt{
+            flex:1;
+            padding:10px;
+            border:2px solid var(--border);
+            border-radius:10px;
+            cursor:pointer;
+            font-weight:bold;
+            background:white;
+            font-size:11px;
+            transition:.2s;
+        }
+        .btn-opt.active[data-score="1"]{
+            background:var(--success)!important;
+            color:white;
+            border-color:#16a34a;
+        }
+        .btn-opt.active[data-score="0.5"]{
+            background:var(--warning)!important;
+            color:white;
+            border-color:#d97706;
+        }
+        .btn-opt.active[data-score="0"]{
+            background:var(--danger)!important;
+            color:white;
+            border-color:#dc2626;
+        }
+        .btn-nav{
+            padding:15px;
+            border:none;
+            border-radius:12px;
+            cursor:pointer;
+            font-weight:bold;
+            width:100%;
+            font-size:16px;
+            background:var(--primary);
+            color:white;
+            transition:.2s;
+        }
+        .btn-nav:hover{
+            opacity:.95;
+        }
+        .hidden{
+            display:none !important;
+        }
+        #score-badge{
+            font-size:4rem;
+            font-weight:900;
+            text-align:center;
+            color:var(--primary);
+            margin:25px 0;
+        }
+        .info-box{
+            background:#eff6ff;
+            border:1px solid #bfdbfe;
+            padding:12px;
+            border-radius:12px;
+            margin-bottom:15px;
+            font-size:13px;
+        }
+        .btn-flex-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
-
 <body>
 
 <div class="container">
+    <header>
+        <button class="btn-back" id="header-back-btn" onclick="prevStep()">
+            <i class="fas fa-arrow-left"></i> <span id="back-text">Panel</span>
+        </button>
+        <h3 style="margin:0;">Auditoría 5S</h3>
+    </header>
 
-<header>
+    <div id="step-setup">
+        <div class="setup-group">
+            <label>Área General</label>
+            <select id="area_select" onchange="actualizarMaquinas()">
+                <option value="">Cargando...</option>
+            </select>
 
-    <button class="btn-back"
-        onclick="location.href='dashboard.html'">
+            <label>Máquina</label>
+            <select id="maquina_select">
+                <option value="">Seleccione área...</option>
+            </select>
 
-        <i class="fas fa-th-large"></i>
-        Panel
+            <label>Operador</label>
+            <select id="operador_select">
+                <option value="">Cargando...</option>
+            </select>
 
-    </button>
+            <label>Auditor</label>
+            <select id="auditor_select">
+                <option value="">Cargando...</option>
+            </select>
+        </div>
 
-    <h3 style="margin:0;">
-        Auditoría 5S
-    </h3>
-
-  
-</header>
-
-<!-- ========================= -->
-<!-- SETUP -->
-<!-- ========================= -->
-
-<div id="step-setup">
-
+        <button class="btn-nav" onclick="nextStep()">EMPEZAR AUDITORÍA</button>
     </div>
 
-    <div class="setup-group">
+    <div id="audit-flow" class="hidden">
+        <div class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
 
-        <label>Área General</label>
+        <div id="section-label" style="font-weight:bold; color:var(--primary); text-align:center; margin-bottom:15px; font-size:1.2rem;"></div>
 
-        <select id="area_select"
-            onchange="actualizarMaquinas()">
+        <div id="preguntas_cont"></div>
 
-            <option value="">
-                Cargando...
-            </option>
+        <div style="margin-top:20px;">
+            <label>Observaciones de esta sección</label>
+            <textarea id="obs_input" rows="3" placeholder="Hallazgos, mejoras, problemas detectados..."></textarea>
+        </div>
 
-        </select>
-
-        <label>Máquina</label>
-
-        <select id="maquina_select">
-
-            <option value="">
-                Seleccione área...
-            </option>
-
-        </select>
-
-        <label>Operador</label>
-
-        <select id="operador_select">
-
-            <option value="">
-                Cargando...
-            </option>
-
-        </select>
-
-        <label>Auditor</label>
-
-        <select id="auditor_select">
-
-            <option value="">
-                Cargando...
-            </option>
-
-        </select>
-
+        <button class="btn-nav" style="margin-top:20px;" onclick="nextStep()">SIGUIENTE</button>
     </div>
 
-    <button class="btn-nav"
-        onclick="nextStep()">
-
-        EMPEZAR AUDITORÍA
-
-    </button>
-
-</div>
-
-<!-- ========================= -->
-<!-- FLUJO -->
-<!-- ========================= -->
-
-<div id="audit-flow" class="hidden">
-
-    <div class="progress-container">
-
-        <div id="progress-bar"
-            class="progress-bar"></div>
-
+    <div id="step-result" class="hidden">
+        <div style="text-align:center; font-weight:bold; font-size:1.2rem;">RESULTADO FINAL</div>
+        <div id="score-badge">0%</div>
+        <button class="btn-nav" style="background:var(--success)" onclick="guardar()">
+            <i class="fas fa-save"></i> GUARDAR AUDITORÍA
+        </button>
     </div>
-
-    <div id="section-label"
-        style="
-            font-weight:bold;
-            color:var(--primary);
-            text-align:center;
-            margin-bottom:15px;
-            font-size:1.2rem;
-        ">
-    </div>
-
-    <div id="preguntas_cont"></div>
-
-    <div style="margin-top:20px;">
-
-        <label>
-            Observaciones de esta sección
-        </label>
-
-        <textarea
-            id="obs_input"
-            rows="3"
-            placeholder="Hallazgos, mejoras, problemas detectados..."></textarea>
-
-    </div>
-
-    <button class="btn-nav"
-        style="margin-top:20px;"
-        onclick="nextStep()">
-
-        SIGUIENTE
-
-    </button>
-
-</div>
-
-<!-- ========================= -->
-<!-- RESULTADO -->
-<!-- ========================= -->
-
-<div id="step-result" class="hidden">
-
-    <div style="
-        text-align:center;
-        font-weight:bold;
-        font-size:1.2rem;
-    ">
-        RESULTADO FINAL
-    </div>
-
-    <div id="score-badge">
-
-        0%
-
-    </div>
-
-    <button class="btn-nav"
-        style="background:var(--success)"
-        onclick="guardar()">
-
-        <i class="fas fa-save"></i>
-        GUARDAR AUDITORÍA
-
-    </button>
-
-</div>
-
 </div>
 
 <script>
-
 let currentStep = 0;
-
 let auditData = {
-
     respuestas: {},
     observaciones: {},
     score: 0
-
 };
 
 const nombres5S = [
-
     "1. SEIRI",
     "2. SEITON",
     "3. SEISO",
     "4. SEIKETSU",
     "5. SHITSUKE"
-
 ];
 
 const preguntas = [
-
-[
-"¿Solo material necesario?",
-"¿Scrap identificado?",
-"¿Sin objetos innecesarios?",
-"¿Herramientas en uso?",
-"¿Mesa despejada?"
-],
-
-[
-"¿Herramientas en su lugar?",
-"¿Material en su lugar?",
-"¿Área libre de obstáculos?",
-"¿Contenedores correctamente identificados?",
-"¿Instrucciones visibles?"
-],
-
-[
-"¿Área libre de polvo?",
-"¿Piso limpio?",
-"¿Contenedores limpios?",
-"¿Máquina limpia?",
-"¿Mesa limpia?"
-],
-
-[
-"¿Instrucciones actualizadas?",
-"¿Uso de uniforme?",
-"¿Etiquetas correctas?",
-"¿Área delimitada?",
-"¿Cumple estándar?"
-],
-
-[
-"¿Hábito de limpieza?",
-"¿Sigue instrucciones?",
-"¿Respeta ubicación?",
-"¿Reporta anomalías?",
-"¿Conoce 5S?"
-]
-
+    ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
+    ["¿Herramientas en su lugar?", "¿Material en su lugar?", "¿Área libre de obstáculos?", "¿Contenedores correctamente identificados?", "¿Instrucciones visibles?"],
+    ["¿Área libre de polvo?", "¿Piso limpio?", "¿Contenedores limpios?", "¿Máquina limpia?", "¿Mesa limpia?"],
+    ["¿Instrucciones actualizadas?", "¿Uso de uniforme?", "¿Etiquetas correctas?", "¿Área delimitada?", "¿Cumple estándar?"],
+    ["¿Hábito de limpieza?", "¿Sigue instrucciones?", "¿Respeta ubicación?", "¿Reporta anomalías?", "¿Conoce 5S?"]
 ];
 
 async function init(){
-
     try{
-
-        // =========================
-        // AREAS GENERALES
-        // =========================
-
-        const { data: areas, error: errAreas } =
-        await client
-        .from('areas_generales')
-        .select('*')
-        .eq('active', true)
-        .order('nombre');
-
+        const { data: areas, error: errAreas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
         if(errAreas) throw errAreas;
 
-        // =========================
-        // EMPLEADOS
-        // =========================
-
-        const { data: emps, error: errEmp } =
-        await client
-        .from('rh_empleados')
-        .select('id, nombre_completo')
-        .eq('estatus', 'ACTIVO')
-        .order('nombre_completo');
-
+        const { data: emps, error: errEmp } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
         if(errEmp) throw errEmp;
 
-        // =========================
-        // LLENAR AREAS
-        // =========================
+        document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
 
-        document.getElementById('area_select').innerHTML =
-
-            '<option value="">Seleccione...</option>' +
-
-            areas.map(a => `
-
-                <option value="${a.id}">
-                    ${a.nombre}
-                </option>
-
-            `).join('');
-
-        // =========================
-        // LLENAR EMPLEADOS
-        // =========================
-
-        const empOpts =
-
-            '<option value="">Seleccione...</option>' +
-
-            emps.map(e => `
-
-                <option value="${e.id}">
-                    ${e.nombre_completo}
-                </option>
-
-            `).join('');
-
-        document.getElementById('operador_select').innerHTML =
-            empOpts;
-
-        document.getElementById('auditor_select').innerHTML =
-            empOpts;
-
+        const empOpts = '<option value="">Seleccione...</option>' + emps.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+        document.getElementById('operador_select').innerHTML = empOpts;
+        document.getElementById('auditor_select').innerHTML = empOpts;
     }catch(e){
-
         console.error(e);
-
         alert(e.message);
-
     }
-
 }
 
 async function actualizarMaquinas(){
-
-    const areaId =
-        document.getElementById('area_select').value;
-
-    const mSel =
-        document.getElementById('maquina_select');
-
-    mSel.innerHTML =
-        '<option value="">Cargando...</option>';
+    const areaId = document.getElementById('area_select').value;
+    const mSel = document.getElementById('maquina_select');
+    mSel.innerHTML = '<option value="">Cargando...</option>';
 
     if(!areaId){
-
-        mSel.innerHTML =
-            '<option value="">Seleccione área...</option>';
-
+        mSel.innerHTML = '<option value="">Seleccione área...</option>';
         return;
     }
-
     try{
-
-        const { data: maquinas, error } =
-        await client
-
-        .from('mes_machines')
-
-        .select('*')
-
-        .eq('area_general_id', areaId)
-
-        .eq('active', true)
-
-        .eq('maintenance_status', 'Disponible')
-
-        .order('machine_code');
-
+        const { data: maquinas, error } = await client.from('mes_machines').select('*').eq('area_general_id', areaId).eq('active', true).eq('maintenance_status', 'Disponible').order('machine_code');
         if(error) throw error;
 
-        mSel.innerHTML =
-            '<option value="">Seleccione...</option>';
-
+        mSel.innerHTML = '<option value="">Seleccione...</option>';
         maquinas.forEach(m => {
-
-            mSel.innerHTML += `
-
-                <option value="${m.id}">
-
-                    ${m.machine_code}
-                    -
-                    ${m.machine_name}
-
-                    (${m.tonnage || '-'} TON)
-
-                </option>
-
-            `;
-
+            mSel.innerHTML += `<option value="${m.id}">${m.machine_code} - ${m.machine_name} (${m.tonnage || '-'} TON)</option>`;
         });
-
     }catch(e){
-
         console.error(e);
-
-        mSel.innerHTML =
-            '<option value="">Error cargando</option>';
+        mSel.innerHTML = '<option value="">Error cargando</option>';
     }
-
 }
 
 function nextStep(){
-
-    if(
-        currentStep === 0 &&
-        (
-            !document.getElementById('area_select').value ||
-            !document.getElementById('maquina_select').value ||
-            !document.getElementById('operador_select').value ||
-            !document.getElementById('auditor_select').value
-        )
-    ){
-
+    if(currentStep === 0 && (!document.getElementById('area_select').value || !document.getElementById('maquina_select').value || !document.getElementById('operador_select').value || !document.getElementById('auditor_select').value)){
         return alert("Faltan datos");
-
     }
 
     if(currentStep > 0 && currentStep <= 5){
-
-        auditData.observaciones[`s${currentStep}`] =
-            document.getElementById('obs_input').value;
-
-        document.getElementById('obs_input').value = "";
-
+        auditData.observaciones[`s${currentStep}`] = document.getElementById('obs_input').value;
     }
 
     currentStep++;
-
     render();
+}
 
+function prevStep(){
+    if(currentStep === 0){
+        location.href='dashboard.html';
+        return;
+    }
+    
+    currentStep--;
+    render();
 }
 
 function render(){
+    // Ocultar todas las pantallas por defecto
+    document.getElementById("step-setup").classList.add("hidden");
+    document.getElementById("audit-flow").classList.add("hidden");
+    document.getElementById("step-result").classList.add("hidden");
 
-    document.getElementById("step-setup")
-        .classList.add("hidden");
-
-    document.getElementById("audit-flow")
-        .classList.add("hidden");
-
-    document.getElementById("step-result")
-        .classList.add("hidden");
+    // Configuración del botón de regreso en el header
+    const backText = document.getElementById('back-text');
+    const backIcon = document.querySelector('#header-back-btn i');
 
     if(currentStep === 0){
-
-        document.getElementById("step-setup")
-            .classList.remove("hidden");
-
+        document.getElementById("step-setup").classList.remove("hidden");
+        backText.innerText = "Panel";
+        backIcon.className = "fas fa-th-large";
     }
     else if(currentStep <= 5){
-
-        document.getElementById("audit-flow")
-            .classList.remove("hidden");
+        document.getElementById("audit-flow").classList.remove("hidden");
+        
+        backText.innerText = "Atrás";
+        backIcon.className = "fas fa-arrow-left";
 
         const idx = currentStep - 1;
+        document.getElementById("section-label").innerText = nombres5S[idx];
+        document.getElementById("progress-bar").style.width = (currentStep * 20) + "%";
 
-        document.getElementById("section-label")
-            .innerText = nombres5S[idx];
+        // Recuperar observaciones anteriores si existen
+        document.getElementById('obs_input').value = auditData.observaciones[`s${currentStep}`] || "";
 
-        document.getElementById("progress-bar")
-            .style.width = (currentStep * 20) + "%";
-
-        document.getElementById("preguntas_cont")
-            .innerHTML = preguntas[idx].map((p, j) => `
-
+        document.getElementById("preguntas_cont").innerHTML = preguntas[idx].map((p, j) => {
+            const respuestaGuardada = auditData.respuestas[`${idx}_${j}`];
+            return `
                 <div class="question-card">
-
-                    <div style="font-weight:600">
-
-                        ${p}
-
-                    </div>
-
+                    <div style="font-weight:600">${p}</div>
                     <div class="options">
-
-                        <button class="btn-opt"
-                            data-score="1"
-                            onclick="setAns('${idx}_${j}',1,this)">
-
-                            SI
-
-                        </button>
-
-                        <button class="btn-opt"
-                            data-score="0.5"
-                            onclick="setAns('${idx}_${j}',0.5,this)">
-
-                            PARCIAL
-
-                        </button>
-
-                        <button class="btn-opt"
-                            data-score="0"
-                            onclick="setAns('${idx}_${j}',0,this)">
-
-                            NO
-
-                        </button>
-
+                        <button class="btn-opt ${respuestaGuardada === 1 ? 'active' : ''}" data-score="1" onclick="setAns('${idx}_${j}',1,this)">SI</button>
+                        <button class="btn-opt ${respuestaGuardada === 0.5 ? 'active' : ''}" data-score="0.5" onclick="setAns('${idx}_${j}',0.5,this)">PARCIAL</button>
+                        <button class="btn-opt ${respuestaGuardada === 0 ? 'active' : ''}" data-score="0" onclick="setAns('${idx}_${j}',0,this)">NO</button>
                     </div>
-
-                </div>
-
-            `).join('');
+                </div>`;
+        }).join('');
 
         window.scrollTo(0,0);
-
     }
     else{
+        backText.innerText = "Atrás";
+        backIcon.className = "fas fa-arrow-left";
 
-        const vals =
-            Object.values(auditData.respuestas);
+        const vals = Object.values(auditData.respuestas);
+        // Si no han respondido todas, evitar división entre 0 o cálculo erróneo
+        const totalRespondidas = vals.length || 1; 
+        auditData.score = Math.round((vals.reduce((a,b)=>a+b,0)/25)*100);
 
-        auditData.score =
-
-            Math.round(
-                (vals.reduce((a,b)=>a+b,0)/25)*100
-            );
-
-        document.getElementById("score-badge")
-            .innerText = auditData.score + "%";
-
-        document.getElementById("step-result")
-            .classList.remove("hidden");
-
+        document.getElementById("score-badge").innerText = auditData.score + "%";
+        document.getElementById("step-result").classList.remove("hidden");
     }
-
 }
 
 function setAns(id, v, btn){
-
     const parent = btn.parentElement;
-
-    parent.querySelectorAll('.btn-opt')
-        .forEach(b => b.classList.remove('active'));
-
+    parent.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
     auditData.respuestas[id] = v;
-
 }
 
 async function guardar(){
-
     try{
-
-        const { error } =
-
-        await client
-
-        .from('rh_evaluaciones_5s')
-
-        .insert([{
-
-            empleado_id:
-                document.getElementById('operador_select').value,
-
-            auditor_id:
-                document.getElementById('auditor_select').value,
-
-            area_general_id:
-                document.getElementById('area_select').value,
-
-            machine_id:
-                document.getElementById('maquina_select').value,
-
-            puntuacion:
-                auditData.score,
-
-            respuestas_json:
-                auditData.respuestas,
-
-            observaciones:
-                auditData.observaciones,
-
-            created_at:
-                new Date().toISOString()
-
+        const { error } = await client.from('rh_evaluaciones_5s').insert([{
+            empleado_id: document.getElementById('operador_select').value,
+            auditor_id: document.getElementById('auditor_select').value,
+            area_general_id: document.getElementById('area_select').value,
+            machine_id: document.getElementById('maquina_select').value,
+            puntuacion: auditData.score,
+            respuestas_json: auditData.respuestas,
+            observaciones: auditData.observaciones,
+            created_at: new Date().toISOString()
         }]);
 
         if(error) throw error;
-
         alert("¡Auditoría guardada!");
-
-        location.href =
-            'rh_evaluacion_5s.html';
-
+        location.href = 'rh_evaluacion_5s.html';
     }catch(e){
-
         console.error(e);
-
         alert(e.message);
-
     }
-
 }
 
 window.onload = init;
-
 </script>
-
 </body>
 </html>
