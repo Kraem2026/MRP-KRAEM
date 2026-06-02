@@ -23,27 +23,38 @@
             text-decoration: none; color: #64748b; background: white; 
             padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border);
             font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;
-            transition: 0.2s;
         }
-        .btn-back:hover { background: #f1f5f9; color: var(--primary); }
+
+        /* Filtro de Áreas */
+        .areas-filter { 
+            display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 15px; 
+            scrollbar-width: none; /* Firefox */
+        }
+        .areas-filter::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+        .area-chip { 
+            white-space: nowrap; padding: 8px 16px; background: white; border: 1px solid var(--border);
+            border-radius: 20px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; transition: 0.2s;
+        }
+        .area-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         /* Tabs */
-        .tabs-container { display: flex; background: white; border: 1px solid var(--border); border-bottom: 2px solid var(--border); margin-bottom: 15px; border-radius: 12px; overflow: hidden; }
+        .tabs-container { display: flex; background: white; border: 1px solid var(--border); margin-bottom: 15px; border-radius: 12px; overflow: hidden; }
         .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; font-size: 13px; color: #64748b; transition: 0.3s; }
         .tab.active { color: var(--accent); background: #eff6ff; border-bottom: 3px solid var(--accent); }
 
         /* Cards */
-        .attendance-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; transition: 0.2s; }
+        .attendance-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; }
         .card-saved { border-left: 5px solid var(--success); background: #f0fdf4; }
         .card-extra { border-left: 5px solid var(--purple); background: #faf5ff; }
 
         .emp-row { display: flex; align-items: center; justify-content: space-between; }
         .emp-info { display: flex; align-items: center; gap: 12px; }
         .emp-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #e2e8f0; }
-        .emp-details h4 { margin: 0; font-size: 14px; color: var(--primary); }
-        .emp-details p { margin: 2px 0 0; font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; }
+        .emp-details h4 { margin: 0; font-size: 14px; }
+        .emp-details p { margin: 2px 0 0; font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; }
         
-        /* Controles */
+        /* Botones de Estado */
         .status-buttons { display: flex; gap: 5px; }
         .btn-status { width: 35px; height: 35px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: bold; }
         .active-P { background: var(--success) !important; color: white !important; border-color: var(--success); }
@@ -54,25 +65,26 @@
         .bg-P { background: var(--success); } .bg-R { background: var(--warning); } .bg-F { background: var(--danger); }
 
         .input-extra { width: 60px; padding: 8px; border-radius: 8px; border: 2px solid var(--purple); text-align: center; font-weight: bold; font-size: 16px; outline: none; }
-        .btn-delete { color: var(--danger); background: white; border: 1px solid #fee2e2; padding: 8px; border-radius: 8px; cursor: pointer; }
-
-        /* Footer */
-        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; z-index: 100; }
-        .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; font-size: 15px; transition: 0.3s; }
-        .btn-final:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; }
+        .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="top-nav">
-        <a href="dashboard.html" class="btn-back">
-            <i class="fas fa-th-large"></i> Dashboard
-        </a>
+        <a href="dashboard.html" class="btn-back"><i class="fas fa-th-large"></i> Dashboard</a>
         <div style="text-align: right;">
             <h2 style="margin:0; font-size:16px;">Pase de Lista</h2>
-            <span id="fecha-hoy" style="font-size:12px; color:var(--accent); font-weight:600; text-transform:capitalize;"></span>
+            <span id="fecha-hoy" style="font-size:12px; color:var(--accent); font-weight:600;"></span>
         </div>
+    </div>
+
+    <!-- Filtro de Áreas Dinámico -->
+    <div class="areas-filter" id="areas-container">
+        <div class="area-chip active" onclick="filtrarArea('TODOS', this)">TODOS</div>
+        <!-- Se llena con JS -->
     </div>
 
     <div class="tabs-container">
@@ -95,7 +107,9 @@
 
 <script>
     let modo = 'asistencia';
+    let areaSeleccionada = 'TODOS';
     let empleados = [];
+    let áreas = [];
     let solicitudes = [];
     let asistenciaLocal = {}; 
 
@@ -104,21 +118,29 @@
         document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
         try {
-            const [resEmp, resSol, resAsis] = await Promise.all([
-                client.from('rh_empleados').select('id, nombre_completo, foto_url, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
+            const [resEmp, resAreas, resSol, resAsis] = await Promise.all([
+                client.from('rh_empleados').select('id, nombre_completo, foto_url, area_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
+                client.from('rh_areas').select('*').order('nombre'),
                 client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', hoy).gte('fecha_fin', hoy),
                 client.from('rh_asistencia_diaria').select('*').eq('fecha', hoy)
             ]);
 
             empleados = resEmp.data || [];
+            áreas = resAreas.data || [];
             solicitudes = resSol.data || [];
 
-            // Resetear estado local y cargar desde DB
+            // Renderizar chips de áreas
+            const areasContainer = document.getElementById('areas-container');
+            areasContainer.innerHTML = `<div class="area-chip ${areaSeleccionada === 'TODOS' ? 'active' : ''}" onclick="filtrarArea('TODOS', this)">TODOS</div>`;
+            áreas.forEach(a => {
+                areasContainer.innerHTML += `<div class="area-chip" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
+            });
+
+            // Cargar asistencia de la DB al estado local
             asistenciaLocal = {};
             resAsis.data.forEach(a => {
                 asistenciaLocal[a.empleado_id] = { 
                     estado: a.estado, 
-                    motivo: a.motivo || '', 
                     horas_extra: a.horas_extra || 0,
                     en_db: true 
                 };
@@ -126,9 +148,15 @@
 
             render();
         } catch (err) {
-            console.error("Error cargando datos:", err);
-            alert("Error de conexión al cargar datos.");
+            console.error(err);
         }
+    }
+
+    function filtrarArea(id, element) {
+        areaSeleccionada = id;
+        document.querySelectorAll('.area-chip').forEach(c => c.classList.remove('active'));
+        element.classList.add('active');
+        render();
     }
 
     function cambiarTab(nuevoModo) {
@@ -142,19 +170,19 @@
         const container = document.getElementById('lista-empleados');
         container.innerHTML = '';
 
-        empleados.forEach(emp => {
-            const sol = solicitudes.find(s => s.empleado_id === emp.id);
-            const data = asistenciaLocal[emp.id] || { estado: '', motivo: '', horas_extra: 0, en_db: false };
+        const filtrados = empleados.filter(e => {
+            const matchArea = areaSeleccionada === 'TODOS' || e.area_id == areaSeleccionada;
+            return matchArea;
+        });
 
-            // Filtro para pestaña de tiempo extra
+        filtrados.forEach(emp => {
+            const sol = solicitudes.find(s => s.empleado_id === emp.id);
+            const data = asistenciaLocal[emp.id] || { estado: '', horas_extra: 0, en_db: false };
+
             if (modo === 'extra' && (data.estado === 'F' || !data.estado)) return;
 
             const card = document.createElement('div');
-            // Lógica de colores de tarjeta
-            let cardClass = 'attendance-card';
-            if (data.en_db) cardClass += ' card-saved';
-            if (modo === 'extra' && data.horas_extra > 0) cardClass += ' card-extra';
-            card.className = cardClass;
+            card.className = `attendance-card ${data.en_db ? 'card-saved' : ''} ${modo === 'extra' && data.horas_extra > 0 ? 'card-extra' : ''}`;
 
             let controles = '';
             if (modo === 'asistencia') {
@@ -163,8 +191,8 @@
                 } else if (data.en_db) {
                     controles = `
                         <div style="display:flex; gap:10px; align-items:center;">
-                            <span class="status-badge bg-${data.estado}">${data.estado === 'P' ? 'PRESENTE' : data.estado === 'R' ? 'RETARDO' : 'FALTA'}</span>
-                            <button class="btn-delete" onclick="borrarRegistro('${emp.id}')" title="Resetear">
+                            <span class="status-badge bg-${data.estado}">${data.estado}</span>
+                            <button class="btn-delete" onclick="borrarRegistro('${emp.id}')" style="border:none; background:none; color:var(--danger); cursor:pointer;">
                                 <i class="fas fa-undo"></i>
                             </button>
                         </div>`;
@@ -179,9 +207,8 @@
             } else {
                 controles = `
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" class="input-extra" value="${data.horas_extra}" 
-                               onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
-                        <span style="font-size:11px; font-weight:bold; color:var(--purple);">HRS EXTRA</span>
+                        <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
+                        <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
                     </div>`;
             }
 
@@ -198,36 +225,29 @@
                 </div>`;
             container.appendChild(card);
         });
-
-        if (container.innerHTML === '') {
-            container.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8;">No hay personal para mostrar en esta vista.</div>`;
-        }
     }
 
     function updateLocal(id, est) {
-        if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', motivo: '', horas_extra: 0, en_db: false };
+        if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', horas_extra: 0, en_db: false };
         asistenciaLocal[id].estado = est;
         render();
     }
 
     function updateExtra(id, valor) {
-        if(!asistenciaLocal[id]) return;
+        if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: 'P', horas_extra: 0, en_db: false };
         asistenciaLocal[id].horas_extra = parseFloat(valor) || 0;
     }
 
     async function borrarRegistro(id) {
-        if(!confirm("¿Deseas borrar este registro para capturarlo de nuevo?")) return;
+        if(!confirm("¿Resetear registro?")) return;
         const hoy = new Date().toISOString().split('T')[0];
-        const { error } = await client.from('rh_asistencia_diaria').delete().eq('empleado_id', id).eq('fecha', hoy);
-        if(!error) {
-            delete asistenciaLocal[id];
-            render();
-        }
+        await client.from('rh_asistencia_diaria').delete().eq('empleado_id', id).eq('fecha', hoy);
+        delete asistenciaLocal[id];
+        render();
     }
 
     async function guardarCambios() {
         const btn = document.getElementById('btn-save');
-        const originalText = btn.innerHTML;
         const hoy = new Date().toISOString().split('T')[0];
         
         const batch = Object.keys(asistenciaLocal)
@@ -236,26 +256,19 @@
                 empleado_id: id,
                 fecha: hoy,
                 estado: asistenciaLocal[id].estado,
-                motivo: asistenciaLocal[id].motivo || 'N/A',
                 horas_extra: asistenciaLocal[id].horas_extra || 0
             }));
 
-        if (batch.length === 0) return alert("Por favor, marca al menos una asistencia.");
+        if (batch.length === 0) return alert("Nada que guardar.");
 
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
         const { error } = await client.from('rh_asistencia_diaria').upsert(batch, { onConflict: 'empleado_id, fecha' });
 
         if (!error) {
-            alert("✅ Asistencia y Tiempo Extra actualizados.");
-            await cargarDatos();
-        } else {
-            alert("Error al guardar: " + error.message);
+            alert("Guardado correctamente");
+            cargarDatos();
         }
-        
         btn.disabled = false;
-        btn.innerHTML = originalText;
     }
 
     document.addEventListener('DOMContentLoaded', cargarDatos);
