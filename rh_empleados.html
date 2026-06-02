@@ -224,7 +224,6 @@
         fill('sel_puesto', puestos);
         fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
 
-        // MODIFICACIÓN: Inicializa por defecto con el mes en curso, pero el usuario puede cambiarlo
         const d = new Date();
         document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('f_hasta').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -291,7 +290,6 @@
             </tr>`).join('');
     }
 
-    // MODIFICACIÓN: Ahora 'hacerScroll' es opcional para que al cambiar de fecha no mueva la pantalla bruscamente
     async function cargarAnalisis(id, hacerScroll = true) {
         const emp = db_empleados.find(e => e.id == id);
         if(!emp) return;
@@ -328,12 +326,10 @@
 
         document.getElementById('view_dias_disponibles').innerText = saldoVacaciones > 0 ? saldoVacaciones : 0;
 
-        // SE DETECTA EL RANGO DINÁMICO ELEGIDO EN LOS INPUTS DESDE/HASTA
         const fDesde = document.getElementById('f_desde').value;
         const fHasta = document.getElementById('f_hasta').value;
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
-        // CONSULTAS FILTRADAS COMPLETAMENTE POR EL RANGO DINÁMICO SELECCIONADO
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
         let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
@@ -346,7 +342,6 @@
         const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         const score5s = fives?.length > 0 ? parseFloat((fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1)) : 0;
 
-        // ACTUALIZACIÓN DE MÉTRICAS EN LA INTERFAZ
         document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistPct + '%';
         document.getElementById('val_puntualidad').innerText = puntPct + '%';
@@ -413,31 +408,40 @@
             if(!fotoUrl) return alert("Error al subir imagen.");
         }
 
+        // LÓGICA DE PREVENCIÓN DE ERRORES UUID Y ENTRADAS EN BLANCO:
+        // Si el valor del selector es una cadena vacía o no cumple con una longitud básica (como el caso de enviar "1"), se asigna null.
+        const verificarUuids = (val) => (val && val.trim() !== "" && val.length > 5) ? val : null;
+
         const obj = {
-            nombre_completo: document.getElementById('nombre').value,
-            nss: document.getElementById('nss').value,
-            area_id: document.getElementById('sel_area').value || null,
-            puesto_id: document.getElementById('sel_puesto').value || null,
+            nombre_completo: document.getElementById('nombre').value || null,
+            nss: document.getElementById('nss').value || null,
+            area_id: verificarUuids(document.getElementById('sel_area').value),
+            puesto_id: verificarUuids(document.getElementById('sel_puesto').value),
             fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
-            turno_id: document.getElementById('sel_turno').value || null,
-            ruta_id: document.getElementById('sel_ruta').value || null,
-            tipo_sangre: document.getElementById('tipo_sangre').value,
-            talla_playera: document.getElementById('sel_talla').value,
-            direccion: document.getElementById('direccion').value,
-            telefono_personal: document.getElementById('telefono_personal').value,
-            emergencia_nombre: document.getElementById('emergencia_nombre').value,
-            emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
-            emergencia_tel: document.getElementById('emergencia_tel').value,
-            alergias: document.getElementById('alergias').value,
-            estatus: document.getElementById('sel_estatus').value
+            turno_id: document.getElementById('sel_turno').value || null, // Se mantiene como entrada directa si maneja texto plano, o null si está en blanco
+            ruta_id: verificarUuids(document.getElementById('sel_ruta').value),
+            tipo_sangre: document.getElementById('tipo_sangre').value || null,
+            talla_playera: document.getElementById('sel_talla').value || null,
+            direccion: document.getElementById('direccion').value || null,
+            telefono_personal: document.getElementById('telefono_personal').value || null,
+            emergencia_nombre: document.getElementById('emergencia_nombre').value || null,
+            emergencia_parentesco: document.getElementById('emergencia_parentesco').value || null,
+            emergencia_tel: document.getElementById('emergencia_tel').value || null,
+            alergias: document.getElementById('alergias').value || null,
+            estatus: document.getElementById('sel_estatus').value || 'ACTIVO'
         };
 
         if(fotoUrl) obj.foto_url = fotoUrl;
 
         const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
         
-        if(!error) { alert("¡Guardado!"); cerrarModal(); await listarEmpleados(); }
-        else { alert("Error: " + error.message); }
+        if(!error) { 
+            alert("¡Guardado exitosamente!"); 
+            cerrarModal(); 
+            await listarEmpleados(); 
+        } else { 
+            alert("Error al guardar en base de datos: " + error.message); 
+        }
     }
 
     function editarActual() {
@@ -500,11 +504,9 @@
         XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
-    // MODIFICACIÓN CLAVE: Si hay un empleado seleccionado en el panel 360, 
-    // al cambiar las fechas recalcula su análisis automáticamente y en tiempo real
     function actualizarTodo() { 
         if(currentEmpId) {
-            cargarAnalisis(currentEmpId, false); // El false evita que la pantalla haga brincos de scroll al mover la fecha
+            cargarAnalisis(currentEmpId, false);
         } 
     }
     
