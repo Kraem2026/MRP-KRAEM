@@ -3,863 +3,514 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de Recursos Humanos y Rendimiento</title>
-    
+    <title>KRAEM | Gestión de Personal 360</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #18bc9c;
-            --dark-color: #34495e;
-            --light-color: #ecf0f1;
-            --danger-color: #e74c3c;
-            --warning-color: #f39c12;
-            --success-color: #2ecc71;
-            --shadow: 0 4px 6px rgba(0,0,0,0.1);
-            --transition: all 0.3s ease;
-        }
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+        .container { max-width: 1600px; margin: auto; }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-add { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .btn-excel { background: #166534; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
+        .dashboard-360 { display: grid; grid-template-columns: 350px 1fr 300px; gap: 20px; margin-bottom: 20px; display: none; }
+        @media (max-width: 1100px) { .dashboard-360 { grid-template-columns: 1fr; } }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .radar-box { height: 300px; display: flex; align-items: center; justify-content: center; }
+        .metric-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .metric-card { text-align: center; padding: 12px; border: 1px solid #f1f5f9; border-radius: 10px; background: #fff; }
+        .metric-val { font-size: 22px; font-weight: 800; color: var(--accent); }
+        .metric-lab { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
 
-        .dashboard-container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
+        tr:hover { background: #f8fafc; cursor: pointer; }
 
-        header {
-            background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
-            color: white;
-            padding: 20px 30px;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        .modal-content { background: white; width: 95%; max-width: 1000px; margin: 2% auto; padding: 25px; border-radius: 15px; max-height: 90vh; overflow-y: auto; }
+        .inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+        .group { display: flex; flex-direction: column; }
+        .group.full-width { grid-column: 1 / -1; }
+        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
 
-        header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
+        .status-activo { background: #dcfce7; color: #166534; }
+        .status-baja { background: #fee2e2; color: #991b1b; }
+        .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
+        
+        .vacation-box { background: #f0f9ff; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; margin-top: 10px; text-align: center; }
 
-        .main-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 25px;
-        }
-
-        @media (min-width: 1024px) {
-            .main-layout { grid-template-columns: 2fr 1fr; }
-        }
-
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: var(--shadow);
-            margin-bottom: 25px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--primary-color);
-            margin-top: 0;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--light-color);
-            padding-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Tabla de Empleados */
-        .search-bar {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .search-bar input, .search-bar select {
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            outline: none;
-            font-size: 14px;
-            transition: var(--transition);
-        }
-
-        .search-bar input:focus, .search-bar select:focus {
-            border-color: var(--secondary-color);
-        }
-
-        .search-input { flex: 1; min-width: 200px; }
-
-        .table-responsive {
-            overflow-x: auto;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-
-        th {
-            background-color: var(--light-color);
-            color: var(--dark-color);
-            padding: 12px 15px;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-
-        tr:hover {
-            background-color: rgba(24, 188, 156, 0.05);
-            cursor: pointer;
-        }
-
-        .badge {
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .badge-active { background-color: #d4edda; color: #155724; }
-        .badge-inactive { background-color: #f8d7da; color: #721c24; }
-
-        /* Botones */
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary { background-color: var(--secondary-color); color: white; }
-        .btn-primary:hover { background-color: #128f76; }
-        .btn-secondary { background-color: var(--primary-color); color: white; }
-        .btn-secondary:hover { background-color: var(--dark-color); }
-
-        /* Modales Modificados */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 900px;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 30px;
-            position: relative;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
-        .close-modal {
-            position: absolute;
-            top: 20px; right: 20px;
-            font-size: 24px; cursor: pointer;
-            color: #aaa; transition: var(--transition);
-        }
-
-        .close-modal:hover { color: var(--danger-color); }
-
-        /* Estructura Formulario */
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-
-        @media (min-width: 768px) {
-            .form-grid { grid-template-columns: 1fr 1fr; }
-            .span-2 { grid-column: span 2; }
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .form-group label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--dark-color);
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            outline: none;
-            font-size: 14px;
-        }
-
-        /* Foto de Perfil */
-        .photo-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            background: #f9fbfd;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px dashed #cbd5e1;
-        }
-
-        .avatar-wrapper {
-            width: 130px;
-            height: 130px;
-            border-radius: 50%;
-            background: #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            border: 3px solid white;
-            box-shadow: var(--shadow);
-            position: relative;
-        }
-
-        .avatar-wrapper img {
-            width: 100%; height: 100%; object-fit: cover;
-        }
-
-        .avatar-placeholder {
-            font-size: 60px; color: #94a3b8;
-        }
-
-        /* Sección de Gráficos Analíticos */
-        .analytics-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 25px;
-            margin-top: 25px;
-        }
-        @media (min-width: 768px) {
-            .analytics-grid { grid-template-columns: 1fr 1fr; }
-        }
+        .photo-upload-container { display: flex; justify-content: center; margin-bottom: 25px; }
+        .photo-btn { position: relative; width: 120px; height: 120px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px dashed #cbd5e1; cursor: pointer; overflow: hidden; transition: all 0.3s; }
+        .photo-btn:hover { border-color: var(--accent); background: #f1f5f9; }
+        .photo-btn i.fa-user { font-size: 70px; color: #94a3b8; }
+        .photo-btn img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .photo-overlay { position: absolute; bottom: 0; background: rgba(15, 23, 42, 0.6); width: 100%; text-align: center; padding: 4px 0; }
     </style>
 </head>
 <body>
 
-<div class="dashboard-container">
-    <header>
-        <div>
-            <h1>Panel Integral de Capital Humano</h1>
-            <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">Módulo de Control de Personal e Indicadores Básicos</div>
+<div class="container">
+    <div class="nav-header">
+        <div style="display:flex; gap:15px; align-items:center;">
+            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
+            <h2 style="margin:0;">Gestión de Personal Kraem</h2>
         </div>
-        <button class="btn btn-primary" onclick="abrirNuevoEmpleado()">+ Agregar Personal</button>
-    </header>
-
-    <div class="main-layout">
-        <div class="card">
-            <div class="card-title">Listado Maestro de Colaboradores</div>
-            
-            <div class="search-bar">
-                <input type="text" id="inp_busqueda" class="search-input" placeholder="Buscar por Nombre, NSS o Área..." onkeyup="aplicarFiltros()">
-                
-                <select id="sel_filtro_area" onchange="aplicarFiltros()">
-                    <option value="TODAS">Todas las Áreas</option>
-                </select>
-                
-                <select id="sel_filtro_estatus" onchange="aplicarFiltros()">
-                    <option value="ACTIVO">Solo Activos</option>
-                    <option value="BAJA">Bajas</option>
-                    <option value="TODOS">Todos los Registros</option>
-                </select>
-            </div>
-
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Colaborador</th>
-                            <th>NSS</th>
-                            <th>Área Operativa</th>
-                            <th>Puesto</th>
-                            <th>Antigüedad</th>
-                            <th>Estatus</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody_personal">
-                        </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div>
-            <div class="card">
-                <div class="card-title">Resumen Individual Seleccionado</div>
-                <div id="panel_vacio_seleccion" style="text-align: center; color: #888; padding: 4px 0;">
-                    Selecciona un registro de la tabla maestra para desplegar el análisis gráfico.
-                </div>
-                
-                <div id="panel_analisis_activo" style="display: none;">
-                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                        <div id="mini_avatar_wrapper" style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; background: #eee;">
-                            <img id="mini_img_perfil" src="" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div>
-                            <div id="txt_mini_nombre" style="font-weight: 600; font-size: 16px;">-</div>
-                            <div id="txt_mini_puesto" style="font-size: 13px; color: #666;">-</div>
-                        </div>
-                    </div>
-                    
-                    <div style="width: 100%; max-height: 300px;">
-                        <canvas id="chartRadarCompetencias"></canvas>
-                    </div>
-                </div>
-            </div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXPORTAR</button>
+            <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
         </div>
     </div>
 
-    <div class="analytics-grid">
-        <div class="card">
-            <div class="card-title">Análisis de Distribución por Área (Pareto)</div>
-            <div style="width: 100%; height: 320px;">
-                <canvas id="chartParetoAreas"></canvas>
+    <div id="dash_analisis" class="dashboard-360">
+        <div class="card" style="text-align: center;">
+            <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:110px; height:110px; border-radius:50%; border:4px solid var(--accent); object-fit:cover;">
+            <h3 id="view_nombre" style="margin:15px 0 5px 0;">--</h3>
+            <p id="view_puesto_area" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
+            
+            <div class="vacation-box">
+                <div style="font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase;">Días Disponibles</div>
+                <div id="view_dias_disponibles" style="font-size: 20px; font-weight: 800; color: #0284c7;">--</div>
+                <a href="rh_solicitudes.html" class="btn-nav" style="font-size: 11px; padding: 5px 10px; margin-top: 5px; width: 90%; justify-content: center;">Gestionar Vacaciones</a>
+            </div>
+
+            <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+            <div style="text-align:left; font-size:13px; line-height: 1.6;">
+                <p><strong><i class="fas fa-fingerprint"></i> NSS:</strong> <span id="view_nss">--</span></p>
+                <p><strong><i class="fas fa-calendar"></i> Antigüedad:</strong> <span id="view_anti">--</span></p>
+                <p><strong><i class="fas fa-tshirt"></i> Talla:</strong> <span id="view_talla">--</span></p>
+                <p><strong><i class="fas fa-clock"></i> Ingreso:</strong> <span id="view_ingreso">--</span></p>
+                <p><strong><i class="fas fa-map-marker-alt"></i> Dirección:</strong> <span id="view_direccion">--</span></p>
+                <button class="btn-nav" style="width:100%; justify-content:center; margin-top:15px; border-color:var(--accent); color:var(--accent);" onclick="editarActual()">EDITAR FICHA</button>
             </div>
         </div>
-        
+
         <div class="card">
-            <div class="card-title">Métricas de Control de Incidencias</div>
-            <p style="font-size: 14px; color: #666;">Módulo estadístico para la detección de anomalías y ausentismos frecuentes por departamento.</p>
-            <div style="border: 1px dashed #ccc; border-radius: 6px; padding: 30px; text-align: center; color: #999; margin-top: 30px;">
-                Gráfico de tendencias históricas listo para vinculación de bitácora.
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <label style="font-weight:bold; color:var(--accent);">DESEMPEÑO GLOBAL</label>
+                <div id="rango_texto" style="font-size:10px; background:#eff6ff; padding:5px 10px; border-radius:5px; color:var(--accent); font-weight:bold;">--</div>
             </div>
+            <div class="radar-box"><canvas id="chartRadar"></canvas></div>
         </div>
+
+        <div class="card metric-grid">
+            <div class="metric-card"><div class="metric-lab">Calidad</div><div id="val_yield" class="metric-val">0%</div></div>
+            <div class="metric-card"><div class="metric-lab">Asistencia</div><div id="val_asistencia" class="metric-val">0%</div></div>
+            <div class="metric-card"><div class="metric-lab">Puntualidad</div><div id="val_puntualidad" class="metric-val">0%</div></div>
+            <div class="metric-card"><div class="metric-lab">5'S</div><div id="val_5s" class="metric-val">0%</div></div>
+            <div class="metric-card" style="background:#f0f9ff; grid-column: 1/-1;"><div class="metric-lab">Versatilidad</div><div id="val_versatilidad" class="metric-val">0%</div></div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+        <div class="inputs-grid">
+            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()"></div>
+            <div class="group"><label>Desde</label><input type="date" id="f_desde" onchange="actualizarTodo()"></div>
+            <div class="group"><label>Hasta</label><input type="date" id="f_hasta" onchange="actualizarTodo()"></div>
+            <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
+            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+            <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
+            <div class="group"><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()"><option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Área</th>
+                    <th>Puesto</th>
+                    <th>Antigüedad</th>
+                    <th>Turno</th>
+                    <th>Ruta</th>
+                    <th>Estatus</th>
+                </tr>
+            </thead>
+            <tbody id="lista_empleados"></tbody>
+        </table>
     </div>
 </div>
 
-<div id="modalFichaEmpleado" class="modal">
+<div id="modalRegistro" class="modal">
     <div class="modal-content">
-        <span class="close-modal" onclick="cerrarModalFicha()">&times;</span>
-        <h3 id="txt_titulo_modal" style="margin-top: 0; margin-bottom: 25px; color: var(--primary-color);">Ficha del Colaborador</h3>
-        
-        <div class="photo-section">
-            <div class="avatar-wrapper">
-                <div id="avatar_icono" class="avatar-placeholder">👤</div>
-                <img id="avatar_img_preview" style="display: none;">
-            </div>
-            <input type="file" id="inp_foto_subida" accept="image/*">
-            <div style="font-size: 11px; color: #666;">Carga archivos de imagen compatibles (JPG, PNG).</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 id="modal_titulo">Información del Personal</h3>
+            <button onclick="cerrarModal()" style="border:none; background:none; font-size:30px; cursor:pointer;">&times;</button>
         </div>
 
-        <form id="formFichaMaestra" onsubmit="event.preventDefault();">
-            <input type="hidden" id="hdn_empleado_id">
+        <div class="photo-upload-container">
+            <div class="photo-btn" onclick="document.getElementById('input_foto').click()">
+                <i class="fas fa-user" id="modal_icon_user"></i>
+                <img id="img_preview" style="display:none;">
+                <div class="photo-overlay">
+                    <i class="fas fa-camera" style="color: white; font-size: 12px;"></i>
+                </div>
+                <input type="file" id="input_foto" style="display: none;" accept="image/*" onchange="previewImage(event)">
+            </div>
+        </div>
+
+        <input type="hidden" id="edit_id">
+        <div class="inputs-grid">
+            <div class="section-title">LABORALES</div>
+            <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
+            <div class="group"><label># Seguro Social (NSS)</label><input type="text" id="nss"></div>
+            <div class="group"><label>Área</label><select id="sel_area"></select></div>
+            <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
+            <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
+            <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
+            <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
+            <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
             
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Nombre Completo *</label>
-                    <input type="text" id="txt_nombre" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Número de Seguridad Social (NSS)</label>
-                    <input type="text" id="txt_nss" placeholder="11 dígitos">
-                </div>
-
-                <div class="form-group">
-                    <label>Área Adscrita *</label>
-                    <select id="sel_modal_area" required>
-                        <option value="">Seleccione un área...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Puesto o Cargo *</label>
-                    <select id="sel_modal_puesto" required>
-                        <option value="">Seleccione un puesto...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Fecha de Ingreso de la Empresa</label>
-                    <input type="date" id="dat_fecha_ingreso">
-                </div>
-
-                <div class="form-group">
-                    <label>Ruta de Transporte Asignada</label>
-                    <select id="sel_modal_ruta">
-                        <option value="">Sin Asignación / Particular</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Turno Asignado</label>
-                    <select id="sel_modal_turno">
-                        <option value="1">Turno 1 (Matutino)</option>
-                        <option value="2">Turno 2 (Vespertino)</option>
-                        <option value="3">Turno 3 (Nocturno)</option>
-                        <option value="4">Mixto / Administrativo</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Estatus Laboral</label>
-                    <select id="sel_modal_estatus">
-                        <option value="ACTIVO">ACTIVO</option>
-                        <option value="BAJA">BAJA</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Tipo de Sangre RH</label>
-                    <input type="text" id="txt_tipo_sangre" placeholder="Ej: O+, A-">
-                </div>
-
-                <div class="form-group">
-                    <label>Talla de Playera Uniforme</label>
-                    <select id="sel_modal_talla">
-                        <option value="">No Definida</option>
-                        <option value="XS">Extra Chica (XS)</option>
-                        <option value="S">Chica (S)</option>
-                        <option value="M">Mediana (M)</option>
-                        <option value="L">Grande (L)</option>
-                        <option value="XL">Extra Grande (XL)</option>
-                        <option value="XXL">Doble Extra Grande (XXL)</option>
-                    </select>
-                </div>
-
-                <div class="form-group span-2">
-                    <label>Domicilio Particular Completo</label>
-                    <textarea id="txa_direccion" rows="2" placeholder="Calle, número, colonia, municipio..."></textarea>
-                </div>
-
-                <div class="form-group span-2">
-                    <label>Alergias o Condiciones Médicas Restrictivas</label>
-                    <input type="text" id="txt_alergias" placeholder="Ninguna / Medicamentos o sustancias específicas">
-                </div>
-
-                <div class="form-group">
-                    <label>Teléfono de Contacto Directo</label>
-                    <input type="tel" id="txt_telefono_personal">
-                </div>
-
-                <div class="form-group">
-                    <label>Contacto de Emergencia (Nombre)</label>
-                    <input type="text" id="txt_emergencia_nombre" placeholder="Nombre del familiar o conocido">
-                </div>
-
-                <div class="form-group">
-                    <label>Parentesco del Contacto</label>
-                    <input type="text" id="txt_emergencia_parentesco" placeholder="Ej: Esposa, Madre, Hermano">
-                </div>
-
-                <div class="form-group">
-                    <label>Teléfono de Emergencia</label>
-                    <input type="tel" id="txt_emergencia_tel">
-                </div>
-            </div>
-
-            <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 15px;">
-                <button type="button" class="btn btn-secondary" onclick="cerrarModalFicha()">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarFichaEmpleado()">Guardar Datos del Colaborador</button>
-            </div>
-        </form>
+            <div class="section-title">PERSONAL / MÉDICO</div>
+            <div class="group"><label>Teléfono Personal</label><input type="tel" id="telefono_personal"></div>
+            <div class="group"><label>Tipo de Sangre</label><input type="text" id="tipo_sangre"></div>
+            <div class="group"><label>Talla</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
+            <div class="group full-width"><label>Dirección</label><input type="text" id="direccion"></div>
+            <div class="group"><label>Contacto Emergencia</label><input type="text" id="emergencia_nombre"></div>
+            <div class="group"><label>Parentesco</label><input type="text" id="emergencia_parentesco"></div>
+            <div class="group"><label>Tel. Emergencia</label><input type="tel" id="emergencia_tel"></div>
+            <div class="group full-width"><label>Alergias / Padecimientos</label><textarea id="alergias" rows="2"></textarea></div>
+        </div>
+        <div style="margin-top:30px; display:flex; gap:15px;">
+            <button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">GUARDAR</button>
+            <button class="btn-nav" style="flex:1; justify-content:center;" onclick="cerrarModal()">CANCELAR</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- INTEGRACIÓN CON CREDENCIALES DE SUPABASE ---
-    const SUPABASE_URL = 'TU_URL';
-    const SUPABASE_KEY = 'TU_KEY';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let db_empleados = [];
+    let db_filtrados = [];
+    let chartRadar;
+    let currentEmpId = null;
 
-    // Variables Globales de Estado Interno
-    let coleccionEmpleados = [];
-    let radarChartInstance = null;
-    let paretoChartInstance = null;
-
-    // Inicializador al cargar el documento
-    window.onload = async () => {
-        await inicializarCatalogosEstructura();
-        await cargarListaMaestraEmpleados();
-    };
-
-    // Carga de catálogos dinámicos relacionales de Supabase
-    async function inicializarCatalogosEstructura() {
-        // 1. Cargar áreas generales de la nueva tabla
-        const { data: areas } = await supabaseClient.from('areas_generales').select('*').order('nombre');
-        const selFiltroArea = document.getElementById('sel_filtro_area');
-        const selModalArea = document.getElementById('sel_modal_area');
-        
-        areas?.forEach(a => {
-            selFiltroArea.add(new Option(a.nombre, a.id));
-            selModalArea.add(new Option(a.nombre, a.id));
-        });
-
-        // 2. Cargar puestos de la tabla correspondientes
-        const { data: puestos } = await supabaseClient.from('rh_puestos').select('*').order('nombre');
-        const selModalPuesto = document.getElementById('sel_modal_puesto');
-        puestos?.forEach(p => selModalPuesto.add(new Option(p.nombre, p.id)));
-
-        // 3. Cargar rutas de transporte
-        const { data: rutas } = await supabaseClient.from('rh_rutas').select('*').order('nombre');
-        const selModalRuta = document.getElementById('sel_modal_ruta');
-        rutas?.forEach(r => selModalRuta.add(new Option(r.nombre, r.id)));
+    function obtenerDiasLey(anios) {
+        if (anios < 1) return 0;
+        if (anios === 1) return 12;
+        if (anios === 2) return 14;
+        if (anios === 3) return 16;
+        if (anios === 4) return 18;
+        if (anios === 5) return 20;
+        if (anios >= 6 && anios <= 10) return 22;
+        if (anios >= 11 && anios <= 15) return 24;
+        if (anios >= 16 && anios <= 20) return 26;
+        if (anios >= 21 && anios <= 25) return 28;
+        if (anios >= 26 && anios <= 30) return 30;
+        return 32;
     }
 
-    // Consulta e hidratación de Datos
-    async function cargarListaMaestraEmpleados() {
-        const { data, error } = await supabaseClient.from('rh_empleados').select(`
+    async function init() {
+        const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
+        const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
+        const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
+        
+        const fill = (id, data, esFiltro = false) => {
+            const s = document.getElementById(id);
+            if(!s) return;
+            s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
+            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
+        };
+
+        fill('sel_area', areas); fill('f_area', areas, true);
+        fill('sel_puesto', puestos);
+        fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
+
+        const d = new Date();
+        document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+        document.getElementById('f_hasta').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
+
+        await listarEmpleados();
+    }
+
+    async function listarEmpleados() {
+        const { data, error } = await client.from('rh_empleados').select(`
             *,
             areas_generales:area_id(nombre),
             rh_puestos:puesto_id(nombre),
             rh_rutas:ruta_id(nombre)
         `).order('nombre_completo');
 
-        if (error) {
-            console.error("Fallo de descarga relacional:", error);
+        if (error) { 
+            console.error("Error en Supabase al listar empleados:", error); 
+            alert("No se pudo obtener la información de los empleados: " + error.message);
+            return; 
+        }
+
+        db_empleados = data.map(e => ({
+            ...e,
+            area_txt: e.areas_generales?.nombre || '-',
+            puesto_txt: e.rh_puestos?.nombre || '-',
+            ruta_txt: e.rh_rutas?.nombre || '-',
+            antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
+        }));
+        aplicarFiltros();
+    }
+
+    function aplicarFiltros() {
+        const n = document.getElementById('f_nombre').value.toLowerCase();
+        const a = document.getElementById('f_area').value;
+        const t = document.getElementById('f_turno').value;
+        const r = document.getElementById('f_ruta').value;
+        const s = document.getElementById('f_estatus').value;
+
+        db_filtrados = db_empleados.filter(e => 
+            (!n || (e.nombre_completo && e.nombre_completo.toLowerCase().includes(n))) && 
+            (!a || e.area_id == a) &&
+            (!t || e.turno_id == t) &&
+            (!r || e.ruta_id == r) &&
+            (!s || e.estatus == s)
+        );
+        
+        const tbody = document.getElementById('lista_empleados');
+        if(!tbody) return;
+
+        if (db_filtrados.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No se encontraron registros de personal.</td></tr>`;
             return;
         }
 
-        coleccionEmpleados = data.map(emp => {
-            // VERIFICACIÓN CLAVE: Si area_id no cumple la estructura de un UUID, es un string viejo (ej: "LS")
-            const comprobarUuid = (valor) => (valor && valor.includes('-') && valor.length > 20);
-            
-            let areaCalculada = "-";
-            if (emp.areas_generales?.nombre) {
-                areaCalculada = emp.areas_generales.nombre;
-            } else if (emp.area_id && !comprobarUuid(emp.area_id)) {
-                areaCalculada = emp.area_id; // Conserva "LS" de manera provisional en la tabla visual
-            }
-
-            return {
-                ...emp,
-                area_visual_txt: areaCalculada,
-                puesto_visual_txt: emp.rh_puestos?.nombre || '-',
-                ruta_visual_txt: emp.rh_rutas?.nombre || 'Particular',
-                antiguedad_calculada: renderizarAntiguedadExacta(emp.fecha_ingreso)
-            };
-        });
-
-        aplicarFiltros();
-        actualizarGraficoParetoAreas();
+        tbody.innerHTML = db_filtrados.map(e => `
+            <tr onclick="cargarAnalisis('${e.id}')">
+                <td><b>${e.nombre_completo || 'Sin Nombre'}</b></td>
+                <td>${e.area_txt}</td>
+                <td>${e.puesto_txt}</td>
+                <td>${e.antiguedad_txt}</td>
+                <td>Turno ${e.turno_id || '-'}</td>
+                <td>${e.ruta_txt}</td>
+                <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus || 'N/A'}</span></td>
+            </tr>`).join('');
     }
 
-    // Filtros lógicos en memoria
-    function aplicarFiltros() {
-        const query = document.getElementById('inp_busqueda').value.toLowerCase();
-        const areaFiltro = document.getElementById('sel_filtro_area').value;
-        const estatusFiltro = document.getElementById('sel_filtro_estatus').value;
-        const tbody = document.getElementById('tbody_personal');
-        
-        tbody.innerHTML = '';
-
-        const registrosFiltrados = coleccionEmpleados.filter(e => {
-            const cumpleBusqueda = e.nombre_completo.toLowerCase().includes(query) || 
-                                  e.area_visual_txt.toLowerCase().includes(query) ||
-                                  (e.nss && e.nss.includes(query));
-            
-            const cumpleArea = (areaFiltro === 'TODAS' || e.area_id === areaFiltro);
-            const cumpleEstatus = (estatusFiltro === 'TODOS' || e.estatus === estatusFiltro);
-            
-            return cumpleBusqueda && cumpleArea && cumpleEstatus;
-        });
-
-        registrosFiltrados.forEach(e => {
-            const tr = document.createElement('tr');
-            tr.onclick = () => alternarSeleccionFichaAnalisis(e.id);
-            tr.innerHTML = `
-                <td><strong>${e.nombre_completo}</strong></td>
-                <td>${e.nss || '-'}</td>
-                <td>${e.area_visual_txt}</td>
-                <td>${e.puesto_visual_txt}</td>
-                <td>${e.antiguedad_calculada}</td>
-                <td><span class="badge ${e.estatus === 'ACTIVO' ? 'badge-active' : 'badge-inactive'}">${e.estatus}</span></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    // Despliegue de Gráfico de Competencias (Radar) de Empleado
-    function alternarSeleccionFichaAnalisis(id) {
-        const emp = coleccionEmpleados.find(e => e.id == id);
+    async function cargarAnalisis(id, hacerScroll = true) {
+        const emp = db_empleados.find(e => e.id == id);
         if(!emp) return;
-
-        document.getElementById('panel_vacio_seleccion').style.display = 'none';
-        document.getElementById('panel_analisis_activo').style.display = 'block';
-
-        document.getElementById('txt_mini_nombre').innerText = emp.nombre_completo;
-        document.getElementById('txt_mini_puesto').innerText = `${emp.puesto_visual_txt} | ${emp.area_visual_txt}`;
+        currentEmpId = id;
+        document.getElementById('dash_analisis').style.display = 'grid';
         
-        const miniImg = document.getElementById('mini_img_perfil');
-        if(emp.foto_url) {
-            miniImg.src = emp.foto_url;
-            miniImg.style.display = 'block';
-        } else {
-            miniImg.src = '';
-            miniImg.style.display = 'none';
+        document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        document.getElementById('view_nombre').innerText = emp.nombre_completo || '--';
+        document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
+        document.getElementById('view_nss').innerText = emp.nss || '--';
+        document.getElementById('view_anti').innerText = emp.antiguedad_txt;
+        document.getElementById('view_talla').innerText = emp.talla_playera || '--';
+        document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
+        document.getElementById('view_direccion').innerText = emp.direccion || '--';
+
+        const fIngreso = emp.fecha_ingreso ? new Date(emp.fecha_ingreso) : null;
+        let diasTotalesDerecho = 0;
+        
+        if (fIngreso && !isNaN(fIngreso.getTime())) {
+            const fHoy = new Date();
+            let anios = fHoy.getFullYear() - fIngreso.getFullYear();
+            if (fHoy < new Date(fHoy.getFullYear(), fIngreso.getMonth(), fIngreso.getDate())) anios--;
+            diasTotalesDerecho = obtenerDiasLey(anios);
         }
 
-        // Generar métricas simuladas fijas o mapeadas para el radar
-        const rendimientoFake = [
-            emp.estatus === 'ACTIVO' ? 85 : 40, 
-            70, 90, 75, 80
-        ];
+        const { data: sol } = await client.from('rh_solicitudes')
+            .select('dias_solicitados')
+            .eq('empleado_id', id)
+            .eq('tipo', 'VACACIONES')
+            .eq('estatus', 'APROBADO');
+
+        const diasTomados = sol?.reduce((acc, curr) => acc + (curr.dias_solicitados || 0), 0) || 0;
+        const saldoVacaciones = diasTotalesDerecho - diasTomados;
+
+        document.getElementById('view_dias_disponibles').innerText = saldoVacaciones > 0 ? saldoVacaciones : 0;
+
+        const fDesde = document.getElementById('f_desde').value;
+        const fHasta = document.getElementById('f_hasta').value;
+        document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
+
+        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
+        let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
+        const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
+
+        const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        const totalDias = asistData?.length || 0;
+        const asistPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado !== 'FALTA').length / totalDias) * 100).toFixed(1)) : 0;
+        const puntPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1)) : 0;
+
+        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+        const score5s = fives?.length > 0 ? parseFloat((fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1)) : 0;
+
+        document.getElementById('val_yield').innerText = yieldVal + '%';
+        document.getElementById('val_asistencia').innerText = asistPct + '%';
+        document.getElementById('val_puntualidad').innerText = puntPct + '%';
+        document.getElementById('val_5s').innerText = score5s + '%';
+        document.getElementById('val_versatilidad').innerText = "80%"; 
+
+        renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
         
-        renderizarGraficoRadarIndividual(rendimientoFake);
+        if (hacerScroll) {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
     }
 
-    function renderizarGraficoRadarIndividual(datosCompetencias) {
-        const ctx = document.getElementById('chartRadarCompetencias').getContext('2d');
-        
-        if(radarChartInstance) {
-            radarChartInstance.destroy();
-        }
-
-        radarChartInstance = new Chart(ctx, {
+    function renderRadar(y, a, s, v, p) {
+        const ctx = document.getElementById('chartRadar').getContext('2d');
+        if(chartRadar) chartRadar.destroy();
+        chartRadar = new Chart(ctx, {
             type: 'radar',
             data: {
-                labels: ['Productividad', 'Asistencia', 'Calidad de Trabajo', 'Trabajo en Equipo', 'Seguridad Industrial'],
+                labels: ['Calidad', 'Asistencia', '5\'S', 'Versatilidad', 'Puntualidad'],
                 datasets: [{
-                    label: 'Desempeño Trimestral %',
-                    data: datosCompetencias,
-                    backgroundColor: 'rgba(24, 188, 156, 0.2)',
-                    borderColor: 'rgba(24, 188, 156, 1)',
-                    borderWidth: 2,
-                    pointBackgroundColor: 'rgba(44, 62, 80, 1)'
+                    data: [y, a, s, v, p],
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb'
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: { min: 0, max: 100, ticks: { stepSize: 20 } }
-                }
-            }
+            options: { scales: { r: { suggestedMin: 0, suggestedMax: 100 } }, plugins: { legend: { display: false } } }
         });
     }
 
-    // Gráfico de Pareto de Distribución Operativa de Áreas
-    function actualizarGraficoParetoAreas() {
-        const conteoAreas = {};
-        coleccionEmpleados.forEach(e => {
-            if(e.estatus === 'ACTIVO') {
-                conteoAreas[e.area_visual_txt] = (conteoAreas[e.area_visual_txt] || 0) + 1;
-            }
-        });
-
-        // Ordenar descendentemente
-        const datosOrdenados = Object.entries(conteoAreas).sort((a,b) => b[1] - a[1]);
-        const labels = datosOrdenados.map(i => i[0]);
-        const frecuencias = datosOrdenados.map(i => i[1]);
-        
-        let totalAcumulado = 0;
-        const sumaTotal = frecuencias.reduce((a, b) => a + b, 0);
-        const porcentajesAcumulados = frecuencias.map(f => {
-            totalAcumulado += f;
-            return ((totalAcumulado / sumaTotal) * 100).toFixed(1);
-        });
-
-        const ctx = document.getElementById('chartParetoAreas').getContext('2d');
-        if(paretoChartInstance) paretoChartInstance.destroy();
-
-        paretoChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels.length ? labels : ['Sin Datos'],
-                datasets: [
-                    {
-                        label: 'Número de Operadores (Eje Izq)',
-                        data: frecuencias.length ? frecuencias : [0],
-                        backgroundColor: '#34495e',
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Línea de Pareto % (Eje Der)',
-                        data: porcentajesAcumulados.length ? porcentajesAcumulados : [0],
-                        borderColor: '#e74c3c',
-                        backgroundColor: '#e74c3c',
-                        type: 'line',
-                        yAxisID: 'yEnd',
-                        borderWidth: 2,
-                        pointRadius: 4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { type: 'linear', position: 'left', min: 0 },
-                    yEnd: { type: 'linear', position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } }
-                }
-            }
-        });
+    function previewImage(event) {
+        const reader = new FileReader();
+        const file = event.target.files[0];
+        if(!file) return;
+        reader.onload = () => {
+            const output = document.getElementById('img_preview');
+            output.src = reader.result;
+            output.style.display = 'block';
+            document.getElementById('modal_icon_user').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
     }
 
-    // Funciones del Modal de Edición Completa
-    function abrirNuevoEmpleado() {
-        document.getElementById('txt_titulo_modal').innerText = "Alta de Nuevo Colaborador";
-        document.getElementById('formFichaMaestra').reset();
-        document.getElementById('hdn_empleado_id').value = "";
-        
-        document.getElementById('avatar_img_preview').style.display = 'none';
-        document.getElementById('avatar_icono').style.display = 'block';
-        document.getElementById('modalFichaEmpleado').style.display = 'flex';
+    async function subirFoto(archivo, id) {
+        try {
+            const ext = archivo.name.split('.').pop();
+            const fileName = `foto_${id || 'new'}_${Date.now()}.${ext}`;
+            const { data, error } = await client.storage.from('empleados').upload(fileName, archivo);
+            if(error) throw error;
+            const { data: url } = client.storage.from('empleados').getPublicUrl(fileName);
+            return url.publicUrl;
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
     }
 
-    function abrirEdicionFichaMaestra(idEmpleado) {
-        const emp = coleccionEmpleados.find(e => e.id == idEmpleado);
-        if(!emp) return;
+    async function guardarEmpleado() {
+        const id = document.getElementById('edit_id').value;
+        const fotoInput = document.getElementById('input_foto');
+        let fotoUrl = null;
 
-        const comprobarUuid = (valor) => (valor && valor.includes('-') && valor.length > 20);
-
-        document.getElementById('txt_titulo_modal').innerText = `Modificando Ficha: ${emp.nombre_completo}`;
-        document.getElementById('hdn_empleado_id').value = emp.id;
-        document.getElementById('txt_nombre').value = emp.nombre_completo;
-        document.getElementById('txt_nss').value = emp.nss || "";
-        
-        // PROTECCIÓN MIGRACIÓN: Si el id guardado no es un UUID real (es "LS"), se deja vacío para forzar la selección nueva
-        document.getElementById('sel_modal_area').value = comprobarUuid(emp.area_id) ? emp.area_id : "";
-        document.getElementById('sel_modal_puesto').value = comprobarUuid(emp.puesto_id) ? emp.puesto_id : "";
-        document.getElementById('sel_modal_ruta').value = comprobarUuid(emp.ruta_id) ? emp.ruta_id : "";
-        
-        document.getElementById('dat_fecha_ingreso').value = emp.fecha_ingreso || "";
-        document.getElementById('sel_modal_turno').value = emp.turno_id || "1";
-        document.getElementById('sel_modal_estatus').value = emp.estatus || "ACTIVO";
-        document.getElementById('txt_tipo_sangre').value = emp.tipo_sangre || "";
-        document.getElementById('sel_modal_talla').value = emp.talla_playera || "";
-        document.getElementById('txa_direccion').value = emp.direccion || "";
-        document.getElementById('txt_alergias').value = emp.alergias || "";
-        document.getElementById('txt_telefono_personal').value = emp.telefono_personal || "";
-        document.getElementById('txt_emergencia_nombre').value = emp.emergencia_nombre || "";
-        document.getElementById('txt_emergencia_parentesco').value = emp.emergencia_parentesco || "";
-        document.getElementById('txt_emergencia_tel').value = emp.emergencia_tel || "";
-
-        const previewImg = document.getElementById('avatar_img_preview');
-        if(emp.foto_url) {
-            previewImg.src = emp.foto_url;
-            previewImg.style.display = 'block';
-            document.getElementById('avatar_icono').style.display = 'none';
-        } else {
-            previewImg.style.display = 'none';
-            document.getElementById('avatar_icono').style.display = 'block';
+        if(fotoInput.files[0]) {
+            fotoUrl = await subirFoto(fotoInput.files[0], id);
+            if(!fotoUrl) return alert("Error al subir imagen.");
         }
 
-        document.getElementById('modalFichaEmpleado').style.display = 'flex';
-    }
+        // LÓGICA DE PREVENCIÓN DE ERRORES UUID Y ENTRADAS EN BLANCO:
+        // Si el valor del selector es una cadena vacía o no cumple con una longitud básica (como el caso de enviar "1"), se asigna null.
+        const verificarUuids = (val) => (val && val.trim() !== "" && val.length > 5) ? val : null;
 
-    // Sobrescribir el clic de la tabla para abrir el modal real completo
-    // Reemplazamos la función de evento anterior
-    function alternarSeleccionFichaAnalisis(id) {
-        // Ejecuta la vista rápida del radar
-        const emp = coleccionEmpleados.find(e => e.id == id);
-        if(!emp) return;
-
-        document.getElementById('panel_vacio_seleccion').style.display = 'none';
-        document.getElementById('panel_analisis_activo').style.display = 'block';
-        document.getElementById('txt_mini_nombre').innerText = emp.nombre_completo;
-        document.getElementById('txt_mini_puesto').innerText = `${emp.puesto_visual_txt} | ${emp.area_visual_txt}`;
-        
-        const miniImg = document.getElementById('mini_img_perfil');
-        if(emp.foto_url) { miniImg.src = emp.foto_url; miniImg.style.display = 'block'; } 
-        else { miniImg.style.display = 'none'; }
-
-        renderizarGraficoRadarIndividual([80, 85, 90, 75, 88]);
-
-        // AL DAR DOBLE CLIC O AGREGAR UN BOTÓN PODEMOS EDITAR, O DIRECTAMENTE ABRIR EL MODAL DE EDICIÓN COMPLETO DE ESTE MODO:
-        abrirEdicionFichaMaestra(id);
-    }
-
-    async function guardarFichaEmpleado() {
-        const id = document.getElementById('hdn_empleado_id').value;
-        
-        const payload = {
-            nombre_completo: document.getElementById('txt_nombre').value,
-            nss: document.getElementById('txt_nss').value,
-            area_id: document.getElementById('sel_modal_area').value || null, // Guardará el UUID correcto
-            puesto_id: document.getElementById('sel_modal_puesto').value || null,
-            ruta_id: document.getElementById('sel_modal_ruta').value || null,
-            fecha_ingreso: document.getElementById('dat_fecha_ingreso').value || null,
-            turno_id: document.getElementById('sel_modal_turno').value,
-            estatus: document.getElementById('sel_modal_estatus').value,
-            tipo_sangre: document.getElementById('txt_tipo_sangre').value,
-            talla_playera: document.getElementById('sel_modal_talla').value,
-            direccion: document.getElementById('txa_direccion').value,
-            alergias: document.getElementById('txt_alergias').value,
-            telefono_personal: document.getElementById('txt_telefono_personal').value,
-            emergencia_nombre: document.getElementById('txt_emergencia_nombre').value,
-            emergencia_parentesco: document.getElementById('txt_emergencia_parentesco').value,
-            emergencia_tel: document.getElementById('txt_emergencia_tel').value
+        const obj = {
+            nombre_completo: document.getElementById('nombre').value || null,
+            nss: document.getElementById('nss').value || null,
+            area_id: verificarUuids(document.getElementById('sel_area').value),
+            puesto_id: verificarUuids(document.getElementById('sel_puesto').value),
+            fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
+            turno_id: document.getElementById('sel_turno').value || null, // Se mantiene como entrada directa si maneja texto plano, o null si está en blanco
+            ruta_id: verificarUuids(document.getElementById('sel_ruta').value),
+            tipo_sangre: document.getElementById('tipo_sangre').value || null,
+            talla_playera: document.getElementById('sel_talla').value || null,
+            direccion: document.getElementById('direccion').value || null,
+            telefono_personal: document.getElementById('telefono_personal').value || null,
+            emergencia_nombre: document.getElementById('emergencia_nombre').value || null,
+            emergencia_parentesco: document.getElementById('emergencia_parentesco').value || null,
+            emergencia_tel: document.getElementById('emergencia_tel').value || null,
+            alergias: document.getElementById('alergias').value || null,
+            estatus: document.getElementById('sel_estatus').value || 'ACTIVO'
         };
 
-        if(!payload.nombre_completo || !payload.area_id || !payload.puesto_id) {
-            alert("Por favor rellene los campos obligatorios (*)");
-            return;
+        if(fotoUrl) obj.foto_url = fotoUrl;
+
+        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
+        
+        if(!error) { 
+            alert("¡Guardado exitosamente!"); 
+            cerrarModal(); 
+            await listarEmpleados(); 
+        } else { 
+            alert("Error al guardar en base de datos: " + error.message); 
         }
+    }
 
-        const { error } = await supabaseClient.from('rh_empleados').upsert({
-            id: id || undefined,
-            ...payload
-        });
+    function editarActual() {
+        if(!currentEmpId) return;
+        const emp = db_empleados.find(e => e.id == currentEmpId);
+        document.getElementById('edit_id').value = emp.id;
+        document.getElementById('nombre').value = emp.nombre_completo || "";
+        document.getElementById('nss').value = emp.nss || "";
+        document.getElementById('sel_area').value = emp.area_id || "";
+        document.getElementById('sel_puesto').value = emp.puesto_id || "";
+        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
+        document.getElementById('sel_turno').value = emp.turno_id || "1";
+        document.getElementById('sel_ruta').value = emp.ruta_id || "";
+        document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
+        document.getElementById('sel_talla').value = emp.talla_playera || "";
+        document.getElementById('direccion').value = emp.direccion || "";
+        document.getElementById('telefono_personal').value = emp.telefono_personal || "";
+        document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || "";
+        document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
+        document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
+        document.getElementById('alergias').value = emp.alergias || "";
+        document.getElementById('sel_estatus').value = emp.estatus || "ACTIVO";
 
-        if (error) {
-            alert("Error crítico al guardar en Supabase: " + error.message);
+        if(emp.foto_url) {
+            document.getElementById('img_preview').src = emp.foto_url;
+            document.getElementById('img_preview').style.display = 'block';
+            document.getElementById('modal_icon_user').style.display = 'none';
         } else {
-            cerrarModalFicha();
-            await cargarListaMaestraEmpleados();
+            document.getElementById('img_preview').style.display = 'none';
+            document.getElementById('modal_icon_user').style.display = 'block';
         }
+        document.getElementById('modalRegistro').style.display = 'block';
     }
 
-    function cerrarModalFicha() {
-        document.getElementById('modalFichaEmpleado').style.display = 'none';
+    function abrirModal() {
+        document.getElementById('edit_id').value = "";
+        document.querySelectorAll('#modalRegistro input, #modalRegistro select, #modalRegistro textarea').forEach(i => i.value = "");
+        document.getElementById('img_preview').style.display = 'none';
+        document.getElementById('modal_icon_user').style.display = 'block';
+        document.getElementById('modalRegistro').style.display = 'block';
     }
 
-    function renderizarAntiguedadExacta(fechaCadena) {
-        if(!fechaCadena) return "-";
-        const inicio = new Date(fechaCadena);
-        const hoy = new Date();
-        
-        let meses = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
-        if(hoy.getDate() < inicio.getDate()) meses--; // Ajuste por día de corte
-        
-        if (meses < 0) return "Nuevo Ingreso";
-        if (meses < 12) return `${meses} meses`;
-        
-        const anios = Math.floor(meses / 12);
-        const mesesRestantes = meses % 12;
-        
-        return `${anios} a, ${mesesRestantes} m`;
+    function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
+
+    function calcularAntiguedadExacta(f) {
+        if(!f) return "-";
+        const ini = new Date(f), hoy = new Date();
+        if(isNaN(ini.getTime())) return "-";
+        let anios = hoy.getFullYear() - ini.getFullYear();
+        let meses = hoy.getMonth() - ini.getMonth();
+        if (meses < 0) { anios--; meses += 12; }
+        return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
     }
+
+    async function exportarExcel() {
+        if(db_filtrados.length === 0) return alert("No hay datos");
+        const ws = XLSX.utils.json_to_sheet(db_filtrados);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Personal");
+        XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
+    }
+
+    function actualizarTodo() { 
+        if(currentEmpId) {
+            cargarAnalisis(currentEmpId, false);
+        } 
+    }
+    
+    document.addEventListener('DOMContentLoaded', init);
 </script>
-
 </body>
 </html>
