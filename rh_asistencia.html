@@ -54,7 +54,7 @@
         .emp-details h4 { margin: 0; font-size: 14px; }
         .emp-details p { margin: 2px 0 0; font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; }
         
-        /* Controles Dinámicos secundarios (Inputs de tiempo/incidencias) */
+        /* Controles Dinámicos secundarios */
         .dynamic-controls { width: 100%; display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); justify-content: flex-end; }
         .input-sub { padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; font-weight: bold; outline: none; color: var(--text); }
 
@@ -86,6 +86,7 @@
         </div>
     </div>
 
+    <!-- Filtro de Áreas Dinámico (areas_generales) -->
     <div class="areas-filter" id="areas-container">
         <div class="area-chip active" onclick="filtrarArea('TODOS', this)">TODOS</div>
     </div>
@@ -121,7 +122,6 @@
         document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
         try {
-            // CORRECCIÓN: Se cambió de 'rh_areas' a 'areas_generales'
             const [resEmp, resAreas, resSol, resAsis] = await Promise.all([
                 client.from('rh_empleados').select('id, nombre_completo, foto_url, area_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
                 client.from('areas_generales').select('*').order('nombre'),
@@ -133,14 +133,12 @@
             áreas = resAreas.data || [];
             solicitudes = resSol.data || [];
 
-            // Renderizar chips de áreas
             const areasContainer = document.getElementById('areas-container');
             areasContainer.innerHTML = `<div class="area-chip ${areaSeleccionada === 'TODOS' ? 'active' : ''}" onclick="filtrarArea('TODOS', this)">TODOS</div>`;
             áreas.forEach(a => {
                 areasContainer.innerHTML += `<div class="area-chip" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
             });
 
-            // Cargar datos locales de asistencia
             asistenciaLocal = {};
             resAsis.data.forEach(a => {
                 asistenciaLocal[a.empleado_id] = { 
@@ -216,7 +214,6 @@
                             <button class="btn-status ${data.estado === 'F' ? 'active-F' : ''}" onclick="updateLocal('${emp.id}', 'F')">F</button>
                         </div>`;
 
-                    // LÓGICA DE DETECCIÓN DINÁMICA DE INCIDENCIAS
                     if (data.estado === 'R') {
                         controlesDinamicos = `
                             <div class="dynamic-controls">
@@ -230,6 +227,7 @@
                                 <select class="input-sub" onchange="updateSubCampos('${emp.id}', 'motivo', this.value)">
                                     <option value="">Seleccione...</option>
                                     <option value="FALTA INJUSTIFICADA" ${data.motivo === 'FALTA INJUSTIFICADA' ? 'selected' : ''}>Falta Injustificada</option>
+                                    <option value="VACACIONES" ${data.motivo === 'VACACIONES' ? 'selected' : ''}>Vacaciones</option>
                                     <option value="SUSPENSION" ${data.motivo === 'SUSPENSION' ? 'selected' : ''}>Suspensión</option>
                                     <option value="INCAPACIDAD" ${data.motivo === 'INCAPACIDAD' ? 'selected' : ''}>Incapacidad</option>
                                     <option value="PERMISO C/GOCE" ${data.motivo === 'PERMISO C/GOCE' ? 'selected' : ''}>Permiso con Goce</option>
@@ -265,7 +263,6 @@
     function updateLocal(id, est) {
         if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', horas_extra: 0, hora_llegada: '', motivo: '', en_db: false };
         asistenciaLocal[id].estado = est;
-        // Limpiar subcampos si cambia a Presente
         if(est === 'P') { asistenciaLocal[id].hora_llegada = ''; asistenciaLocal[id].motivo = ''; }
         render();
     }
@@ -292,7 +289,6 @@
         const btn = document.getElementById('btn-save');
         const hoy = new Date().toISOString().split('T')[0];
         
-        // Validación rápida antes de enviar datos
         let validacionOk = true;
         const batch = Object.keys(asistenciaLocal)
             .filter(id => asistenciaLocal[id].estado)
