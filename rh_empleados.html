@@ -209,7 +209,7 @@
     }
 
     async function init() {
-        // CORRECCIÓN: Se cambia la lectura de 'rh_areas' a 'areas_generales'
+        // Carga de catálogos generales
         const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
@@ -217,7 +217,7 @@
         const fill = (id, data, esFiltro = false) => {
             const s = document.getElementById(id);
             if(!s) return;
-            s.innerHTML = `<option value="${esFiltro ? '' : ''}">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
+            s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
             data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
         };
 
@@ -233,19 +233,23 @@
     }
 
     async function listarEmpleados() {
-        // CORRECCIÓN: Se cambia la relación left join de 'rh_areas' a 'areas_generales'
+        // CORRECCIÓN CLAVE: Se especifican explícitamente las columnas de Foreign Key (area_id, puesto_id, ruta_id) 
+        // para mapear correctamente las relaciones hacia las tablas correspondientes
         const { data, error } = await client.from('rh_empleados').select(`
             *,
-            areas_generales!left(nombre),
-            rh_puestos!left(nombre),
-            rh_rutas!left(nombre)
+            areas_generales:area_id(nombre),
+            rh_puestos:puesto_id(nombre),
+            rh_rutas:ruta_id(nombre)
         `).order('nombre_completo');
 
-        if (error) { console.error(error); return; }
+        if (error) { 
+            console.error("Error en Supabase al listar empleados:", error); 
+            alert("No se pudo obtener la información de los empleados: " + error.message);
+            return; 
+        }
 
         db_empleados = data.map(e => ({
             ...e,
-            // CORRECCIÓN: Ajuste del mapeo del nombre del área desde 'areas_generales'
             area_txt: e.areas_generales?.nombre || '-',
             puesto_txt: e.rh_puestos?.nombre || '-',
             ruta_txt: e.rh_rutas?.nombre || '-',
@@ -262,16 +266,24 @@
         const s = document.getElementById('f_estatus').value;
 
         db_filtrados = db_empleados.filter(e => 
-            (!n || e.nombre_completo.toLowerCase().includes(n)) && 
+            (!n || (e.nombre_completo && e.nombre_completo.toLowerCase().includes(n))) && 
             (!a || e.area_id == a) &&
             (!t || e.turno_id == t) &&
             (!r || e.ruta_id == r) &&
             (!s || e.estatus == s)
         );
         
-        document.getElementById('lista_empleados').innerHTML = db_filtrados.map(e => `
+        const tbody = document.getElementById('lista_empleados');
+        if(!tbody) return;
+
+        if (db_filtrados.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No se encontraron registros de personal.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = db_filtrados.map(e => `
             <tr onclick="cargarAnalisis('${e.id}')">
-                <td><b>${e.nombre_completo}</b></td>
+                <td><b>${e.nombre_completo || 'Sin Nombre'}</b></td>
                 <td>${e.area_txt}</td>
                 <td>${e.puesto_txt}</td>
                 <td>${e.antiguedad_txt}</td>
@@ -283,11 +295,12 @@
 
     async function cargarAnalisis(id) {
         const emp = db_empleados.find(e => e.id == id);
+        if(!emp) return;
         currentEmpId = id;
         document.getElementById('dash_analisis').style.display = 'grid';
         
         document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        document.getElementById('view_nombre').innerText = emp.nombre_completo;
+        document.getElementById('view_nombre').innerText = emp.nombre_completo || '--';
         document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
         document.getElementById('view_nss').innerText = emp.nss || '--';
         document.getElementById('view_anti').innerText = emp.antiguedad_txt;
@@ -295,12 +308,15 @@
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        const fIngreso = new Date(emp.fecha_ingreso);
-        const fHoy = new Date();
-        let anios = fHoy.getFullYear() - fIngreso.getFullYear();
-        if (fHoy < new Date(fHoy.getFullYear(), fIngreso.getMonth(), fIngreso.getDate())) anios--;
+        const fIngreso = emp.fecha_ingreso ? new Date(emp.fecha_ingreso) : null;
+        let diasTotalesDerecho = 0;
         
-        const diasTotalesDerecho = obtenerDiasLey(anios);
+        if (fIngreso && !isNaN(fIngreso.getTime())) {
+            const fHoy = new Date();
+            let anios = fHoy.getFullYear() - fIngreso.getFullYear();
+            if (fHoy < new Date(fHoy.getFullYear(), fIngreso.getMonth(), fIngreso.getDate())) anios--;
+            diasTotalesDerecho = obtenerDiasLey(anios);
+        }
 
         const { data: sol } = await client.from('rh_solicitudes')
             .select('dias_solicitados')
@@ -464,6 +480,7 @@
     function calcularAntiguedadExacta(f) {
         if(!f) return "-";
         const ini = new Date(f), hoy = new Date();
+        if(isNaN(ini.getTime())) return "-";
         let anios = hoy.getFullYear() - ini.getFullYear();
         let meses = hoy.getMonth() - ini.getMonth();
         if (meses < 0) { anios--; meses += 12; }
