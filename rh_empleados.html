@@ -209,7 +209,6 @@
     }
 
     async function init() {
-        // Carga de catálogos generales
         const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
@@ -225,6 +224,7 @@
         fill('sel_puesto', puestos);
         fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
 
+        // MODIFICACIÓN: Inicializa por defecto con el mes en curso, pero el usuario puede cambiarlo
         const d = new Date();
         document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('f_hasta').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -233,8 +233,6 @@
     }
 
     async function listarEmpleados() {
-        // CORRECCIÓN CLAVE: Se especifican explícitamente las columnas de Foreign Key (area_id, puesto_id, ruta_id) 
-        // para mapear correctamente las relaciones hacia las tablas correspondientes
         const { data, error } = await client.from('rh_empleados').select(`
             *,
             areas_generales:area_id(nombre),
@@ -293,7 +291,8 @@
             </tr>`).join('');
     }
 
-    async function cargarAnalisis(id) {
+    // MODIFICACIÓN: Ahora 'hacerScroll' es opcional para que al cambiar de fecha no mueva la pantalla bruscamente
+    async function cargarAnalisis(id, hacerScroll = true) {
         const emp = db_empleados.find(e => e.id == id);
         if(!emp) return;
         currentEmpId = id;
@@ -329,10 +328,12 @@
 
         document.getElementById('view_dias_disponibles').innerText = saldoVacaciones > 0 ? saldoVacaciones : 0;
 
+        // SE DETECTA EL RANGO DINÁMICO ELEGIDO EN LOS INPUTS DESDE/HASTA
         const fDesde = document.getElementById('f_desde').value;
         const fHasta = document.getElementById('f_hasta').value;
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
+        // CONSULTAS FILTRADAS COMPLETAMENTE POR EL RANGO DINÁMICO SELECCIONADO
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
         let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
@@ -345,6 +346,7 @@
         const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         const score5s = fives?.length > 0 ? parseFloat((fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1)) : 0;
 
+        // ACTUALIZACIÓN DE MÉTRICAS EN LA INTERFAZ
         document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistPct + '%';
         document.getElementById('val_puntualidad').innerText = puntPct + '%';
@@ -352,7 +354,10 @@
         document.getElementById('val_versatilidad').innerText = "80%"; 
 
         renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        
+        if (hacerScroll) {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
     }
 
     function renderRadar(y, a, s, v, p) {
@@ -495,7 +500,14 @@
         XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
-    function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId); }
+    // MODIFICACIÓN CLAVE: Si hay un empleado seleccionado en el panel 360, 
+    // al cambiar las fechas recalcula su análisis automáticamente y en tiempo real
+    function actualizarTodo() { 
+        if(currentEmpId) {
+            cargarAnalisis(currentEmpId, false); // El false evita que la pantalla haga brincos de scroll al mover la fecha
+        } 
+    }
+    
     document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
