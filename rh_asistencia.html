@@ -28,9 +28,9 @@
         /* Filtro de Áreas */
         .areas-filter { 
             display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 15px; 
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none;
         }
-        .areas-filter::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+        .areas-filter::-webkit-scrollbar { display: none; }
 
         .area-chip { 
             white-space: nowrap; padding: 8px 16px; background: white; border: 1px solid var(--border);
@@ -48,12 +48,16 @@
         .card-saved { border-left: 5px solid var(--success); background: #f0fdf4; }
         .card-extra { border-left: 5px solid var(--purple); background: #faf5ff; }
 
-        .emp-row { display: flex; align-items: center; justify-content: space-between; }
+        .emp-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         .emp-info { display: flex; align-items: center; gap: 12px; }
         .emp-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #e2e8f0; }
         .emp-details h4 { margin: 0; font-size: 14px; }
         .emp-details p { margin: 2px 0 0; font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; }
         
+        /* Controles Dinámicos secundarios (Inputs de tiempo/incidencias) */
+        .dynamic-controls { width: 100%; display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); justify-content: flex-end; }
+        .input-sub { padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; font-weight: bold; outline: none; color: var(--text); }
+
         /* Botones de Estado */
         .status-buttons { display: flex; gap: 5px; }
         .btn-status { width: 35px; height: 35px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: bold; }
@@ -61,12 +65,13 @@
         .active-R { background: var(--warning) !important; color: white !important; border-color: var(--warning); }
         .active-F { background: var(--danger) !important; color: white !important; border-color: var(--danger); }
 
-        .status-badge { padding: 5px 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 11px; }
+        .status-badge { padding: 5px 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 11px; display: inline-flex; flex-direction: column; align-items: flex-end; }
+        .status-sub-lbl { font-size: 9px; opacity: 0.9; font-weight: normal; margin-top: 2px; }
         .bg-P { background: var(--success); } .bg-R { background: var(--warning); } .bg-F { background: var(--danger); }
 
         .input-extra { width: 60px; padding: 8px; border-radius: 8px; border: 2px solid var(--purple); text-align: center; font-weight: bold; font-size: 16px; outline: none; }
         
-        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; }
+        .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; z-index: 100; }
         .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; }
     </style>
 </head>
@@ -81,10 +86,8 @@
         </div>
     </div>
 
-    <!-- Filtro de Áreas Dinámico -->
     <div class="areas-filter" id="areas-container">
         <div class="area-chip active" onclick="filtrarArea('TODOS', this)">TODOS</div>
-        <!-- Se llena con JS -->
     </div>
 
     <div class="tabs-container">
@@ -118,9 +121,10 @@
         document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
         try {
+            // CORRECCIÓN: Se cambió de 'rh_areas' a 'areas_generales'
             const [resEmp, resAreas, resSol, resAsis] = await Promise.all([
                 client.from('rh_empleados').select('id, nombre_completo, foto_url, area_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
-                client.from('rh_areas').select('*').order('nombre'),
+                client.from('areas_generales').select('*').order('nombre'),
                 client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', hoy).gte('fecha_fin', hoy),
                 client.from('rh_asistencia_diaria').select('*').eq('fecha', hoy)
             ]);
@@ -136,19 +140,21 @@
                 areasContainer.innerHTML += `<div class="area-chip" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
             });
 
-            // Cargar asistencia de la DB al estado local
+            // Cargar datos locales de asistencia
             asistenciaLocal = {};
             resAsis.data.forEach(a => {
                 asistenciaLocal[a.empleado_id] = { 
                     estado: a.estado, 
                     horas_extra: a.horas_extra || 0,
+                    hora_llegada: a.hora_llegada || '',
+                    motivo: a.motivo || '',
                     en_db: true 
                 };
             });
 
             render();
         } catch (err) {
-            console.error(err);
+            console.error("Error al inicializar datos de asistencia:", err);
         }
     }
 
@@ -170,14 +176,11 @@
         const container = document.getElementById('lista-empleados');
         container.innerHTML = '';
 
-        const filtrados = empleados.filter(e => {
-            const matchArea = areaSeleccionada === 'TODOS' || e.area_id == areaSeleccionada;
-            return matchArea;
-        });
+        const filtrados = empleados.filter(e => areaSeleccionada === 'TODOS' || e.area_id == areaSeleccionada);
 
         filtrados.forEach(emp => {
             const sol = solicitudes.find(s => s.empleado_id === emp.id);
-            const data = asistenciaLocal[emp.id] || { estado: '', horas_extra: 0, en_db: false };
+            const data = asistenciaLocal[emp.id] || { estado: '', horas_extra: 0, hora_llegada: '', motivo: '', en_db: false };
 
             if (modo === 'extra' && (data.estado === 'F' || !data.estado)) return;
 
@@ -185,14 +188,23 @@
             card.className = `attendance-card ${data.en_db ? 'card-saved' : ''} ${modo === 'extra' && data.horas_extra > 0 ? 'card-extra' : ''}`;
 
             let controles = '';
+            let controlesDinamicos = '';
+
             if (modo === 'asistencia') {
                 if (sol) {
                     controles = `<span class="status-badge" style="background:#64748b;"><i class="fas fa-lock"></i> ${sol.tipo}</span>`;
                 } else if (data.en_db) {
+                    let subInfo = '';
+                    if(data.estado === 'R' && data.hora_llegada) subInfo = `<span class="status-sub-lbl">${data.hora_llegada} hrs</span>`;
+                    if(data.estado === 'F' && data.motivo) subInfo = `<span class="status-sub-lbl">${data.motivo}</span>`;
+
                     controles = `
                         <div style="display:flex; gap:10px; align-items:center;">
-                            <span class="status-badge bg-${data.estado}">${data.estado}</span>
-                            <button class="btn-delete" onclick="borrarRegistro('${emp.id}')" style="border:none; background:none; color:var(--danger); cursor:pointer;">
+                            <span class="status-badge bg-${data.estado}">
+                                ${data.estado === 'P' ? 'PRESENTE' : data.estado === 'R' ? 'RETARDO' : 'FALTA'}
+                                ${subInfo}
+                            </span>
+                            <button class="btn-delete" onclick="borrarRegistro('${emp.id}')" style="border:none; background:none; color:var(--danger); cursor:pointer; font-size: 16px;">
                                 <i class="fas fa-undo"></i>
                             </button>
                         </div>`;
@@ -203,6 +215,28 @@
                             <button class="btn-status ${data.estado === 'R' ? 'active-R' : ''}" onclick="updateLocal('${emp.id}', 'R')">R</button>
                             <button class="btn-status ${data.estado === 'F' ? 'active-F' : ''}" onclick="updateLocal('${emp.id}', 'F')">F</button>
                         </div>`;
+
+                    // LÓGICA DE DETECCIÓN DINÁMICA DE INCIDENCIAS
+                    if (data.estado === 'R') {
+                        controlesDinamicos = `
+                            <div class="dynamic-controls">
+                                <label style="font-size:11px; font-weight:bold; align-self:center; color:var(--warning)">Hora Llegada:</label>
+                                <input type="time" class="input-sub" value="${data.hora_llegada || ''}" onchange="updateSubCampos('${emp.id}', 'hora_llegada', this.value)">
+                            </div>`;
+                    } else if (data.estado === 'F') {
+                        controlesDinamicos = `
+                            <div class="dynamic-controls">
+                                <label style="font-size:11px; font-weight:bold; align-self:center; color:var(--danger)">Tipo Falta:</label>
+                                <select class="input-sub" onchange="updateSubCampos('${emp.id}', 'motivo', this.value)">
+                                    <option value="">Seleccione...</option>
+                                    <option value="FALTA INJUSTIFICADA" ${data.motivo === 'FALTA INJUSTIFICADA' ? 'selected' : ''}>Falta Injustificada</option>
+                                    <option value="SUSPENSION" ${data.motivo === 'SUSPENSION' ? 'selected' : ''}>Suspensión</option>
+                                    <option value="INCAPACIDAD" ${data.motivo === 'INCAPACIDAD' ? 'selected' : ''}>Incapacidad</option>
+                                    <option value="PERMISO C/GOCE" ${data.motivo === 'PERMISO C/GOCE' ? 'selected' : ''}>Permiso con Goce</option>
+                                    <option value="PERMISO S/GOCE" ${data.motivo === 'PERMISO S/GOCE' ? 'selected' : ''}>Permiso sin Goce</option>
+                                </select>
+                            </div>`;
+                    }
                 }
             } else {
                 controles = `
@@ -222,15 +256,23 @@
                         </div>
                     </div>
                     ${controles}
-                </div>`;
+                </div>
+                ${controlesDinamicos}`;
             container.appendChild(card);
         });
     }
 
     function updateLocal(id, est) {
-        if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', horas_extra: 0, en_db: false };
+        if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', horas_extra: 0, hora_llegada: '', motivo: '', en_db: false };
         asistenciaLocal[id].estado = est;
+        // Limpiar subcampos si cambia a Presente
+        if(est === 'P') { asistenciaLocal[id].hora_llegada = ''; asistenciaLocal[id].motivo = ''; }
         render();
+    }
+
+    function updateSubCampos(id, campo, valor) {
+        if(!asistenciaLocal[id]) return;
+        asistenciaLocal[id][campo] = valor;
     }
 
     function updateExtra(id, valor) {
@@ -239,7 +281,7 @@
     }
 
     async function borrarRegistro(id) {
-        if(!confirm("¿Resetear registro?")) return;
+        if(!confirm("¿Resetear registro de asistencia?")) return;
         const hoy = new Date().toISOString().split('T')[0];
         await client.from('rh_asistencia_diaria').delete().eq('empleado_id', id).eq('fecha', hoy);
         delete asistenciaLocal[id];
@@ -250,23 +292,41 @@
         const btn = document.getElementById('btn-save');
         const hoy = new Date().toISOString().split('T')[0];
         
+        // Validación rápida antes de enviar datos
+        let validacionOk = true;
         const batch = Object.keys(asistenciaLocal)
             .filter(id => asistenciaLocal[id].estado)
-            .map(id => ({
-                empleado_id: id,
-                fecha: hoy,
-                estado: asistenciaLocal[id].estado,
-                horas_extra: asistenciaLocal[id].horas_extra || 0
-            }));
+            .map(id => {
+                const item = asistenciaLocal[id];
+                if(item.estado === 'R' && !item.hora_llegada && !item.en_db) {
+                    alert("Por favor ingresa la hora de llegada para los retardos.");
+                    validacionOk = false;
+                }
+                if(item.estado === 'F' && !item.motivo && !item.en_db) {
+                    alert("Por favor selecciona la incidencia/motivo para las faltas.");
+                    validacionOk = false;
+                }
+                return {
+                    empleado_id: id,
+                    fecha: hoy,
+                    estado: item.estado,
+                    hora_llegada: item.hora_llegada || null,
+                    motivo: item.motivo || 'N/A',
+                    horas_extra: item.horas_extra || 0
+                };
+            });
 
-        if (batch.length === 0) return alert("Nada que guardar.");
+        if (!validacionOk) return;
+        if (batch.length === 0) return alert("No hay pases de lista nuevos marcados.");
 
         btn.disabled = true;
         const { error } = await client.from('rh_asistencia_diaria').upsert(batch, { onConflict: 'empleado_id, fecha' });
 
         if (!error) {
-            alert("Guardado correctamente");
+            alert("✅ Registro guardado exitosamente.");
             cargarDatos();
+        } else {
+            alert("Error al procesar: " + error.message);
         }
         btn.disabled = false;
     }
