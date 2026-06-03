@@ -245,13 +245,26 @@
             return; 
         }
 
-        db_empleados = data.map(e => ({
-            ...e,
-            area_txt: e.areas_generales?.nombre || '-',
-            puesto_txt: e.rh_puestos?.nombre || '-',
-            ruta_txt: e.rh_rutas?.nombre || '-',
-            antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
-        }));
+        db_empleados = data.map(e => {
+            // DETECCIÓN Y PARSEO DE DATOS VIEJOS:
+            // Si area_id no es un UUID estructurado (con guiones), significa que aún guarda "LS".
+            const esUuid = (val) => (val && val.includes('-') && val.length > 20);
+            
+            let areaTexto = "-";
+            if (e.areas_generales?.nombre) {
+                areaTexto = e.areas_generales.nombre;
+            } else if (e.area_id && !esUuid(e.area_id)) {
+                areaTexto = e.area_id; // Coloca "LS" directo en la tabla para que no rompa la vista
+            }
+
+            return {
+                ...e,
+                area_txt: areaTexto,
+                puesto_txt: e.rh_puestos?.nombre || '-',
+                ruta_txt: e.rh_rutas?.nombre || '-',
+                antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
+            };
+        });
         aplicarFiltros();
     }
 
@@ -408,8 +421,6 @@
             if(!fotoUrl) return alert("Error al subir imagen.");
         }
 
-        // LÓGICA DE PREVENCIÓN DE ERRORES UUID Y ENTRADAS EN BLANCO:
-        // Si el valor del selector es una cadena vacía o no cumple con una longitud básica (como el caso de enviar "1"), se asigna null.
         const verificarUuids = (val) => (val && val.trim() !== "" && val.length > 5) ? val : null;
 
         const obj = {
@@ -418,7 +429,7 @@
             area_id: verificarUuids(document.getElementById('sel_area').value),
             puesto_id: verificarUuids(document.getElementById('sel_puesto').value),
             fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
-            turno_id: document.getElementById('sel_turno').value || null, // Se mantiene como entrada directa si maneja texto plano, o null si está en blanco
+            turno_id: document.getElementById('sel_turno').value || null,
             ruta_id: verificarUuids(document.getElementById('sel_ruta').value),
             tipo_sangre: document.getElementById('tipo_sangre').value || null,
             talla_playera: document.getElementById('sel_talla').value || null,
@@ -447,14 +458,19 @@
     function editarActual() {
         if(!currentEmpId) return;
         const emp = db_empleados.find(e => e.id == currentEmpId);
+        const esUuid = (val) => (val && val.includes('-') && val.length > 20);
+
         document.getElementById('edit_id').value = emp.id;
         document.getElementById('nombre').value = emp.nombre_completo || "";
         document.getElementById('nss').value = emp.nss || "";
-        document.getElementById('sel_area').value = emp.area_id || "";
-        document.getElementById('sel_puesto').value = emp.puesto_id || "";
+        
+        // MIGRACIÓN MÓDULO EDICIÓN: Si el area_id no es un UUID (es el texto viejo), limpiamos el valor del selector para forzar una selección fresca y correcta
+        document.getElementById('sel_area').value = esUuid(emp.area_id) ? emp.area_id : "";
+        document.getElementById('sel_puesto').value = esUuid(emp.puesto_id) ? emp.puesto_id : "";
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
         document.getElementById('sel_turno').value = emp.turno_id || "1";
-        document.getElementById('sel_ruta').value = emp.ruta_id || "";
+        document.getElementById('sel_ruta').value = esUuid(emp.ruta_id) ? emp.ruta_id : "";
+        
         document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
         document.getElementById('sel_talla').value = emp.talla_playera || "";
         document.getElementById('direccion').value = emp.direccion || "";
