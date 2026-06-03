@@ -209,18 +209,21 @@
     }
 
     async function init() {
-        const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
+        // CORRECCIÓN: La tabla se llama 'areas_generales'. Cargamos 'id' y su campo real 'area_name'
+        const { data: areas } = await client.from('areas_generales').select('id, area_name').order('area_name');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
         
-        const fill = (id, data, esFiltro = false) => {
+        const fill = (id, data, esFiltro = false, keyName = 'nombre') => {
             const s = document.getElementById(id);
             if(!s) return;
             s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
-            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
+            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d[keyName]}</option>`);
         };
 
-        fill('sel_area', areas); fill('f_area', areas, true);
+        // Rellenamos usando 'area_name' para la tabla de áreas
+        fill('sel_area', areas, false, 'area_name'); 
+        fill('f_area', areas, true, 'area_name');
         fill('sel_puesto', puestos);
         fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
 
@@ -232,9 +235,10 @@
     }
 
     async function listarEmpleados() {
+        // CORRECCIÓN: Relacionamos usando la columna correcta 'area_general_id' y jalamos 'area_name'
         const { data, error } = await client.from('rh_empleados').select(`
             *,
-            areas_generales:area_id(nombre),
+            areas_generales:area_general_id(area_name),
             rh_puestos:puesto_id(nombre),
             rh_rutas:ruta_id(nombre)
         `).order('nombre_completo');
@@ -246,12 +250,10 @@
         }
 
         db_empleados = data.map(e => {
-            // AJUSTE EXACTO SOLICITADO:
-            // Si tiene asignada un área de la nueva tabla de 'areas_generales' mapeamos su nombre.
-            // Si viene vacío o conserva texto plano viejo, forzamos de forma segura el "- -" en la tabla.
+            // CORRECCIÓN LOGICA: Validamos contra 'area_general_id' y su respectivo 'area_name'
             let areaTexto = "- -";
-            if (e.areas_generales && e.areas_generales.nombre) {
-                areaTexto = e.areas_generales.nombre;
+            if (e.area_general_id && e.areas_generales && e.areas_generales.area_name) {
+                areaTexto = e.areas_generales.area_name;
             }
 
             return {
@@ -267,14 +269,14 @@
 
     function aplicarFiltros() {
         const n = document.getElementById('f_nombre').value.toLowerCase();
-        const a = document.getElementById('f_area').value;
+        const a = document.getElementById('f_area').value; // Toma el ID numérico de area_general_id
         const t = document.getElementById('f_turno').value;
         const r = document.getElementById('f_ruta').value;
         const s = document.getElementById('f_estatus').value;
 
         db_filtrados = db_empleados.filter(e => 
             (!n || (e.nombre_completo && e.nombre_completo.toLowerCase().includes(n))) && 
-            (!a || e.area_id == a) &&
+            (!a || e.area_general_id == a) && // Filtrado corregido a area_general_id
             (!t || e.turno_id == t) &&
             (!r || e.ruta_id == r) &&
             (!s || e.estatus == s)
@@ -418,16 +420,18 @@
             if(!fotoUrl) return alert("Error al subir imagen.");
         }
 
-        const verificarUuids = (val) => (val && val.trim() !== "" && val.length > 5) ? val : null;
+        const limpiarValorVacio = (val) => (val && val.trim() !== "") ? val : null;
 
+        // CORRECCIÓN: Estructura del objeto alineada exactamente a las columnas de tu DB.
         const obj = {
             nombre_completo: document.getElementById('nombre').value || null,
             nss: document.getElementById('nss').value || null,
-            area_id: verificarUuids(document.getElementById('sel_area').value),
-            puesto_id: verificarUuids(document.getElementById('sel_puesto').value),
+            // Asignamos el id numérico del select al campo definitivo 'area_general_id'
+            area_general_id: limpiarValorVacio(document.getElementById('sel_area').value),
+            puesto_id: limpiarValorVacio(document.getElementById('sel_puesto').value),
             fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
             turno_id: document.getElementById('sel_turno').value || null,
-            ruta_id: verificarUuids(document.getElementById('sel_ruta').value),
+            ruta_id: limpiarValorVacio(document.getElementById('sel_ruta').value),
             tipo_sangre: document.getElementById('tipo_sangre').value || null,
             talla_playera: document.getElementById('sel_talla').value || null,
             direccion: document.getElementById('direccion').value || null,
@@ -455,17 +459,17 @@
     function editarActual() {
         if(!currentEmpId) return;
         const emp = db_empleados.find(e => e.id == currentEmpId);
-        const esUuid = (val) => (val && val.includes('-') && val.length > 20);
 
         document.getElementById('edit_id').value = emp.id;
         document.getElementById('nombre').value = emp.nombre_completo || "";
         document.getElementById('nss').value = emp.nss || "";
         
-        document.getElementById('sel_area').value = esUuid(emp.area_id) ? emp.area_id : "";
-        document.getElementById('sel_puesto').value = esUuid(emp.puesto_id) ? emp.puesto_id : "";
+        // CORRECCIÓN: Cargamos el 'area_general_id' numérico al select del formulario
+        document.getElementById('sel_area').value = emp.area_general_id || "";
+        document.getElementById('sel_puesto').value = emp.puesto_id || "";
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
         document.getElementById('sel_turno').value = emp.turno_id || "1";
-        document.getElementById('sel_ruta').value = esUuid(emp.ruta_id) ? emp.ruta_id : "";
+        document.getElementById('sel_ruta').value = emp.ruta_id || "";
         
         document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
         document.getElementById('sel_talla').value = emp.talla_playera || "";
