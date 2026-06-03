@@ -246,15 +246,12 @@
         }
 
         db_empleados = data.map(e => {
-            // DETECCIÓN Y PARSEO DE DATOS VIEJOS:
-            // Si area_id no es un UUID estructurado (con guiones), significa que aún guarda "LS".
-            const esUuid = (val) => (val && val.includes('-') && val.length > 20);
-            
-            let areaTexto = "-";
-            if (e.areas_generales?.nombre) {
+            // AJUSTE EXACTO SOLICITADO:
+            // Si tiene asignada un área de la nueva tabla de 'areas_generales' mapeamos su nombre.
+            // Si viene vacío o conserva texto plano viejo, forzamos de forma segura el "- -" en la tabla.
+            let areaTexto = "- -";
+            if (e.areas_generales && e.areas_generales.nombre) {
                 areaTexto = e.areas_generales.nombre;
-            } else if (e.area_id && !esUuid(e.area_id)) {
-                areaTexto = e.area_id; // Coloca "LS" directo en la tabla para que no rompa la vista
             }
 
             return {
@@ -464,7 +461,6 @@
         document.getElementById('nombre').value = emp.nombre_completo || "";
         document.getElementById('nss').value = emp.nss || "";
         
-        // MIGRACIÓN MÓDULO EDICIÓN: Si el area_id no es un UUID (es el texto viejo), limpiamos el valor del selector para forzar una selección fresca y correcta
         document.getElementById('sel_area').value = esUuid(emp.area_id) ? emp.area_id : "";
         document.getElementById('sel_puesto').value = esUuid(emp.puesto_id) ? emp.puesto_id : "";
         document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
