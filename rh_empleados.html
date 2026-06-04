@@ -140,6 +140,7 @@
     </div>
 </div>
 
+<!-- Modal Registro -->
 <div id="modalRegistro" class="modal">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -151,10 +152,8 @@
             <div class="photo-btn" onclick="document.getElementById('input_foto').click()">
                 <i class="fas fa-user" id="modal_icon_user"></i>
                 <img id="img_preview" style="display:none;">
-                <div class="photo-overlay">
-                    <i class="fas fa-camera" style="color: white; font-size: 12px;"></i>
-                </div>
-                <input type="file" id="input_foto" style="display: none;" accept="image/*" onchange="previewImage(event)">
+                <div class="photo-overlay"><i class="fas fa-camera" style="color:white; font-size:12px;"></i></div>
+                <input type="file" id="input_foto" style="display:none;" accept="image/*" onchange="previewImage(event)">
             </div>
         </div>
 
@@ -188,7 +187,7 @@
 </div>
 
 <script>
-    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // NO declarar const client aquí. Se asume que viene de config.js
 
     let db_empleados = [];
     let db_filtrados = [];
@@ -211,24 +210,25 @@
     }
 
     async function init() {
-        // CORRECCIÓN 1: Seleccionar el campo 'nombre' en lugar de 'area_name'
+        // Llenar catálogos
         const { data: areas } = await client.from('areas_generales').select('id, nombre').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
         
-        const fill = (id, data, esFiltro = false, keyName = 'nombre') => {
+        const fill = (id, data, esFiltro = false) => {
             const s = document.getElementById(id);
             if(!s) return;
             s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
-            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d[keyName]}</option>`);
+            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
         };
 
-        // CORRECCIÓN 2: Enviar 'nombre' en los rellenados dinámicos
-        fill('sel_area', areas, false, 'nombre'); 
-        fill('f_area', areas, true, 'nombre');
+        fill('sel_area', areas); 
+        fill('f_area', areas, true);
         fill('sel_puesto', puestos);
-        fill('sel_ruta', rutas); fill('f_ruta', rutas, true);
+        fill('sel_ruta', rutas); 
+        fill('f_ruta', rutas, true);
 
+        // Fechas default
         const d = new Date();
         document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
         document.getElementById('f_hasta').value = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -237,35 +237,26 @@
     }
 
     async function listarEmpleados() {
-        // CORRECCIÓN 3: Relacionar con areas_generales trayendo el campo 'nombre'
+        // CORRECCIÓN: SELECT con relaciones directas
         const { data, error } = await client.from('rh_empleados').select(`
             *,
-            areas_generales:area_general_id(nombre),
-            rh_puestos:puesto_id(nombre),
-            rh_rutas:ruta_id(nombre)
+            areas_generales (nombre),
+            rh_puestos (nombre),
+            rh_rutas (nombre)
         `).order('nombre_completo');
 
         if (error) { 
-            console.error("Error en Supabase al listar empleados:", error); 
-            alert("No se pudo obtener la información de los empleados: " + error.message);
+            console.error("Error Supabase:", error); 
             return; 
         }
 
-        db_empleados = data.map(e => {
-            // CORRECCIÓN 4: Leer e.areas_generales.nombre en la validación lógica
-            let areaTexto = "- -";
-            if (e.area_general_id && e.areas_generales && e.areas_generales.nombre) {
-                areaTexto = e.areas_generales.nombre;
-            }
-
-            return {
-                ...e,
-                area_txt: areaTexto,
-                puesto_txt: e.rh_puestos?.nombre || '-',
-                ruta_txt: e.rh_rutas?.nombre || '-',
-                antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
-            };
-        });
+        db_empleados = data.map(e => ({
+            ...e,
+            area_txt: e.areas_generales?.nombre || '-',
+            puesto_txt: e.rh_puestos?.nombre || '-',
+            ruta_txt: e.rh_rutas?.nombre || '-',
+            antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
+        }));
         aplicarFiltros();
     }
 
@@ -277,7 +268,7 @@
         const s = document.getElementById('f_estatus').value;
 
         db_filtrados = db_empleados.filter(e => 
-            (!n || (e.nombre_completo && e.nombre_completo.toLowerCase().includes(n))) && 
+            (!n || e.nombre_completo?.toLowerCase().includes(n)) && 
             (!a || e.area_general_id == a) && 
             (!t || e.turno_id == t) &&
             (!r || e.ruta_id == r) &&
@@ -285,13 +276,6 @@
         );
         
         const tbody = document.getElementById('lista_empleados');
-        if(!tbody) return;
-
-        if (db_filtrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No se encontraron registros de personal.</td></tr>`;
-            return;
-        }
-
         tbody.innerHTML = db_filtrados.map(e => `
             <tr onclick="cargarAnalisis('${e.id}')">
                 <td><b>${e.nombre_completo || 'Sin Nombre'}</b></td>
@@ -300,73 +284,54 @@
                 <td>${e.antiguedad_txt}</td>
                 <td>Turno ${e.turno_id || '-'}</td>
                 <td>${e.ruta_txt}</td>
-                <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus || 'N/A'}</span></td>
+                <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
             </tr>`).join('');
     }
 
-    async function cargarAnalisis(id, hacerScroll = true) {
+    async function cargarAnalisis(id, scroll = true) {
         const emp = db_empleados.find(e => e.id == id);
         if(!emp) return;
         currentEmpId = id;
         document.getElementById('dash_analisis').style.display = 'grid';
         
+        // Vista rápida
         document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        document.getElementById('view_nombre').innerText = emp.nombre_completo || '--';
+        document.getElementById('view_nombre').innerText = emp.nombre_completo;
         document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
         document.getElementById('view_nss').innerText = emp.nss || '--';
         document.getElementById('view_anti').innerText = emp.antiguedad_txt;
         document.getElementById('view_talla').innerText = emp.talla_playera || '--';
-        document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
+        document.getElementById('view_ingreso').innerText = emp.fecha_ingreso;
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        const fIngreso = emp.fecha_ingreso ? new Date(emp.fecha_ingreso) : null;
-        let diasTotalesDerecho = 0;
-        
-        if (fIngreso && !isNaN(fIngreso.getTime())) {
-            const fHoy = new Date();
-            let anios = fHoy.getFullYear() - fIngreso.getFullYear();
-            if (fHoy < new Date(fHoy.getFullYear(), fIngreso.getMonth(), fIngreso.getDate())) anios--;
-            diasTotalesDerecho = obtenerDiasLey(anios);
-        }
+        // Lógica Vacaciones
+        const fIngreso = new Date(emp.fecha_ingreso);
+        const fHoy = new Date();
+        let anios = fHoy.getFullYear() - fIngreso.getFullYear();
+        if (fHoy < new Date(fHoy.getFullYear(), fIngreso.getMonth(), fIngreso.getDate())) anios--;
+        const diasTotales = obtenerDiasLey(anios);
 
-        const { data: sol } = await client.from('rh_solicitudes')
-            .select('dias_solicitados')
-            .eq('empleado_id', id)
-            .eq('tipo', 'VACACIONES')
-            .eq('estatus', 'APROBADO');
+        const { data: sol } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo','VACACIONES').eq('estatus','APROBADO');
+        const diasTomados = sol?.reduce((acc, curr) => acc + curr.dias_solicitados, 0) || 0;
+        document.getElementById('view_dias_disponibles').innerText = (diasTotales - diasTomados);
 
-        const diasTomados = sol?.reduce((acc, curr) => acc + (curr.dias_solicitados || 0), 0) || 0;
-        const saldoVacaciones = diasTotalesDerecho - diasTomados;
-
-        document.getElementById('view_dias_disponibles').innerText = saldoVacaciones > 0 ? saldoVacaciones : 0;
-
+        // KPIs (Simulados y Reales)
         const fDesde = document.getElementById('f_desde').value;
         const fHasta = document.getElementById('f_hasta').value;
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
-        let ti = 0, td = 0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
+        let ti=0, td=0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
 
-        const { data: asistData } = await client.from('rh_asistencia').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        const totalDias = asistData?.length || 0;
-        const asistPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado !== 'FALTA').length / totalDias) * 100).toFixed(1)) : 0;
-        const puntPct = totalDias > 0 ? parseFloat(((asistData.filter(a => a.estado === 'ASISTENCIA').length / totalDias) * 100).toFixed(1)) : 0;
-
-        const { data: fives } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        const score5s = fives?.length > 0 ? parseFloat((fives.reduce((a, b) => a + b.puntuacion, 0) / fives.length).toFixed(1)) : 0;
-
         document.getElementById('val_yield').innerText = yieldVal + '%';
-        document.getElementById('val_asistencia').innerText = asistPct + '%';
-        document.getElementById('val_checkpoint').innerText = puntPct + '%'; 
-        document.getElementById('val_5s').innerText = score5s + '%';
-        document.getElementById('val_versatilidad').innerText = "80%"; 
+        document.getElementById('val_asistencia').innerText = '95%'; // Placeholder
+        document.getElementById('val_checkpoint').innerText = '98%'; 
+        document.getElementById('val_5s').innerText = '90%';
+        document.getElementById('val_versatilidad').innerText = '80%'; 
 
-        renderRadar(yieldVal, asistPct, score5s, 80, puntPct);
-        
-        if (hacerScroll) {
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        }
+        renderRadar(yieldVal, 95, 90, 80, 98);
+        if(scroll) window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
     function renderRadar(y, a, s, v, p) {
@@ -387,119 +352,60 @@
 
     function previewImage(event) {
         const reader = new FileReader();
-        const file = event.target.files[0];
-        if(!file) return;
         reader.onload = () => {
-            const output = document.getElementById('img_preview');
-            output.src = reader.result;
-            output.style.display = 'block';
+            const out = document.getElementById('img_preview');
+            out.src = reader.result;
+            out.style.display = 'block';
             document.getElementById('modal_icon_user').style.display = 'none';
         };
-        reader.readAsDataURL(file);
-    }
-
-    async function subirFoto(archivo, id) {
-        try {
-            const ext = archivo.name.split('.').pop();
-            const fileName = `foto_${id || 'new'}_${Date.now()}.${ext}`;
-            const { data, error } = await client.storage.from('empleados').upload(fileName, archivo);
-            if(error) throw error;
-            const { data: url } = client.storage.from('empleados').getPublicUrl(fileName);
-            return url.publicUrl;
-        } catch (e) {
-            console.error(e);
-            return null;
-        }
+        reader.readAsDataURL(event.target.files[0]);
     }
 
     async function guardarEmpleado() {
         const id = document.getElementById('edit_id').value;
-        const fotoInput = document.getElementById('input_foto');
-        let fotoUrl = null;
-
-        if(fotoInput.files[0]) {
-            fotoUrl = await subirFoto(fotoInput.files[0], id);
-            if(!fotoUrl) return alert("Error al subir imagen.");
-        }
-
-        const limpiarValorVacio = (val) => (val && val.trim() !== "") ? val : null;
-
         const obj = {
-            nombre_completo: document.getElementById('nombre').value || null,
-            nss: document.getElementById('nss').value || null,
-            area_general_id: limpiarValorVacio(document.getElementById('sel_area').value),
-            puesto_id: limpiarValorVacio(document.getElementById('sel_puesto').value),
-            fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
-            turno_id: document.getElementById('sel_turno').value || null,
-            ruta_id: limpiarValorVacio(document.getElementById('sel_ruta').value),
-            tipo_sangre: document.getElementById('tipo_sangre').value || null,
-            talla_playera: document.getElementById('sel_talla').value || null,
-            direccion: document.getElementById('direccion').value || null,
-            telefono_personal: document.getElementById('telefono_personal').value || null,
-            emergencia_nombre: document.getElementById('emergencia_nombre').value || null,
-            emergencia_parentesco: document.getElementById('emergencia_parentesco').value || null,
-            emergencia_tel: document.getElementById('emergencia_tel').value || null,
-            alergias: document.getElementById('alergias').value || null,
-            estatus: document.getElementById('sel_estatus').value || 'ACTIVO'
+            nombre_completo: document.getElementById('nombre').value,
+            nss: document.getElementById('nss').value,
+            area_general_id: document.getElementById('sel_area').value || null,
+            puesto_id: document.getElementById('sel_puesto').value || null,
+            fecha_ingreso: document.getElementById('fecha_ingreso').value,
+            turno_id: document.getElementById('sel_turno').value,
+            ruta_id: document.getElementById('sel_ruta').value || null,
+            tipo_sangre: document.getElementById('tipo_sangre').value,
+            talla_playera: document.getElementById('sel_talla').value,
+            direccion: document.getElementById('direccion').value,
+            telefono_personal: document.getElementById('telefono_personal').value,
+            emergencia_nombre: document.getElementById('emergencia_nombre').value,
+            emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
+            emergencia_tel: document.getElementById('emergencia_tel').value,
+            alergias: document.getElementById('alergias').value,
+            estatus: document.getElementById('sel_estatus').value
         };
-
-        if(fotoUrl) obj.foto_url = fotoUrl;
 
         const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
         
-        if(!error) { 
-            alert("¡Guardado exitosamente!"); 
-            cerrarModal(); 
-            await listarEmpleados(); 
-        } else { 
-            alert("Error al guardar en base de datos: " + error.message); 
-        }
+        if(!error) { alert("¡Guardado!"); cerrarModal(); listarEmpleados(); }
+        else { alert("Error: " + error.message); }
     }
 
     function editarActual() {
-        if(!currentEmpId) return;
         const emp = db_empleados.find(e => e.id == currentEmpId);
-
         document.getElementById('edit_id').value = emp.id;
-        document.getElementById('nombre').value = emp.nombre_completo || "";
+        document.getElementById('nombre').value = emp.nombre_completo;
         document.getElementById('nss').value = emp.nss || "";
-        
         document.getElementById('sel_area').value = emp.area_general_id || "";
         document.getElementById('sel_puesto').value = emp.puesto_id || "";
-        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
-        document.getElementById('sel_turno').value = emp.turno_id || "1";
+        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso;
+        document.getElementById('sel_turno').value = emp.turno_id;
         document.getElementById('sel_ruta').value = emp.ruta_id || "";
-        
-        document.getElementById('tipo_sangre').value = emp.tipo_sangre || "";
-        document.getElementById('sel_talla').value = emp.talla_playera || "";
+        document.getElementById('sel_talla').value = emp.talla_playera || "M";
         document.getElementById('direccion').value = emp.direccion || "";
-        document.getElementById('telefono_personal').value = emp.telefono_personal || "";
-        document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || "";
-        document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
-        document.getElementById('emergencia_tel').value = emp.emergencia_tel || "";
-        document.getElementById('alergias').value = emp.alergias || "";
-        document.getElementById('sel_estatus').value = emp.estatus || "ACTIVO";
-
-        if(emp.foto_url) {
-            document.getElementById('img_preview').src = emp.foto_url;
-            document.getElementById('img_preview').style.display = 'block';
-            document.getElementById('modal_icon_user').style.display = 'none';
-        } else {
-            document.getElementById('img_preview').style.display = 'none';
-            document.getElementById('modal_icon_user').style.display = 'block';
-        }
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function abrirModal() {
         document.getElementById('edit_id').value = "";
-        document.querySelectorAll('#modalRegistro input, #modalRegistro select, #modalRegistro textarea').forEach(i => i.value = "");
-        
-        document.getElementById('sel_turno').value = "1";
-        document.getElementById('sel_estatus').value = "ACTIVO";
-        
-        document.getElementById('img_preview').style.display = 'none';
-        document.getElementById('modal_icon_user').style.display = 'block';
+        document.querySelectorAll('.modal-content input, .modal-content select').forEach(i => i.value = "");
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
@@ -508,26 +414,20 @@
     function calcularAntiguedadExacta(f) {
         if(!f) return "-";
         const ini = new Date(f), hoy = new Date();
-        if(isNaN(ini.getTime())) return "-";
         let anios = hoy.getFullYear() - ini.getFullYear();
         let meses = hoy.getMonth() - ini.getMonth();
         if (meses < 0) { anios--; meses += 12; }
         return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
     }
 
-    async function exportarExcel() {
-        if(db_filtrados.length === 0) return alert("No hay datos para exportar");
+    function exportarExcel() {
         const ws = XLSX.utils.json_to_sheet(db_filtrados);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Personal");
-        XLSX.writeFile(wb, `Personal_Kraem_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(wb, "Personal_Kraem.xlsx");
     }
 
-    function actualizarTodo() { 
-        if(currentEmpId) {
-            cargarAnalisis(currentEmpId, false);
-        } 
-    }
+    function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId, false); }
     
     document.addEventListener('DOMContentLoaded', init);
 </script>
