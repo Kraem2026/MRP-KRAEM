@@ -82,12 +82,10 @@ input, select, textarea {
     text-decoration: none;
 }
 
-/* Tabs superiores de control */
 .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
 .tab-btn { padding: 10px 20px; border: none; background: none; font-weight: 700; cursor: pointer; color: #64748b; font-size: 14px; border-radius: 6px; }
 .tab-btn.active { background: var(--accent); color: white; }
 
-/* Listas y Tarjetas de Solicitud */
 .solicitud-list { display: flex; flex-direction: column; gap: 12px; }
 .solicitud-card { border: 1px solid var(--border); padding: 16px; border-radius: 8px; background: white; display: flex; justify-content: space-between; align-items: center; position: relative; }
 .solicitud-info h4 { margin: 0 0 5px 0; font-size: 14px; }
@@ -98,7 +96,10 @@ input, select, textarea {
 .badge-rechazado { background: #fee2e2; color: #b91c1c; }
 .auditoria-firma { font-size: 10px; color: #94a3b8; font-style: italic; margin-top: 5px; display: block; }
 
-/* Tabla de saldos */
+.info-badge-dinamico {
+    font-size: 12px; font-weight: bold; padding: 6px 10px; border-radius: 6px; margin-bottom: 12px; display: none;
+}
+
 table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
 th { background: #f8fafc; padding: 12px; text-align: left; font-size: 11px; border-bottom: 2px solid var(--border); text-transform: uppercase; color: #64748b; }
 td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
@@ -134,7 +135,9 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
             </div>
 
             <label>Colaborador afectado</label>
-            <select id="sel_empleado" required></select>
+            <select id="sel_empleado" onchange="mostrarInfoVacacionesEmpleado()" required></select>
+            
+            <div id="lbl_vacaciones_disponibles" class="info-badge-dinamico" style="background: #e0f2fe; color: #0369a1;"></div>
 
             <label>Tipo de Permiso / Ausencia</label>
             <select id="sol_tipo" onchange="toggleCamposTipo()" required>
@@ -151,9 +154,11 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
 
             <div id="grupo-fechas" style="display: block;">
                 <label>Fecha Inicio</label>
-                <input type="date" id="sol_inicio">
+                <input type="date" id="sol_inicio" onchange="calcularDiasSolicitadosDinamico()">
                 <label>Fecha Fin</label>
-                <input type="date" id="sol_fin">
+                <input type="date" id="sol_fin" onchange="calcularDiasSolicitadosDinamico()">
+                
+                <div id="lbl_dias_calculados" class="info-badge-dinamico" style="background: #fef3c7; color: #d97706; margin-top: 5px;"></div>
             </div>
 
             <div id="grupo-horas" style="display: none; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px;">
@@ -225,10 +230,9 @@ async function init(){
     document.getElementById('sol_fin').value = hoy;
     document.getElementById('sol_fecha_local').value = hoy;
 
-    // CARGAR DATA BASE SIMULTÁNEA EN ORDEN ALFABÉTICO (A-Z)
     const [resEmp, resAr] = await Promise.all([
         client.from('rh_empleados').select('*').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
-        client.from('areas_generales').select('*') // Llama a tu tabla de áreas configurada
+        client.from('areas_generales').select('*')
     ]);
 
     empleados = resEmp.data || [];
@@ -237,7 +241,8 @@ async function init(){
     cargarAreas();
     filtrarEmpleados();
     filtrarAutorizadores();
-    cargarSolicitudesBase();
+    await cargarSolicitudesBase();
+    calcularDiasSolicitadosDinamico();
 }
 
 function switchTab(id) {
@@ -245,7 +250,6 @@ function switchTab(id) {
     document.getElementById('panel-saldos').style.display = id === 'panel-saldos' ? 'block' : 'none';
     event.target.classList.add('active');
     
-    // Toggle active classes en tabs principales
     document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
         if(btn !== event.target) btn.classList.remove('active');
     });
@@ -287,6 +291,7 @@ function filtrarEmpleados(){
     lista.forEach(e=>{
         sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
     });
+    document.getElementById('lbl_vacaciones_disponibles').style.display = 'none';
 }
 
 function filtrarAutorizadores(){
@@ -304,6 +309,69 @@ function filtrarAutorizadores(){
     lista.forEach(e=>{
         sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
     });
+}
+
+// NUEVA FUNCIÓN: Muestra los días de vacaciones que dispone el operador seleccionado
+async function mostrarInfoVacacionesEmpleado() {
+    const empId = document.getElementById('sel_empleado').value;
+    const lbl = document.getElementById('lbl_vacaciones_disponibles');
+    
+    if(!empId) {
+        lbl.style.display = 'none';
+        return;
+    }
+
+    const emp = empleados.find(e => e.id === empId);
+    if(!emp) return;
+
+    // Calcular en caliente los días tomados en solicitudes aprobadas
+    const { data: vacs } = await client.from('rh_solicitudes').select('fecha_inicio, fecha_fin').eq('empleado_id', empId).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
+    
+    let diasTomados = 0;
+    vacs?.forEach(s => {
+        const inicio = new Date(s.fecha_inicio);
+        const fin = new Date(s.fecha_fin);
+        const diff = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+        diasTomados += diff;
+    });
+
+    const baseLey = emp.dias_vacaciones_ley || 0;
+    const ajuste = emp.ajuste_vacaciones_manual || 0;
+    const saldoReal = (baseLey + ajuste) - diasTomados;
+
+    lbl.innerHTML = `<i class="fas fa-calendar-alt"></i> Saldo Vacaciones: <strong>${saldoReal} días disponibles</strong>`;
+    lbl.style.display = 'block';
+}
+
+// NUEVA FUNCIÓN: Calcula cuántos días se están pidiendo en el rango (Mismo día = 1 día)
+function calcularDiasSolicitadosDinamico() {
+    const inicioStr = document.getElementById('sol_inicio').value;
+    const finStr = document.getElementById('sol_fin').value;
+    const lbl = document.getElementById('lbl_dias_calculados');
+
+    if(!inicioStr || !finStr) {
+        lbl.style.display = 'none';
+        return;
+    }
+
+    const inicio = new Date(inicioStr);
+    const fin = new Date(finStr);
+
+    if(fin < inicio) {
+        lbl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: La fecha fin es menor.`;
+        lbl.style.style.background = '#fee2e2';
+        lbl.style.color = '#b91c1c';
+        lbl.style.display = 'block';
+        return;
+    }
+
+    const diffTime = Math.abs(fin - inicio);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    lbl.innerHTML = `<i class="fas fa-calculator"></i> Período solicitado: <strong>${diffDays} ${diffDays === 1 ? 'día' : 'días'}</strong>`;
+    lbl.style.background = '#fef3c7';
+    lbl.style.color = '#d97706';
+    lbl.style.display = 'block';
 }
 
 async function cargarSolicitudesBase() {
@@ -380,19 +448,17 @@ async function guardar(){
         fFin = document.getElementById('sol_fecha_local').value;
     }
 
-    const autorizadorCombo = document.getElementById('sel_autoriza');
-    const nombreSolicitante = autorizadorCombo.options[autorizadorCombo.selectedIndex]?.text || 'Supervisor';
-
     const insertPayload = {
         empleado_id: emp,
         tipo: tipo,
         fecha_inicio: fInicio,
         fecha_fin: fFin,
-        hora_inicio: esLocal ? document.getElementById('sol_hora_inicio').value : null,
-        hora_fin: esLocal ? document.getElementById('sol_hora_fin').value : null,
+        // CORRECCIÓN: Si tu DB no tiene las columnas, se envían como null para evitar romper el schema cache
+        hora_inicio: esLocal ? (document.getElementById('sol_hora_inicio').value || null) : null,
+        hora_fin: esLocal ? (document.getElementById('sol_hora_fin').value || null) : null,
         motivo: motivo,
         estatus: 'PENDIENTE',
-        autorizado_por: aut || null // Mantiene tu declaración original guardando la ID
+        autorizado_por: aut || null
     };
 
     const { error } = await client.from('rh_solicitudes').insert([insertPayload]);
@@ -402,6 +468,7 @@ async function guardar(){
     } else {
         alert("Solicitud guardada con éxito y en espera de validación.");
         document.getElementById('sol_motivo').value = '';
+        mostrarInfoVacacionesEmpleado();
         cargarSolicitudesBase();
     }
 }
@@ -420,12 +487,12 @@ async function resolverSolicitud(id, nuevoEstatus) {
 
     if(error) alert("Error al resolver: " + error.message);
     else {
-        alert(`Solicitud procesada como ${nuevoEstatus}.`);
-        cargarSolicitudesBase();
+        alert(`Solicitud processed como ${nuevoEstatus}.`);
+        await cargarSolicitudesBase();
+        mostrarInfoVacacionesEmpleado();
     }
 }
 
-/* ---- CONTROL DE SALDOS Y CALIBRACIÓN DE VACACIONES ---- */
 async function cargarSaldos() {
     const body = document.getElementById('body-saldos');
     body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Consultando saldos históricos...</td></tr>`;
@@ -487,6 +554,7 @@ async function ejecutarAjusteManual(empleadoId, ajusteActual) {
     else {
         alert("Saldo balanceado correctamente.");
         cargarSaldos();
+        mostrarInfoVacacionesEmpleado();
     }
 }
 
