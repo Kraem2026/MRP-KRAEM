@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
@@ -118,6 +118,13 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
 }
 .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; }
 .close-modal { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
+
+/* ESTILOS DE IMPRESIÓN PARA EL PASE DE CASETA */
+@media print {
+    body * { visibility: hidden; }
+    #seccion-impresion-pase, #seccion-impresion-pase * { visibility: visible; }
+    #seccion-impresion-pase { position: absolute; left: 0; top: 0; width: 100%; }
+}
 </style>
 </head>
 
@@ -155,9 +162,9 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
             <div id="lbl_vacaciones_disponibles" class="info-badge-dinamico" style="background: #e0f2fe; color: #0369a1;"></div>
 
             <label>Tipo de Permiso / Ausencia</label>
-            <select id="sol_tipo" onchange="toggleCamposTipo(); evaluarDinamicoAlCambiar();" required>
+            <select id="sol_tipo" onchange="toggleCamposTipo();" required>
                 <option value="VACACIONES">Vacaciones</option>
-                <option value="AJUSTE HISTORICO (RESTA DE DIAS)">⚠️ Ajuste Manual (Restar días tomados del pasado)</option>
+                <option value="AJUSTE HISTORICO (RESTA DE DIAS)">⚠️ Ajuste Manual (Restar o descontar saldo)</option>
                 <option value="INCAPACIDAD ENFERMEDAD">Incapacidad (Enfermedad)</option>
                 <option value="INCAPACIDAD MATERNIDAD/PATERNIDAD">Incapacidad (Maternidad/Paternidad)</option>
                 <option value="PERMISO C/GOCE (LEY)">Permiso c/Goce (Leyes/Defunción)</option>
@@ -177,17 +184,29 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
                 <div id="lbl_dias_calculados" class="info-badge-dinamico" style="background: #fef3c7; color: #d97706; margin-top: 5px;"></div>
             </div>
 
+            <div id="grupo-ajuste-manual" style="display: none; background: #fff7ed; padding: 12px; border-radius: 8px; border: 1px solid #ffedd5; margin-bottom: 12px;">
+                <label style="color:#c2410c;">Días de vacaciones a quitar/descontar</label>
+                <input type="number" id="sol_ajuste_dias" min="1" max="50" placeholder="Ej. 2" value="1" style="border-color:#fdba74;">
+            </div>
+
             <div id="grupo-horas" style="display: none; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px;">
-                <label>Fecha Única</label>
+                <label>Fecha Única de Ausencia</label>
                 <input type="date" id="sol_fecha_local">
+                
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div><label>Hora Salida</label><input type="time" id="sol_hora_salida"></div>
-                    <div><label>Hora Regreso</label><input type="time" id="sol_hora_regreso"></div>
+                    <div id="wrapper-hora-salida" style="display: block;">
+                        <label>Hora Salida</label>
+                        <input type="time" id="sol_hora_salida">
+                    </div>
+                    <div id="wrapper-hora-regreso" style="display: block;">
+                        <label>Hora de Llegada/Regreso</label>
+                        <input type="time" id="sol_hora_regreso">
+                    </div>
                 </div>
             </div>
 
-            <label>Motivo / Observaciones de Planta</label>
-            <textarea id="sol_motivo" rows="3" placeholder="Detalle la justificación..." required></textarea>
+            <label>Motivo / Observaciones (Justificación Obligatoria)</label>
+            <textarea id="sol_motivo" rows="3" placeholder="Detalle ampliamente la justificación para planta o ajuste..." required></textarea>
 
             <h4 style="margin: 10px 0 5px 0; font-size:12px;">Supervisor Solicitante</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -214,7 +233,6 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
     </div>
 
     <div id="panel-saldos" style="display: none; grid-column: span 2;">
-        
         <div class="card" style="display: grid; grid-template-columns: 250px 1fr; gap: 12px; padding: 15px; margin-bottom: 15px; background: #f1f5f9;">
             <div>
                 <label>Filtrar por Área / Depto</label>
@@ -257,13 +275,71 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
                     <tr>
                         <th>Tipo</th>
                         <th>Periodo</th>
-                        <th>Días</th>
+                        <th>Días Aplicados</th>
                         <th>Autorizó</th>
                     </tr>
                 </thead>
                 <tbody id="kardex-tabla-body"></tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<div id="seccion-impresion-pase" style="display: none; background: #ffffff; padding: 30px; font-family: 'Inter', sans-serif; color: #000000;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000000; padding-bottom: 15px; margin-bottom: 20px;">
+        <div>
+            <img src="logo-kraem.jpg" alt="Logo Kraem" style="height: 55px; max-width: 220px; object-fit: contain;" onerror="this.src='https://raw.githubusercontent.com/kraem-development/assets/main/logo-kraem.jpg';">
+        </div>
+        <div style="text-align: right;">
+            <h2 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px;">PASE OFICIAL DE CONTROL</h2>
+            <p style="margin: 3px 0 0 0; font-size: 12px; font-weight: 600; color: #4b5563;">Vigilancia / Caseta de Entrada y Salida</p>
+        </div>
+    </div>
+
+    <div style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e5e7eb;">
+        <p style="margin: 0; font-size: 12px; line-height: 1.5;"><strong>Instrucción a Caseta:</strong> Por medio del presente documento autorizado digitalmente por Recursos Humanos de Planta, se solicita dar libre acceso/salida al colaborador asignado bajo los horarios estipulados.</p>
+    </div>
+
+    <table style="width: 100%; margin-bottom: 25px; border: 1px solid #000000;">
+        <tr>
+            <td style="padding: 10px; background: #f3f4f6; font-weight: bold; width: 25%; border-bottom: 1px solid #cbd5e1;">Colaborador:</td>
+            <td id="print-nombre" style="padding: 10px; font-weight: 600; border-bottom: 1px solid #cbd5e1;">-</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; background: #f3f4f6; font-weight: bold; border-bottom: 1px solid #cbd5e1;">Tipo de Permiso:</td>
+            <td id="print-tipo" style="padding: 10px; font-weight: bold; color: #2563eb; border-bottom: 1px solid #cbd5e1;">-</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; background: #f3f4f6; font-weight: bold; border-bottom: 1px solid #cbd5e1;">Fecha Vigencia:</td>
+            <td id="print-fecha" style="padding: 10px; border-bottom: 1px solid #cbd5e1;">-</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; background: #f3f4f6; font-weight: bold; border-bottom: 1px solid #cbd5e1;">Horario Autorizado:</td>
+            <td id="print-horario" style="padding: 10px; font-weight: 600; border-bottom: 1px solid #cbd5e1;">-</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; background: #f3f4f6; font-weight: bold; vertical-align: top;">Motivo de Planta:</td>
+            <td id="print-motivo" style="padding: 10px; font-style: italic; color: #374151;">-</td>
+        </tr>
+    </table>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px; text-align: center;">
+        <div>
+            <div style="border-top: 2px solid #000000; width: 80%; margin: 0 auto; padding-top: 8px;">
+                <p id="print-firma-auth" style="margin: 0; font-size: 13px; font-weight: 700;">-</p>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: #4b5563;">Firma Autorizada RH / Supervisor</p>
+            </div>
+        </div>
+        <div>
+            <div style="border-top: 2px solid #000000; width: 80%; margin: 0 auto; padding-top: 8px;">
+                <p style="margin: 0; font-size: 13px; font-weight: 700;">Sello o Firma Caseta</p>
+                <p style="margin: 2px 0 0 0; font-size: 11px; color: #4b5563;">Validación Vigilancia</p>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 60px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+        <p style="font-size: 10px; color: #9ca3af; margin: 0;">Kraem S.A. de C.V. - Sistema Automatizado Corporativo de Control Interno RH - 2026</p>
     </div>
 </div>
 
@@ -346,16 +422,29 @@ function switchTab(id) {
 
 function toggleCamposTipo() {
     const tipo = document.getElementById('sol_tipo').value;
-    const esLocal = tipo.includes('LOCAL') || tipo.includes('TARDE') || tipo.includes('TEMPRANO');
     
-    document.getElementById('grupo-fechas').style.display = esLocal ? 'none' : 'block';
-    document.getElementById('grupo-horas').style.display = esLocal ? 'block' : 'none';
-}
+    const esAjusteManual = (tipo === 'AJUSTE HISTORICO (RESTA DE DIAS)');
+    const esLocalIdaVuelta = (tipo === 'PERMISO LOCAL (IDA Y VUELTA)');
+    const esLlegadaTarde = (tipo === 'LLEGADA TARDE');
+    const esSalidaTemprano = (tipo === 'SALIDA TEMPRANO');
+    
+    const esCualquierPasePorHoras = esLocalIdaVuelta || esLlegadaTarde || esSalidaTemprano;
 
-function evaluarDinamicoAlCambiar() {
-    const tipo = document.getElementById('sol_tipo').value;
-    if(!tipo.includes('LOCAL') && !tipo.includes('TARDE') && !tipo.includes('TEMPRANO')) {
+    // Control de bloques principales
+    document.getElementById('grupo-fechas').style.display = (!esCualquierPasePorHoras && !esAjusteManual) ? 'block' : 'none';
+    document.getElementById('grupo-ajuste-manual').style.display = esAjusteManual ? 'block' : 'none';
+    document.getElementById('grupo-horas').style.display = esCualquierPasePorHoras ? 'block' : 'none';
+
+    // Ajustar visibilidad interna de horas según el subtipo exacto
+    if (esCualquierPasePorHoras) {
+        document.getElementById('wrapper-hora-salida').style.display = (esLocalIdaVuelta || esSalidaTemprano) ? 'block' : 'none';
+        document.getElementById('wrapper-hora-regreso').style.display = (esLocalIdaVuelta || esLlegadaTarde) ? 'block' : 'none';
+    }
+
+    if(!esCualquierPasePorHoras && !esAjusteManual) {
         calcularDiasSolicitadosDinamico();
+    } else {
+        mostrarInfoVacacionesEmpleado();
     }
 }
 
@@ -415,14 +504,16 @@ async function obtenerSaldoRealEmpleado(empId, fechaReferenciaStr = null) {
     if(!emp) return 0;
 
     const { data: vacs } = await client.from('rh_solicitudes')
-        .select('fecha_inicio, fecha_fin, tipo')
+        .select('fecha_inicio, fecha_fin, tipo, dias_ajustados')
         .eq('empleado_id', empId)
         .in('tipo', ['VACACIONES', 'AJUSTE HISTORICO (RESTA DE DIAS)'])
         .eq('estatus', 'APROBADO');
     
     let diasTomados = 0;
     vacs?.forEach(s => {
-        if(s.fecha_inicio && s.fecha_fin) {
+        if(s.tipo === 'AJUSTE HISTORICO (RESTA DE DIAS)') {
+            diasTomados += (s.dias_ajustados || 0);
+        } else if(s.fecha_inicio && s.fecha_fin) {
             const inicio = new Date(s.fecha_inicio + 'T00:00:00');
             const fin = new Date(s.fecha_fin + 'T00:00:00');
             const diff = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
@@ -452,7 +543,7 @@ async function mostrarInfoVacacionesEmpleado() {
     }
 
     const saldoReal = await obtenerSaldoRealEmpleado(empId, fInicio);
-    lbl.innerHTML = `<i class="fas fa-calendar-alt"></i> Saldo Vacaciones (A la fecha solicitada): <strong>${saldoReal} días disponibles</strong>`;
+    lbl.innerHTML = `<i class="fas fa-calendar-alt"></i> Saldo Vacaciones (Actual de Ley): <strong>${saldoReal} días disponibles</strong>`;
     lbl.style.display = 'block';
 }
 
@@ -513,8 +604,21 @@ function renderizarSolicitudes() {
     }
 
     cont.innerHTML = filtradas.map(s => {
-        const esLocal = s.tipo.includes('LOCAL') || s.tipo.includes('TARDE') || s.tipo.includes('TEMPRANO');
-        const periodo = esLocal ? `Fecha: ${s.fecha_inicio} (${s.hora_salida || '--:--'} a ${s.hora_regreso || '--:--'})` : `Periodo: ${s.fecha_inicio} al ${s.fecha_fin}`;
+        const esAjuste = s.tipo === 'AJUSTE HISTORICO (RESTA DE DIAS)';
+        const esLocal = s.tipo.includes('LOCAL');
+        const esTarde = s.tipo.includes('TARDE');
+        const esTemprano = s.tipo.includes('TEMPRANO');
+
+        let periodo = `Periodo: ${s.fecha_inicio} al ${s.fecha_fin}`;
+        if(esAjuste) {
+            periodo = `Cantidad de ajuste: <strong>${s.dias_ajustados || 0} días deducidos</strong>`;
+        } else if(esLocal) {
+            periodo = `Fecha: ${s.fecha_inicio} | Rango: ${s.hora_salida || '--:--'} a ${s.hora_regreso || '--:--'}`;
+        } else if(esTarde) {
+            periodo = `Fecha: ${s.fecha_inicio} | Entrada Planta a las: <strong>${s.hora_regreso || '--:--'}</strong>`;
+        } else if(esTemprano) {
+            periodo = `Fecha: ${s.fecha_inicio} | Salida de Planta a las: <strong>${s.hora_salida || '--:--'}</strong>`;
+        }
         
         let botones = '';
         if(s.estatus === 'PENDIENTE') {
@@ -523,6 +627,12 @@ function renderizarSolicitudes() {
                     <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--success);" onclick="resolverSolicitud('${s.id}', 'APROBADO')"><i class="fas fa-check"></i> Autorizar</button>
                     <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--danger);" onclick="resolverSolicitud('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i> Denegar</button>
                 </div>`;
+        } else if(s.estatus === 'APROBADO') {
+            // BOTÓN DE IMPRESIÓN EXCLUSIVO PARA PERMISOS APROBADOS DE CASETA
+            botones = `
+                <button class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7; margin-top:10px;" onclick="imprimirPaseCaseta('${s.id}')">
+                    <i class="fas fa-print"></i> Pase Imprimible
+                </button>`;
         }
 
         const firma = s.autorizado_por ? `<span class="auditoria-firma"><i class="fas fa-user-shield"></i> Validado por: <strong>${s.autorizado_por}</strong> ${s.firma_digital ? `(${s.firma_digital})` : ''}</span>` : '';
@@ -532,8 +642,8 @@ function renderizarSolicitudes() {
                 <div class="solicitud-info">
                     <h4 style="color:var(--primary); font-size:15px; margin-bottom:6px;">${s.rh_empleados?.nombre_completo || 'Operador Kraem'}</h4>
                     <p style="font-size:13px;"><strong>Tipo:</strong> <span style="color:var(--accent); font-weight:bold;">${s.tipo}</span></p>
-                    <p><strong>Rango:</strong> ${periodo}</p>
-                    <p style="color:#475569; background:#f1f5f9; padding:6px; border-radius:4px; margin-top:4px;"><strong>Observaciones:</strong> ${s.observaciones || 'Sin detalles capturados'}</p>
+                    <p>${periodo}</p>
+                    <p style="color:#475569; background:#f1f5f9; padding:6px; border-radius:4px; margin-top:4px;"><strong>Anotaciones/Motivo:</strong> ${s.observaciones || 'Sin detalles capturados'}</p>
                     ${firma}
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
@@ -551,40 +661,48 @@ async function guardar(){
     const motivoText = document.getElementById('sol_motivo').value;
 
     if(!empId) return alert("Selecciona un empleado de la lista.");
-    if(!motivoText.trim()) return alert("Favor de ingresar el motivo u observaciones de la ausencia.");
+    if(!motivoText.trim()) return alert("Favor de ingresar el motivo o anotaciones del porqué se procesa la solicitud.");
 
     const empSeleccionado = empleados.find(e => e.id === empId);
 
-    const esLocal = tipo.includes('LOCAL') || tipo.includes('TARDE') || tipo.includes('TEMPRANO');
+    const esAjuste = (tipo === 'AJUSTE HISTORICO (RESTA DE DIAS)');
+    const esLocal = tipo.includes('LOCAL');
+    const esTarde = tipo.includes('TARDE');
+    const esTemprano = tipo.includes('TEMPRANO');
+    const esPorHoras = esLocal || esTarde || esTemprano;
+
     let fInicio = document.getElementById('sol_inicio').value;
     let fFin = document.getElementById('sol_fin').value;
+    let diasAjustadosPayload = null;
 
-    if(esLocal) {
+    if(esPorHoras) {
         fInicio = document.getElementById('sol_fecha_local').value;
         fFin = document.getElementById('sol_fecha_local').value;
+    } else if(esAjuste) {
+        fInicio = new Date().toISOString().split('T')[0];
+        fFin = fInicio;
+        diasAjustadosPayload = parseInt(document.getElementById('sol_ajuste_dias').value) || 1;
     }
 
-    if(tipo === 'VACACIONES' || tipo.includes('AJUSTE')) {
+    if(tipo === 'VACACIONES') {
         const saldoDisponible = await obtenerSaldoRealEmpleado(empId, fInicio);
-        
-        if(tipo === 'VACACIONES' && saldoDisponible <= 0) {
-            alert("No se puede registrar la solicitud. Para la fecha de inicio seleccionada, el operador aún no cuenta con días liberados de vacaciones.");
+        if(saldoDisponible <= 0) {
+            alert("No se puede registrar. El operador no cuenta con días disponibles de vacaciones.");
             return;
         }
 
         const inicio = new Date(fInicio + 'T00:00:00');
         const fin = new Date(fFin + 'T00:00:00');
-        
         if(fin < inicio) {
-            alert("La fecha de fin no puede ser menor a la fecha de inicio.");
+            alert("La fecha de fin no puede ser menor a la de inicio.");
             return;
         }
 
         const diffTime = Math.abs(fin - inicio);
         const diasSolicitados = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-        if(tipo === 'VACACIONES' && diasSolicitados > saldoDisponible) {
-            alert(`Error de validación: El periodo seleccionado equivale a ${diasSolicitados} días, pero para esa fecha de inicio el operador solo tendrá ${saldoDisponible} días disponibles.`);
+        if(diasSolicitados > saldoDisponible) {
+            alert(`Error: El periodo equivale a ${diasSolicitados} días, pero el operador solo tiene ${saldoDisponible} disponibles.`);
             return;
         }
     }
@@ -594,8 +712,9 @@ async function guardar(){
         tipo: tipo,
         fecha_inicio: fInicio,
         fecha_fin: fFin,
-        hora_salida: esLocal ? (document.getElementById('sol_hora_salida').value || null) : null,
-        hora_regreso: esLocal ? (document.getElementById('sol_hora_regreso').value || null) : null,
+        dias_ajustados: diasAjustadosPayload,
+        hora_salida: (esLocal || esTemprano) ? (document.getElementById('sol_hora_salida').value || null) : null,
+        hora_regreso: (esLocal || esTarde) ? (document.getElementById('sol_hora_regreso').value || null) : null,
         observaciones: motivoText,
         estatus: 'PENDIENTE',
         area: empSeleccionado ? empSeleccionado.area_id : null,
@@ -608,9 +727,9 @@ async function guardar(){
     const { error } = await client.from('rh_solicitudes').insert([insertPayload]);
 
     if(error) {
-        alert("Error al registrar solicitud: " + error.message);
+        alert("Error al registrar: " + error.message);
     } else {
-        alert("Solicitud guardada con éxito y en espera de validación.");
+        alert("Solicitud registrada con éxito en el sistema Kraem.");
         document.getElementById('sol_motivo').value = '';
         await mostrarInfoVacacionesEmpleado();
         await cargarSolicitudesBase();
@@ -618,38 +737,22 @@ async function guardar(){
 }
 
 async function resolverSolicitud(id, nuevoEstatus) {
-    const supervisorFirma = prompt("Ingresa tu Nombre Completo como Responsable de la Aprobación:", "");
+    const supervisorFirma = prompt("Ingresa tu Nombre Completo para firmar la validación:", "");
     if (nuevoEstatus === 'APROBADO' && !supervisorFirma) {
-        alert("Operación cancelada. Es obligatorio dejar rastro de auditoría para aprobar.");
+        alert("Operación cancelada. Es obligatorio dejar rastro de auditoría.");
         return;
-    }
-
-    if(nuevoEstatus === 'APROBADO') {
-        const solicitudEnRevision = solicitudesGlobales.find(s => s.id === id);
-        if(solicitudEnRevision && solicitudEnRevision.tipo === 'VACACIONES') {
-            const saldoActual = await obtenerSaldoRealEmpleado(solicitudEnRevision.empleado_id, solicitudEnRevision.fecha_inicio);
-            const inicio = new Date(solicitudEnRevision.fecha_inicio + 'T00:00:00');
-            const fin = new Date(solicitudEnRevision.fecha_fin + 'T00:00:00');
-            const diffDays = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
-
-            if(diffDays > saldoActual) {
-                alert(`Bloqueo de Auditoría: No se puede aprobar esta solicitud. El saldo proyectado para esa fecha es de ${saldoActual} días, pero la solicitud exige ${diffDays} días.`);
-                return;
-            }
-        }
     }
 
     const { error } = await client.from('rh_solicitudes').update({ 
         estatus: nuevoEstatus,
-        autorizado_por: supervisorFirma || 'Mánager Turno',
-        firma_digital: nuevoEstatus === 'APROBADO' ? 'FIRMA_OK' : 'RECHAZADO_PLANTA'
+        autorizado_por: supervisorFirma || 'Mánager Planta',
+        firma_digital: nuevoEstatus === 'APROBADO' ? 'FIRMA_KRAEM_OK' : 'RECHAZADO_PLANTA'
     }).eq('id', id);
 
     if(error) alert("Error al resolver: " + error.message);
     else {
         alert(`Solicitud procesada como ${nuevoEstatus}.`);
         await cargarSolicitudesBase();
-        await mostrarInfoVacacionesEmpleado();
     }
 }
 
@@ -658,10 +761,9 @@ async function cargarSaldos() {
     body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">Consultando base de datos unificada...</td></tr>`;
 
     const { data } = await client.from('rh_solicitudes')
-        .select('empleado_id, fecha_inicio, fecha_fin, tipo, autorizado_por')
+        .select('empleado_id, fecha_inicio, fecha_fin, tipo, dias_ajustados')
         .in('tipo', ['VACACIONES', 'AJUSTE HISTORICO (RESTA DE DIAS)'])
-        .eq('estatus', 'APROBADO')
-        .order('fecha_inicio', { ascending: false });
+        .eq('estatus', 'APROBADO');
 
     solicitudesVacAprobadas = data || [];
     aplicarFiltrosSaldos();
@@ -679,7 +781,7 @@ function aplicarFiltrosSaldos() {
     });
 
     if(empleadosFiltrados.length === 0) {
-        body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No se encontraron operadores con los filtros seleccionados.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No se encontraron operadores.</td></tr>`;
         return;
     }
 
@@ -688,7 +790,9 @@ function aplicarFiltrosSaldos() {
         const deEsteEmpleado = solicitudesVacAprobadas.filter(s => s.empleado_id === emp.id);
         
         deEsteEmpleado.forEach(s => {
-            if (s.fecha_inicio && s.fecha_fin) {
+            if(s.tipo === 'AJUSTE HISTORICO (RESTA DE DIAS)') {
+                diasTomados += (s.dias_ajustados || 0);
+            } else if (s.fecha_inicio && s.fecha_fin) {
                 const inicio = new Date(s.fecha_inicio + 'T00:00:00');
                 const fin = new Date(s.fecha_fin + 'T00:00:00');
                 const diffDays = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
@@ -717,21 +821,29 @@ function abrirKardex(empId, nombreCompleto) {
     const bitacora = solicitudesVacAprobadas.filter(s => s.empleado_id === empId);
 
     if(bitacora.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding:20px;">Este operador no cuenta con días tomados o ajustes cargados en el sistema.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b; padding:20px;">Sin días tomados o ajustes cargados.</td></tr>`;
     } else {
         tbody.innerHTML = bitacora.map(s => {
-            const inicio = new Date(s.fecha_inicio + 'T00:00:00');
-            const fin = new Date(s.fecha_fin + 'T00:00:00');
-            const diffDays = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
-            
             const esAjuste = s.tipo.includes('AJUSTE');
-            const badgeTipo = esAjuste ? `<span style="color:var(--warning); font-weight:700;">⚠️ AJUSTE</span>` : `<span style="color:var(--accent); font-weight:700;">VACACIONES</span>`;
+            let totalDias = 0;
+            let rangoTexto = `${s.fecha_inicio} al ${s.fecha_fin}`;
+
+            if(esAjuste) {
+                totalDias = s.dias_ajustados || 0;
+                rangoTexto = 'N/A (Descuento Directo)';
+            } else {
+                const inicio = new Date(s.fecha_inicio + 'T00:00:00');
+                const fin = new Date(s.fecha_fin + 'T00:00:00');
+                totalDias = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+            }
+            
+            const badgeTipo = esAjuste ? `<span style="color:var(--warning); font-weight:700;">⚠️ AJUSTE S.</span>` : `<span style="color:var(--accent); font-weight:700;">VACACIONES</span>`;
 
             return `
                 <tr>
                     <td>${badgeTipo}</td>
-                    <td>${s.fecha_inicio} al ${s.fecha_fin}</td>
-                    <td style="font-weight:700; color:var(--danger);">${diffDays} días</td>
+                    <td>${rangoTexto}</td>
+                    <td style="font-weight:700; color:var(--danger);">${totalDias} días</td>
                     <td style="font-size:11px; color:#475569;">${s.autorizado_por || 'Sistema'}</td>
                 </tr>`;
         }).join('');
@@ -740,15 +852,43 @@ function abrirKardex(empId, nombreCompleto) {
     document.getElementById('modal-kardex').style.display = 'flex';
 }
 
-function cerrarModal() {
-    document.getElementById('modal-kardex').style.display = 'none';
+function cerrarModal() { document.getElementById('modal-kardex').style.display = 'none'; }
+
+// MOTOR COMPILADOR PARA IMPRESIÓN DIRECTA DE PASES A CASETA
+function imprimirPaseCaseta(id) {
+    const s = solicitudesGlobales.find(sol => sol.id === id);
+    if(!s) return alert("No se localizó la información de la línea.");
+
+    const esAjuste = s.tipo.includes('AJUSTE');
+    const esTarde = s.tipo.includes('TARDE');
+    const esTemprano = s.tipo.includes('TEMPRANO');
+    const esLocal = s.tipo.includes('LOCAL');
+
+    // Inyectar valores al template de caseta
+    document.getElementById('print-nombre').innerText = s.rh_empleados?.nombre_completo || 'Operador Kraem';
+    document.getElementById('print-tipo').innerText = s.tipo;
+    document.getElementById('print-fecha').innerText = s.fecha_inicio + (esAjuste || esTarde || esTemprano || esLocal ? '' : ` al ${s.fecha_fin}`);
+    
+    // Determinar etiqueta horaria inteligente
+    let horarioFormateado = "Todo el turno laboral";
+    if (esLocal) {
+        horarioFormateado = `Salida: ${s.hora_salida || '--:--'} | Regreso: ${s.hora_regreso || '--:--'}`;
+    } else if (esTarde) {
+        horarioFormateado = `Llegada tolerada a las: ${s.hora_regreso || '--:--'}`;
+    } else if (esTemprano) {
+        horarioFormateado = `Salida autorizada a las: ${s.hora_salida || '--:--'}`;
+    }
+    document.getElementById('print-horario').innerText = horarioFormateado;
+    document.getElementById('print-motivo').innerText = s.observaciones || "Motivo interno oficial de planta.";
+    document.getElementById('print-firma-auth').innerText = s.autorizado_por || "Recursos Humanos";
+
+    // Ejecutar impresión limpia nativa
+    window.print();
 }
 
 window.onclick = function(event) {
     const modal = document.getElementById('modal-kardex');
-    if (event.target == modal) {
-        modal.style.display = "none";
-    }
+    if (event.target == modal) modal.style.display = "none";
 }
 
 init();
