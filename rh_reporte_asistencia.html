@@ -76,7 +76,9 @@
             <label>Mes</label>
             <select id="v_mes" onchange="cargarData()">
                 <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option>
-                <option value="3" selected>Abril</option><option value="4">Mayo</option>
+                <option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option>
+                <option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option>
+                <option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
             </select>
         </div>
         <div id="c_rango" class="control-group" style="display:none;">
@@ -123,16 +125,22 @@
 </div>
 
 <script>
-    let globalData = []; // Para guardar el procesamiento y recalcular rápido
+    let globalData = [];
+    const HORA_ENTRADA_OFICIAL = "07:00"; // Cambiar si el turno inicial arranca a otra hora
+    const HORAS_JORNADA_NORMAL = 9.6;     // 9.6 horas diarias para acumular las 48 formales a la semana
 
     async function init() {
-        const { data: areas } = await client.from('rh_areas').select('*').order('nombre');
+        // CORRECCIÓN: Ajustado a la tabla correcta 'areas_generales'
+        const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
         
         const hoy = new Date();
         document.getElementById('v_desde').value = hoy.toISOString().split('T')[0];
         document.getElementById('v_hasta').value = hoy.toISOString().split('T')[0];
+        
+        // CORRECCIÓN: Seleccionar el mes actual del sistema por defecto
+        document.getElementById('v_mes').value = hoy.getMonth();
         
         cargarData();
     }
@@ -143,14 +151,36 @@
         document.getElementById('c_rango').style.display = v === 'rango' ? 'flex' : 'none';
     }
 
+    // Función auxiliar para restar horas en caso de Retardo
+    function calcularHorasTrabajadasEnRetardo(horaLlegada) {
+        if (!horaLlegada) return HORAS_JORNADA_NORMAL;
+        try {
+            const [hOficial, mOficial] = HORA_ENTRADA_OFICIAL.split(':').map(Number);
+            const [hLlegada, mLlegada] = horaLlegada.split(':').map(Number);
+            
+            const minutosOficial = hOficial * 60 + mOficial;
+            const minutosLlegada = hLlegada * 60 + mLlegada;
+            
+            const diferenciaMinutos = minutosLlegada - minutosOficial;
+            if (diferenciaMinutos <= 0) return HORAS_JORNADA_NORMAL;
+            
+            const horasPerdidas = diferenciaMinutos / 60;
+            const resultado = HORAS_JORNADA_NORMAL - horasPerdidas;
+            return resultado > 0 ? parseFloat(resultado.toFixed(2)) : 0;
+        } catch (e) {
+            return HORAS_JORNADA_NORMAL;
+        }
+    }
+
     async function cargarData() {
         const tipo = document.getElementById('v_tipo').value;
         let inicio, fin;
+        const añoActual = 2026;
 
         if(tipo === 'mes') {
             const m = document.getElementById('v_mes').value;
-            inicio = new Date(2026, m, 1);
-            fin = new Date(2026, parseInt(m) + 1, 0);
+            inicio = new Date(añoActual, m, 1);
+            fin = new Date(añoActual, parseInt(m) + 1, 0);
         } else {
             inicio = new Date(document.getElementById('v_desde').value);
             fin = new Date(document.getElementById('v_hasta').value);
@@ -160,8 +190,9 @@
         const iniStr = inicio.toISOString().split('T')[0];
         const finStr = fin.toISOString().split('T')[0];
 
+        // CORRECCIÓN: 'area_general_id' cargado para evitar pérdidas de filtrados
         const [resEmp, resAsi, resSol] = await Promise.all([
-            client.from('rh_empleados').select('id, nombre_completo, area_id, turno_id').eq('estatus','ACTIVO'),
+            client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus','ACTIVO'),
             client.from('rh_asistencia_diaria').select('*').gte('fecha', iniStr).lte('fecha', finStr),
             client.from('rh_solicitudes').select('*').eq('estatus','APROBADO').or(`fecha_inicio.lte.${finStr},fecha_fin.gte.${iniStr}`)
         ]);
@@ -172,18 +203,17 @@
             let d = new Date(inicio); d.setDate(d.getDate() + i);
             headHTML += `<th class="${d.getDay()===0?'domingo':''}">${['D','L','M','M','J','V','S'][d.getDay()]}<br>${d.getDate()}</th>`;
         }
-        headHTML += `<th>Faltas</th><th>Total Extra</th></tr>`;
+        headHTML += `<th>Faltas</th><th>Total Extra</th><th>Horas Trab.</th></tr>`;
         document.getElementById('master_head').innerHTML = headHTML;
 
         const areaF = document.getElementById('v_area').value;
         const turnoF = document.getElementById('v_turno').value;
-        const emps = resEmp.data.filter(e => (!areaF || e.area_id == areaF) && (!turnoF || e.turno_id == turnoF));
+        const emps = resEmp.data.filter(e => (!areaF || e.area_general_id == areaF) && (!turnoF || e.turno_id == turnoF));
         
-        // Guardaremos el resumen de cada fila para el tablero
         globalData = [];
 
         document.getElementById('master_body').innerHTML = emps.map(emp => {
-            let fCount = 0, pCount = 0, aCount = 0, rCount = 0, hCount = 0;
+            let fCount = 0, pCount = 0, aCount = 0, rCount = 0, hCount = 0, horasTrabajadasPeriodo = 0;
             let fila = `<tr class="row-emp"><td class="emp-name">${emp.nombre_completo}</td>`;
             
             for(let i=0; i<diasDiff; i++) {
@@ -194,12 +224,22 @@
                 
                 let celda = '-';
                 if(sol) {
-                    celda = `<small style="color:blue">${sol.tipo.charAt(0)}</small>`;
+                    celda = `<small style="color:blue; font-weight:bold;">${sol.tipo.substring(0,3)}</small>`;
                     pCount++;
+                    // Si el permiso es Vacaciones o con Goce, acumula sus horas ordinarias completas
+                    if(sol.tipo !== 'PERMISO S/GOCE' && sol.tipo !== 'SUSPENSION' && d.getDay() !== 0) {
+                        horasTrabajadasPeriodo += HORAS_JORNADA_NORMAL;
+                    }
                 } else if(asi) {
-                    if(asi.estado === 'P') aCount++;
-                    else if(asi.estado === 'R') rCount++;
-                    else if(asi.estado === 'F') fCount++;
+                    if(asi.estado === 'P') {
+                        aCount++;
+                        if(d.getDay() !== 0) horasTrabajadasPeriodo += HORAS_JORNADA_NORMAL;
+                    } else if(asi.estado === 'R') {
+                        rCount++;
+                        if(d.getDay() !== 0) horasTrabajadasPeriodo += calcularHorasTrabajadasEnRetardo(asi.hora_llegada);
+                    } else if(asi.estado === 'F') {
+                        fCount++;
+                    }
                     
                     let txt = asi.estado === 'P' ? '<span class="badge-p">P</span>' : (asi.estado === 'R' ? '<span class="badge-r">R</span>' : '<span class="badge-f">F</span>');
                     let hex = asi.horas_extra > 0 ? `<div class="extra-val">+${asi.horas_extra}h</div>` : '';
@@ -209,8 +249,8 @@
                 fila += `<td class="${d.getDay()===0?'domingo':''}">${celda}</td>`;
             }
 
-            globalData.push({ nombre: emp.nombre_completo.toLowerCase(), a: aCount, f: fCount, r: rCount, p: pCount, h: hCount });
-            return fila + `<td style="color:red; font-weight:bold">${fCount}</td><td style="color:purple; font-weight:bold">${hCount}h</td></tr>`;
+            globalData.push({ nombre: emp.nombre_completo.toLowerCase(), a: aCount, f: fCount, r: rCount, p: pCount, h: hCount, ht: horasTrabajadasPeriodo });
+            return fila + `<td style="color:red; font-weight:bold">${fCount}</td><td style="color:purple; font-weight:bold">${hCount}h</td><td style="color:var(--accent); font-weight:bold">${horasTrabajadasPeriodo.toFixed(1)}h</td></tr>`;
         }).join('');
 
         actualizarTablero();
@@ -222,12 +262,11 @@
             const nombreRow = row.querySelector('.emp-name').innerText.toLowerCase();
             row.style.display = nombreRow.includes(busqueda) ? '' : 'none';
         });
-        actualizarTablero(); // Recalcular números al buscar
+        actualizarTablero();
     }
 
     function actualizarTablero() {
         const busqueda = document.getElementById('v_nombre').value.toLowerCase();
-        // Solo sumamos los datos de las personas que coinciden con la búsqueda de nombre
         const filtrados = globalData.filter(d => d.nombre.includes(busqueda));
 
         const totales = filtrados.reduce((acc, cur) => {
