@@ -198,18 +198,17 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
     </div>
 
     <div id="panel-saldos" style="display: none; grid-column: span 2;">
-        <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; color: #c53030;">
-            <i class="fas fa-sliders-h"></i> <strong>Calibración Manual de Cargas Iniciales:</strong> Modifique los saldos acumulados de los trabajadores para empatar el sistema con los días reales remanentes de su histórico físico en planta.
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; color: #1e40af;">
+            <i class="fas fa-info-circle"></i> <strong>Cálculo de Antigüedad Automatizado:</strong> El sistema calcula los días de Ley correspondientes en tiempo real evaluando la <code>fecha_ingreso</code> registrada de cada operador según la legislación mexicana vigente.
         </div>
         <table>
             <thead>
                 <tr>
                     <th>Colaborador</th>
+                    <th>Ingreso Planta</th>
                     <th>Días de Ley</th>
                     <th>Tomados (Sistema)</th>
-                    <th>Ajuste Manual</th>
                     <th>Saldo Disponible</th>
-                    <th>Acción</th>
                 </tr>
             </thead>
             <tbody id="body-saldos"></tbody>
@@ -224,14 +223,40 @@ let areas = [];
 let solicitudesGlobales = [];
 let filtroEstatusActual = 'PENDIENTE';
 
+// Función para calcular los días de vacaciones por ley en México basándonos en la fecha de ingreso
+function calcularDiasLeyMexico(fechaIngresoStr) {
+    if(!fechaIngresoStr) return 12; // Valor base por defecto si no tiene fecha
+    
+    const ingreso = new Date(fechaIngresoStr);
+    const hoy = new Date();
+    
+    let antiguedad = hoy.getFullYear() - ingreso.getFullYear();
+    const mes = hoy.getMonth() - ingreso.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < ingreso.getDate())) {
+        antiguedad--;
+    }
+    
+    if(antiguedad < 1) return 12; // 1 año: 12 días
+    if(antiguedad === 1) return 12;
+    if(antiguedad === 2) return 14; // 2 años: 14 días
+    if(antiguedad === 3) return 16; // 3 años: 16 días
+    if(antiguedad === 4) return 18; // 4 años: 18 días
+    if(antiguedad === 5) return 20; // 5 años: 20 días
+    if(antiguedad >= 6 && antiguedad <= 10) return 22;  // 6 a 10 años: 22 días
+    if(antiguedad >= 11 && antiguedad <= 15) return 24; // 11 a 15 años: 24 días
+    if(antiguedad >= 16 && antiguedad <= 20) return 26; // 16 a 20 años: 26 días
+    return 28;
+}
+
 async function init(){
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('sol_inicio').value = hoy;
     document.getElementById('sol_fin').value = hoy;
     document.getElementById('sol_fecha_local').value = hoy;
 
+    // Consultamos usando las columnas reales comprobadas por tu consulta SQL
     const [resEmp, resAr] = await Promise.all([
-        client.from('rh_empleados').select('*').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
+        client.from('rh_empleados').select('id, nombre_completo, area_id, turno_id, fecha_ingreso, estatus').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
         client.from('rh_areas').select('*').eq('activo', true)
     ]);
 
@@ -327,15 +352,16 @@ async function mostrarInfoVacacionesEmpleado() {
     
     let diasTomados = 0;
     vacs?.forEach(s => {
-        const inicio = new Date(s.fecha_inicio);
-        const fin = new Date(s.fecha_fin);
-        const diff = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
-        diasTomados += diff;
+        if(s.fecha_inicio && s.fecha_fin) {
+            const inicio = new Date(s.fecha_inicio);
+            const fin = new Date(s.fecha_fin);
+            const diff = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+            diasTomados += diff;
+        }
     });
 
-    const baseLey = emp.dias_vacaciones_ley || 0;
-    const ajuste = emp.ajuste_vacaciones_manual || 0;
-    const saldoReal = (baseLey + ajuste) - diasTomados;
+    const baseLey = calcularDiasLeyMexico(emp.fecha_ingreso);
+    const saldoReal = baseLey - diasTomados;
 
     lbl.innerHTML = `<i class="fas fa-calendar-alt"></i> Saldo Vacaciones: <strong>${saldoReal} días disponibles</strong>`;
     lbl.style.display = 'block';
@@ -496,25 +522,27 @@ async function resolverSolicitud(id, nuevoEstatus) {
     }
 }
 
-// CORRECCIÓN DE LA FUNCIÓN: Sincronizada con la estructura exacta de tu base de datos
+// NUEVA FUNCIÓN OPTIMIZADA: Lee los empleados de memoria y calcula sus saldos sin fallar
 async function cargarSaldos() {
     const body = document.getElementById('body-saldos');
-    body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Consultando saldos históricos...</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">Consultando saldos históricos...</td></tr>`;
 
-    // Consultamos los datos asegurando el mapeo de columnas correcto
-    const [resEmp, resVacApproved] = await Promise.all([
-        client.from('rh_empleados').select('id, nombre_completo, dias_vacaciones_ley, ajuste_vacaciones_manual').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
-        client.from('rh_solicitudes').select('empleado_id, fecha_inicio, fecha_fin').eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO')
-    ]);
-
-    if (!resEmp.data || resEmp.data.length === 0) {
-        body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">No se encontraron colaboradores activos.</td></tr>`;
+    if (!empleados || empleados.length === 0) {
+        body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No hay colaboradores activos cargados.</td></tr>`;
         return;
     }
 
-    body.innerHTML = resEmp.data.map(emp => {
+    // Solicitamos a Supabase únicamente el conteo de sus vacaciones aprobadas
+    const { data: resVacApproved } = await client.from('rh_solicitudes')
+        .select('empleado_id, fecha_inicio, fecha_fin')
+        .eq('tipo', 'VACACIONES')
+        .eq('estatus', 'APROBADO');
+
+    const solicitudesVac = resVacApproved || [];
+
+    body.innerHTML = empleados.map(emp => {
         let diasTomados = 0;
-        const filtradas = resVacApproved.data?.filter(s => s.empleado_id === emp.id) || [];
+        const filtradas = solicitudesVac.filter(s => s.empleado_id === emp.id);
         
         filtradas.forEach(s => {
             if (s.fecha_inicio && s.fecha_fin) {
@@ -526,45 +554,20 @@ async function cargarSaldos() {
             }
         });
 
-        const baseLey = emp.dias_vacaciones_ley || 0;
-        const ajusteManual = emp.ajuste_vacaciones_manual || 0;
-        const saldoReal = (baseLey + ajusteManual) - diasTomados;
+        // Hacemos el cálculo de ley dinámico usando su "fecha_ingreso" real
+        const baseLey = calcularDiasLeyMexico(emp.fecha_ingreso);
+        const saldoReal = baseLey - diasTomados;
+        const fechaMostrar = emp.fecha_ingreso ? emp.fecha_ingreso : 'Sin registrar';
 
         return `
             <tr>
                 <td><strong>${emp.nombre_completo}</strong></td>
+                <td style="color:#475569;">${fechaMostrar}</td>
                 <td>${baseLey} días</td>
                 <td style="color:var(--danger); font-weight:bold;">${diasTomados} días</td>
-                <td style="color:var(--purple); font-weight:bold;">${ajusteManual >= 0 ? '+' : ''}${ajusteManual}</td>
                 <td style="color:var(--success); font-weight:bold; font-size:14px;">${saldoReal} días</td>
-                <td>
-                    <button class="btn" style="padding:4px 10px; width:auto; font-size:11px; background:var(--primary);" onclick="ejecutarAjusteManual('${emp.id}', ${ajusteManual})">
-                        <i class="fas fa-sliders-h"></i> Ajustar
-                    </button>
-                </td>
             </tr>`;
     }).join('');
-}
-
-async function ejecutarAjusteManual(empleadoId, ajusteActual) {
-    const valor = prompt("Días a sumar (+) o restar (-) para balancear el saldo real:", ajusteActual);
-    if (valor === null) return;
-
-    const numeroAjuste = parseInt(valor);
-    if (isNaN(numeroAjuste)) {
-        alert("Por favor introduce un valor numérico entero.");
-        return;
-    }
-
-    const { error } = await client.from('rh_empleados').update({
-        ajuste_vacaciones_manual: numeroAjuste
-    }).eq('id', empleadoId);
-
-    if (error) alert("Error de calibración: " + error.message);
-    else {
-        alert("Saldo balanceado correctamente.");
-        cargarSaldos();
-    }
 }
 
 init();
