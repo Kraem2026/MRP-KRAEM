@@ -447,7 +447,6 @@ async function guardar(){
         fFin = document.getElementById('sol_fecha_local').value;
     }
 
-    // MAPEO PERFECTO CON TUS COLUMNAS REALES DE BASE DE DATOS:
     const insertPayload = {
         empleado_id: empId,
         tipo: tipo,
@@ -457,15 +456,9 @@ async function guardar(){
         hora_regreso: esLocal ? (document.getElementById('sol_hora_regreso').value || null) : null,
         observaciones: motivoText,
         estatus: 'PENDIENTE',
-        
-        // Mapeo de áreas y turnos de la solicitud según el trabajador seleccionado
         area: empSeleccionado ? empSeleccionado.area_id : null,
         turno: empSeleccionado ? empSeleccionado.turno_id : null,
-        
-        // El supervisor asignado desde el formulario pasa aquí
         autorizador_asignado: autId || null,
-        
-        // Se inicializan limpios para la firma digital posterior
         autorizado_por: null,
         firma_digital: null
     };
@@ -489,7 +482,6 @@ async function resolverSolicitud(id, nuevoEstatus) {
         return;
     }
 
-    // Registramos la firma en los campos designados de tu tabla
     const { error } = await client.from('rh_solicitudes').update({ 
         estatus: nuevoEstatus,
         autorizado_por: supervisorFirma || 'Mánager Turno',
@@ -504,27 +496,34 @@ async function resolverSolicitud(id, nuevoEstatus) {
     }
 }
 
+// CORRECCIÓN DE LA FUNCIÓN: Sincronizada con la estructura exacta de tu base de datos
 async function cargarSaldos() {
     const body = document.getElementById('body-saldos');
     body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Consultando saldos históricos...</td></tr>`;
 
+    // Consultamos los datos asegurando el mapeo de columnas correcto
     const [resEmp, resVacApproved] = await Promise.all([
         client.from('rh_empleados').select('id, nombre_completo, dias_vacaciones_ley, ajuste_vacaciones_manual').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
         client.from('rh_solicitudes').select('empleado_id, fecha_inicio, fecha_fin').eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO')
     ]);
 
-    if(!resEmp.data) return;
+    if (!resEmp.data || resEmp.data.length === 0) {
+        body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">No se encontraron colaboradores activos.</td></tr>`;
+        return;
+    }
 
     body.innerHTML = resEmp.data.map(emp => {
         let diasTomados = 0;
         const filtradas = resVacApproved.data?.filter(s => s.empleado_id === emp.id) || [];
         
         filtradas.forEach(s => {
-            const inicio = new Date(s.fecha_inicio);
-            const fin = new Date(s.fecha_fin);
-            const diffTime = Math.abs(fin - inicio);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            diasTomados += diffDays;
+            if (s.fecha_inicio && s.fecha_fin) {
+                const inicio = new Date(s.fecha_inicio);
+                const fin = new Date(s.fecha_fin);
+                const diffTime = Math.abs(fin - inicio);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                diasTomados += diffDays;
+            }
         });
 
         const baseLey = emp.dias_vacaciones_ley || 0;
@@ -565,7 +564,6 @@ async function ejecutarAjusteManual(empleadoId, ajusteActual) {
     else {
         alert("Saldo balanceado correctamente.");
         cargarSaldos();
-        mostrarInfoVacacionesEmpleado();
     }
 }
 
