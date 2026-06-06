@@ -214,10 +214,7 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
     </div>
 
     <div id="panel-saldos" style="display: none; grid-column: span 2;">
-        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; color: #1e40af;">
-            <i class="fas fa-info-circle">
-        </div>
-
+        
         <div class="card" style="display: grid; grid-template-columns: 250px 1fr; gap: 12px; padding: 15px; margin-bottom: 15px; background: #f1f5f9;">
             <div>
                 <label>Filtrar por Área / Depto</label>
@@ -226,7 +223,7 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
             <div>
                 <label>Buscar Colaborador por Nombre</label>
                 <div style="position: relative;">
-                    <input type="text" id="f_saldo_nombre" oninput= "aplicarFiltrosSaldos()" placeholder="Escribe el nombre del operador..." style="margin-bottom:0; padding-left: 35px;">
+                    <input type="text" id="f_saldo_nombre" oninput="aplicarFiltrosSaldos()" placeholder="Escribe el nombre del operador..." style="margin-bottom:0; padding-left: 35px;">
                     <i class="fas fa-search" style="position: absolute; left: 12px; top: 13px; color: #94a3b8;"></i>
                 </div>
             </div>
@@ -274,7 +271,7 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
 let empleados = [];
 let areas = [];
 let solicitudesGlobales = [];
-let solicitudesVacAprobadas = []; // Cache exclusivo para rendimiento de saldos
+let solicitudesVacAprobadas = [];
 let filtroEstatusActual = 'PENDIENTE';
 
 function calcularDiasLeyMexico(fechaIngresoStr) {
@@ -567,7 +564,6 @@ async function guardar(){
         fFin = document.getElementById('sol_fecha_local').value;
     }
 
-    // AUDITORÍA Y CONTROL PROYECTADO PARA VACACIONES Y AJUSTES
     if(tipo === 'VACACIONES' || tipo.includes('AJUSTE')) {
         const saldoDisponible = await obtenerSaldoRealEmpleado(empId, fInicio);
         
@@ -657,12 +653,10 @@ async function resolverSolicitud(id, nuevoEstatus) {
     }
 }
 
-// CARGA DE SALDOS GENERAL CON ESTRUCTURA OPTIMIZADA
 async function cargarSaldos() {
     const body = document.getElementById('body-saldos');
     body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">Consultando base de datos unificada...</td></tr>`;
 
-    // Descarga única del histórico aprobado para optimizar velocidad con 300+ registros
     const { data } = await client.from('rh_solicitudes')
         .select('empleado_id, fecha_inicio, fecha_fin, tipo, autorizado_por')
         .in('tipo', ['VACACIONES', 'AJUSTE HISTORICO (RESTA DE DIAS)'])
@@ -673,7 +667,6 @@ async function cargarSaldos() {
     aplicarFiltrosSaldos();
 }
 
-// FILTRADO DINÁMICO DE ALTA VELOCIDAD (EN MEMORIA DE CLIENTE)
 function aplicarFiltrosSaldos() {
     const areaFiltro = document.getElementById('f_saldo_area').value;
     const nombreFiltro = document.getElementById('f_saldo_nombre').value.toLowerCase().trim();
@@ -717,7 +710,6 @@ function aplicarFiltrosSaldos() {
     }).join('');
 }
 
-// CONTROL DEL MODAL INDIVIDUAL (KÁRDEX DIGITAL DE INCIDENCIAS)
 function abrirKardex(empId, nombreCompleto) {
     document.getElementById('kardex-nombre').innerHTML = `<i class="fas fa-history"></i> Historial Pro: <strong>${nombreCompleto}</strong>`;
     const tbody = document.getElementById('kardex-tabla-body');
@@ -752,7 +744,6 @@ function cerrarModal() {
     document.getElementById('modal-kardex').style.display = 'none';
 }
 
-// Cerrar modal si hacen clic fuera de la caja blanca
 window.onclick = function(event) {
     const modal = document.getElementById('modal-kardex');
     if (event.target == modal) {
