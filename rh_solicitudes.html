@@ -165,8 +165,8 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
                 <label>Fecha Única</label>
                 <input type="date" id="sol_fecha_local">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div><label>Hora Salida</label><input type="time" id="sol_hora_inicio"></div>
-                    <div><label>Hora Regreso</label><input type="time" id="sol_hora_fin"></div>
+                    <div><label>Hora Salida</label><input type="time" id="sol_hora_salida"></div>
+                    <div><label>Hora Regreso</label><input type="time" id="sol_hora_regreso"></div>
                 </div>
             </div>
 
@@ -232,7 +232,7 @@ async function init(){
 
     const [resEmp, resAr] = await Promise.all([
         client.from('rh_empleados').select('*').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
-        client.from('areas_generales').select('*')
+        client.from('rh_areas').select('*').eq('activo', true)
     ]);
 
     empleados = resEmp.data || [];
@@ -281,7 +281,7 @@ function filtrarEmpleados(){
     const turno = document.getElementById('f_turno').value;
 
     const lista = empleados.filter(e=>
-        (!area || e.area_general_id == area) &&
+        (!area || e.area_id == area) &&
         (!turno || e.turno_id == turno)
     );
 
@@ -299,7 +299,7 @@ function filtrarAutorizadores(){
     const turno = document.getElementById('f_turno_aut').value;
 
     const lista = empleados.filter(e=>
-        (!area || e.area_general_id == area) &&
+        (!area || e.area_id == area) &&
         (!turno || e.turno_id == turno)
     );
 
@@ -311,7 +311,6 @@ function filtrarAutorizadores(){
     });
 }
 
-// NUEVA FUNCIÓN: Muestra los días de vacaciones que dispone el operador seleccionado
 async function mostrarInfoVacacionesEmpleado() {
     const empId = document.getElementById('sel_empleado').value;
     const lbl = document.getElementById('lbl_vacaciones_disponibles');
@@ -324,7 +323,6 @@ async function mostrarInfoVacacionesEmpleado() {
     const emp = empleados.find(e => e.id === empId);
     if(!emp) return;
 
-    // Calcular en caliente los días tomados en solicitudes aprobadas
     const { data: vacs } = await client.from('rh_solicitudes').select('fecha_inicio, fecha_fin').eq('empleado_id', empId).eq('tipo', 'VACACIONES').eq('estatus', 'APROBADO');
     
     let diasTomados = 0;
@@ -343,7 +341,6 @@ async function mostrarInfoVacacionesEmpleado() {
     lbl.style.display = 'block';
 }
 
-// NUEVA FUNCIÓN: Calcula cuántos días se están pidiendo en el rango (Mismo día = 1 día)
 function calcularDiasSolicitadosDinamico() {
     const inicioStr = document.getElementById('sol_inicio').value;
     const finStr = document.getElementById('sol_fin').value;
@@ -359,7 +356,7 @@ function calcularDiasSolicitadosDinamico() {
 
     if(fin < inicio) {
         lbl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: La fecha fin es menor.`;
-        lbl.style.style.background = '#fee2e2';
+        lbl.style.background = '#fee2e2';
         lbl.style.color = '#b91c1c';
         lbl.style.display = 'block';
         return;
@@ -400,7 +397,7 @@ function renderizarSolicitudes() {
 
     cont.innerHTML = filtradas.map(s => {
         const esLocal = s.tipo.includes('LOCAL') || s.tipo.includes('TARDE') || s.tipo.includes('TEMPRANO');
-        const periodo = esLocal ? `Fecha: ${s.fecha_inicio} (${s.hora_inicio || ''} a ${s.hora_fin || ''})` : `Periodo: ${s.fecha_inicio} al ${s.fecha_fin}`;
+        const periodo = esLocal ? `Fecha: ${s.fecha_inicio} (${s.hora_salida || '--:--'} a ${s.hora_regreso || '--:--'})` : `Periodo: ${s.fecha_inicio} al ${s.fecha_fin}`;
         
         let botones = '';
         if(s.estatus === 'PENDIENTE') {
@@ -411,7 +408,7 @@ function renderizarSolicitudes() {
                 </div>`;
         }
 
-        const firma = s.aprobado_por ? `<span class="auditoria-firma"><i class="fas fa-user-shield"></i> Validado por: <strong>${s.aprobado_por}</strong></span>` : '';
+        const firma = s.autorizado_por ? `<span class="auditoria-firma"><i class="fas fa-user-shield"></i> Validado por: <strong>${s.autorizado_por}</strong> ${s.firma_digital ? `(${s.firma_digital})` : ''}</span>` : '';
 
         return `
             <div class="solicitud-card">
@@ -419,7 +416,7 @@ function renderizarSolicitudes() {
                     <h4 style="color:var(--primary); font-size:15px; margin-bottom:6px;">${s.rh_empleados?.nombre_completo || 'Operador Kraem'}</h4>
                     <p style="font-size:13px;"><strong>Tipo:</strong> <span style="color:var(--accent); font-weight:bold;">${s.tipo}</span></p>
                     <p><strong>Rango:</strong> ${periodo}</p>
-                    <p style="color:#475569; background:#f1f5f9; padding:6px; border-radius:4px; margin-top:4px;"><strong>Motivo:</strong> ${s.motivo || 'Sin detalles capturados'}</p>
+                    <p style="color:#475569; background:#f1f5f9; padding:6px; border-radius:4px; margin-top:4px;"><strong>Observaciones:</strong> ${s.observaciones || 'Sin detalles capturados'}</p>
                     ${firma}
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
@@ -431,13 +428,15 @@ function renderizarSolicitudes() {
 }
 
 async function guardar(){
-    const emp = document.getElementById('sel_empleado').value;
-    const aut = document.getElementById('sel_autoriza').value;
+    const empId = document.getElementById('sel_empleado').value;
+    const autId = document.getElementById('sel_autoriza').value;
     const tipo = document.getElementById('sol_tipo').value;
-    const motivo = document.getElementById('sol_motivo').value;
+    const motivoText = document.getElementById('sol_motivo').value;
 
-    if(!emp) return alert("Selecciona un empleado de la lista.");
-    if(!motivo.trim()) return alert("Favor de ingresar el motivo o justificación de la ausencia.");
+    if(!empId) return alert("Selecciona un empleado de la lista.");
+    if(!motivoText.trim()) return alert("Favor de ingresar el motivo o observaciones de la ausencia.");
+
+    const empSeleccionado = empleados.find(e => e.id === empId);
 
     const esLocal = tipo.includes('LOCAL') || tipo.includes('TARDE') || tipo.includes('TEMPRANO');
     let fInicio = document.getElementById('sol_inicio').value;
@@ -448,17 +447,27 @@ async function guardar(){
         fFin = document.getElementById('sol_fecha_local').value;
     }
 
+    // MAPEO PERFECTO CON TUS COLUMNAS REALES DE BASE DE DATOS:
     const insertPayload = {
-        empleado_id: emp,
+        empleado_id: empId,
         tipo: tipo,
         fecha_inicio: fInicio,
         fecha_fin: fFin,
-        // CORRECCIÓN: Si tu DB no tiene las columnas, se envían como null para evitar romper el schema cache
-        hora_inicio: esLocal ? (document.getElementById('sol_hora_inicio').value || null) : null,
-        hora_fin: esLocal ? (document.getElementById('sol_hora_fin').value || null) : null,
-        motivo: motivo,
+        hora_salida: esLocal ? (document.getElementById('sol_hora_salida').value || null) : null,
+        hora_regreso: esLocal ? (document.getElementById('sol_hora_regreso').value || null) : null,
+        observaciones: motivoText,
         estatus: 'PENDIENTE',
-        autorizado_por: aut || null
+        
+        // Mapeo de áreas y turnos de la solicitud según el trabajador seleccionado
+        area: empSeleccionado ? empSeleccionado.area_id : null,
+        turno: empSeleccionado ? empSeleccionado.turno_id : null,
+        
+        // El supervisor asignado desde el formulario pasa aquí
+        autorizador_asignado: autId || null,
+        
+        // Se inicializan limpios para la firma digital posterior
+        autorizado_por: null,
+        firma_digital: null
     };
 
     const { error } = await client.from('rh_solicitudes').insert([insertPayload]);
@@ -480,14 +489,16 @@ async function resolverSolicitud(id, nuevoEstatus) {
         return;
     }
 
+    // Registramos la firma en los campos designados de tu tabla
     const { error } = await client.from('rh_solicitudes').update({ 
         estatus: nuevoEstatus,
-        aprobado_por: supervisorFirma || 'Mánager Turno'
+        autorizado_por: supervisorFirma || 'Mánager Turno',
+        firma_digital: nuevoEstatus === 'APROBADO' ? 'FIRMA_OK' : 'RECHAZADO_PLANTA'
     }).eq('id', id);
 
     if(error) alert("Error al resolver: " + error.message);
     else {
-        alert(`Solicitud processed como ${nuevoEstatus}.`);
+        alert(`Solicitud procesada como ${nuevoEstatus}.`);
         await cargarSolicitudesBase();
         mostrarInfoVacacionesEmpleado();
     }
