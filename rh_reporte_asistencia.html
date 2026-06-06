@@ -126,11 +126,10 @@
 
 <script>
     let globalData = [];
-    const HORA_ENTRADA_OFICIAL = "07:00"; // Cambiar si el turno inicial arranca a otra hora
-    const HORAS_JORNADA_NORMAL = 9.6;     // 9.6 horas diarias para acumular las 48 formales a la semana
+    const HORA_ENTRADA_OFICIAL = "07:00"; 
+    const HORAS_JORNADA_NORMAL = 9.6;     
 
     async function init() {
-        // CORRECCIÓN: Ajustado a la tabla correcta 'areas_generales'
         const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
@@ -139,7 +138,6 @@
         document.getElementById('v_desde').value = hoy.toISOString().split('T')[0];
         document.getElementById('v_hasta').value = hoy.toISOString().split('T')[0];
         
-        // CORRECCIÓN: Seleccionar el mes actual del sistema por defecto
         document.getElementById('v_mes').value = hoy.getMonth();
         
         cargarData();
@@ -151,7 +149,6 @@
         document.getElementById('c_rango').style.display = v === 'rango' ? 'flex' : 'none';
     }
 
-    // Función auxiliar para restar horas en caso de Retardo
     function calcularHorasTrabajadasEnRetardo(horaLlegada) {
         if (!horaLlegada) return HORAS_JORNADA_NORMAL;
         try {
@@ -161,7 +158,7 @@
             const minutosOficial = hOficial * 60 + mOficial;
             const minutosLlegada = hLlegada * 60 + mLlegada;
             
-            const diferenciaMinutos = minutosLlegada - minutosOficial;
+            const diferenciaMinutos = minutosLlegada - minutesOficial;
             if (diferenciaMinutos <= 0) return HORAS_JORNADA_NORMAL;
             
             const horasPerdidas = diferenciaMinutos / 60;
@@ -175,12 +172,14 @@
     async function cargarData() {
         const tipo = document.getElementById('v_tipo').value;
         let inicio, fin;
-        const añoActual = 2026;
+        
+        // MODIFICACIÓN: Ahora detecta automáticamente el año en curso dinámicamente
+        const añoDinamico = new Date().getFullYear();
 
         if(tipo === 'mes') {
             const m = document.getElementById('v_mes').value;
-            inicio = new Date(añoActual, m, 1);
-            fin = new Date(añoActual, parseInt(m) + 1, 0);
+            inicio = new Date(añoDinamico, m, 1);
+            fin = new Date(añoDinamico, parseInt(m) + 1, 0);
         } else {
             inicio = new Date(document.getElementById('v_desde').value);
             fin = new Date(document.getElementById('v_hasta').value);
@@ -190,14 +189,13 @@
         const iniStr = inicio.toISOString().split('T')[0];
         const finStr = fin.toISOString().split('T')[0];
 
-        // CORRECCIÓN: 'area_general_id' cargado para evitar pérdidas de filtrados
+        // MODIFICACIÓN: Agregado .order('nombre_completo', { ascending: true }) para forzar orden alfabético A-Z
         const [resEmp, resAsi, resSol] = await Promise.all([
-            client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus','ACTIVO'),
+            client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
             client.from('rh_asistencia_diaria').select('*').gte('fecha', iniStr).lte('fecha', finStr),
             client.from('rh_solicitudes').select('*').eq('estatus','APROBADO').or(`fecha_inicio.lte.${finStr},fecha_fin.gte.${iniStr}`)
         ]);
 
-        // Render Head
         let headHTML = `<tr><th class="emp-name">Colaborador</th>`;
         for(let i=0; i<diasDiff; i++) {
             let d = new Date(inicio); d.setDate(d.getDate() + i);
@@ -226,7 +224,6 @@
                 if(sol) {
                     celda = `<small style="color:blue; font-weight:bold;">${sol.tipo.substring(0,3)}</small>`;
                     pCount++;
-                    // Si el permiso es Vacaciones o con Goce, acumula sus horas ordinarias completas
                     if(sol.tipo !== 'PERMISO S/GOCE' && sol.tipo !== 'SUSPENSION' && d.getDay() !== 0) {
                         horasTrabajadasPeriodo += HORAS_JORNADA_NORMAL;
                     }
