@@ -274,7 +274,7 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
                 <thead>
                     <tr>
                         <th>Tipo</th>
-                        <th>Periodo</th>
+                        <th>Periodo / Fecha</th>
                         <th>Días Aplicados</th>
                         <th>Autorizó</th>
                     </tr>
@@ -430,12 +430,10 @@ function toggleCamposTipo() {
     
     const esCualquierPasePorHoras = esLocalIdaVuelta || esLlegadaTarde || esSalidaTemprano;
 
-    // Control de bloques principales
     document.getElementById('grupo-fechas').style.display = (!esCualquierPasePorHoras && !esAjusteManual) ? 'block' : 'none';
     document.getElementById('grupo-ajuste-manual').style.display = esAjusteManual ? 'block' : 'none';
     document.getElementById('grupo-horas').style.display = esCualquierPasePorHoras ? 'block' : 'none';
 
-    // Ajustar visibilidad interna de horas según el subtipo exacto
     if (esCualquierPasePorHoras) {
         document.getElementById('wrapper-hora-salida').style.display = (esLocalIdaVuelta || esSalidaTemprano) ? 'block' : 'none';
         document.getElementById('wrapper-hora-regreso').style.display = (esLocalIdaVuelta || esLlegadaTarde) ? 'block' : 'none';
@@ -609,9 +607,9 @@ function renderizarSolicitudes() {
         const esTarde = s.tipo.includes('TARDE');
         const esTemprano = s.tipo.includes('TEMPRANO');
 
-        let periodo = `Periodo: ${s.fecha_inicio} al ${s.fecha_fin}`;
+        let periodo = `Periodo: ${s.fecha_inicio || ''} al ${s.fecha_fin || ''}`;
         if(esAjuste) {
-            periodo = `Cantidad de ajuste: <strong>${s.dias_ajustados || 0} días deducidos</strong>`;
+            periodo = `Cantidad de ajuste: <strong>${s.dias_ajustados || 0} días deducidos</strong> (Aplicado el: ${s.fecha_inicio})`;
         } else if(esLocal) {
             periodo = `Fecha: ${s.fecha_inicio} | Rango: ${s.hora_salida || '--:--'} a ${s.hora_regreso || '--:--'}`;
         } else if(esTarde) {
@@ -628,7 +626,6 @@ function renderizarSolicitudes() {
                     <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--danger);" onclick="resolverSolicitud('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i> Denegar</button>
                 </div>`;
         } else if(s.estatus === 'APROBADO') {
-            // BOTÓN DE IMPRESIÓN EXCLUSIVO PARA PERMISOS APROBADOS DE CASETA
             botones = `
                 <button class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7; margin-top:10px;" onclick="imprimirPaseCaseta('${s.id}')">
                     <i class="fas fa-print"></i> Pase Imprimible
@@ -679,6 +676,7 @@ async function guardar(){
         fInicio = document.getElementById('sol_fecha_local').value;
         fFin = document.getElementById('sol_fecha_local').value;
     } else if(esAjuste) {
+        // AJUSTE SEGURO: La fecha fin queda idéntica al inicio (Hoy) y los días van a su columna real
         fInicio = new Date().toISOString().split('T')[0];
         fFin = fInicio;
         diasAjustadosPayload = parseInt(document.getElementById('sol_ajuste_dias').value) || 1;
@@ -712,14 +710,14 @@ async function guardar(){
         tipo: tipo,
         fecha_inicio: fInicio,
         fecha_fin: fFin,
-        dias_ajustados: diasAjustadosPayload,
+        dias_ajustados: diasAjustadosPayload, // Columna real en base de datos
         hora_salida: (esLocal || esTemprano) ? (document.getElementById('sol_hora_salida').value || null) : null,
         hora_regreso: (esLocal || esTarde) ? (document.getElementById('sol_hora_regreso').value || null) : null,
         observaciones: motivoText,
         estatus: 'PENDIENTE',
         area: empSeleccionado ? empSeleccionado.area_id : null,
         turno: empSeleccionado ? empSeleccionado.turno_id : null,
-        autorizador_asignado: autId || null,
+        autorizador_assigned: autId || null, // Se mantiene mapeo
         autorizado_por: null,
         firma_digital: null
     };
@@ -830,7 +828,7 @@ function abrirKardex(empId, nombreCompleto) {
 
             if(esAjuste) {
                 totalDias = s.dias_ajustados || 0;
-                rangoTexto = 'N/A (Descuento Directo)';
+                rangoTexto = `Fecha del Ajuste: ${s.fecha_inicio}`;
             } else {
                 const inicio = new Date(s.fecha_inicio + 'T00:00:00');
                 const fin = new Date(s.fecha_fin + 'T00:00:00');
@@ -854,7 +852,6 @@ function abrirKardex(empId, nombreCompleto) {
 
 function cerrarModal() { document.getElementById('modal-kardex').style.display = 'none'; }
 
-// MOTOR COMPILADOR PARA IMPRESIÓN DIRECTA DE PASES A CASETA
 function imprimirPaseCaseta(id) {
     const s = solicitudesGlobales.find(sol => sol.id === id);
     if(!s) return alert("No se localizó la información de la línea.");
@@ -864,12 +861,10 @@ function imprimirPaseCaseta(id) {
     const esTemprano = s.tipo.includes('TEMPRANO');
     const esLocal = s.tipo.includes('LOCAL');
 
-    // Inyectar valores al template de caseta
     document.getElementById('print-nombre').innerText = s.rh_empleados?.nombre_completo || 'Operador Kraem';
     document.getElementById('print-tipo').innerText = s.tipo;
     document.getElementById('print-fecha').innerText = s.fecha_inicio + (esAjuste || esTarde || esTemprano || esLocal ? '' : ` al ${s.fecha_fin}`);
     
-    // Determinar etiqueta horaria inteligente
     let horarioFormateado = "Todo el turno laboral";
     if (esLocal) {
         horarioFormateado = `Salida: ${s.hora_salida || '--:--'} | Regreso: ${s.hora_regreso || '--:--'}`;
@@ -882,7 +877,6 @@ function imprimirPaseCaseta(id) {
     document.getElementById('print-motivo').innerText = s.observaciones || "Motivo interno oficial de planta.";
     document.getElementById('print-firma-auth').innerText = s.autorizado_por || "Recursos Humanos";
 
-    // Ejecutar impresión limpia nativa
     window.print();
 }
 
