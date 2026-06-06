@@ -130,3 +130,539 @@ td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
                 <select id="f_turno" onchange="filtrarEmpleados()">
                     <option value="">Turno</option>
                     <option value="1">Turno 1</option>
+                    <option value="2">Turno 2</option>
+                </select>
+            </div>
+
+            <label>Colaborador afectado</label>
+            <select id="sel_empleado" onchange="mostrarInfoVacacionesEmpleado()" required></select>
+            
+            <div id="lbl_vacaciones_disponibles" class="info-badge-dinamico" style="background: #e0f2fe; color: #0369a1;"></div>
+
+            <label>Tipo de Permiso / Ausencia</label>
+            <select id="sol_tipo" onchange="toggleCamposTipo(); evaluarDinamicoAlCambiar();" required>
+                <option value="VACACIONES">Vacaciones</option>
+                <option value="INCAPACIDAD ENFERMEDAD">Incapacidad (Enfermedad)</option>
+                <option value="INCAPACIDAD MATERNIDAD/PATERNIDAD">Incapacidad (Maternidad/Paternidad)</option>
+                <option value="PERMISO C/GOCE (LEY)">Permiso c/Goce (Leyes/Defunción)</option>
+                <option value="PERMISO S/GOCE">Permiso sin Goce de Sueldo</option>
+                <option value="SUSPENSION">Suspensión Laboral</option>
+                <option value="PERMISO LOCAL (IDA Y VUELTA)">Permiso Local (Ida y Vuelta)</option>
+                <option value="LLEGADA TARDE">Permiso de Llegada Tarde</option>
+                <option value="SALIDA TEMPRANO">Permiso de Salida Temprano</option>
+            </select>
+
+            <div id="grupo-fechas" style="display: block;">
+                <label>Fecha Inicio</label>
+                <input type="date" id="sol_inicio" onchange="calcularDiasSolicitadosDinamico()">
+                <label>Fecha Fin</label>
+                <input type="date" id="sol_fin" onchange="calcularDiasSolicitadosDinamico()">
+                
+                <div id="lbl_dias_calculados" class="info-badge-dinamico" style="background: #fef3c7; color: #d97706; margin-top: 5px;"></div>
+            </div>
+
+            <div id="grupo-horas" style="display: none; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px;">
+                <label>Fecha Única</label>
+                <input type="date" id="sol_fecha_local">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div><label>Hora Salida</label><input type="time" id="sol_hora_salida"></div>
+                    <div><label>Hora Regreso</label><input type="time" id="sol_hora_regreso"></div>
+                </div>
+            </div>
+
+            <label>Motivo / Observaciones de Planta</label>
+            <textarea id="sol_motivo" rows="3" placeholder="Detalle la justificación..." required></textarea>
+
+            <h4 style="margin: 10px 0 5px 0; font-size:12px;">Supervisor Solicitante</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <select id="f_area_aut" onchange="filtrarAutorizadores()"></select>
+                <select id="f_turno_aut" onchange="filtrarAutorizadores()">
+                    <option value="">Turno</option>
+                    <option value="1">Turno 1</option>
+                    <option value="2">Turno 2</option>
+                </select>
+            </div>
+            <select id="sel_autoriza"></select>
+
+            <button class="btn" onclick="guardar()"><i class="fas fa-paper-plane"></i> Guardar Solicitud</button>
+        </div>
+
+        <div>
+            <div style="display: flex; gap: 8px; margin-bottom: 15px; background: #e2e8f0; padding: 4px; border-radius: 8px; width: fit-content;">
+                <button class="tab-btn active" id="sub-pend" onclick="filtrarLista('PENDIENTE')" style="padding: 6px 14px; font-size:12px; border-radius:6px;">Por Aprobar</button>
+                <button class="tab-btn" id="sub-aprob" onclick="filtrarLista('APROBADO')" style="padding: 6px 14px; font-size:12px; border-radius:6px;">Aprobadas</button>
+                <button class="tab-btn" id="sub-rech" onclick="filtrarLista('RECHAZADO')" style="padding: 6px 14px; font-size:12px; border-radius:6px;">Rechazadas</button>
+            </div>
+            <div class="solicitud-list" id="contenedor-solicitudes"></div>
+        </div>
+    </div>
+
+    <div id="panel-saldos" style="display: none; grid-column: span 2;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 10px; margin-bottom: 15px; font-size: 13px; color: #1e40af;">
+            <i class="fas fa-info-circle"></i> <strong>Cálculo de Antigüedad Automatizado:</strong> El sistema calcula los días de Ley correspondientes en tiempo real evaluando estrictamente los años cumplidos a la fecha actual basándose en la <code>fecha_ingreso</code> registrada de cada operador. En el formulario general, el saldo se proyecta inteligentemente a la fecha de inicio del descanso seleccionado.
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Colaborador</th>
+                    <th>Ingreso Planta</th>
+                    <th>Días de Ley</th>
+                    <th>Tomados (Sistema)</th>
+                    <th>Saldo Disponible</th>
+                </tr>
+            </thead>
+            <tbody id="body-saldos"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+let empleados = [];
+let areas = [];
+let solicitudesGlobales = [];
+let filtroEstatusActual = 'PENDIENTE';
+
+// Cálculo exacto de días por ley de México basado estrictamente en aniversarios cerrados
+function calcularDiasLeyMexico(fechaIngresoStr) {
+    if(!fechaIngresoStr) return 0;
+    
+    // Evitamos problemas de zona horaria forzando la interpretación al inicio del día local
+    const ingreso = new Date(fechaIngresoStr + 'T00:00:00');
+    const hoy = new Date();
+    
+    let antiguedad = hoy.getFullYear() - ingreso.getFullYear();
+    const mes = hoy.getMonth() - ingreso.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < ingreso.getDate())) {
+        antiguedad--;
+    }
+    
+    return obtenerDiasPorAntiguedad(antiguedad);
+}
+
+// Nueva función para proyectar la antigüedad a la fecha futura en que iniciarán sus vacaciones
+function calcularDiasLeyMexicoProyectado(fechaIngresoStr, fechaProyeccionStr) {
+    if(!fechaIngresoStr || !fechaProyeccionStr) return 0;
+    
+    const ingreso = new Date(fechaIngresoStr + 'T00:00:00');
+    const fechaProy = new Date(fechaProyeccionStr + 'T00:00:00');
+    
+    let antiguedad = fechaProy.getFullYear() - ingreso.getFullYear();
+    const mes = fechaProy.getMonth() - ingreso.getMonth();
+    if (mes < 0 || (mes === 0 && fechaProy.getDate() < ingreso.getDate())) {
+        antiguedad--;
+    }
+    
+    return obtenerDiasPorAntiguedad(antiguedad);
+}
+
+// Tabla interna para mapear años cumplidos con días de Ley vigentes
+function obtenerDiasPorAntiguedad(antiguedad) {
+    if(antiguedad < 1) return 0; // Menos de 1 año cumplido = 0 días de derecho
+    if(antiguedad === 1) return 12;
+    if(antiguedad === 2) return 14;
+    if(antiguedad === 3) return 16;
+    if(antiguedad === 4) return 18;
+    if(antiguedad === 5) return 20;
+    if(antiguedad >= 6 && antiguedad <= 10) return 22;
+    if(antiguedad >= 11 && antiguedad <= 15) return 24;
+    if(antiguedad >= 16 && antiguedad <= 20) return 26;
+    if(antiguedad >= 21 && antiguedad <= 25) return 28;
+    if(antiguedad >= 26 && antiguedad <= 30) return 30;
+    return 32;
+}
+
+async function init(){
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('sol_inicio').value = hoy;
+    document.getElementById('sol_fin').value = hoy;
+    document.getElementById('sol_fecha_local').value = hoy;
+
+    const [resEmp, resAr] = await Promise.all([
+        client.from('rh_empleados').select('id, nombre_completo, area_id, turno_id, fecha_ingreso, estatus').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
+        client.from('rh_areas').select('*').eq('activo', true)
+    ]);
+
+    empleados = resEmp.data || [];
+    areas = resAr.data || [];
+
+    cargarAreas();
+    filtrarEmpleados();
+    filtrarAutorizadores();
+    await cargarSolicitudesBase();
+    calcularDiasSolicitadosDinamico();
+}
+
+function switchTab(id) {
+    document.getElementById('panel-solicitudes').style.display = id === 'panel-solicitudes' ? 'contents' : 'none';
+    document.getElementById('panel-saldos').style.display = id === 'panel-saldos' ? 'block' : 'none';
+    event.target.classList.add('active');
+    
+    document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
+        if(btn !== event.target) btn.classList.remove('active');
+    });
+}
+
+function toggleCamposTipo() {
+    const tipo = document.getElementById('sol_tipo').value;
+    const esLocal = tipo.includes('LOCAL') || tipo.includes('TARDE') || tipo.includes('TEMPRANO');
+    
+    document.getElementById('grupo-fechas').style.display = esLocal ? 'none' : 'block';
+    document.getElementById('grupo-horas').style.display = esLocal ? 'block' : 'none';
+}
+
+function evaluarDinamicoAlCambiar() {
+    const tipo = document.getElementById('sol_tipo').value;
+    if(!tipo.includes('LOCAL') && !tipo.includes('TARDE') && !tipo.includes('TEMPRANO')) {
+        calcularDiasSolicitadosDinamico();
+    }
+}
+
+function cargarAreas(){
+    const sel1 = document.getElementById('f_area');
+    const sel2 = document.getElementById('f_area_aut');
+
+    sel1.innerHTML = '<option value="">Área</option>';
+    sel2.innerHTML = '<option value="">Área</option>';
+
+    areas.forEach(a=>{
+        sel1.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+        sel2.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
+    });
+}
+
+function filtrarEmpleados(){
+    const area = document.getElementById('f_area').value;
+    const turno = document.getElementById('f_turno').value;
+
+    const lista = empleados.filter(e=>
+        (!area || e.area_id == area) &&
+        (!turno || e.turno_id == turno)
+    );
+
+    const sel = document.getElementById('sel_empleado');
+    sel.innerHTML = '<option value="">Selecciona Operador...</option>';
+
+    lista.forEach(e=>{
+        sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+    });
+    document.getElementById('lbl_vacaciones_disponibles').style.display = 'none';
+}
+
+function filtrarAutorizadores(){
+    const area = document.getElementById('f_area_aut').value;
+    const turno = document.getElementById('f_turno_aut').value;
+
+    const lista = empleados.filter(e=>
+        (!area || e.area_id == area) &&
+        (!turno || e.turno_id == turno)
+    );
+
+    const sel = document.getElementById('sel_autoriza');
+    sel.innerHTML = '<option value="">Firma Supervisor...</option>';
+
+    lista.forEach(e=>{
+        sel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+    });
+}
+
+// Función optimizada para calcular saldo real (opcionalmente proyectado a una fecha futura)
+async function obtenerSaldoRealEmpleado(empId, fechaReferenciaStr = null) {
+    const emp = empleados.find(e => e.id === empId);
+    if(!emp) return 0;
+
+    const { data: vacs } = await client.from('rh_solicitudes')
+        .select('fecha_inicio, fecha_fin')
+        .eq('empleado_id', empId)
+        .eq('tipo', 'VACACIONES')
+        .eq('estatus', 'APROBADO');
+    
+    let diasTomados = 0;
+    vacs?.forEach(s => {
+        if(s.fecha_inicio && s.fecha_fin) {
+            const inicio = new Date(s.fecha_inicio + 'T00:00:00');
+            const fin = new Date(s.fecha_fin + 'T00:00:00');
+            const diff = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+            diasTomados += diff;
+        }
+    });
+
+    let baseLey = 0;
+    if(fechaReferenciaStr) {
+        baseLey = calcularDiasLeyMexicoProyectado(emp.fecha_ingreso, fechaReferenciaStr);
+    } else {
+        baseLey = calcularDiasLeyMexico(emp.fecha_ingreso);
+    }
+
+    const saldoReal = baseLey - diasTomados;
+    return saldoReal < 0 ? 0 : saldoReal;
+}
+
+async function mostrarInfoVacacionesEmpleado() {
+    const empId = document.getElementById('sel_empleado').value;
+    const lbl = document.getElementById('lbl_vacaciones_disponibles');
+    const fInicio = document.getElementById('sol_inicio').value;
+    
+    if(!empId) {
+        lbl.style.display = 'none';
+        return;
+    }
+
+    // El recuadro azul evalúa de manera inteligente el saldo a la fecha de inicio del viaje
+    const saldoReal = await obtenerSaldoRealEmpleado(empId, fInicio);
+
+    lbl.innerHTML = `<i class="fas fa-calendar-alt"></i> Saldo Vacaciones (A la fecha solicitada): <strong>${saldoReal} días disponibles</strong>`;
+    lbl.style.display = 'block';
+}
+
+function calcularDiasSolicitadosDinamico() {
+    const inicioStr = document.getElementById('sol_inicio').value;
+    const finStr = document.getElementById('sol_fin').value;
+    const lbl = document.getElementById('lbl_dias_calculados');
+
+    if(!inicioStr || !finStr) {
+        lbl.style.display = 'none';
+        return;
+    }
+
+    const inicio = new Date(inicioStr + 'T00:00:00');
+    const fin = new Date(finStr + 'T00:00:00');
+
+    if(fin < inicio) {
+        lbl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: La fecha fin es menor.`;
+        lbl.style.background = '#fee2e2';
+        lbl.style.color = '#b91c1c';
+        lbl.style.display = 'block';
+        return;
+    }
+
+    const diffTime = Math.abs(fin - inicio);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+    lbl.innerHTML = `<i class="fas fa-calculator"></i> Período solicitado: <strong>${diffDays} ${diffDays === 1 ? 'día' : 'días'}</strong>`;
+    lbl.style.background = '#fef3c7';
+    lbl.style.color = '#d97706';
+    lbl.style.display = 'block';
+
+    // Cada que se mueva la fecha, refrescamos el recuadro azul con la proyección correspondiente
+    mostrarInfoVacacionesEmpleado();
+}
+
+async function cargarSolicitudesBase() {
+    const { data } = await client.from('rh_solicitudes').select('*, rh_empleados(nombre_completo)').order('created_at', { ascending: false });
+    solicitudesGlobales = data || [];
+    renderizarSolicitudes();
+}
+
+function filtrarLista(estatus) {
+    filtroEstatusActual = estatus;
+    document.querySelectorAll('[id^="sub-"]').forEach(btn => btn.classList.remove('active'));
+    if(estatus === 'PENDIENTE') document.getElementById('sub-pend').classList.add('active');
+    if(estatus === 'APROBADO') document.getElementById('sub-aprob').classList.add('active');
+    if(estatus === 'RECHAZADO') document.getElementById('sub-rech').classList.add('active');
+    renderizarSolicitudes();
+}
+
+function renderizarSolicitudes() {
+    const cont = document.getElementById('contenedor-solicitudes');
+    const filtradas = solicitudesGlobales.filter(s => s.estatus === filtroEstatusActual);
+    
+    if(filtradas.length === 0) {
+        cont.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8; font-size:13px;">No existen solicitudes registradas en este estatus.</div>`;
+        return;
+    }
+
+    cont.innerHTML = filtradas.map(s => {
+        const esLocal = s.tipo.includes('LOCAL') || s.tipo.includes('TARDE') || s.tipo.includes('TEMPRANO');
+        const periodo = esLocal ? `Fecha: ${s.fecha_inicio} (${s.hora_salida || '--:--'} a ${s.hora_regreso || '--:--'})` : `Periodo: ${s.fecha_inicio} al ${s.fecha_fin}`;
+        
+        let botones = '';
+        if(s.estatus === 'PENDIENTE') {
+            botones = `
+                <div style="display:flex; gap:6px; margin-top: 10px;">
+                    <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--success);" onclick="resolverSolicitud('${s.id}', 'APROBADO')"><i class="fas fa-check"></i> Autorizar</button>
+                    <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--danger);" onclick="resolverSolicitud('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i> Denegar</button>
+                </div>`;
+        }
+
+        const firma = s.autorizado_por ? `<span class="auditoria-firma"><i class="fas fa-user-shield"></i> Validado por: <strong>${s.autorizado_por}</strong> ${s.firma_digital ? `(${s.firma_digital})` : ''}</span>` : '';
+
+        return `
+            <div class="solicitud-card">
+                <div class="solicitud-info">
+                    <h4 style="color:var(--primary); font-size:15px; margin-bottom:6px;">${s.rh_empleados?.nombre_completo || 'Operador Kraem'}</h4>
+                    <p style="font-size:13px;"><strong>Tipo:</strong> <span style="color:var(--accent); font-weight:bold;">${s.tipo}</span></p>
+                    <p><strong>Rango:</strong> ${periodo}</p>
+                    <p style="color:#475569; background:#f1f5f9; padding:6px; border-radius:4px; margin-top:4px;"><strong>Observaciones:</strong> ${s.observaciones || 'Sin detalles capturados'}</p>
+                    ${firma}
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                    <span class="badge badge-${s.estatus.toLowerCase()}">${s.estatus}</span>
+                    ${botones}
+                </div>
+            </div>`;
+    }).join('');
+}
+
+async function guardar(){
+    const empId = document.getElementById('sel_empleado').value;
+    const autId = document.getElementById('sel_autoriza').value;
+    const tipo = document.getElementById('sol_tipo').value;
+    const motivoText = document.getElementById('sol_motivo').value;
+
+    if(!empId) return alert("Selecciona un empleado de la lista.");
+    if(!motivoText.trim()) return alert("Favor de ingresar el motivo u observaciones de la ausencia.");
+
+    const empSeleccionado = empleados.find(e => e.id === empId);
+
+    const esLocal = tipo.includes('LOCAL') || tipo.includes('TARDE') || tipo.includes('TEMPRANO');
+    let fInicio = document.getElementById('sol_inicio').value;
+    let fFin = document.getElementById('sol_fin').value;
+
+    if(esLocal) {
+        fInicio = document.getElementById('sol_fecha_local').value;
+        fFin = document.getElementById('sol_fecha_local').value;
+    }
+
+    // AUDITORÍA Y CONTROL PROYECTADO PARA VACACIONES
+    if(tipo === 'VACACIONES') {
+        const saldoDisponible = await obtenerSaldoRealEmpleado(empId, fInicio);
+        
+        if(saldoDisponible <= 0) {
+            alert("No se puede registrar la solicitud. Para la fecha de inicio seleccionada, el operador aún no cuenta con días liberados de vacaciones.");
+            return;
+        }
+
+        const inicio = new Date(fInicio + 'T00:00:00');
+        const fin = new Date(fFin + 'T00:00:00');
+        
+        if(fin < inicio) {
+            alert("La fecha de fin no puede ser menor a la fecha de inicio.");
+            return;
+        }
+
+        const diffTime = Math.abs(fin - inicio);
+        const diasSolicitados = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        if(diasSolicitados > saldoDisponible) {
+            alert(`Error de validación: El periodo seleccionado equivale a ${diasSolicitados} días, pero para esa fecha de inicio el operador solo tendrá ${saldoDisponible} días disponibles.`);
+            return;
+        }
+    }
+
+    const insertPayload = {
+        empleado_id: empId,
+        tipo: tipo,
+        fecha_inicio: fInicio,
+        fecha_fin: fFin,
+        hora_salida: esLocal ? (document.getElementById('sol_hora_salida').value || null) : null,
+        hora_regreso: esLocal ? (document.getElementById('sol_hora_regreso').value || null) : null,
+        observaciones: motivoText,
+        estatus: 'PENDIENTE',
+        area: empSeleccionado ? empSeleccionado.area_id : null,
+        turno: empSeleccionado ? empSeleccionado.turno_id : null,
+        autorizador_asignado: autId || null,
+        autorizado_por: null,
+        firma_digital: null
+    };
+
+    const { error } = await client.from('rh_solicitudes').insert([insertPayload]);
+
+    if(error) {
+        alert("Error al registrar solicitud: " + error.message);
+    } else {
+        alert("Solicitud guardada con éxito y en espera de validación.");
+        document.getElementById('sol_motivo').value = '';
+        await mostrarInfoVacacionesEmpleado();
+        await cargarSolicitudesBase();
+    }
+}
+
+async function resolverSolicitud(id, nuevoEstatus) {
+    const supervisorFirma = prompt("Ingresa tu Nombre Completo como Responsable de la Aprobación:", "");
+    if (nuevoEstatus === 'APROBADO' && !supervisorFirma) {
+        alert("Operación cancelada. Es obligatorio dejar rastro de auditoría para aprobar.");
+        return;
+    }
+
+    // Candado predictivo dinámico al momento de realizar la aprobación en planta
+    if(nuevoEstatus === 'APROBADO') {
+        const solicitudEnRevision = solicitudesGlobales.find(s => s.id === id);
+        if(solicitudEnRevision && solicitudEnRevision.tipo === 'VACACIONES') {
+            const saldoActual = await obtenerSaldoRealEmpleado(solicitudEnRevision.empleado_id, solicitudEnRevision.fecha_inicio);
+            const inicio = new Date(solicitudEnRevision.fecha_inicio + 'T00:00:00');
+            const fin = new Date(solicitudEnRevision.fecha_fin + 'T00:00:00');
+            const diffDays = Math.ceil(Math.abs(fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
+
+            if(diffDays > saldoActual) {
+                alert(`Bloqueo de Auditoría: No se puede aprobar esta solicitud. El saldo proyectado para esa fecha es de ${saldoActual} días, pero la solicitud exige ${diffDays} días.`);
+                return;
+            }
+        }
+    }
+
+    const { error } = await client.from('rh_solicitudes').update({ 
+        estatus: nuevoEstatus,
+        autorizado_por: supervisorFirma || 'Mánager Turno',
+        firma_digital: nuevoEstatus === 'APROBADO' ? 'FIRMA_OK' : 'RECHAZADO_PLANTA'
+    }).eq('id', id);
+
+    if(error) alert("Error al resolver: " + error.message);
+    else {
+        alert(`Solicitud procesada como ${nuevoEstatus}.`);
+        await cargarSolicitudesBase();
+        await mostrarInfoVacacionesEmpleado();
+    }
+}
+
+async function cargarSaldos() {
+    const body = document.getElementById('body-saldos');
+    body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">Consultando saldos históricos...</td></tr>`;
+
+    if (!empleados || empleados.length === 0) {
+        body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#64748b;">No hay colaboradores activos cargados.</td></tr>`;
+        return;
+    }
+
+    const { data: resVacApproved } = await client.from('rh_solicitudes')
+        .select('empleado_id, fecha_inicio, fecha_fin')
+        .eq('tipo', 'VACACIONES')
+        .eq('estatus', 'APROBADO');
+
+    const solicitudesVac = resVacApproved || [];
+
+    body.innerHTML = empleados.map(emp => {
+        let diasTomados = 0;
+        const filtradas = solicitudesVac.filter(s => s.empleado_id === emp.id);
+        
+        filtradas.forEach(s => {
+            if (s.fecha_inicio && s.fecha_fin) {
+                const inicio = new Date(s.fecha_inicio + 'T00:00:00');
+                const fin = new Date(s.fecha_fin + 'T00:00:00');
+                const diffTime = Math.abs(fin - inicio);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                diasTomados += diffDays;
+            }
+        });
+
+        // La tabla de saldos general sigue mostrando la realidad de su antigüedad al día de hoy
+        const baseLey = calcularDiasLeyMexico(emp.fecha_ingreso);
+        const saldoReal = baseLey - diasTomados;
+        const fechaMostrar = emp.fecha_ingreso ? emp.fecha_ingreso : 'Sin registrar';
+
+        return `
+            <tr>
+                <td><strong>${emp.nombre_completo}</strong></td>
+                <td style="color:#475569;">${fechaMostrar}</td>
+                <td>${baseLey} días</td>
+                <td style="color:var(--danger); font-weight:bold;">${diasTomados} días</td>
+                <td style="color:${saldoReal <= 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold; font-size:14px;">${saldoReal} días</td>
+            </tr>`;
+    }).join('');
+}
+
+init();
+</script>
+
+</body>
+</html>
