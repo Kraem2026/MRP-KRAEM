@@ -77,7 +77,7 @@
             <p id="view_puesto_area" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
             
             <div class="vacation-box">
-                <div style="font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase;">Días Disponibles</div>
+                <div style="font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase;">Días Disponibles por Ley</div>
                 <div id="view_dias_disponibles" style="font-size: 20px; font-weight: 800; color: #0284c7;">--</div>
                 <a href="rh_solicitudes.html" class="btn-nav" style="font-size: 11px; padding: 5px 10px; margin-top: 5px; width: 90%; justify-content: center;">Gestionar Vacaciones</a>
             </div>
@@ -191,8 +191,9 @@
     let chartRadar;
     let currentEmpId = null;
 
+    // LÓGICA DE LEY FEDERAL DEL TRABAJO ESTRICTA POR ANIVERSARIO CUMPLIDO
     function obtenerDiasLey(anios) {
-        if (anios < 1) return 0;
+        if (anios < 1) return 0; // Menos de 1 año cumplido = 0 días de derecho
         if (anios === 1) return 12;
         if (anios === 2) return 14;
         if (anios === 3) return 16;
@@ -294,16 +295,36 @@
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso;
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        // Lógica Vacaciones
-        const fIngreso = new Date(emp.fecha_ingreso);
-        const fHoy = new Date();
-        let anios = fHoy.getFullYear() - fIngreso.getFullYear();
-        if (fHoy < new Date(fHoy.getFullYear(), fIngreso.getMonth(), fIngreso.getDate())) anios--;
-        const diasTotales = obtenerDiasLey(anios);
+        // LÓGICA EVALUADORA DE ANIVERSARIO (Evita falsos acumulados a los 3 meses)
+        let diasTotales = 0;
+        if (emp.fecha_ingreso) {
+            const fIngreso = new Date(emp.fecha_ingreso + 'T00:00:00'); // Evita desfase horario local
+            const fHoy = new Date();
+            
+            let aniosCumplidos = fHoy.getFullYear() - fIngreso.getFullYear();
+            const m = fHoy.getMonth() - fIngreso.getMonth();
+            if (m < 0 || (m === 0 && fHoy.getDate() < fIngreso.getDate())) {
+                aniosCumplidos--; // Aún no llega al día exacto de su aniversario
+            }
+            diasTotales = obtenerDiasLey(aniosCumplidos);
+        }
 
-        const { data: sol } = await client.from('rh_solicitudes').select('dias_solicitados').eq('empleado_id', id).eq('tipo','VACACIONES').eq('estatus','APROBADO');
-        const diasTomados = sol?.reduce((acc, curr) => acc + curr.dias_solicitados, 0) || 0;
-        document.getElementById('view_dias_disponibles').innerText = (diasTotales - diasTomados);
+        // Coordinación exacta de cálculos con solicitudes y asistencias
+        const { data: sol } = await client.from('rh_solicitudes').select('fecha_inicio, fecha_fin').eq('empleado_id', id).eq('tipo','VACACIONES').eq('estatus','APROBADO');
+        
+        let diasTomados = 0;
+        sol?.forEach(s => {
+            if(s.fecha_inicio && s.fecha_fin) {
+                const inicio = new Date(s.fecha_inicio + 'T00:00:00');
+                const fin = new Date(s.fecha_fin + 'T00:00:00');
+                const diffTime = Math.abs(fin - inicio);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                diasTomados += diffDays;
+            }
+        });
+
+        const saldoFinal = diasTotales - diasTomados;
+        document.getElementById('view_dias_disponibles').innerText = (saldoFinal < 0 ? 0 : saldoFinal) + " días";
 
         // Rangos de fecha para KPIs
         const fDesde = document.getElementById('f_desde').value;
@@ -316,7 +337,7 @@
         let ti=0, td=0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
 
-        // 2. ASISTENCIA Y PUNTUALIDAD
+        // 2. ASISTENCIA Y PUNTUALIDAD COORDINDADO
         const { data: asistencia } = await client.from('rh_asistencia_diaria').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         
         let totalDiasAsis = asistencia?.length || 0;
@@ -331,7 +352,7 @@
         const asistenciaVal = totalDiasAsis > 0 ? Math.round(((conteoP + conteoR) / totalDiasAsis) * 100) : 100;
         const puntualidadVal = (conteoP + conteoR) > 0 ? Math.round((conteoP / (conteoP + conteoR)) * 100) : 100;
 
-        // 3. 5'S CORREGIDO (Variable renombrada correctamente a val5s)
+        // 3. 5'S CORREGIDO
         const { data: ev5s } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('created_at', fDesde).lte('created_at', fHastaMax.toISOString());
         let total5sScore = 0;
         ev5s?.forEach(ev => total5sScore += ev.puntuacion);
@@ -430,10 +451,13 @@
 
     function calcularAntiguedadExacta(f) {
         if(!f) return "-";
-        const ini = new Date(f), hoy = new Date();
+        const ini = new Date(f + 'T00:00:00'), hoy = new Date();
         let anios = hoy.getFullYear() - ini.getFullYear();
         let meses = hoy.getMonth() - ini.getMonth();
-        if (meses < 0) { anios--; meses += 12; }
+        if (meses < 0 || (meses === 0 && hoy.getDate() < ini.getDate())) { 
+            anios--; 
+            meses += 12; 
+        }
         return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
     }
 
