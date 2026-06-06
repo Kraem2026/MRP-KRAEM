@@ -214,7 +214,7 @@
         const fill = (id, data, esFiltro = false) => {
             const s = document.getElementById(id);
             if(!s) return;
-            s.innerHTML = `<option value="${esFiltro ? '' : ''}">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
+            s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
             data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
         };
 
@@ -316,7 +316,7 @@
         let ti=0, td=0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
 
-        // 2. ASISTENCIA Y PUNTUALIDAD (Reales desde rh_asistencia_diaria)
+        // 2. ASISTENCIA Y PUNTUALIDAD
         const { data: asistencia } = await client.from('rh_asistencia_diaria').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         
         let totalDiasAsis = asistencia?.length || 0;
@@ -328,15 +328,14 @@
             if(a.estado === 'F') conteoF++;
         });
 
-        // Fórmulas
         const asistenciaVal = totalDiasAsis > 0 ? Math.round(((conteoP + conteoR) / totalDiasAsis) * 100) : 100;
         const puntualidadVal = (conteoP + conteoR) > 0 ? Math.round((conteoP / (conteoP + conteoR)) * 100) : 100;
 
-        // 3. 5'S (Real desde rh_evaluaciones_5s)
+        // 3. 5'S CORREGIDO (Variable renombrada correctamente a val5s)
         const { data: ev5s } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('created_at', fDesde).lte('created_at', fHastaMax.toISOString());
         let total5sScore = 0;
         ev5s?.forEach(ev => total5sScore += ev.puntuacion);
-        const 5sVal = ev5s?.length > 0 ? Math.round(total5sScore / ev5s.length) : 100; // Si no tiene auditoría en el periodo, asume 100 base o pon 0 si prefieres
+        const val5s = ev5s?.length > 0 ? Math.round(total5sScore / ev5s.length) : 100;
 
         // 4. VERSATILIDAD (Placeholder provisional)
         const versatilidadVal = 80;
@@ -345,10 +344,10 @@
         document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistenciaVal + '%'; 
         document.getElementById('val_checkpoint').innerText = puntualidadVal + '%'; 
-        document.getElementById('val_5s').innerText = 5sVal + '%';
+        document.getElementById('val_5s').innerText = val5s + '%';
         document.getElementById('val_versatilidad').innerText = versatilidadVal + '%'; 
 
-        renderRadar(yieldVal, asistenciaVal, 5sVal, versatilidadVal, puntualidadVal);
+        renderRadar(yieldVal, asistenciaVal, val5s, versatilidadVal, puntualidadVal);
         if(scroll) window.scrollTo({top: 0, behavior: 'smooth'});
     }
 
