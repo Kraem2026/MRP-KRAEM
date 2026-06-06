@@ -48,9 +48,10 @@
         .extra-val { color: var(--purple); font-weight: bold; font-size: 10px; background: #f5f3ff; border-radius: 4px; padding: 1px 3px; }
         .domingo { background: #f1f5f9 !important; color: #94a3b8; }
         
-        .btn { padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+        .btn { padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 5px; text-decoration: none; font-size: 13px; }
         .btn-excel { background: #166534; color: white; }
         .btn-primary { background: var(--accent); color: white; }
+        .btn-back { background: #64748b; color: white; }
     </style>
 </head>
 <body>
@@ -59,6 +60,7 @@
     <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:15px;">
         <h2 style="margin:0;"><i class="fas fa-chart-line"></i> Monitor Maestro Kraem</h2>
         <div style="display:flex; gap:10px;">
+            <a href="dashboard.html" class="btn btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
             <button class="btn btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Exportar</button>
             <button class="btn btn-primary" onclick="cargarData()"><i class="fas fa-sync"></i> Refrescar</button>
         </div>
@@ -158,7 +160,7 @@
             const minutosOficial = hOficial * 60 + mOficial;
             const minutosLlegada = hLlegada * 60 + mLlegada;
             
-            const diferenciaMinutos = minutosLlegada - minutesOficial;
+            const diferenciaMinutos = minutosLlegada - minutosOficial;
             if (diferenciaMinutos <= 0) return HORAS_JORNADA_NORMAL;
             
             const horasPerdidas = diferenciaMinutos / 60;
@@ -173,7 +175,6 @@
         const tipo = document.getElementById('v_tipo').value;
         let inicio, fin;
         
-        // MODIFICACIÓN: Ahora detecta automáticamente el año en curso dinámicamente
         const añoDinamico = new Date().getFullYear();
 
         if(tipo === 'mes') {
@@ -189,7 +190,6 @@
         const iniStr = inicio.toISOString().split('T')[0];
         const finStr = fin.toISOString().split('T')[0];
 
-        // MODIFICACIÓN: Agregado .order('nombre_completo', { ascending: true }) para forzar orden alfabético A-Z
         const [resEmp, resAsi, resSol] = await Promise.all([
             client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
             client.from('rh_asistencia_diaria').select('*').gte('fecha', iniStr).lte('fecha', finStr),
