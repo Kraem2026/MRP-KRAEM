@@ -86,7 +86,6 @@
         </div>
     </div>
 
-    <!-- Filtro de Áreas Dinámico (areas_generales) -->
     <div class="areas-filter" id="areas-container">
         <div class="area-chip active" onclick="filtrarArea('TODOS', this)">TODOS</div>
     </div>
@@ -122,8 +121,9 @@
         document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
         try {
+            // CORRECCIÓN: Se cambió 'area_id' por 'area_general_id' en la selección
             const [resEmp, resAreas, resSol, resAsis] = await Promise.all([
-                client.from('rh_empleados').select('id, nombre_completo, foto_url, area_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
+                client.from('rh_empleados').select('id, nombre_completo, foto_url, area_general_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
                 client.from('areas_generales').select('*').order('nombre'),
                 client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', hoy).gte('fecha_fin', hoy),
                 client.from('rh_asistencia_diaria').select('*').eq('fecha', hoy)
@@ -174,7 +174,8 @@
         const container = document.getElementById('lista-empleados');
         container.innerHTML = '';
 
-        const filtrados = empleados.filter(e => areaSeleccionada === 'TODOS' || e.area_id == areaSeleccionada);
+        // CORRECCIÓN: Se evalúa 'e.area_general_id' en lugar de 'e.area_id'
+        const filtrados = empleados.filter(e => areaSeleccionada === 'TODOS' || e.area_general_id == areaSeleccionada);
 
         filtrados.forEach(emp => {
             const sol = solicitudes.find(s => s.empleado_id === emp.id);
