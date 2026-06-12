@@ -249,7 +249,6 @@ let auditData = {
     score: 0
 };
 
-// Variables globales para guardar los datos crudos y poder filtrarlos localmente de manera rápida
 let listaEmpleados = [];
 let listaTurnos = [];
 
@@ -271,7 +270,7 @@ const preguntas = [
 
 async function init(){
     try{
-        // 1. Cargar áreas
+        // 1. Cargar áreas generales
         const { data: areas, error: errAreas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
         if(errAreas) throw errAreas;
         document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
@@ -282,12 +281,12 @@ async function init(){
         listaTurnos = turnos;
         document.getElementById('turno_select').innerHTML = '<option value="">Seleccione...</option>' + turnos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
 
-        // 3. Cargar empleados activos incluyendo sus columnas de relación (asumiendo que se llaman area_general_id y turno_id en rh_empleados)
-        const { data: emps, error: errEmp } = await client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus', 'ACTIVO').order('nombre_completo');
+        // 3. Cargar todos los empleados activos de rh_empleados
+        const { data: emps, error: errEmp } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
         if(errEmp) throw errEmp;
         listaEmpleados = emps;
 
-        // Inicializar los selectores de personal
+        // Inicializar los selectores en base a los datos obtenidos
         filtrarOperadores();
         cargarAuditorCompleto();
 
@@ -297,7 +296,6 @@ async function init(){
     }
 }
 
-// Disparador principal cuando cambia Área o Turno
 function cambioFiltros() {
     actualizarMaquinas();
     filtrarOperadores();
@@ -326,19 +324,28 @@ async function actualizarMaquinas(){
     }
 }
 
-// Filtra operadores en base al Área AND Turno seleccionados
+// Filtra operadores cruzando el ID de 'area_general_id' y buscando si el texto del turno empareja ("1" o "2")
 function filtrarOperadores(){
     const areaId = document.getElementById('area_select').value;
-    const turnoId = document.getElementById('turno_select').value;
+    const turnoUuid = document.getElementById('turno_select').value;
     const opSel = document.getElementById('operador_select');
 
-    if(!areaId || !turnoId){
+    if(!areaId || !turnoUuid){
         opSel.innerHTML = '<option value="">Seleccione área y turno...</option>';
         return;
     }
 
-    // Filtrado estricto: Debe coincidir el área y el turno del empleado
-    const filtrados = listaEmpleados.filter(e => String(e.area_general_id) === String(areaId) && String(e.turno_id) === String(turnoId));
+    // Buscamos cuál es el nombre del turno seleccionado (Ej: "Turno 1")
+    const turnoObj = listaTurnos.find(t => String(t.id) === String(turnoUuid));
+    const nombreTurno = turnoObj ? turnoObj.nombre : '';
+
+    // Mapeamos de forma limpia: Si el nombre tiene un '1' su ID numérico es 1, si tiene un '2' es 2
+    const turnoNumerico = nombreTurno.includes('2') ? '2' : (nombreTurno.includes('1') ? '1' : '');
+
+    const filtrados = listaEmpleados.filter(e => 
+        String(e.area_general_id || '') === String(areaId) && 
+        String(e.turno_id || '') === String(turnoNumerico)
+    );
 
     if(filtrados.length === 0){
         opSel.innerHTML = '<option value="">Sin personal en esta combinación</option>';
@@ -353,7 +360,9 @@ function cargarAuditorCompleto(){
     let html = '<option value="">Seleccione...</option>';
 
     listaTurnos.forEach(turno => {
-        const empsDelTurno = listaEmpleados.filter(e => String(e.turno_id) === String(turno.id));
+        const turnoNumerico = turno.nombre.includes('2') ? '2' : (turno.nombre.includes('1') ? '1' : 'OTRO');
+        const empsDelTurno = listaEmpleados.filter(e => String(e.turno_id || '') === String(turnoNumerico));
+        
         if(empsDelTurno.length > 0){
             html += `<optgroup label="${turno.nombre}">`;
             html += empsDelTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
@@ -361,10 +370,9 @@ function cargarAuditorCompleto(){
         }
     });
 
-    // Por si existen empleados activos sin turno asignado todavía
-    const sinTurno = listaEmpleados.filter(e => !e.turno_id);
-    if(sinTurno.length > 0){
-        html += `<optgroup label="Sin Turno Asignado">`;
+    const sinTurno = listaEmpleados.filter(e => !e.turno_id || (e.turno_id !== '1' && e.turno_id !== '2'));
+    if(sinTurno.length > 0 && listaTurnos.length === 0){
+        html += `<optgroup label="Todos los Empleados">`;
         html += sinTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
         html += `</optgroup>`;
     }
@@ -446,7 +454,6 @@ function render(){
         backIcon.className = "fas fa-arrow-left";
 
         const vals = Object.values(auditData.respuestas);
-        const totalRespondidas = vals.length || 1; 
         auditData.score = Math.round((vals.reduce((a,b)=>a+b,0)/25)*100);
 
         document.getElementById("score-badge").innerText = auditData.score + "%";
@@ -467,7 +474,6 @@ async function guardar(){
             empleado_id: document.getElementById('operador_select').value,
             auditor_id: document.getElementById('auditor_select').value,
             area_general_id: document.getElementById('area_select').value,
-            turno_id: document.getElementById('turno_select').value, // Guardamos también el ID del turno
             machine_id: document.getElementById('maquina_select').value,
             puntuacion: auditData.score,
             respuestas_json: auditData.respuestas,
