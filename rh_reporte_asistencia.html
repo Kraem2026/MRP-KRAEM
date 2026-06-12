@@ -135,7 +135,7 @@
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
         
-        // CORRECCIÓN: Carga los turnos reales con sus UUIDs correspondientes desde Supabase
+        // Mapea dinámicamente los UUIDs correctos y los nombres de los turnos de tu DB
         const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
         const selTurno = document.getElementById('v_turno');
         selTurno.innerHTML = '<option value="">Todos</option>';
@@ -166,6 +166,7 @@
         const horasJornadaNormal = obtenerHorasBaseDelDia(turno, numeroDia);
         if (!horaLlegada || !turno || !turno.entrada) return horasJornadaNormal;
         try {
+            // AJUSTE CLAVE: Ignora segundos si vienen incluidos en la cadena (ej: "07:30:00" -> ["07", "30"])
             const [hOficial, mOficial] = turno.entrada.split(':').map(Number);
             const [hLlegada, mLlegada] = horaLlegada.split(':').map(Number);
             
@@ -191,7 +192,6 @@
 
         if(tipo === 'mes') {
             const m = document.getElementById('v_mes').value;
-            // CORRECCIÓN: Se fuerzan las horas a mediodía para evitar saltos de día por zona horaria
             inicio = new Date(añoDinamico, m, 1, 12, 0, 0);
             fin = new Date(añoDinamico, parseInt(m) + 1, 0, 12, 0, 0);
         } else {
@@ -225,8 +225,12 @@
         const areaF = document.getElementById('v_area').value;
         const turnoF = document.getElementById('v_turno').value;
         
-        // CORRECCIÓN: Ahora el filtro valida correctamente contra los UUIDs de Supabase
-        const emps = resEmp.data.filter(e => (!areaF || String(e.area_general_id) === String(areaF)) && (!turnoF || String(e.turno_id) === String(turnoF)));
+        // AJUSTE CLAVE: Normalización estricta de cadenas de texto para evitar fallas de filtrado de UUIDs
+        const emps = resEmp.data.filter(e => {
+            const cumpleArea = !areaF || String(e.area_general_id).trim() === String(areaF).trim();
+            const cumpleTurno = !turnoF || String(e.turno_id).trim() === String(turnoF).trim();
+            return cumpleArea && cumpleTurno;
+        });
         
         globalData = [];
 
@@ -234,7 +238,7 @@
             let fCount = 0, pCount = 0, aCount = 0, rCount = 0, hCount = 0, horasTrabajadasPeriodo = 0;
             let fila = `<tr class="row-emp"><td class="emp-name">${emp.nombre_completo}</td>`;
             
-            const miTurno = turnosConfig.find(t => String(t.id) === String(emp.turno_id));
+            const miTurno = turnosConfig.find(t => String(t.id).trim() === String(emp.turno_id).trim());
             
             for(let i=0; i<diasDiff; i++) {
                 let d = new Date(inicio); d.setDate(d.getDate() + i);
@@ -298,7 +302,7 @@
             acc.permisos += cur.p;
             acc.horas += cur.h;
             return acc;
-        }, { asistencias: 0, faltas: 0, retardos: 0, permisos: 0, horas: 0 });
+        }, { asistencias: 0, faltas: 0, retardos: 0, permisos: 0, hours: 0 });
 
         document.getElementById('res-asis').innerText = totales.asistencias;
         document.getElementById('res-faltas').innerText = totales.faltas;
