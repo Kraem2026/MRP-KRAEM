@@ -20,7 +20,7 @@
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .header-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
         .btn-action { background: var(--primary); color: white; padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
-        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
         .filter-group label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--primary); }
         select, input { padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 14px; background: #fff; outline: none; }
@@ -63,6 +63,7 @@
     <div class="filter-group"><label>Desde</label><input type="date" id="f-inicio"></div>
     <div class="filter-group"><label>Hasta</label><input type="date" id="f-fin"></div>
     <div class="filter-group"><label>Área General</label><select id="f-area" onchange="actualizarFiltroMaquinas()"><option value="">Todas las Áreas</option></select></div>
+    <div class="filter-group"><label>Turno</label><select id="f-turno" onchange="loadData()"><option value="">Todos los Turnos</option></select></div>
     <div class="filter-group"><label>Máquina</label><select id="f-maquina" onchange="loadData()"><option value="">Todas</option></select></div>
     <div class="filter-group"><label>Operador</label><select id="f-operador" onchange="loadData()"><option value="">Todos</option></select></div>
 </div>
@@ -95,6 +96,7 @@
                 <option value="operador">Comparar por Operador</option>
                 <option value="area">Comparar por Área</option>
                 <option value="maquina">Comparar por Máquina</option>
+                <option value="turno">Comparar por Turno</option>
             </select>
         </div>
     </div>
@@ -119,14 +121,17 @@ async function init() {
     // Cargar áreas correctas maestras (areas_generales)
     const { data: areas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
     const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
+    const { data: turnos } = await client.from('rh_turnos').select('*').order('nombre');
     
     const aSel = document.getElementById('f-area');
     areas?.forEach(a => aSel.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
     
+    const tSel = document.getElementById('f-turno');
+    turnos?.forEach(t => tSel.innerHTML += `<option value="${t.id}">${t.nombre}</option>`);
+
     const oSel = document.getElementById('f-operador');
     emps?.forEach(e => oSel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
 
-    // Dejar listas las máquinas iniciales (vías cambio área)
     actualizarFiltroMaquinas();
 }
 
@@ -155,6 +160,7 @@ async function loadData() {
     const inicio = document.getElementById('f-inicio').value;
     const fin = document.getElementById('f-fin').value;
     const area = document.getElementById('f-area').value;
+    const turno = document.getElementById('f-turno').value;
     const maquina = document.getElementById('f-maquina').value;
     const operador = document.getElementById('f-operador').value;
 
@@ -162,14 +168,15 @@ async function loadData() {
     let fFin = new Date(fin);
     fFin.setHours(23,59,59,999);
 
-    // CONSULTA CORREGIDA: Apunta a 'areas_generales' y 'mes_machines' por sus ID foráneos correctos
+    // CONSULTA MODIFICADA: Ahora incluye el JOIN con 'rh_turnos' a través del alias foráneo
     let query = client.from('rh_evaluaciones_5s')
-        .select('*, areas_generales(nombre), mes_machines(machine_code), rh_empleados!empleado_id(nombre_completo)')
+        .select('*, areas_generales(nombre), mes_machines(machine_code), rh_empleados!empleado_id(nombre_completo), rh_turnos(nombre)')
         .gte('created_at', inicio)
         .lte('created_at', fFin.toISOString())
         .order('created_at', { ascending: true });
 
     if(area) query = query.eq('area_general_id', area);
+    if(turno) query = query.eq('turno_id', turno);
     if(maquina) query = query.eq('machine_id', maquina);
     if(operador) query = query.eq('empleado_id', operador);
 
@@ -200,7 +207,8 @@ function processDashboard(data) {
                     obsHtml += `<div class="obs-item">
                             <span class="obs-tag" style="background:${getSColor(sNum)}">S${sNum} ${names[sNum-1]}</span>
                             <div style="flex:1;">
-                                <strong>${audit.rh_empleados?.nombre_completo || 'N/A'}</strong> <small>(${new Date(audit.created_at).toLocaleDateString()})</small><br>
+                                <strong>${audit.rh_empleados?.nombre_completo || 'N/A'}</strong> 
+                                <small>(${audit.rh_turnos?.nombre || 'Sin Turno'}) - ${new Date(audit.created_at).toLocaleDateString()}</small><br>
                                 <span style="font-size:13px; color:var(--text-secondary);">${text}</span>
                             </div>
                         </div>`;
@@ -257,9 +265,10 @@ function updateComparisonChart() {
     let grouped = {};
     
     lastFetchedData.forEach(audit => {
-        // CORREGIDO: Mapeo de llaves usando los alias de los JOINS correctos
+        // MODIFICADO: Añadido mapeo para agrupar por el objeto relacional 'rh_turnos'
         let key = (type === 'area') ? (audit.areas_generales?.nombre || "Sin Área") : 
                   (type === 'maquina') ? (audit.mes_machines?.machine_code || "Sin Código") : 
+                  (type === 'turno') ? (audit.rh_turnos?.nombre || "Sin Turno") :
                   (audit.rh_empleados?.nombre_completo || "N/A");
                   
         if(!grouped[key]) grouped[key] = { total: 0, count: 0 };
@@ -281,15 +290,16 @@ function updateComparisonChart() {
 
 function exportToExcel() {
     if (lastFetchedData.length === 0) { alert("No hay datos para exportar"); return; }
-    let csv = "\uFEFFFecha,Area,Maquina,Operador,S1,S2,S3,S4,S5,Total,Observaciones\n";
+    let csv = "\uFEFFFecha,Area,Turno,Maquina,Operador,S1,S2,S3,S4,S5,Total,Observaciones\n";
     lastFetchedData.forEach(row => {
         const res = row.respuestas_json || {};
         const s = [0,0,0,0,0], c = [0,0,0,0,0];
         Object.entries(res).forEach(([k, v]) => { const i = parseInt(k.split('_')[0]); if(i<=4){s[i]+=v; c[i]++;} });
         const a = s.map((v, i) => Math.round((v / (c[i] || 1)) * 100));
         let obs = row.observaciones ? Object.values(row.observaciones).filter(t => t.trim()).join(" | ").replace(/,/g, ";") : "";
-        // CORREGIDO: Columnas de exportación con datos master
-        csv += `${new Date(row.created_at).toLocaleDateString()},"${row.areas_generales?.nombre || ''}","${row.mes_machines?.machine_code || ''}","${row.rh_empleados?.nombre_completo || ''}",${a[0]},${a[1]},${a[2]},${a[3]},${a[4]},${row.puntuacion},"${obs}"\n`;
+        
+        // MODIFICADO: Se incluye la columna 'Turno' en la exportación
+        csv += `${new Date(row.created_at).toLocaleDateString()},"${row.areas_generales?.nombre || ''}","${row.rh_turnos?.nombre || ''}","${row.mes_machines?.machine_code || ''}","${row.rh_empleados?.nombre_completo || ''}",${a[0]},${a[1]},${a[2]},${a[3]},${a[4]},${row.puntuacion},"${obs}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -343,14 +353,14 @@ async function generatePDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.text("Fecha", margin + 5, yPos + 13);
-    doc.text("Operador / Área / Máquina", margin + 60, yPos + 13);
-    doc.text("S1", margin + 220, yPos + 13);
-    doc.text("S2", margin + 245, yPos + 13);
-    doc.text("S3", margin + 270, yPos + 13);
-    doc.text("S4", margin + 295, yPos + 13);
-    doc.text("S5", margin + 320, yPos + 13);
-    doc.text("Total", margin + 350, yPos + 13);
-    doc.text("Observaciones", margin + 390, yPos + 13);
+    doc.text("Operador / Área / Turno / Máquina", margin + 60, yPos + 13);
+    doc.text("S1", margin + 240, yPos + 13);
+    doc.text("S2", margin + 265, yPos + 13);
+    doc.text("S3", margin + 290, yPos + 13);
+    doc.text("S4", margin + 315, yPos + 13);
+    doc.text("S5", margin + 340, yPos + 13);
+    doc.text("Total", margin + 370, yPos + 13);
+    doc.text("Observaciones", margin + 410, yPos + 13);
     yPos += 20;
     doc.setTextColor(0, 0, 0);
 
@@ -365,29 +375,30 @@ async function generatePDF() {
         doc.setFont(undefined, 'normal');
         doc.text(new Date(audit.created_at).toLocaleDateString(), margin + 5, yPos + 12);
         
-        // CORREGIDO: Etiqueta de fila en PDF con Datos Maestros
-        const empName = (audit.rh_empleados?.nombre_completo || 'N/A').substring(0, 20);
+        // MODIFICADO: Se concatena el nombre del turno en el listado del PDF impreso
+        const empName = (audit.rh_empleados?.nombre_completo || 'N/A').substring(0, 18);
         const areaName = audit.areas_generales?.nombre || 'N/A';
+        const turnoName = audit.rh_turnos?.nombre || 'N/A';
         const maqCode = audit.mes_machines?.machine_code || 'N/A';
-        doc.text(`${empName} (${areaName} - ${maqCode})`, margin + 60, yPos + 12);
+        doc.text(`${empName} (${areaName} - ${turnoName} - ${maqCode})`, margin + 60, yPos + 12);
         
-        doc.text(`${avgs[0]}%`, margin + 220, yPos + 12);
-        doc.text(`${avgs[1]}%`, margin + 245, yPos + 12);
-        doc.text(`${avgs[2]}%`, margin + 270, yPos + 12);
-        doc.text(`${avgs[3]}%`, margin + 295, yPos + 12);
-        doc.text(`${avgs[4]}%`, margin + 320, yPos + 12);
+        doc.text(`${avgs[0]}%`, margin + 240, yPos + 12);
+        doc.text(`${avgs[1]}%`, margin + 265, yPos + 12);
+        doc.text(`${avgs[2]}%`, margin + 290, yPos + 12);
+        doc.text(`${avgs[3]}%`, margin + 315, yPos + 12);
+        doc.text(`${avgs[4]}%`, margin + 340, yPos + 12);
         doc.setFont(undefined, 'bold');
-        doc.text(`${audit.puntuacion}%`, margin + 350, yPos + 12);
+        doc.text(`${audit.puntuacion}%`, margin + 370, yPos + 12);
         
         doc.setFont(undefined, 'normal');
         doc.setFontSize(7);
         let obsText = audit.observaciones ? Object.values(audit.observaciones).filter(t => t.trim()).join(" | ") : "Sin hallazgos";
-        let splitObs = doc.splitTextToSize(obsText, 120);
+        let splitObs = doc.splitTextToSize(obsText, 105);
         
         let heightNeeded = splitObs.length * 9;
         let rowHeight = Math.max(25, heightNeeded + 10); 
         
-        doc.text(splitObs, margin + 390, yPos + 10);
+        doc.text(splitObs, margin + 410, yPos + 10);
         yPos += rowHeight; 
         doc.setDrawColor(230);
         doc.line(margin, yPos - 5, margin + 515, yPos - 5);
