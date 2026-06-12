@@ -134,12 +134,10 @@
     let turnosConfig = [];
 
     async function init() {
-        // Carga de áreas desde la tabla estandarizada
         const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
         
-        // Carga de turnos para los filtros dinámicos
         const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
         const selTurno = document.getElementById('v_turno');
         selTurno.innerHTML = '<option value="">Todos</option>';
@@ -215,6 +213,10 @@
         ]);
 
         turnosConfig = resTurnos.data || [];
+        
+        // CONSOLOGAS DE DIAGNÓSTICO (Míralas presionando F12 en tu navegador)
+        console.log("=== TURNOS CONFIGURADOS EN BD ===", turnosConfig);
+        console.log("=== EMPLEADOS ENCONTRADOS ===", resEmp.data);
 
         let headHTML = `<tr><th class="emp-name">Colaborador</th>`;
         for(let i=0; i<diasDiff; i++) {
@@ -227,7 +229,6 @@
         const areaF = document.getElementById('v_area').value;
         const turnoF = document.getElementById('v_turno').value;
         
-        // Filtrado tolerante a nulos para evitar rupturas de cadena
         const emps = (resEmp.data || []).filter(e => {
             const empArea = e.area_general_id ? String(e.area_general_id).trim() : '';
             const empTurno = e.turno_id ? String(e.turno_id).trim() : '';
@@ -263,7 +264,9 @@
                         horasTrabajadasPeriodo += horasJornadaNormal;
                     }
                 } else if(asi) {
+                    // SUMA INDEPENDIENTE DE EXTRA: Asegura acumular horas extra, exista o no el turno vinculado
                     const extraDelDia = parseFloat(asi.horas_extra) || 0;
+                    hCount += extraDelDia;
 
                     if(asi.estado === 'P') {
                         aCount++;
@@ -278,13 +281,12 @@
                     let txt = asi.estado === 'P' ? '<span class="badge-p">P</span>' : (asi.estado === 'R' ? '<span class="badge-r">R</span>' : '<span class="badge-f">F</span>');
                     let hex = extraDelDia > 0 ? `<div class="extra-val">+${extraDelDia}h</div>` : '';
                     celda = txt + hex;
-                    hCount += extraDelDia;
                 }
                 fila += `<td class="${diaSemana===0?'domingo':''}">${celda}</td>`;
             }
 
             globalData.push({ nombre: emp.nombre_completo.toLowerCase(), a: aCount, f: fCount, r: rCount, p: pCount, h: hCount, ht: horasTrabajadasPeriodo });
-            return fila + `<td style="color:red; font-weight:bold">${fCount}</td><td style="color:purple; font-weight:bold">${hCount}h</td><td style="color:var(--accent); font-weight:bold">${horasTrabajadasPeriodo.toFixed(1)}h</td></tr>`;
+            return fila + `<td style="color:red; font-weight:bold">${fCount}</td><td style="color:purple; font-weight:bold">${hCount.toFixed(1)}h</td><td style="color:var(--accent); font-weight:bold">${horasTrabajadasPeriodo.toFixed(1)}h</td></tr>`;
         }).join('');
 
         actualizarTablero();
@@ -308,7 +310,7 @@
             acc.faltas += cur.f;
             acc.retardos += cur.r;
             acc.permisos += cur.p;
-            acc.horas += cur.h; // Corregido el mapeo para evitar el cálculo NaNh
+            acc.horas += cur.h;
             return acc;
         }, { asistencias: 0, faltas: 0, retardos: 0, permisos: 0, horas: 0 });
 
