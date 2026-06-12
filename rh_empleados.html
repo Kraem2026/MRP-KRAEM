@@ -210,7 +210,6 @@
         const { data: areas } = await client.from('areas_generales').select('id, nombre').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
-        // CORRECCIÓN: Traemos los turnos directamente de la base de datos para no dejarlos fijos
         const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
         
         const fill = (id, data, esFiltro = false) => {
@@ -225,8 +224,6 @@
         fill('sel_puesto', puestos);
         fill('sel_ruta', rutas); 
         fill('f_ruta', rutas, true);
-        
-        // Llenamos selectores de turnos dinámicamente
         fill('sel_turno', turnos);
         fill('f_turno', turnos, true);
 
@@ -238,11 +235,13 @@
     }
 
     async function listarEmpleados() {
+        // CORRECCIÓN: Solicitamos explícitamente el campo 'nombre' de la tabla 'rh_turnos' vinculada
         const { data, error } = await client.from('rh_empleados').select(`
             *,
             areas_generales (nombre),
             rh_puestos (nombre),
-            rh_rutas (nombre)
+            rh_rutas (nombre),
+            rh_turnos (nombre)
         `).order('nombre_completo');
 
         if (error) { console.error("Error:", error); return; }
@@ -252,6 +251,7 @@
             area_txt: e.areas_generales?.nombre || '-',
             puesto_txt: e.rh_puestos?.nombre || '-',
             ruta_txt: e.rh_rutas?.nombre || '-',
+            turno_txt: e.rh_turnos?.nombre || '-', // Mapeo dinámico del texto legible
             antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
         }));
         aplicarFiltros();
@@ -279,8 +279,7 @@
                 <td>${e.area_txt}</td>
                 <td>${e.puesto_txt}</td>
                 <td>${e.antiguedad_txt}</td>
-                <td>Turno ${e.turno_id || '-'}</td>
-                <td>${e.ruta_txt}</td>
+                <td>Turno ${e.turno_txt || '-'}</td> <td>${e.ruta_txt}</td>
                 <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
             </tr>`).join('');
     }
@@ -399,7 +398,6 @@
     async function guardarEmpleado() {
         const id = document.getElementById('edit_id').value;
         
-        // CORRECCIÓN: Alineación estricta con las columnas reales mapeadas de la base de datos
         const obj = {
             nombre_completo: document.getElementById('nombre').value,
             nss: document.getElementById('nss').value,
@@ -410,12 +408,11 @@
             ruta_id: document.getElementById('sel_ruta').value || null,
             
             tipo_sangre: document.getElementById('tipo_sangre').value,
-            tipo_sanguineo: document.getElementById('tipo_sangre').value, // Seteamos ambos para evitar conflictos transaccionales
+            tipo_sanguineo: document.getElementById('tipo_sangre').value, 
             talla_playera: document.getElementById('sel_talla').value,
             direccion: document.getElementById('direccion').value,
             telefono_personal: document.getElementById('telefono_personal').value,
             
-            // Corrección de nombres de campos duplicados/espejo
             emergencia_nombre: document.getElementById('emergencia_nombre').value,
             contacto_emergencia_nombre: document.getElementById('emergencia_nombre').value,
             emergencia_tel: document.getElementById('emergencia_tel').value,
@@ -448,7 +445,6 @@
         document.getElementById('direccion').value = emp.direccion || "";
         document.getElementById('telefono_personal').value = emp.telefono_personal || "";
         
-        // Sincronización segura de campos de emergencia al editar
         document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || emp.contacto_emergencia_nombre || "";
         document.getElementById('emergencia_tel').value = emp.emergencia_tel || emp.contacto_emergencia_telefono || "";
         document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
@@ -484,8 +480,8 @@
     function exportarExcel() {
         const ws = XLSX.utils.json_to_sheet(db_filtrados);
         const wb = XLSX.utils.book_new();
-        XXLSX.utils.book_append_sheet(wb, ws, "Personal");
-        XXLSX.writeFile(wb, "Personal_Kraem.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Personal"); // CORRECCIÓN: Quitada la 'X' extra
+        XLSX.writeFile(wb, "Personal_Kraem.xlsx");
     }
 
     function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId, false); }
