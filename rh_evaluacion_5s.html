@@ -187,7 +187,12 @@
     <div id="step-setup">
         <div class="setup-group">
             <label>Área General</label>
-            <select id="area_select" onchange="actualizarMaquinas()">
+            <select id="area_select" onchange="cambioFiltros()">
+                <option value="">Cargando...</option>
+            </select>
+
+            <label>Turno</label>
+            <select id="turno_select" onchange="cambioFiltros()">
                 <option value="">Cargando...</option>
             </select>
 
@@ -198,10 +203,10 @@
 
             <label>Operador</label>
             <select id="operador_select">
-                <option value="">Cargando...</option>
+                <option value="">Seleccione área y turno...</option>
             </select>
 
-            <label>Auditor</label>
+            <label>Auditor (Lista Completa por Turno)</label>
             <select id="auditor_select">
                 <option value="">Cargando...</option>
             </select>
@@ -244,6 +249,10 @@ let auditData = {
     score: 0
 };
 
+// Variables globales para guardar los datos crudos y poder filtrarlos localmente de manera rápida
+let listaEmpleados = [];
+let listaTurnos = [];
+
 const nombres5S = [
     "1. SEIRI",
     "2. SEITON",
@@ -262,21 +271,36 @@ const preguntas = [
 
 async function init(){
     try{
+        // 1. Cargar áreas
         const { data: areas, error: errAreas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
         if(errAreas) throw errAreas;
-
-        const { data: emps, error: errEmp } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
-        if(errEmp) throw errEmp;
-
         document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
 
-        const empOpts = '<option value="">Seleccione...</option>' + emps.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-        document.getElementById('operador_select').innerHTML = empOpts;
-        document.getElementById('auditor_select').innerHTML = empOpts;
+        // 2. Cargar turnos
+        const { data: turnos, error: errTurnos } = await client.from('rh_turnos').select('*').order('nombre');
+        if(errTurnos) throw errTurnos;
+        listaTurnos = turnos;
+        document.getElementById('turno_select').innerHTML = '<option value="">Seleccione...</option>' + turnos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
+
+        // 3. Cargar empleados activos incluyendo sus columnas de relación (asumiendo que se llaman area_general_id y turno_id en rh_empleados)
+        const { data: emps, error: errEmp } = await client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus', 'ACTIVO').order('nombre_completo');
+        if(errEmp) throw errEmp;
+        listaEmpleados = emps;
+
+        // Inicializar los selectores de personal
+        filtrarOperadores();
+        cargarAuditorCompleto();
+
     }catch(e){
         console.error(e);
         alert(e.message);
     }
+}
+
+// Disparador principal cuando cambia Área o Turno
+function cambioFiltros() {
+    actualizarMaquinas();
+    filtrarOperadores();
 }
 
 async function actualizarMaquinas(){
@@ -302,9 +326,61 @@ async function actualizarMaquinas(){
     }
 }
 
+// Filtra operadores en base al Área AND Turno seleccionados
+function filtrarOperadores(){
+    const areaId = document.getElementById('area_select').value;
+    const turnoId = document.getElementById('turno_select').value;
+    const opSel = document.getElementById('operador_select');
+
+    if(!areaId || !turnoId){
+        opSel.innerHTML = '<option value="">Seleccione área y turno...</option>';
+        return;
+    }
+
+    // Filtrado estricto: Debe coincidir el área y el turno del empleado
+    const filtrados = listaEmpleados.filter(e => String(e.area_general_id) === String(areaId) && String(e.turno_id) === String(turnoId));
+
+    if(filtrados.length === 0){
+        opSel.innerHTML = '<option value="">Sin personal en esta combinación</option>';
+    } else {
+        opSel.innerHTML = '<option value="">Seleccione...</option>' + filtrados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+    }
+}
+
+// Carga la lista completa para auditores separada visualmente por turnos usando <optgroup>
+function cargarAuditorCompleto(){
+    const audSel = document.getElementById('auditor_select');
+    let html = '<option value="">Seleccione...</option>';
+
+    listaTurnos.forEach(turno => {
+        const empsDelTurno = listaEmpleados.filter(e => String(e.turno_id) === String(turno.id));
+        if(empsDelTurno.length > 0){
+            html += `<optgroup label="${turno.nombre}">`;
+            html += empsDelTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+            html += `</optgroup>`;
+        }
+    });
+
+    // Por si existen empleados activos sin turno asignado todavía
+    const sinTurno = listaEmpleados.filter(e => !e.turno_id);
+    if(sinTurno.length > 0){
+        html += `<optgroup label="Sin Turno Asignado">`;
+        html += sinTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+        html += `</optgroup>`;
+    }
+
+    audSel.innerHTML = html;
+}
+
 function nextStep(){
-    if(currentStep === 0 && (!document.getElementById('area_select').value || !document.getElementById('maquina_select').value || !document.getElementById('operador_select').value || !document.getElementById('auditor_select').value)){
-        return alert("Faltan datos");
+    if(currentStep === 0 && (
+        !document.getElementById('area_select').value || 
+        !document.getElementById('turno_select').value || 
+        !document.getElementById('maquina_select').value || 
+        !document.getElementById('operador_select').value || 
+        !document.getElementById('auditor_select').value
+    )){
+        return alert("Faltan datos obligatorios");
     }
 
     if(currentStep > 0 && currentStep <= 5){
@@ -326,12 +402,10 @@ function prevStep(){
 }
 
 function render(){
-    // Ocultar todas las pantallas por defecto
     document.getElementById("step-setup").classList.add("hidden");
     document.getElementById("audit-flow").classList.add("hidden");
     document.getElementById("step-result").classList.add("hidden");
 
-    // Configuración del botón de regreso en el header
     const backText = document.getElementById('back-text');
     const backIcon = document.querySelector('#header-back-btn i');
 
@@ -350,7 +424,6 @@ function render(){
         document.getElementById("section-label").innerText = nombres5S[idx];
         document.getElementById("progress-bar").style.width = (currentStep * 20) + "%";
 
-        // Recuperar observaciones anteriores si existen
         document.getElementById('obs_input').value = auditData.observaciones[`s${currentStep}`] || "";
 
         document.getElementById("preguntas_cont").innerHTML = preguntas[idx].map((p, j) => {
@@ -373,7 +446,6 @@ function render(){
         backIcon.className = "fas fa-arrow-left";
 
         const vals = Object.values(auditData.respuestas);
-        // Si no han respondido todas, evitar división entre 0 o cálculo erróneo
         const totalRespondidas = vals.length || 1; 
         auditData.score = Math.round((vals.reduce((a,b)=>a+b,0)/25)*100);
 
@@ -395,6 +467,7 @@ async function guardar(){
             empleado_id: document.getElementById('operador_select').value,
             auditor_id: document.getElementById('auditor_select').value,
             area_general_id: document.getElementById('area_select').value,
+            turno_id: document.getElementById('turno_select').value, // Guardamos también el ID del turno
             machine_id: document.getElementById('maquina_select').value,
             puntuacion: auditData.score,
             respuestas_json: auditData.respuestas,
