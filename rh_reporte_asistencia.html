@@ -135,7 +135,6 @@
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
         
-        // Mapea dinámicamente los UUIDs correctos y los nombres de los turnos de tu DB
         const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
         const selTurno = document.getElementById('v_turno');
         selTurno.innerHTML = '<option value="">Todos</option>';
@@ -166,14 +165,13 @@
         const horasJornadaNormal = obtenerHorasBaseDelDia(turno, numeroDia);
         if (!horaLlegada || !turno || !turno.entrada) return horasJornadaNormal;
         try {
-            // AJUSTE CLAVE: Ignora segundos si vienen incluidos en la cadena (ej: "07:30:00" -> ["07", "30"])
             const [hOficial, mOficial] = turno.entrada.split(':').map(Number);
             const [hLlegada, mLlegada] = horaLlegada.split(':').map(Number);
             
             const minutosOficial = hOficial * 60 + mOficial;
             const minutosLlegada = hLlegada * 60 + mLlegada;
             
-            const diferenciaMinutos = minutosLlegada - minutosOficial;
+            const diferenciaMinutos = minutosLlegada - minutesOficial;
             if (diferenciaMinutos <= 0) return horasJornadaNormal;
             
             const horasPerdidas = diferenciaMinutos / 60;
@@ -225,7 +223,6 @@
         const areaF = document.getElementById('v_area').value;
         const turnoF = document.getElementById('v_turno').value;
         
-        // AJUSTE CLAVE: Normalización estricta de cadenas de texto para evitar fallas de filtrado de UUIDs
         const emps = resEmp.data.filter(e => {
             const cumpleArea = !areaF || String(e.area_general_id).trim() === String(areaF).trim();
             const cumpleTurno = !turnoF || String(e.turno_id).trim() === String(turnoF).trim();
@@ -300,9 +297,9 @@
             acc.faltas += cur.f;
             acc.retardos += cur.r;
             acc.permisos += cur.p;
-            acc.horas += cur.h;
+            acc.horas += cur.h; // CORREGIDO: apuntaba incorrectamente a 'hours' en lugar de 'horas'
             return acc;
-        }, { asistencias: 0, faltas: 0, retardos: 0, permisos: 0, hours: 0 });
+        }, { asistencias: 0, faltas: 0, retardos: 0, permisos: 0, horas: 0 });
 
         document.getElementById('res-asis').innerText = totales.asistencias;
         document.getElementById('res-faltas').innerText = totales.faltas;
