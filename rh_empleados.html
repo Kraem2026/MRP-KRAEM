@@ -3,491 +3,656 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Gestión de Personal 360</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>KRAEM - Gestión de Personal e Indicadores</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Chart.js para el Radar -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- SheetJS para Exportación a Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
-        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .container { max-width: 1600px; margin: auto; }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
-        .btn-nav { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; text-decoration: none; color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-add { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .btn-excel { background: #166534; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-
-        .dashboard-360 { display: grid; grid-template-columns: 350px 1fr 300px; gap: 20px; margin-bottom: 20px; display: none; }
-        @media (max-width: 1100px) { .dashboard-360 { grid-template-columns: 1fr; } }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
-        .radar-box { height: 300px; display: flex; align-items: center; justify-content: center; }
-        .metric-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .metric-card { text-align: center; padding: 12px; border: 1px solid #f1f5f9; border-radius: 10px; background: #fff; }
-        .metric-val { font-size: 22px; font-weight: 800; color: var(--accent); }
-        .metric-lab { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
-
-        .table-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-        th { background: #f8fafc; padding: 15px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-        td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
-        tr:hover { background: #f8fafc; cursor: pointer; }
-
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-        .modal-content { background: white; width: 95%; max-width: 1000px; margin: 2% auto; padding: 25px; border-radius: 15px; max-height: 90vh; overflow-y: auto; }
-        .inputs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
-        .group { display: flex; flex-direction: column; }
-        .group.full-width { grid-column: 1 / -1; }
-        label { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-        input, select, textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; width: 100%; box-sizing: border-box; }
-
-        .status-badge { padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 10px; }
-        .status-activo { background: #dcfce7; color: #166534; }
-        .status-baja { background: #fee2e2; color: #991b1b; }
-        .section-title { grid-column: 1/-1; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 15px; color: var(--accent); font-size: 12px; font-weight: bold; }
-        
-        .vacation-box { background: #f0f9ff; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; margin-top: 10px; text-align: center; }
-
-        .photo-upload-container { display: flex; justify-content: center; margin-bottom: 25px; }
-        .photo-btn { position: relative; width: 120px; height: 120px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px dashed #cbd5e1; cursor: pointer; overflow: hidden; transition: all 0.3s; }
-        .photo-btn:hover { border-color: var(--accent); background: #f1f5f9; }
-        .photo-btn i.fa-user { font-size: 70px; color: #94a3b8; }
-        .photo-btn img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        .photo-overlay { position: absolute; bottom: 0; background: rgba(15, 23, 42, 0.6); width: 100%; text-align: center; padding: 4px 0; }
+        body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .status-activo { background-color: #dcfce7; color: #166534; }
+        .status-baja { background-color: #fee2e2; color: #991b1b; }
+        .metric-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .custom-table th { background-color: #f1f5f9; color: #475569; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; padding: 12px; text-align: left; }
+        .custom-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: #334155; }
+        .custom-table tr:hover { background-color: #f8fafc; cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+        .modal-content { background-color: #fff; margin: 4% auto; padding: 24px; border-radius: 16px; width: 90%; max-width: 800px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="nav-header">
-        <div style="display:flex; gap:15px; align-items:center;">
-            <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i></a>
-            <h2 style="margin:0;">Gestión de Personal Kraem</h2>
+    <!-- Inicializador de Supabase (Configurar con tus credenciales si es necesario en otro script superior) -->
+    <script>
+        // Si ya tienes inicializado 'client' o 'supabase' globalmente, este script se acoplará a él.
+        // Asegúrate de tener las llaves declaradas previamente en tu entorno o en el layout principal.
+    </script>
+
+    <div class="p-6 max-w-7xl mx-auto">
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Módulo de Capital Humano</h1>
+                <p class="text-sm text-slate-500">Administración de personal, expedientes y evaluación operativa.</p>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button onclick="abrirModal()" class="flex-1 md:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm shadow-sm transition-all flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Alta de Empleado
+                </button>
+                <button onclick="exportarExcel()" class="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm shadow-sm transition-all flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Exportar Excel
+                </button>
+            </div>
         </div>
-        <div style="display:flex; gap:10px;">
-            <button class="btn-excel" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> EXPORTAR</button>
-            <button class="btn-add" onclick="abrirModal()"><i class="fas fa-plus"></i> NUEVO REGISTRO</button>
+
+        <!-- FILTROS PRINCIPALES -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Buscar por Nombre</label>
+                    <input type="text" id="f_nombre" oninput="aplicarFiltros()" placeholder="Ej. Estefania..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Filtrar Área</label>
+                    <select id="f_area" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Filtrar Turno</label>
+                    <select id="f_turno" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Filtrar Ruta</label>
+                    <select id="f_ruta" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Estatus</label>
+                    <select id="f_estatus" onchange="aplicarFiltros()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <option value="ACTIVO">ACTIVO</option>
+                        <option value="BAJA">BAJA</option>
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD DE ANÁLISIS INDIVIDUAL -->
+        <div id="dash_analisis" class="hidden grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Ficha del Empleado -->
+            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs relative flex flex-col justify-between">
+                <div>
+                    <button onclick="editarActual()" class="absolute top-4 right-4 text-slate-400 hover:text-blue-600 transition-colors p-1" title="Editar Ficha">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </button>
+                    <div class="flex items-center gap-4 mb-4">
+                        <img id="view_foto" src="" alt="Foto" class="w-16 h-16 rounded-full object-cover border border-slate-200 bg-slate-100">
+                        <div>
+                            <h2 id="view_nombre" class="text-lg font-bold text-slate-800 leading-tight">-</h2>
+                            <p id="view_puesto_area" class="text-xs text-slate-500 font-medium">-</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-y-3 gap-x-2 text-xs border-t border-slate-100 pt-4">
+                        <div><span class="text-slate-400 block">NSS:</span> <b id="view_nss" class="text-slate-700">--</b></div>
+                        <div><span class="text-slate-400 block">Antigüedad:</span> <b id="view_anti" class="text-slate-700">--</b></div>
+                        <div><span class="text-slate-400 block">Fecha Ingreso:</span> <b id="view_ingreso" class="text-slate-700">--</b></div>
+                        <div><span class="text-slate-400 block">Playera:</span> <b id="view_talla" class="text-slate-700">--</b></div>
+                        <div class="col-span-2"><span class="text-slate-400 block">Dirección habitual:</span> <b id="view_direccion" class="text-slate-700 block truncate">--</b></div>
+                    </div>
+                </div>
+                <div class="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                        <span class="text-blue-800 font-medium text-xs block">Vacaciones Pendientes</span>
+                        <span class="text-slate-400 text-[10px]">Calculado según ley actual</span>
+                    </div>
+                    <span id="view_dias_disponibles" class="text-xl font-black text-blue-700">0 días</span>
+                </div>
+            </div>
+
+            <!-- Desempeño Operativo / Filtros de Rango -->
+            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs lg:col-span-2 flex flex-col justify-between">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Evaluación de Desempeño</h3>
+                        <p class="text-xs text-slate-500">Rango de análisis: <span id="rango_texto" class="font-semibold text-slate-700">--</span></p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <input type="date" id="f_desde" onchange="actualizarTodo()" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none">
+                        <span class="text-slate-400 text-xs">a</span>
+                        <input type="date" id="f_hasta" onchange="actualizarTodo()" class="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <!-- Tarjetas de Métricas -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="metric-card">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">Calidad (Yield)</span>
+                            <span id="val_yield" class="text-xl font-bold text-slate-800">100%</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">Asistencia</span>
+                            <span id="val_asistencia" class="text-xl font-bold text-slate-800">100%</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">Puntualidad</span>
+                            <span id="val_checkpoint" class="text-xl font-bold text-slate-800">100%</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="text-[11px] text-slate-400 font-semibold block uppercase">Auditoría 5'S</span>
+                            <span id="val_5s" class="text-xl font-bold text-slate-800">100%</span>
+                        </div>
+                        <div class="metric-card col-span-2 py-2 flex justify-between items-center">
+                            <span class="text-[11px] text-slate-400 font-semibold uppercase">Versatilidad (Matriz)</span>
+                            <span id="val_versatilidad" class="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">80%</span>
+                        </div>
+                    </div>
+                    <!-- Gráfico de Radar -->
+                    <div class="flex justify-center max-h-[180px]">
+                        <canvas id="chartRadar"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLA PRINCIPAL DE EMPLEADOS -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full custom-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre Completo</th>
+                            <th>Área General</th>
+                            <th>Puesto</th>
+                            <th>Antigüedad</th>
+                            <th>Turno</th>
+                            <th>Ruta</th>
+                            <th>Estatus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista_empleados">
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding: 30px; color: #64748b;">
+                                Cargando información de personal...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <div id="dash_analisis" class="dashboard-360">
-        <div class="card" style="text-align: center;">
-            <img id="view_foto" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" style="width:110px; height:110px; border-radius:50%; border:4px solid var(--accent); object-fit:cover;">
-            <h3 id="view_nombre" style="margin:15px 0 5px 0;">--</h3>
-            <p id="view_puesto_area" style="font-size:12px; color:#64748b; margin:0; font-weight: bold;">--</p>
+    <!-- MODAL DE REGISTRO / EDICIÓN -->
+    <div id="modalRegistro" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Expediente de Empleado</h3>
+                <button onclick="cerrarModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
             
-            <div class="vacation-box">
-                <div style="font-size: 10px; font-weight: bold; color: #0369a1; text-transform: uppercase;">Días Disponibles por Ley</div>
-                <div id="view_dias_disponibles" style="font-size: 20px; font-weight: 800; color: #0284c7;">--</div>
-                <a href="rh_solicitudes.html" class="btn-nav" style="font-size: 11px; padding: 5px 10px; margin-top: 5px; width: 90%; justify-content: center;">Gestionar Vacaciones</a>
-            </div>
-
-            <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-            <div style="text-align:left; font-size:13px; line-height: 1.6;">
-                <p><strong><i class="fas fa-fingerprint"></i> NSS:</strong> <span id="view_nss">--</span></p>
-                <p><strong><i class="fas fa-calendar"></i> Antigüedad:</strong> <span id="view_anti">--</span></p>
-                <p><strong><i class="fas fa-tshirt"></i> Talla:</strong> <span id="view_talla">--</span></p>
-                <p><strong><i class="fas fa-clock"></i> Ingreso:</strong> <span id="view_ingreso">--</span></p>
-                <p><strong><i class="fas fa-map-marker-alt"></i> Dirección:</strong> <span id="view_direccion">--</span></p>
-                <button class="btn-nav" style="width:100%; justify-content:center; margin-top:15px; border-color:var(--accent); color:var(--accent);" onclick="editarActual()">EDITAR FICHA</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <label style="font-weight:bold; color:var(--accent);">DESEMPEÑO GLOBAL</label>
-                <div id="rango_texto" style="font-size:10px; background:#eff6ff; padding:5px 10px; border-radius:5px; color:var(--accent); font-weight:bold;">--</div>
-            </div>
-            <div class="radar-box"><canvas id="chartRadar"></canvas></div>
-        </div>
-
-        <div class="card metric-grid">
-            <div class="metric-card"><div class="metric-lab">Calidad</div><div id="val_yield" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">Asistencia</div><div id="val_asistencia" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">Puntualidad</div><div id="val_checkpoint" class="metric-val">0%</div></div>
-            <div class="metric-card"><div class="metric-lab">5'S</div><div id="val_5s" class="metric-val">0%</div></div>
-            <div class="metric-card" style="background:#f0f9ff; grid-column: 1/-1;"><div class="metric-lab">Versatilidad</div><div id="val_versatilidad" class="metric-val">0%</div></div>
-        </div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px;">
-        <div class="inputs-grid">
-            <div class="group"><label>Nombre</label><input type="text" id="f_nombre" placeholder="Buscar..." oninput="aplicarFiltros()"></div>
-            <div class="group"><label>Desde</label><input type="date" id="f_desde" onchange="actualizarTodo()"></div>
-            <div class="group"><label>Hasta</label><input type="date" id="f_hasta" onchange="actualizarTodo()"></div>
-            <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()"><option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
-        </div>
-    </div>
-
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Área</th>
-                    <th>Puesto</th>
-                    <th>Antigüedad</th>
-                    <th>Turno</th>
-                    <th>Ruta</th>
-                    <th>Estatus</th>
-                </tr>
-            </thead>
-            <tbody id="lista_empleados"></tbody>
-        </table>
-    </div>
-</div>
-
-<div id="modalRegistro" class="modal">
-    <div class="modal-content">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h3 id="modal_titulo">Información del Personal</h3>
-            <button onclick="cerrarModal()" style="border:none; background:none; font-size:30px; cursor:pointer;">&times;</button>
-        </div>
-
-        <div class="photo-upload-container">
-            <div class="photo-btn" onclick="document.getElementById('input_foto').click()">
-                <i class="fas fa-user" id="modal_icon_user"></i>
-                <img id="img_preview" style="display:none;">
-                <div class="photo-overlay"><i class="fas fa-camera" style="color:white; font-size:12px;"></i></div>
-                <input type="file" id="input_foto" style="display:none;" accept="image/*" onchange="previewImage(event)">
-            </div>
-        </div>
-
-        <input type="hidden" id="edit_id">
-        <div class="inputs-grid">
-            <div class="section-title">LABORALES</div>
-            <div class="group full-width"><label>Nombre Completo</label><input type="text" id="nombre"></div>
-            <div class="group"><label># Seguro Social (NSS)</label><input type="text" id="nss"></div>
-            <div class="group"><label>Área</label><select id="sel_area"></select></div>
-            <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
-            <div class="group"><label>Turno</label><select id="sel_turno"></select></div>
-            <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
-            <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
-            <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
+            <input type="hidden" id="edit_id">
             
-            <div class="section-title">PERSONAL / MÉDICO</div>
-            <div class="group"><label>Teléfono Personal</label><input type="tel" id="telefono_personal"></div>
-            <div class="group"><label>Tipo de Sangre</label><input type="text" id="tipo_sangre"></div>
-            <div class="group"><label>Talla</label><select id="sel_talla"><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option></select></div>
-            <div class="group full-width"><label>Dirección</label><input type="text" id="direccion"></div>
-            <div class="group"><label>Contacto Emergencia</label><input type="text" id="emergencia_nombre"></div>
-            <div class="group"><label>Parentesco</label><input type="text" id="emergencia_parentesco"></div>
-            <div class="group"><label>Tel. Emergencia</label><input type="tel" id="emergencia_tel"></div>
-            <div class="group full-width"><label>Alergias / Padecimientos</label><textarea id="alergias" rows="2"></textarea></div>
-        </div>
-        <div style="margin-top:30px; display:flex; gap:15px;">
-            <button class="btn-add" style="flex:2; justify-content:center;" onclick="guardarEmpleado()">GUARDAR</button>
-            <button class="btn-nav" style="flex:1; justify-content:center;" onclick="cerrarModal()">CANCELAR</button>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-[60vh] overflow-y-auto pr-1">
+                <!-- Seccion Foto -->
+                <div class="md:col-span-1 flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-xl p-4 bg-slate-50">
+                    <div class="w-28 h-28 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden mb-3 border relative">
+                        <svg id="modal_icon_user" class="w-12 h-12 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                        <img id="img_preview" src="" class="absolute w-full h-full object-cover hidden">
+                    </div>
+                    <label class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 shadow-2xs cursor-pointer hover:bg-slate-50">
+                        Subir Imagen
+                        <input type="file" accept="image/*" class="hidden" onchange="previewImage(event)">
+                    </label>
+                </div>
+
+                <!-- Datos Laborales y Personales -->
+                <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Nombre Completo *</label>
+                        <input type="text" id="nombre" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">NSS</label>
+                        <input type="text" id="nss" placeholder="11 dígitos" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Fecha de Ingreso *</label>
+                        <input type="date" id="fecha_ingreso" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Área General</label>
+                        <select id="sel_area" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Puesto Operativo</label>
+                        <select id="sel_puesto" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Turno Laboral</label>
+                        <select id="sel_turno" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Ruta de Transporte</label>
+                        <select id="sel_ruta" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Talla de Playera</label>
+                        <select id="sel_talla" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="XS">XS</option>
+                            <option value="S">S</option>
+                            <option value="M" selected>M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                            <option value="XXL">XXL</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Estatus Ficha</label>
+                        <select id="sel_estatus" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="BAJA">BAJA</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Teléfono Celular</label>
+                        <input type="text" id="telefono_personal" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5">Dirección Particular</label>
+                        <input type="text" id="direccion" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Información Médica y Emergencias -->
+                <div class="md:col-span-3 border-t border-slate-100 pt-4 mt-2">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Salud y Contacto de Emergencia</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-500 mb-0.5">Contacto de Emergencia (Nombre)</label>
+                            <input type="text" id="emergencia_nombre" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-0.5">Parentesco</label>
+                            <input type="text" id="emergencia_parentesco" placeholder="Ej. Madre, Esposo" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-0.5">Teléfono de Emergencia</label>
+                            <input type="text" id="emergencia_tel" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-0.5">Tipo de Sangre</label>
+                            <input type="text" id="tipo_sangre" placeholder="Ej. O+" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 mb-0.5">Alergias / Padecimientos</label>
+                            <input type="text" id="alergias" placeholder="Ninguna" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 mt-4">
+                <button onclick="cerrarModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-medium rounded-lg">Cancelar</button>
+                <button onclick="guardarEmpleado()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm">Guardar Cambios</button>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    let db_empleados = [];
-    let db_filtrados = [];
-    let chartRadar;
-    let currentEmpId = null;
+    <!-- MOTOR SCRIPT CON CONTROL SEGURO DE LLAVES FORÁNEAS -->
+    <script>
+        let db_empleados = [];
+        let db_filtrados = [];
+        let chartRadar;
+        let currentEmpId = null;
 
-    function obtenerDiasLey(anios) {
-        if (anios < 1) return 0;
-        if (anios === 1) return 12;
-        if (anios === 2) return 14;
-        if (anios === 3) return 16;
-        if (anios === 4) return 18;
-        if (anios === 5) return 20;
-        if (anios >= 6 && anios <= 10) return 22;
-        if (anios >= 11 && anios <= 15) return 24;
-        if (anios >= 16 && anios <= 20) return 26;
-        if (anios >= 21 && anios <= 25) return 28;
-        if (anios >= 26 && anios <= 30) return 30;
-        return 32;
-    }
+        // Catálogos cargados en memoria
+        let cat_areas = [];
+        let cat_puestos = [];
+        let cat_rutas = [];
+        let cat_turnos = [];
 
-    async function init() {
-        const { data: areas } = await client.from('areas_generales').select('id, nombre').order('nombre');
-        const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
-        const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
-        const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
-        
-        const fill = (id, data, esFiltro = false) => {
-            const s = document.getElementById(id);
-            if(!s) return;
-            s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
-            data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
-        };
-
-        fill('sel_area', areas); 
-        fill('f_area', areas, true);
-        fill('sel_puesto', puestos);
-        fill('sel_ruta', rutas); 
-        fill('f_ruta', rutas, true);
-        fill('sel_turno', turnos);
-        fill('f_turno', turnos, true);
-
-        const d = new Date();
-        document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('f_hasta').value = d.toISOString().split('T')[0];
-
-        await listarEmpleados();
-    }
-
-    async function listarEmpleados() {
-        // SOLUCIÓN: Relación explícita mediante la Foreign Key 'turno_id' para evitar conflictos de mapeo en PostgREST
-        const { data, error } = await client.from('rh_empleados').select(`
-            *,
-            areas_generales (nombre),
-            rh_puestos (nombre),
-            rh_rutas (nombre),
-            rh_turnos:turno_id (nombre)
-        `).order('nombre_completo');
-
-        if (error) { console.error("Error al obtener empleados:", error); return; }
-
-        db_empleados = data.map(e => ({
-            ...e,
-            area_txt: e.areas_generales?.nombre || '-',
-            puesto_txt: e.rh_puestos?.nombre || '-',
-            ruta_txt: e.rh_rutas?.nombre || '-',
-            turno_txt: e.rh_turnos?.nombre || '-', 
-            antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
-        }));
-        aplicarFiltros();
-    }
-
-    function aplicarFiltros() {
-        const n = document.getElementById('f_nombre').value.toLowerCase();
-        const a = document.getElementById('f_area').value; 
-        const t = document.getElementById('f_turno').value;
-        const r = document.getElementById('f_ruta').value;
-        const s = document.getElementById('f_estatus').value;
-
-        db_filtrados = db_empleados.filter(e => 
-            (!n || e.nombre_completo?.toLowerCase().includes(n)) && 
-            (!a || e.area_general_id == a) && 
-            (!t || e.turno_id == t) &&
-            (!r || e.ruta_id == r) &&
-            (!s || e.estatus == s)
-        );
-        
-        const tbody = document.getElementById('lista_empleados');
-        tbody.innerHTML = db_filtrados.map(e => `
-            <tr onclick="cargarAnalisis('${e.id}')">
-                <td><b>${e.nombre_completo || 'Sin Nombre'}</b></td>
-                <td>${e.area_txt}</td>
-                <td>${e.puesto_txt}</td>
-                <td>${e.antiguedad_txt}</td>
-                <td>${e.turno_txt}</td>
-                <td>${e.ruta_txt}</td>
-                <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
-            </tr>`).join('');
-    }
-
-    async function cargarAnalisis(id, scroll = true) {
-        const emp = db_empleados.find(e => e.id == id);
-        if(!emp) return;
-        currentEmpId = id;
-        document.getElementById('dash_analisis').style.display = 'grid';
-        
-        document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        document.getElementById('view_nombre').innerText = emp.nombre_completo;
-        document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
-        document.getElementById('view_nss').innerText = emp.nss || '--';
-        document.getElementById('view_anti').innerText = emp.antiguedad_txt;
-        document.getElementById('view_talla').innerText = emp.talla_playera || '--';
-        document.getElementById('view_ingreso').innerText = emp.fecha_ingreso;
-        document.getElementById('view_direccion').innerText = emp.direccion || '--';
-
-        let diasTotales = 0;
-        if (emp.fecha_ingreso) {
-            const fIngreso = new Date(emp.fecha_ingreso + 'T00:00:00'); 
-            const fHoy = new Date();
-            
-            let aniosCumplidos = fHoy.getFullYear() - fIngreso.getFullYear();
-            const m = fHoy.getMonth() - fIngreso.getMonth();
-            if (m < 0 || (m === 0 && fHoy.getDate() < fIngreso.getDate())) {
-                aniosCumplidos--; 
-            }
-            diasTotales = obtenerDiasLey(aniosCumplidos);
+        function obtenerDiasLey(anios) {
+            if (anios < 1) return 0;
+            if (anios === 1) return 12;
+            if (anios === 2) return 14;
+            if (anios === 3) return 16;
+            if (anios === 4) return 18;
+            if (anios === 5) return 20;
+            if (anios >= 6 && anios <= 10) return 22;
+            if (anios >= 11 && anios <= 15) return 24;
+            if (anios >= 16 && anios <= 20) return 26;
+            if (anios >= 21 && anios <= 25) return 28;
+            if (anios >= 26 && anios <= 30) return 30;
+            return 32;
         }
 
-        const { data: sol } = await client.from('rh_solicitudes').select('fecha_inicio, fecha_fin').eq('empleado_id', id).eq('tipo','VACACIONES').eq('estatus','APROBADO');
-        
-        let diasTomados = 0;
-        sol?.forEach(s => {
-            if(s.fecha_inicio && s.fecha_fin) {
-                const inicio = new Date(s.fecha_inicio + 'T00:00:00');
-                const fin = new Date(s.fecha_fin + 'T00:00:00');
-                const diffTime = Math.abs(fin - inicio);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                diasTomados += diffDays;
+        async function init() {
+            try {
+                // Descarga directa de catálogos base
+                const { data: areas } = await client.from('areas_generales').select('id, nombre').order('nombre');
+                cat_areas = areas || [];
+
+                const { data: puestos } = await client.from('rh_puestos').select('id, nombre').order('nombre');
+                cat_puestos = puestos || [];
+
+                const { data: rutas } = await client.from('rh_rutas').select('id, nombre').order('nombre');
+                cat_rutas = rutas || [];
+
+                const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
+                cat_turnos = turnos || [];
+                
+                // Rellenar selects
+                const fill = (id, data, esFiltro = false) => {
+                    const s = document.getElementById(id);
+                    if(!s) return;
+                    s.innerHTML = `<option value="">${esFiltro ? 'Todas' : 'Seleccione...'}</option>`;
+                    data?.forEach(d => s.innerHTML += `<option value="${d.id}">${d.nombre}</option>`);
+                };
+
+                fill('sel_area', cat_areas); 
+                fill('f_area', cat_areas, true);
+                fill('sel_puesto', cat_puestos);
+                fill('sel_ruta', cat_rutas); 
+                fill('f_ruta', cat_rutas, true);
+                fill('sel_turno', cat_turnos);
+                fill('f_turno', cat_turnos, true);
+
+                const d = new Date();
+                document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+                document.getElementById('f_hasta').value = d.toISOString().split('T')[0];
+
+                await listarEmpleados();
+            } catch (err) {
+                console.error("Error crítico de inicialización:", err);
+                alert("Error al vincular catálogos básicos: " + err.message);
             }
-        });
-
-        const saldoFinal = diasTotales - diasTomados;
-        document.getElementById('view_dias_disponibles').innerText = (saldoFinal < 0 ? 0 : saldoFinal) + " días";
-
-        const fDesde = document.getElementById('f_desde').value;
-        const fHasta = document.getElementById('f_hasta').value;
-        let fHastaMax = new Date(fHasta); fHastaMax.setHours(23,59,59,999);
-        document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
-
-        const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
-        let ti=0, td=0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
-        const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
-
-        const { data: asistencia } = await client.from('rh_asistencia_diaria').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
-        
-        let totalDiasAsis = asistencia?.length || 0;
-        let conteoP = 0, conteoR = 0, conteoF = 0;
-        
-        asistencia?.forEach(a => {
-            if(a.estado === 'P') conteoP++;
-            if(a.estado === 'R') conteoR++;
-            if(a.estado === 'F') conteoF++;
-        });
-
-        const asistenciaVal = totalDiasAsis > 0 ? Math.round(((conteoP + conteoR) / totalDiasAsis) * 100) : 100;
-        const puntualidadVal = (conteoP + conteoR) > 0 ? Math.round((conteoP / (conteoP + conteoR)) * 100) : 100;
-
-        const { data: ev5s } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('created_at', fDesde).lte('created_at', fHastaMax.toISOString());
-        let total5sScore = 0;
-        ev5s?.forEach(ev => total5sScore += ev.puntuacion);
-        const val5s = ev5s?.length > 0 ? Math.round(total5sScore / ev5s.length) : 100;
-
-        const versatilidadVal = 80;
-
-        document.getElementById('val_yield').innerText = yieldVal + '%';
-        document.getElementById('val_asistencia').innerText = asistenciaVal + '%'; 
-        document.getElementById('val_checkpoint').innerText = puntualidadVal + '%'; 
-        document.getElementById('val_5s').innerText = val5s + '%';
-        document.getElementById('val_versatilidad').innerText = versatilidadVal + '%'; 
-
-        renderRadar(yieldVal, asistenciaVal, val5s, versatilidadVal, puntualidadVal);
-        if(scroll) window.scrollTo({top: 0, behavior: 'smooth'});
-    }
-
-    function renderRadar(y, a, s, v, p) {
-        const ctx = document.getElementById('chartRadar').getContext('2d');
-        if(chartRadar) chartRadar.destroy();
-        chartRadar = new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: ['Calidad', 'Asistencia', '5\'S', 'Versatilidad', 'Puntualidad'],
-                datasets: [{
-                    data: [y, a, s, v, p],
-                    backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb'
-                }]
-            },
-            options: { scales: { r: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
-        });
-    }
-
-    function previewImage(event) {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const out = document.getElementById('img_preview');
-            out.src = reader.result;
-            out.style.display = 'block';
-            document.getElementById('modal_icon_user').style.display = 'none';
-        };
-        reader.readAsDataURL(event.target.files[0]);
-    }
-
-    async function guardarEmpleado() {
-        const id = document.getElementById('edit_id').value;
-        
-        const obj = {
-            nombre_completo: document.getElementById('nombre').value,
-            nss: document.getElementById('nss').value,
-            area_general_id: document.getElementById('sel_area').value || null,
-            puesto_id: document.getElementById('sel_puesto').value || null,
-            fecha_ingreso: document.getElementById('fecha_ingreso').value,
-            turno_id: document.getElementById('sel_turno').value,
-            ruta_id: document.getElementById('sel_ruta').value || null,
-            
-            tipo_sangre: document.getElementById('tipo_sangre').value,
-            tipo_sanguineo: document.getElementById('tipo_sangre').value, 
-            talla_playera: document.getElementById('sel_talla').value,
-            direccion: document.getElementById('direccion').value,
-            telefono_personal: document.getElementById('telefono_personal').value,
-            
-            emergencia_nombre: document.getElementById('emergencia_nombre').value,
-            contacto_emergencia_nombre: document.getElementById('emergencia_nombre').value,
-            emergencia_tel: document.getElementById('emergencia_tel').value,
-            contacto_emergencia_telefono: document.getElementById('emergencia_tel').value,
-            emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
-            
-            alergias: document.getElementById('alergias').value,
-            estatus: document.getElementById('sel_estatus').value
-        };
-
-        const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
-        
-        if(!error) { alert("¡Guardado exitosamente!"); cerrarModal(); listarEmpleados(); }
-        else { alert("Error al guardar: " + error.message); }
-    }
-
-    function editarActual() {
-        const emp = db_empleados.find(e => e.id == currentEmpId);
-        if(!emp) return;
-        
-        document.getElementById('edit_id').value = emp.id;
-        document.getElementById('nombre').value = emp.nombre_completo || "";
-        document.getElementById('nss').value = emp.nss || "";
-        document.getElementById('sel_area').value = emp.area_general_id || "";
-        document.getElementById('sel_puesto').value = emp.puesto_id || "";
-        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
-        document.getElementById('sel_turno').value = emp.turno_id || "";
-        document.getElementById('sel_ruta').value = emp.ruta_id || "";
-        document.getElementById('sel_talla').value = emp.talla_playera || "M";
-        document.getElementById('direccion').value = emp.direccion || "";
-        document.getElementById('telefono_personal').value = emp.telefono_personal || "";
-        
-        document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || emp.contacto_emergencia_nombre || "";
-        document.getElementById('emergencia_tel').value = emp.emergencia_tel || emp.contacto_emergencia_telefono || "";
-        document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
-        document.getElementById('tipo_sangre').value = emp.tipo_sangre || emp.tipo_sanguineo || "";
-        document.getElementById('alergias').value = emp.alergias || "";
-        document.getElementById('sel_estatus').value = emp.estatus || "ACTIVO";
-        
-        document.getElementById('modalRegistro').style.display = 'block';
-    }
-
-    function abrirModal() {
-        document.getElementById('edit_id').value = "";
-        document.querySelectorAll('.modal-content input, .modal-content select, .modal-content textarea').forEach(i => i.value = "");
-        document.getElementById('sel_talla').value = "M";
-        document.getElementById('sel_estatus').value = "ACTIVO";
-        document.getElementById('modalRegistro').style.display = 'block';
-    }
-
-    function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
-
-    function calcularAntiguedadExacta(f) {
-        if(!f) return "-";
-        const ini = new Date(f + 'T00:00:00'), hoy = new Date();
-        let anios = hoy.getFullYear() - ini.getFullYear();
-        let meses = hoy.getMonth() - ini.getMonth();
-        if (meses < 0 || (meses === 0 && hoy.getDate() < ini.getDate())) { 
-            anios--; 
-            meses += 12; 
         }
-        return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
-    }
 
-    function exportarExcel() {
-        const ws = XLSX.utils.json_to_sheet(db_filtrados);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Personal"); 
-        XLSX.writeFile(wb, "Personal_Kraem.xlsx");
-    }
+        async function listarEmpleados() {
+            // Consulta limpia y plana para evitar que registros rotos (ej: turno_id="1") congelen el fetch
+            const { data, error } = await client.from('rh_empleados').select('*').order('nombre_completo');
 
-    function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId, false); }
-    
-    document.addEventListener('DOMContentLoaded', init);
-</script>
+            if (error) { 
+                console.error("Supabase Error:", error);
+                alert("Error cargando empleados: " + error.message);
+                return; 
+            }
+
+            if (!data || data.length === 0) {
+                const tbody = document.getElementById('lista_empleados');
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 25px; color: #64748b;">No existen registros cargados en 'rh_empleados'.</td></tr>`;
+                return;
+            }
+
+            // Cruce manual en caliente
+            db_empleados = data.map(e => {
+                const areaObj = cat_areas.find(a => a.id === e.area_general_id);
+                const puestoObj = cat_puestos.find(p => p.id === e.puesto_id);
+                const rutaObj = cat_rutas.find(r => r.id === e.ruta_id);
+                const turnoObj = cat_turnos.find(t => t.id === e.turno_id);
+
+                return {
+                    ...e,
+                    area_txt: areaObj ? areaObj.nombre : '-',
+                    puesto_txt: puestoObj ? puestoObj.nombre : '-',
+                    ruta_txt: rutaObj ? rutaObj.nombre : '-',
+                    // Protección por si el ID guardado no es un UUID compatible
+                    turno_txt: turnoObj ? turnoObj.nombre : (e.turno_id ? `Id Incompatible (${e.turno_id})` : '-'), 
+                    antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
+                };
+            });
+            
+            aplicarFiltros();
+        }
+
+        function aplicarFiltros() {
+            const n = document.getElementById('f_nombre').value.toLowerCase();
+            const a = document.getElementById('f_area').value; 
+            const t = document.getElementById('f_turno').value;
+            const r = document.getElementById('f_ruta').value;
+            const s = document.getElementById('f_estatus').value;
+
+            db_filtrados = db_empleados.filter(e => 
+                (!n || e.nombre_completo?.toLowerCase().includes(n)) && 
+                (!a || e.area_general_id == a) && 
+                (!t || e.turno_id == t) &&
+                (!r || e.ruta_id == r) &&
+                (!s || e.estatus == s)
+            );
+            
+            const tbody = document.getElementById('lista_empleados');
+            if (db_filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #475569; padding: 20px;">Ningún operador coincide con los filtros seleccionados.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = db_filtrados.map(e => `
+                <tr onclick="cargarAnalisis('${e.id}')">
+                    <td><b>${e.nombre_completo || 'Sin Nombre'}</b></td>
+                    <td>${e.area_txt}</td>
+                    <td>${e.puesto_txt}</td>
+                    <td>${e.antiguedad_txt}</td>
+                    <td>${e.turno_txt}</td>
+                    <td>${e.ruta_txt}</td>
+                    <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus || 'ACTIVO'}</span></td>
+                </tr>`).join('');
+        }
+
+        async function cargarAnalisis(id, scroll = true) {
+            const emp = db_empleados.find(e => e.id == id);
+            if(!emp) return;
+            currentEmpId = id;
+            document.getElementById('dash_analisis').style.display = 'grid';
+            
+            document.getElementById('view_foto').src = emp.foto_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+            document.getElementById('view_nombre').innerText = emp.nombre_completo;
+            document.getElementById('view_puesto_area').innerText = `${emp.puesto_txt} | ${emp.area_txt}`;
+            document.getElementById('view_nss').innerText = emp.nss || '--';
+            document.getElementById('view_anti').innerText = emp.antiguedad_txt;
+            document.getElementById('view_talla').innerText = emp.talla_playera || '--';
+            document.getElementById('view_ingreso').innerText = emp.fecha_ingreso || '--';
+            document.getElementById('view_direccion').innerText = emp.direccion || '--';
+
+            let diasTotales = 0;
+            if (emp.fecha_ingreso) {
+                const fIngreso = new Date(emp.fecha_ingreso + 'T00:00:00'); 
+                const fHoy = new Date();
+                
+                let aniosCumplidos = fHoy.getFullYear() - fIngreso.getFullYear();
+                const m = fHoy.getMonth() - fIngreso.getMonth();
+                if (m < 0 || (m === 0 && fHoy.getDate() < fIngreso.getDate())) {
+                    aniosCumplidos--; 
+                }
+                diasTotales = obtenerDiasLey(aniosCumplidos);
+            }
+
+            // Calculo de Vacaciones Solicitadas y Aprobadas
+            const { data: sol } = await client.from('rh_solicitudes').select('fecha_inicio, fecha_fin').eq('empleado_id', id).eq('tipo','VACACIONES').eq('estatus','APROBADO');
+            
+            let diasTomados = 0;
+            sol?.forEach(s => {
+                if(s.fecha_inicio && s.fecha_fin) {
+                    const inicio = new Date(s.fecha_inicio + 'T00:00:00');
+                    const fin = new Date(s.fecha_fin + 'T00:00:00');
+                    const diffTime = Math.abs(fin - inicio);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    diasTomados += diffDays;
+                }
+            });
+
+            const saldoFinal = diasTotales - diasTomados;
+            document.getElementById('view_dias_disponibles').innerText = (saldoFinal < 0 ? 0 : saldoFinal) + " días";
+
+            const fDesde = document.getElementById('f_desde').value;
+            const fHasta = document.getElementById('f_hasta').value;
+            let fHastaMax = new Date(fHasta); fHastaMax.setHours(23,59,59,999);
+            document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
+
+            // Métricas de Producción (Inspección)
+            const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
+            let ti=0, td=0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
+            const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
+
+            // Asistencia Diaria
+            const { data: asistencia } = await client.from('rh_asistencia_diaria').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
+            let totalDiasAsis = asistencia?.length || 0;
+            let conteoP = 0, conteoR = 0, conteoF = 0;
+            
+            asistencia?.forEach(a => {
+                if(a.estado === 'P') conteoP++;
+                if(a.estado === 'R') conteoR++;
+                if(a.estado === 'F') conteoF++;
+            });
+
+            const asistenciaVal = totalDiasAsis > 0 ? Math.round(((conteoP + conteoR) / totalDiasAsis) * 100) : 100;
+            const puntualidadVal = (conteoP + conteoR) > 0 ? Math.round((conteoP / (conteoP + conteoR)) * 100) : 100;
+
+            // Evaluaciones 5S
+            const { data: ev5s } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('created_at', fDesde).lte('created_at', fHastaMax.toISOString());
+            let total5sScore = 0;
+            ev5s?.forEach(ev => total5sScore += ev.puntuacion);
+            const val5s = ev5s?.length > 0 ? Math.round(total5sScore / ev5s.length) : 100;
+
+            const versatilidadVal = 80; // Hardcoded estándar
+
+            document.getElementById('val_yield').innerText = yieldVal + '%';
+            document.getElementById('val_asistencia').innerText = asistenciaVal + '%'; 
+            document.getElementById('val_checkpoint').innerText = puntualidadVal + '%'; 
+            document.getElementById('val_5s').innerText = val5s + '%';
+            document.getElementById('val_versatilidad').innerText = versatilidadVal + '%'; 
+
+            renderRadar(yieldVal, asistenciaVal, val5s, versatilidadVal, puntualidadVal);
+            if(scroll) window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function renderRadar(y, a, s, v, p) {
+            const ctx = document.getElementById('chartRadar').getContext('2d');
+            if(chartRadar) chartRadar.destroy();
+            chartRadar = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Calidad', 'Asistencia', '5\'S', 'Versatilidad', 'Puntualidad'],
+                    datasets: [{
+                        data: [y, a, s, v, p],
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb'
+                    }]
+                },
+                options: { scales: { r: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function previewImage(event) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const out = document.getElementById('img_preview');
+                out.src = reader.result;
+                out.style.display = 'block';
+                document.getElementById('modal_icon_user').style.display = 'none';
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        async function guardarEmpleado() {
+            const id = document.getElementById('edit_id').value;
+            
+            const obj = {
+                nombre_completo: document.getElementById('nombre').value,
+                nss: document.getElementById('nss').value,
+                area_general_id: document.getElementById('sel_area').value || null,
+                puesto_id: document.getElementById('sel_puesto').value || null,
+                fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
+                turno_id: document.getElementById('sel_turno').value || null,
+                ruta_id: document.getElementById('sel_ruta').value || null,
+                
+                tipo_sangre: document.getElementById('tipo_sangre').value,
+                tipo_sanguineo: document.getElementById('tipo_sangre').value, 
+                talla_playera: document.getElementById('sel_talla').value,
+                direccion: document.getElementById('direccion').value,
+                telefono_personal: document.getElementById('telefono_personal').value,
+                
+                emergencia_nombre: document.getElementById('emergencia_nombre').value,
+                contacto_emergencia_nombre: document.getElementById('emergencia_nombre').value,
+                emergencia_tel: document.getElementById('emergencia_tel').value,
+                contacto_emergencia_telefono: document.getElementById('emergencia_tel').value,
+                emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
+                
+                alergias: document.getElementById('alergias').value,
+                estatus: document.getElementById('sel_estatus').value || 'ACTIVO'
+            };
+
+            const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
+            
+            if(!error) { alert("¡Guardado exitosamente!"); cerrarModal(); listarEmpleados(); }
+            else { alert("Error al guardar en base de datos: " + error.message); }
+        }
+
+        function editarActual() {
+            const emp = db_empleados.find(e => e.id == currentEmpId);
+            if(!emp) return;
+            
+            document.getElementById('edit_id').value = emp.id;
+            document.getElementById('nombre').value = emp.nombre_completo || "";
+            document.getElementById('nss').value = emp.nss || "";
+            document.getElementById('sel_area').value = emp.area_general_id || "";
+            document.getElementById('sel_puesto').value = emp.puesto_id || "";
+            document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
+            // Descartamos IDs legacy "1" o "2" en el input para forzar a guardar UUIDs válidos
+            document.getElementById('sel_turno').value = (emp.turno_id === "1" || emp.turno_id === "2") ? "" : (emp.turno_id || "");
+            document.getElementById('sel_ruta').value = emp.ruta_id || "";
+            document.getElementById('sel_talla').value = emp.talla_playera || "M";
+            document.getElementById('direccion').value = emp.direccion || "";
+            document.getElementById('telefono_personal').value = emp.telefono_personal || "";
+            
+            document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || emp.contacto_emergencia_nombre || "";
+            document.getElementById('emergencia_tel').value = emp.emergencia_tel || emp.contacto_emergencia_telefono || "";
+            document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
+            document.getElementById('tipo_sangre').value = emp.tipo_sangre || emp.tipo_sanguineo || "";
+            document.getElementById('alergias').value = emp.alergias || "";
+            document.getElementById('sel_estatus').value = emp.estatus || "ACTIVO";
+            
+            document.getElementById('modalRegistro').style.display = 'block';
+        }
+
+        function abrirModal() {
+            document.getElementById('edit_id').value = "";
+            document.querySelectorAll('.modal-content input, .modal-content select, .modal-content textarea').forEach(i => i.value = "");
+            document.getElementById('sel_talla').value = "M";
+            document.getElementById('sel_estatus').value = "ACTIVO";
+            document.getElementById('img_preview').style.display = 'none';
+            document.getElementById('modal_icon_user').style.display = 'block';
+            document.getElementById('modalRegistro').style.display = 'block';
+        }
+
+        function cerrarModal() { document.getElementById('modalRegistro').style.display = 'none'; }
+
+        function calcularAntiguedadExacta(f) {
+            if(!f) return "-";
+            const ini = new Date(f + 'T00:00:00'), hoy = new Date();
+            let anios = hoy.getFullYear() - ini.getFullYear();
+            let meses = hoy.getMonth() - ini.getMonth();
+            if (meses < 0 || (meses === 0 && hoy.getDate() < ini.getDate())) { 
+                anios--; 
+                meses += 12; 
+            }
+            return anios > 0 ? `${anios} años, ${meses} m` : `${meses} meses`;
+        }
+
+        function exportarExcel() {
+            const ws = XLSX.utils.json_to_sheet(db_filtrados);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Personal_Kraem"); 
+            XLSX.writeFile(wb, "Personal_Kraem.xlsx");
+        }
+
+        function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId, false); }
+        
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>
