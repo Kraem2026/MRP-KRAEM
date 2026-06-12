@@ -120,10 +120,10 @@
 <script>
     let modo = 'asistencia';
     let areaSeleccionada = 'TODOS';
-    let turnoSeleccionado = 'TODOS'; // Nueva variable de control
+    let turnoSeleccionado = 'TODOS'; 
     let empleados = [];
     let áreas = [];
-    let turnos Master = []; // Almacén maestro de turnos
+    let turnosMaster = []; // Corregido el espacio en blanco aquí
     let solicitudes = [];
     let asistenciaLocal = {}; 
 
@@ -132,7 +132,6 @@
         document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
         try {
-            // Se añade la consulta paralela a la tabla 'rh_turnos' y se extrae el campo 'turno_id' de los empleados
             const [resEmp, resAreas, resTurnos, resSol, resAsis] = await Promise.all([
                 client.from('rh_empleados').select('id, nombre_completo, foto_url, area_general_id, turno_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
                 client.from('areas_generales').select('*').order('nombre'),
@@ -153,12 +152,11 @@
                 areasContainer.innerHTML += `<div class="area-chip" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
             });
 
-            // NUEVO: Renderizar chips de Turnos Operativos
+            // Renderizar chips de Turnos Operativos
             const turnosContainer = document.getElementById('turnos-container');
             turnosContainer.innerHTML = `<div class="turno-chip ${turnoSeleccionado === 'TODOS' ? 'active' : ''}" onclick="filtrarTurno('TODOS', this)">TODOS</div>`;
             turnosMaster.forEach(t => {
-                // Identificar el ID numérico correspondiente para la lógica de filtrado del empleado
-                let idFiltro = t.nombre.includes('2') ? '2' : (t.nombre.includes('1') ? '1' : t.id);
+                let idFiltro = t.nombre.includes('2') ? '2' : (t.nombre.includes('1') ? '1' : String(t.id));
                 turnosContainer.innerHTML += `<div class="turno-chip" onclick="filtrarTurno('${idFiltro}', this)">${t.nombre}</div>`;
             });
 
@@ -186,7 +184,6 @@
         render();
     }
 
-    // NUEVA FUNCIÓN: Manejo del clic en los chips de turnos
     function filtrarTurno(id, element) {
         turnoSeleccionado = id;
         document.querySelectorAll('.turno-chip').forEach(c => c.classList.remove('active'));
@@ -205,7 +202,6 @@
         const container = document.getElementById('lista-empleados');
         container.innerHTML = '';
 
-        // SE OPTIMIZÓ EL FILTRO: Valida simultáneamente el área seleccionada y el turno del empleado
         const filtrados = empleados.filter(e => {
             const cumpleArea = areaSeleccionada === 'TODOS' || String(e.area_general_id) === String(areaSeleccionada);
             const cumpleTurno = turnoSeleccionado === 'TODOS' || String(e.turno_id) === String(turnoSeleccionado);
