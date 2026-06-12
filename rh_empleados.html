@@ -235,23 +235,23 @@
     }
 
     async function listarEmpleados() {
-        // CORRECCIÓN: Solicitamos explícitamente el campo 'nombre' de la tabla 'rh_turnos' vinculada
+        // SOLUCIÓN: Relación explícita mediante la Foreign Key 'turno_id' para evitar conflictos de mapeo en PostgREST
         const { data, error } = await client.from('rh_empleados').select(`
             *,
             areas_generales (nombre),
             rh_puestos (nombre),
             rh_rutas (nombre),
-            rh_turnos (nombre)
+            rh_turnos:turno_id (nombre)
         `).order('nombre_completo');
 
-        if (error) { console.error("Error:", error); return; }
+        if (error) { console.error("Error al obtener empleados:", error); return; }
 
         db_empleados = data.map(e => ({
             ...e,
             area_txt: e.areas_generales?.nombre || '-',
             puesto_txt: e.rh_puestos?.nombre || '-',
             ruta_txt: e.rh_rutas?.nombre || '-',
-            turno_txt: e.rh_turnos?.nombre || '-', // Mapeo dinámico del texto legible
+            turno_txt: e.rh_turnos?.nombre || '-', 
             antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
         }));
         aplicarFiltros();
@@ -279,7 +279,8 @@
                 <td>${e.area_txt}</td>
                 <td>${e.puesto_txt}</td>
                 <td>${e.antiguedad_txt}</td>
-                <td>Turno ${e.turno_txt || '-'}</td> <td>${e.ruta_txt}</td>
+                <td>${e.turno_txt}</td>
+                <td>${e.ruta_txt}</td>
                 <td><span class="status-badge ${e.estatus === 'ACTIVO' ? 'status-activo' : 'status-baja'}">${e.estatus}</span></td>
             </tr>`).join('');
     }
@@ -480,7 +481,7 @@
     function exportarExcel() {
         const ws = XLSX.utils.json_to_sheet(db_filtrados);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Personal"); // CORRECCIÓN: Quitada la 'X' extra
+        XLSX.utils.book_append_sheet(wb, ws, "Personal"); 
         XLSX.writeFile(wb, "Personal_Kraem.xlsx");
     }
 
