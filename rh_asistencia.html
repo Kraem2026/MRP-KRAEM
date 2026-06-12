@@ -71,7 +71,7 @@
         .input-extra { width: 60px; padding: 8px; border-radius: 8px; border: 2px solid var(--purple); text-align: center; font-weight: bold; font-size: 16px; outline: none; }
         .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; z-index: 100; }
         .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; }
-        .notice-badge { font-size: 10px; background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-weight: bold; margin-top: 4px; display: inline-block;}
+        .notice-badge { font-size: 10px; background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 6px; font-weight: bold; margin-top: 4px; display: inline-block;}
     </style>
 </head>
 <body>
@@ -131,7 +131,7 @@
     let asistenciaLocal = {}; 
     let fechaTrabajoGlobal = ""; 
 
-    const mapeoDias = { 1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado', 0: 'domingo' };
+    const mapeoDiasColumna = { 1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado', 0: 'domingo' };
 
     function calcularFechaOperativaInicial() {
         const ahora = new Date();
@@ -154,8 +154,9 @@
         document.getElementById('fecha-texto-largo').innerText = dateObj.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
         try {
+            // CORRECCIÓN: Usamos 'rh_puestos!puesto_id(nombre)' para enlazar explícitamente a través de la columna de tu tabla
             const [resEmp, resAreas, resTurnos, resSol, resAsis] = await Promise.all([
-                client.from('rh_empleados').select('id, nombre_completo, foto_url, area_general_id, turno_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
+                client.from('rh_empleados').select('id, nombre_completo, foto_url, area_general_id, turno_id, puesto_id, rh_puestos!puesto_id(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
                 client.from('areas_generales').select('*').order('nombre'),
                 client.from('rh_turnos').select('*').order('nombre'),
                 client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', fechaTrabajoGlobal).gte('fecha_fin', fechaTrabajoGlobal),
@@ -180,7 +181,7 @@
             });
 
             asistenciaLocal = {};
-            resAsis.data.forEach(a => {
+            (resAsis.data || []).forEach(a => {
                 asistenciaLocal[a.empleado_id] = { 
                     estado: a.estado, 
                     horas_extra: a.horas_extra || 0,
@@ -232,8 +233,8 @@
         container.innerHTML = '';
 
         const [y, m, d] = fechaTrabajoGlobal.split('-');
-        const numeroDiaSemana = new Date(y, m - 1, d).getDay();
-        const diaNombreColumna = mapeoDias[numeroDiaSemana];
+        const diaSemana = new Date(y, m - 1, d).getDay();
+        const nombreDiaColumna = mapeoDiasColumna[diaSemana];
 
         const filtrados = empleados.filter(e => {
             const cumpleArea = areaSeleccionada === 'TODOS' || String(e.area_general_id).trim() === String(areaSeleccionada).trim();
@@ -255,13 +256,15 @@
             const card = document.createElement('div');
             card.className = `attendance-card ${data.en_db ? 'card-saved' : ''} ${modo === 'extra' && data.horas_extra > 0 ? 'card-extra' : ''}`;
 
-            const miTurnoConfig = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
-            const entradaOficialDia = miTurnoConfig ? miTurnoConfig[`entrada_${diaNombreColumna}`] : null;
-            const salidaOficialDia = miTurnoConfig ? miTurnoConfig[`salida_${diaNombreColumna}`] : null;
-
             let controles = '';
             let controlesDinamicos = '';
             
+            // CORRECCIÓN: Comprobación flexible del Turno 2 basada en tus IDs numéricos simplificados
+            const esTurno2 = (emp.turno_id && String(emp.turno_id).trim() === '2');
+            const esViernesDeTurno2 = esTurno2 && diaSemana === 5;
+
+            const turnoAsignado = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
+
             if (modo === 'asistencia') {
                 if (sol) {
                     controles = `<span class="status-badge" style="background:#64748b;"><i class="fas fa-lock"></i> ${sol.tipo}</span>`;
@@ -289,11 +292,14 @@
                         </div>`;
 
                     if (data.estado === 'R') {
-                        const sugerenciaHora = entradaOficialDia ? entradaOficialDia.substring(0,5) : '';
+                        let horaSugerida = '';
+                        if (turnoAsignado && turnoAsignado[`entrada_${nombreDiaColumna}`]) {
+                            horaSugerida = turnoAsignado[`entrada_${nombreDiaColumna}`].substring(0, 5);
+                        }
                         controlesDinamicos = `
                             <div class="dynamic-controls">
                                 <label style="font-size:11px; font-weight:bold; align-self:center; color:var(--warning)">Hora Llegada:</label>
-                                <input type="time" class="input-sub" value="${data.hora_llegada || sugerenciaHora}" onchange="updateSubCampos('${emp.id}', 'hora_llegada', this.value)">
+                                <input type="time" class="input-sub" value="${data.hora_llegada || horaSugerida}" onchange="updateSubCampos('${emp.id}', 'hora_llegada', this.value)">
                             </div>`;
                     } else if (data.estado === 'F') {
                         controlesDinamicos = `
@@ -312,18 +318,25 @@
                     }
                 }
             } else {
-                controles = `
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
-                        <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
-                    </div>`;
+                if (esViernesDeTurno2) {
+                    controles = `
+                        <div style="text-align:right;">
+                            <span style="font-size:11px; font-weight:bold; color:var(--warning);"><i class="fas fa-info-circle"></i> Extensión Regular</span>
+                            <br><small style="font-size:9px; color:#64748b;">Salida obligatoria 7:30 AM</small>
+                        </div>`;
+                } else {
+                    controles = `
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
+                            <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
+                        </div>`;
+                }
             }
 
-            let etiquetaHorarioDia = '';
-            if (entradaOficialDia && salidaOficialDia) {
-                etiquetaHorarioDia = `<span class="notice-badge">Horario Hoy: ${entradaOficialDia.substring(0,5)} a ${salidaOficialDia.substring(0,5)}</span>`;
-            } else {
-                etiquetaHorarioDia = `<span class="notice-badge" style="background:#fee2e2; color:#ef4444;">Día no laborable para este turno</span>`;
+            // CORRECCIÓN: Parseo súper seguro del puesto usando la relación forzada por 'puesto_id'
+            let nombrePuesto = 'OPERATIVO';
+            if (emp.rh_puestos) {
+                nombrePuesto = Array.isArray(emp.rh_puestos) ? (emp.rh_puestos[0]?.nombre || 'OPERATIVO') : (emp.rh_puestos.nombre || 'OPERATIVO');
             }
 
             card.innerHTML = `
@@ -332,8 +345,10 @@
                         <img src="${emp.foto_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="emp-img">
                         <div class="emp-details">
                             <h4>${emp.nombre_completo}</h4>
-                            <p>${emp.rh_puestos?.nombre || 'OPERATIVO'} - <span style="color:var(--accent);">${miTurnoConfig ? miTurnoConfig.nombre : 'Sin Turno'}</span></p>
-                            ${etiquetaHorarioDia}
+                            <p>${nombrePuesto} 
+                                ${esTurno2 ? '<span style="color:var(--purple); font-weight:800;">[T2]</span>' : ''}
+                            </p>
+                            ${esViernesDeTurno2 && modo === 'asistencia' ? '<span class="notice-badge">Jornada de Viernes (Termina Sábado 7:30 AM)</span>' : ''}
                         </div>
                     </div>
                     ${controles}
@@ -346,19 +361,7 @@
     function updateLocal(id, est) {
         if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', horas_extra: 0, hora_llegada: '', motivo: '', en_db: false };
         asistenciaLocal[id].estado = est;
-        
-        if(est === 'P') { 
-            asistenciaLocal[id].hora_llegada = ''; 
-            asistenciaLocal[id].motivo = ''; 
-        } else if (est === 'R') {
-            const [y, m, d] = fechaTrabajoGlobal.split('-');
-            const numDia = new Date(y, m - 1, d).getDay();
-            const emp = empleados.find(e => e.id === id);
-            const tConf = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
-            if (tConf && tConf[`entrada_${mapeoDias[numDia]}`]) {
-                asistenciaLocal[id].hora_llegada = tConf[`entrada_${mapeoDias[numDia]}`].substring(0,5);
-            }
-        }
+        if(est === 'P') { asistenciaLocal[id].hora_llegada = ''; asistenciaLocal[id].motivo = ''; }
         render();
     }
 
@@ -384,17 +387,14 @@
         let validacionOk = true;
 
         const [y, m, d] = fechaTrabajoGlobal.split('-');
-        const numeroDiaSemana = new Date(y, m - 1, d).getDay();
-        const diaNombreColumna = mapeoDias[numeroDiaSemana];
+        const diaSemana = new Date(y, m - 1, d).getDay();
+        const nombreDiaColumna = mapeoDiasColumna[diaSemana];
         
         const batch = Object.keys(asistenciaLocal)
             .filter(id => asistenciaLocal[id].estado)
             .map(id => {
                 const item = asistenciaLocal[id];
                 const emp = empleados.find(e => e.id === id);
-                const miTurnoConfig = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
-                
-                const horasBaseCalculadasParaHoy = miTurnoConfig ? parseFloat(miTurnoConfig[`h_${diaNombreColumna}`]) || 0 : 0;
 
                 if(item.estado === 'R' && !item.hora_llegada && !item.en_db) {
                     alert("Por favor ingresa la hora de llegada para los retardos.");
@@ -405,14 +405,23 @@
                     validacionOk = false;
                 }
 
+                const esTurno2 = (emp && String(emp.turno_id).trim() === '2');
+                let hExtra = item.horas_extra || 0;
+                if (esTurno2 && diaSemana === 5) {
+                    hExtra = 0; 
+                }
+
+                const turnoAsignado = turnosMaster.find(t => String(t.id).trim() === String(emp?.turno_id).trim());
+                const horasBaseCalculadasHoy = turnoAsignado ? parseFloat(turnoAsignado[`h_${nombreDiaColumna}`]) || 0 : 0;
+
                 return {
                     empleado_id: id,
                     fecha: fechaTrabajoGlobal,
                     estado: item.estado,
                     hora_llegada: item.hora_llegada || null,
                     motivo: item.motivo || 'N/A',
-                    horas_extra: item.horas_extra || 0,
-                    horas_base_calculadas: horasBaseCalculadasParaHoy 
+                    horas_extra: hExtra,
+                    horas_base_calculadas: horasBaseCalculadasHoy
                 };
             });
 
