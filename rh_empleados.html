@@ -116,7 +116,7 @@
             <div class="group"><label>Desde</label><input type="date" id="f_desde" onchange="actualizarTodo()"></div>
             <div class="group"><label>Hasta</label><input type="date" id="f_hasta" onchange="actualizarTodo()"></div>
             <div class="group"><label>Área</label><select id="f_area" onchange="aplicarFiltros()"></select></div>
-            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+            <div class="group"><label>Turno</label><select id="f_turno" onchange="aplicarFiltros()"></select></div>
             <div class="group"><label>Ruta</label><select id="f_ruta" onchange="aplicarFiltros()"></select></div>
             <div class="group"><label>Estatus</label><select id="f_estatus" onchange="aplicarFiltros()"><option value="">Todos</option><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
         </div>
@@ -163,7 +163,7 @@
             <div class="group"><label># Seguro Social (NSS)</label><input type="text" id="nss"></div>
             <div class="group"><label>Área</label><select id="sel_area"></select></div>
             <div class="group"><label>Puesto</label><select id="sel_puesto"></select></div>
-            <div class="group"><label>Turno</label><select id="sel_turno"><option value="1">1</option><option value="2">2</option></select></div>
+            <div class="group"><label>Turno</label><select id="sel_turno"></select></div>
             <div class="group"><label>Ruta</label><select id="sel_ruta"></select></div>
             <div class="group"><label>Fecha Ingreso</label><input type="date" id="fecha_ingreso"></div>
             <div class="group"><label>Estatus</label><select id="sel_estatus"><option value="ACTIVO">ACTIVO</option><option value="BAJA">BAJA</option></select></div>
@@ -191,9 +191,8 @@
     let chartRadar;
     let currentEmpId = null;
 
-    // LÓGICA DE LEY FEDERAL DEL TRABAJO ESTRICTA POR ANIVERSARIO CUMPLIDO
     function obtenerDiasLey(anios) {
-        if (anios < 1) return 0; // Menos de 1 año cumplido = 0 días de derecho
+        if (anios < 1) return 0;
         if (anios === 1) return 12;
         if (anios === 2) return 14;
         if (anios === 3) return 16;
@@ -211,6 +210,8 @@
         const { data: areas } = await client.from('areas_generales').select('id, nombre').order('nombre');
         const { data: puestos } = await client.from('rh_puestos').select('*').order('nombre');
         const { data: rutas } = await client.from('rh_rutas').select('*').order('nombre');
+        // CORRECCIÓN: Traemos los turnos directamente de la base de datos para no dejarlos fijos
+        const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
         
         const fill = (id, data, esFiltro = false) => {
             const s = document.getElementById(id);
@@ -224,6 +225,10 @@
         fill('sel_puesto', puestos);
         fill('sel_ruta', rutas); 
         fill('f_ruta', rutas, true);
+        
+        // Llenamos selectores de turnos dinámicamente
+        fill('sel_turno', turnos);
+        fill('f_turno', turnos, true);
 
         const d = new Date();
         document.getElementById('f_desde').value = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
@@ -295,21 +300,19 @@
         document.getElementById('view_ingreso').innerText = emp.fecha_ingreso;
         document.getElementById('view_direccion').innerText = emp.direccion || '--';
 
-        // LÓGICA EVALUADORA DE ANIVERSARIO (Evita falsos acumulados a los 3 meses)
         let diasTotales = 0;
         if (emp.fecha_ingreso) {
-            const fIngreso = new Date(emp.fecha_ingreso + 'T00:00:00'); // Evita desfase horario local
+            const fIngreso = new Date(emp.fecha_ingreso + 'T00:00:00'); 
             const fHoy = new Date();
             
             let aniosCumplidos = fHoy.getFullYear() - fIngreso.getFullYear();
             const m = fHoy.getMonth() - fIngreso.getMonth();
             if (m < 0 || (m === 0 && fHoy.getDate() < fIngreso.getDate())) {
-                aniosCumplidos--; // Aún no llega al día exacto de su aniversario
+                aniosCumplidos--; 
             }
             diasTotales = obtenerDiasLey(aniosCumplidos);
         }
 
-        // Coordinación exacta de cálculos con solicitudes y asistencias
         const { data: sol } = await client.from('rh_solicitudes').select('fecha_inicio, fecha_fin').eq('empleado_id', id).eq('tipo','VACACIONES').eq('estatus','APROBADO');
         
         let diasTomados = 0;
@@ -326,18 +329,15 @@
         const saldoFinal = diasTotales - diasTomados;
         document.getElementById('view_dias_disponibles').innerText = (saldoFinal < 0 ? 0 : saldoFinal) + " días";
 
-        // Rangos de fecha para KPIs
         const fDesde = document.getElementById('f_desde').value;
         const fHasta = document.getElementById('f_hasta').value;
         let fHastaMax = new Date(fHasta); fHastaMax.setHours(23,59,59,999);
         document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
-        // 1. CALIDAD (Yield Real)
         const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
         let ti=0, td=0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
         const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
 
-        // 2. ASISTENCIA Y PUNTUALIDAD COORDINDADO
         const { data: asistencia } = await client.from('rh_asistencia_diaria').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
         
         let totalDiasAsis = asistencia?.length || 0;
@@ -352,16 +352,13 @@
         const asistenciaVal = totalDiasAsis > 0 ? Math.round(((conteoP + conteoR) / totalDiasAsis) * 100) : 100;
         const puntualidadVal = (conteoP + conteoR) > 0 ? Math.round((conteoP / (conteoP + conteoR)) * 100) : 100;
 
-        // 3. 5'S CORREGIDO
         const { data: ev5s } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('created_at', fDesde).lte('created_at', fHastaMax.toISOString());
         let total5sScore = 0;
         ev5s?.forEach(ev => total5sScore += ev.puntuacion);
         const val5s = ev5s?.length > 0 ? Math.round(total5sScore / ev5s.length) : 100;
 
-        // 4. VERSATILIDAD (Placeholder provisional)
         const versatilidadVal = 80;
 
-        // Renderizado en la Interfaz
         document.getElementById('val_yield').innerText = yieldVal + '%';
         document.getElementById('val_asistencia').innerText = asistenciaVal + '%'; 
         document.getElementById('val_checkpoint').innerText = puntualidadVal + '%'; 
@@ -401,6 +398,8 @@
 
     async function guardarEmpleado() {
         const id = document.getElementById('edit_id').value;
+        
+        // CORRECCIÓN: Alineación estricta con las columnas reales mapeadas de la base de datos
         const obj = {
             nombre_completo: document.getElementById('nombre').value,
             nss: document.getElementById('nss').value,
@@ -409,41 +408,62 @@
             fecha_ingreso: document.getElementById('fecha_ingreso').value,
             turno_id: document.getElementById('sel_turno').value,
             ruta_id: document.getElementById('sel_ruta').value || null,
+            
             tipo_sangre: document.getElementById('tipo_sangre').value,
+            tipo_sanguineo: document.getElementById('tipo_sangre').value, // Seteamos ambos para evitar conflictos transaccionales
             talla_playera: document.getElementById('sel_talla').value,
             direccion: document.getElementById('direccion').value,
             telefono_personal: document.getElementById('telefono_personal').value,
+            
+            // Corrección de nombres de campos duplicados/espejo
             emergencia_nombre: document.getElementById('emergencia_nombre').value,
-            emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
+            contacto_emergencia_nombre: document.getElementById('emergencia_nombre').value,
             emergencia_tel: document.getElementById('emergencia_tel').value,
+            contacto_emergencia_telefono: document.getElementById('emergencia_tel').value,
+            emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
+            
             alergias: document.getElementById('alergias').value,
             estatus: document.getElementById('sel_estatus').value
         };
 
         const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
         
-        if(!error) { alert("¡Guardado!"); cerrarModal(); listarEmpleados(); }
-        else { alert("Error: " + error.message); }
+        if(!error) { alert("¡Guardado exitosamente!"); cerrarModal(); listarEmpleados(); }
+        else { alert("Error al guardar: " + error.message); }
     }
 
     function editarActual() {
         const emp = db_empleados.find(e => e.id == currentEmpId);
+        if(!emp) return;
+        
         document.getElementById('edit_id').value = emp.id;
-        document.getElementById('nombre').value = emp.nombre_completo;
+        document.getElementById('nombre').value = emp.nombre_completo || "";
         document.getElementById('nss').value = emp.nss || "";
         document.getElementById('sel_area').value = emp.area_general_id || "";
         document.getElementById('sel_puesto').value = emp.puesto_id || "";
-        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso;
-        document.getElementById('sel_turno').value = emp.turno_id;
+        document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
+        document.getElementById('sel_turno').value = emp.turno_id || "";
         document.getElementById('sel_ruta').value = emp.ruta_id || "";
         document.getElementById('sel_talla').value = emp.talla_playera || "M";
         document.getElementById('direccion').value = emp.direccion || "";
+        document.getElementById('telefono_personal').value = emp.telefono_personal || "";
+        
+        // Sincronización segura de campos de emergencia al editar
+        document.getElementById('emergencia_nombre').value = emp.emergencia_nombre || emp.contacto_emergencia_nombre || "";
+        document.getElementById('emergencia_tel').value = emp.emergencia_tel || emp.contacto_emergencia_telefono || "";
+        document.getElementById('emergencia_parentesco').value = emp.emergencia_parentesco || "";
+        document.getElementById('tipo_sangre').value = emp.tipo_sangre || emp.tipo_sanguineo || "";
+        document.getElementById('alergias').value = emp.alergias || "";
+        document.getElementById('sel_estatus').value = emp.estatus || "ACTIVO";
+        
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
     function abrirModal() {
         document.getElementById('edit_id').value = "";
-        document.querySelectorAll('.modal-content input, .modal-content select').forEach(i => i.value = "");
+        document.querySelectorAll('.modal-content input, .modal-content select, .modal-content textarea').forEach(i => i.value = "");
+        document.getElementById('sel_talla').value = "M";
+        document.getElementById('sel_estatus').value = "ACTIVO";
         document.getElementById('modalRegistro').style.display = 'block';
     }
 
@@ -464,8 +484,8 @@
     function exportarExcel() {
         const ws = XLSX.utils.json_to_sheet(db_filtrados);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Personal");
-        XLSX.writeFile(wb, "Personal_Kraem.xlsx");
+        XXLSX.utils.book_append_sheet(wb, ws, "Personal");
+        XXLSX.writeFile(wb, "Personal_Kraem.xlsx");
     }
 
     function actualizarTodo() { if(currentEmpId) cargarAnalisis(currentEmpId, false); }
