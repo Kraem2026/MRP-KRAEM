@@ -24,7 +24,6 @@
             font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;
         }
 
-        /* Contenedor del Selector de Fecha Operativa */
         .date-picker-box {
             background: white; padding: 12px 16px; border-radius: 12px;
             border: 1px solid var(--border); display: flex; align-items: center;
@@ -72,7 +71,7 @@
         .input-extra { width: 60px; padding: 8px; border-radius: 8px; border: 2px solid var(--purple); text-align: center; font-weight: bold; font-size: 16px; outline: none; }
         .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; z-index: 100; }
         .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; }
-        .notice-badge { font-size: 10px; background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 6px; font-weight: bold; margin-top: 4px; display: inline-block;}
+        .notice-badge { font-size: 10px; background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-weight: bold; margin-top: 4px; display: inline-block;}
     </style>
 </head>
 <body>
@@ -132,8 +131,8 @@
     let asistenciaLocal = {}; 
     let fechaTrabajoGlobal = ""; 
 
-    // UUID específico del Turno 2 en tu Base de Datos
-    const ID_TURNO_2 = '57128cef-7a49-40c9-b6af-d82ac82c20ab';
+    // Mapeador global de días para no duplicar código
+    const mapeoDias = { 1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado', 0: 'domingo' };
 
     function calcularFechaOperativaInicial() {
         const ahora = new Date();
@@ -171,11 +170,10 @@
 
             const areasContainer = document.getElementById('areas-container');
             areasContainer.innerHTML = `<div class="area-chip ${areaSeleccionada === 'TODOS' ? 'active' : ''}" onclick="filtrarArea('TODOS', this)">TODOS</div>`;
-            áreas.forEach(a => {
+            Áreas.forEach(a => {
                 areasContainer.innerHTML += `<div class="area-chip ${String(areaSeleccionada).trim() === String(a.id).trim() ? 'active' : ''}" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
             });
 
-            // CORRECCIÓN: Quitamos el mapeo de caracteres manuales ('1' o '2') para usar directamente los UUIDs limpios
             const turnosContainer = document.getElementById('turnos-container');
             turnosContainer.innerHTML = `<div class="turno-chip ${turnoSeleccionado === 'TODOS' ? 'active' : ''}" onclick="filtrarTurno('TODOS', this)">TODOS</div>`;
             turnosMaster.forEach(t => {
@@ -235,9 +233,9 @@
         container.innerHTML = '';
 
         const [y, m, d] = fechaTrabajoGlobal.split('-');
-        const diaSemana = new Date(y, m - 1, d).getDay();
+        const numeroDiaSemana = new Date(y, m - 1, d).getDay();
+        const diaNombreColumna = mapeoDias[numeroDiaSemana];
 
-        // CORRECCIÓN: El filtrado de datos ahora hace una comparación estricta de cadenas UUID sin fallos de conversión
         const filtrados = empleados.filter(e => {
             const cumpleArea = areaSeleccionada === 'TODOS' || String(e.area_general_id).trim() === String(areaSeleccionada).trim();
             const cumpleTurno = turnoSeleccionado === 'TODOS' || String(e.turno_id).trim() === String(turnoSeleccionado).trim();
@@ -258,13 +256,14 @@
             const card = document.createElement('div');
             card.className = `attendance-card ${data.en_db ? 'card-saved' : ''} ${modo === 'extra' && data.horas_extra > 0 ? 'card-extra' : ''}`;
 
+            // Buscamos la configuración completa del turno del empleado desde el turnosMaster relacional
+            const miTurnoConfig = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
+            const entradaOficialDia = miTurnoConfig ? miTurnoConfig[`entrada_${diaNombreColumna}`] : null;
+            const salidaOficialDia = miTurnoConfig ? miTurnoConfig[`salida_${diaNombreColumna}`] : null;
+
             let controles = '';
             let controlesDinamicos = '';
             
-            // CORRECCIÓN: Cambiado para buscar exactamente la coincidencia limpia del UUID o el texto del Turno 2
-            const esTurno2 = String(emp.turno_id).trim() === ID_TURNO_2 || (emp.turno_id && String(emp.turno_id).includes('2'));
-            const esViernesDeTurno2 = esTurno2 && diaSemana === 5;
-
             if (modo === 'asistencia') {
                 if (sol) {
                     controles = `<span class="status-badge" style="background:#64748b;"><i class="fas fa-lock"></i> ${sol.tipo}</span>`;
@@ -292,10 +291,12 @@
                         </div>`;
 
                     if (data.estado === 'R') {
+                        // Sugiere la hora de entrada oficial de este día como valor inicial por comodidad
+                        const sugerenciaHora = entradaOficialDia ? entradaOficialDia.substring(0,5) : '';
                         controlesDinamicos = `
                             <div class="dynamic-controls">
                                 <label style="font-size:11px; font-weight:bold; align-self:center; color:var(--warning)">Hora Llegada:</label>
-                                <input type="time" class="input-sub" value="${data.hora_llegada || ''}" onchange="updateSubCampos('${emp.id}', 'hora_llegada', this.value)">
+                                <input type="time" class="input-sub" value="${data.hora_llegada || sugerenciaHora}" onchange="updateSubCampos('${emp.id}', 'hora_llegada', this.value)">
                             </div>`;
                     } else if (data.estado === 'F') {
                         controlesDinamicos = `
@@ -314,19 +315,20 @@
                     }
                 }
             } else {
-                if (esViernesDeTurno2) {
-                    controles = `
-                        <div style="text-align:right;">
-                            <span style="font-size:11px; font-weight:bold; color:var(--warning);"><i class="fas fa-info-circle"></i> Extensión Regular</span>
-                            <br><small style="font-size:9px; color:#64748b;">Salida obligatoria 7:30 AM</small>
-                        </div>`;
-                } else {
-                    controles = `
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
-                            <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
-                        </div>`;
-                }
+                // Modo tiempo extra: Totalmente dinámico según las horas y salidas oficiales de la Base de Datos
+                controles = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
+                        <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
+                    </div>`;
+            }
+
+            // Bloque informativo sobre el horario del día actual sacado dinámicamente
+            let etiquetaHorarioDia = '';
+            if (entradaOficialDia && salidaOficialDia) {
+                etiquetaHorarioDia = `<span class="notice-badge">Horario Hoy: ${entradaOficialDia.substring(0,5)} a ${salidaOficialDia.substring(0,5)}</span>`;
+            } else {
+                etiquetaHorarioDia = `<span class="notice-badge" style="background:#fee2e2; color:#ef4444;">Día no laborable para este turno</span>`;
             }
 
             card.innerHTML = `
@@ -335,10 +337,8 @@
                         <img src="${emp.foto_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="emp-img">
                         <div class="emp-details">
                             <h4>${emp.nombre_completo}</h4>
-                            <p>${emp.rh_puestos?.nombre || 'OPERATIVO'} 
-                                ${esTurno2 ? '<span style="color:var(--purple); font-weight:800;">[T2]</span>' : ''}
-                            </p>
-                            ${esViernesDeTurno2 && modo === 'asistencia' ? '<span class="notice-badge">Jornada de Viernes (Termina Sábado 7:30 AM)</span>' : ''}
+                            <p>${emp.rh_puestos?.nombre || 'OPERATIVO'} - <span style="color:var(--accent);">${miTurnoConfig ? miTurnoConfig.nombre : 'Sin Turno'}</span></p>
+                            ${etiquetaHorarioDia}
                         </div>
                     </div>
                     ${controles}
@@ -351,7 +351,20 @@
     function updateLocal(id, est) {
         if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', horas_extra: 0, hora_llegada: '', motivo: '', en_db: false };
         asistenciaLocal[id].estado = est;
-        if(est === 'P') { asistenciaLocal[id].hora_llegada = ''; asistenciaLocal[id].motivo = ''; }
+        
+        // Si es Presente, autocalcular la hora por si venía de un retardo
+        if(est === 'P') { 
+            asistenciaLocal[id].hora_llegada = ''; 
+            asistenciaLocal[id].motivo = ''; 
+        } else if (est === 'R') {
+            const [y, m, d] = fechaTrabajoGlobal.split('-');
+            const numDia = new Date(y, m - 1, d).getDay();
+            const emp = empleados.find(e => e.id === id);
+            const tConf = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
+            if (tConf && tConf[`entrada_${mapeoDias[numDia]}`]) {
+                asistenciaLocal[id].hora_llegada = tConf[`entrada_${mapeoDias[numDia]}`].substring(0,5);
+            }
+        }
         render();
     }
 
@@ -377,14 +390,19 @@
         let validacionOk = true;
 
         const [y, m, d] = fechaTrabajoGlobal.split('-');
-        const diaSemana = new Date(y, m - 1, d).getDay();
+        const numeroDiaSemana = new Date(y, m - 1, d).getDay();
+        const diaNombreColumna = mapeoDias[numeroDiaSemana];
         
         const batch = Object.keys(asistenciaLocal)
             .filter(id => asistenciaLocal[id].estado)
             .map(id => {
                 const item = asistenciaLocal[id];
                 const emp = empleados.find(e => e.id === id);
+                const miTurnoConfig = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
                 
+                // Extraemos las horas bases del día configurado en Supabase de manera limpia
+                const horasBaseCalculadasParaHoy = miTurnoConfig ? parseFloat(miTurnoConfig[`h_${diaNombreColumna}`]) || 0 : 0;
+
                 if(item.estado === 'R' && !item.hora_llegada && !item.en_db) {
                     alert("Por favor ingresa la hora de llegada para los retardos.");
                     validacionOk = false;
@@ -394,19 +412,15 @@
                     validacionOk = false;
                 }
 
-                const esTurno2 = String(emp?.turno_id).trim() === ID_TURNO_2 || String(emp?.turno_id).includes('2');
-                let hExtra = item.horas_extra || 0;
-                if (esTurno2 && diaSemana === 5) {
-                    hExtra = 0; 
-                }
-
                 return {
                     empleado_id: id,
                     fecha: fechaTrabajoGlobal,
                     estado: item.estado,
                     hora_llegada: item.hora_llegada || null,
                     motivo: item.motivo || 'N/A',
-                    horas_extra: hExtra
+                    horas_extra: item.horas_extra || 0,
+                    // Carga la equivalencia exacta de horas desde la estructura modificada
+                    horas_base_calculadas: horasBaseCalculadasParaHoy 
                 };
             });
 
