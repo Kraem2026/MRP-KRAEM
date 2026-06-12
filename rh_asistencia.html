@@ -131,7 +131,6 @@
     let asistenciaLocal = {}; 
     let fechaTrabajoGlobal = ""; 
 
-    // Mapeador global de días para no duplicar código
     const mapeoDias = { 1: 'lunes', 2: 'martes', 3: 'miercoles', 4: 'jueves', 5: 'viernes', 6: 'sabado', 0: 'domingo' };
 
     function calcularFechaOperativaInicial() {
@@ -170,7 +169,7 @@
 
             const areasContainer = document.getElementById('areas-container');
             areasContainer.innerHTML = `<div class="area-chip ${areaSeleccionada === 'TODOS' ? 'active' : ''}" onclick="filtrarArea('TODOS', this)">TODOS</div>`;
-            Áreas.forEach(a => {
+            áreas.forEach(a => {
                 areasContainer.innerHTML += `<div class="area-chip ${String(areaSeleccionada).trim() === String(a.id).trim() ? 'active' : ''}" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
             });
 
@@ -256,7 +255,6 @@
             const card = document.createElement('div');
             card.className = `attendance-card ${data.en_db ? 'card-saved' : ''} ${modo === 'extra' && data.horas_extra > 0 ? 'card-extra' : ''}`;
 
-            // Buscamos la configuración completa del turno del empleado desde el turnosMaster relacional
             const miTurnoConfig = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
             const entradaOficialDia = miTurnoConfig ? miTurnoConfig[`entrada_${diaNombreColumna}`] : null;
             const salidaOficialDia = miTurnoConfig ? miTurnoConfig[`salida_${diaNombreColumna}`] : null;
@@ -291,7 +289,6 @@
                         </div>`;
 
                     if (data.estado === 'R') {
-                        // Sugiere la hora de entrada oficial de este día como valor inicial por comodidad
                         const sugerenciaHora = entradaOficialDia ? entradaOficialDia.substring(0,5) : '';
                         controlesDinamicos = `
                             <div class="dynamic-controls">
@@ -315,7 +312,6 @@
                     }
                 }
             } else {
-                // Modo tiempo extra: Totalmente dinámico según las horas y salidas oficiales de la Base de Datos
                 controles = `
                     <div style="display:flex; align-items:center; gap:8px;">
                         <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
@@ -323,7 +319,6 @@
                     </div>`;
             }
 
-            // Bloque informativo sobre el horario del día actual sacado dinámicamente
             let etiquetaHorarioDia = '';
             if (entradaOficialDia && salidaOficialDia) {
                 etiquetaHorarioDia = `<span class="notice-badge">Horario Hoy: ${entradaOficialDia.substring(0,5)} a ${salidaOficialDia.substring(0,5)}</span>`;
@@ -352,7 +347,6 @@
         if(!asistenciaLocal[id]) asistenciaLocal[id] = { estado: '', horas_extra: 0, hora_llegada: '', motivo: '', en_db: false };
         asistenciaLocal[id].estado = est;
         
-        // Si es Presente, autocalcular la hora por si venía de un retardo
         if(est === 'P') { 
             asistenciaLocal[id].hora_llegada = ''; 
             asistenciaLocal[id].motivo = ''; 
@@ -400,7 +394,6 @@
                 const emp = empleados.find(e => e.id === id);
                 const miTurnoConfig = turnosMaster.find(t => String(t.id).trim() === String(emp.turno_id).trim());
                 
-                // Extraemos las horas bases del día configurado en Supabase de manera limpia
                 const horasBaseCalculadasParaHoy = miTurnoConfig ? parseFloat(miTurnoConfig[`h_${diaNombreColumna}`]) || 0 : 0;
 
                 if(item.estado === 'R' && !item.hora_llegada && !item.en_db) {
@@ -419,7 +412,6 @@
                     hora_llegada: item.hora_llegada || null,
                     motivo: item.motivo || 'N/A',
                     horas_extra: item.horas_extra || 0,
-                    // Carga la equivalencia exacta de horas desde la estructura modificada
                     horas_base_calculadas: horasBaseCalculadasParaHoy 
                 };
             });
