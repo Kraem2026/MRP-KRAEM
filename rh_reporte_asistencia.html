@@ -128,14 +128,14 @@
 
 <script>
     let globalData = [];
-    let turnosConfig = []; // Almacenará los turnos cargados de Supabase
+    let turnosConfig = [];
 
     async function init() {
         const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
         
-        // Modificado para mapear dinámicamente los UUIDs reales de tus turnos
+        // CORRECCIÓN: Carga los turnos reales con sus UUIDs correspondientes desde Supabase
         const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
         const selTurno = document.getElementById('v_turno');
         selTurno.innerHTML = '<option value="">Todos</option>';
@@ -156,14 +156,12 @@
         document.getElementById('c_rango').style.display = v === 'rango' ? 'flex' : 'none';
     }
 
-    // Nueva función auxiliar para obtener las horas base asignadas por día de la semana
     function obtenerHorasBaseDelDia(turno, numeroDia) {
         if (!turno) return 0;
         const mapaDias = { 1: turno.h_lunes, 2: turno.h_martes, 3: turno.h_miercoles, 4: turno.h_jueves, 5: turno.h_viernes, 6: turno.h_sabado, 0: turno.h_domingo };
         return parseFloat(mapaDias[numeroDia]) || 0;
     }
 
-    // Modificado para usar la hora de entrada y horas normales dinámicas del turno correspondiente
     function calcularHorasTrabajadasEnRetardo(horaLlegada, turno, numeroDia) {
         const horasJornadaNormal = obtenerHorasBaseDelDia(turno, numeroDia);
         if (!horaLlegada || !turno || !turno.entrada) return horasJornadaNormal;
@@ -193,18 +191,20 @@
 
         if(tipo === 'mes') {
             const m = document.getElementById('v_mes').value;
-            inicio = new Date(añoDinamico, m, 1);
-            fin = new Date(añoDinamico, parseInt(m) + 1, 0);
+            // CORRECCIÓN: Se fuerzan las horas a mediodía para evitar saltos de día por zona horaria
+            inicio = new Date(añoDinamico, m, 1, 12, 0, 0);
+            fin = new Date(añoDinamico, parseInt(m) + 1, 0, 12, 0, 0);
         } else {
-            inicio = new Date(document.getElementById('v_desde').value);
-            fin = new Date(document.getElementById('v_hasta').value);
+            const dStr = document.getElementById('v_desde').value.split('-');
+            const hStr = document.getElementById('v_hasta').value.split('-');
+            inicio = new Date(dStr[0], dStr[1] - 1, dStr[2], 12, 0, 0);
+            fin = new Date(hStr[0], hStr[1] - 1, hStr[2], 12, 0, 0);
         }
 
         const diasDiff = Math.ceil((fin - inicio) / (1000 * 60 * 60 * 24)) + 1;
         const iniStr = inicio.toISOString().split('T')[0];
         const finStr = fin.toISOString().split('T')[0];
 
-        // Añadida la descarga simultánea de la tabla rh_turnos para cruzar los datos
         const [resEmp, resAsi, resSol, resTurnos] = await Promise.all([
             client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
             client.from('rh_asistencia_diaria').select('*').gte('fecha', iniStr).lte('fecha', finStr),
@@ -224,7 +224,9 @@
 
         const areaF = document.getElementById('v_area').value;
         const turnoF = document.getElementById('v_turno').value;
-        const emps = resEmp.data.filter(e => (!areaF || e.area_general_id == areaF) && (!turnoF || e.turno_id == turnoF));
+        
+        // CORRECCIÓN: Ahora el filtro valida correctamente contra los UUIDs de Supabase
+        const emps = resEmp.data.filter(e => (!areaF || String(e.area_general_id) === String(areaF)) && (!turnoF || String(e.turno_id) === String(turnoF)));
         
         globalData = [];
 
@@ -232,7 +234,6 @@
             let fCount = 0, pCount = 0, aCount = 0, rCount = 0, hCount = 0, horasTrabajadasPeriodo = 0;
             let fila = `<tr class="row-emp"><td class="emp-name">${emp.nombre_completo}</td>`;
             
-            // Busca la configuración exacta del turno asignado al empleado
             const miTurno = turnosConfig.find(t => String(t.id) === String(emp.turno_id));
             
             for(let i=0; i<diasDiff; i++) {
@@ -242,7 +243,6 @@
                 const sol = resSol.data.find(s => s.empleado_id === emp.id && fStr >= s.fecha_inicio && fStr <= s.fecha_fin);
                 const asi = resAsi.data.find(a => a.empleado_id === emp.id && a.fecha === fStr);
                 
-                // Obtiene dinámicamente las horas que le correspondía trabajar ese día de la semana
                 const horasJornadaNormal = obtenerHorasBaseDelDia(miTurno, diaSemana);
                 
                 let celda = '-';
