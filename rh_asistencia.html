@@ -17,7 +17,6 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: auto; padding-bottom: 140px; }
 
-        /* Navegación Superior */
         .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .btn-back { 
             text-decoration: none; color: #64748b; background: white; 
@@ -25,43 +24,41 @@
             font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;
         }
 
-        /* Filtros por Contenedores Sliders */
-        .areas-filter, .turnos-filter { 
-            display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 10px; 
-            scrollbar-width: none;
+        /* Contenedor del Selector de Fecha Operativa */
+        .date-picker-box {
+            background: white; padding: 12px 16px; border-radius: 12px;
+            border: 1px solid var(--border); display: flex; align-items: center;
+            justify-content: space-between; margin-bottom: 15px;
         }
+        .input-date-control {
+            border: 1px solid var(--border); padding: 8px 12px;
+            border-radius: 8px; font-weight: bold; color: var(--text);
+            font-family: 'Inter', sans-serif; outline: none; cursor: pointer;
+        }
+        .input-date-control:focus { border-color: var(--accent); }
+
+        .areas-filter, .turnos-filter { display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 10px; scrollbar-width: none; }
         .areas-filter::-webkit-scrollbar, .turnos-filter::-webkit-scrollbar { display: none; }
-
-        .area-chip, .turno-chip { 
-            white-space: nowrap; padding: 8px 16px; background: white; border: 1px solid var(--border);
-            border-radius: 20px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; transition: 0.2s;
-        }
+        .area-chip, .turno-chip { white-space: nowrap; padding: 8px 16px; background: white; border: 1px solid var(--border); border-radius: 20px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; transition: 0.2s; }
         .area-chip.active, .turno-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-        /* Segmentador de etiquetas visuales rápidas */
         .filter-label { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; margin: 10px 0 4px 4px; display: block; letter-spacing: 0.5px; }
 
-        /* Tabs */
         .tabs-container { display: flex; background: white; border: 1px solid var(--border); margin: 15px 0; border-radius: 12px; overflow: hidden; }
         .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; font-size: 13px; color: #64748b; transition: 0.3s; }
         .tab.active { color: var(--accent); background: #eff6ff; border-bottom: 3px solid var(--accent); }
 
-        /* Cards */
         .attendance-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; }
         .card-saved { border-left: 5px solid var(--success); background: #f0fdf4; }
         .card-extra { border-left: 5px solid var(--purple); background: #faf5ff; }
-
         .emp-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         .emp-info { display: flex; align-items: center; gap: 12px; }
         .emp-img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #e2e8f0; }
         .emp-details h4 { margin: 0; font-size: 14px; }
         .emp-details p { margin: 2px 0 0; font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; }
         
-        /* Controles Dinámicos secundarios */
         .dynamic-controls { width: 100%; display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); justify-content: flex-end; }
         .input-sub { padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 12px; font-weight: bold; outline: none; color: var(--text); }
 
-        /* Botones de Estado */
         .status-buttons { display: flex; gap: 5px; }
         .btn-status { width: 35px; height: 35px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer; font-weight: bold; }
         .active-P { background: var(--success) !important; color: white !important; border-color: var(--success); }
@@ -73,9 +70,9 @@
         .bg-P { background: var(--success); } .bg-R { background: var(--warning); } .bg-F { background: var(--danger); }
 
         .input-extra { width: 60px; padding: 8px; border-radius: 8px; border: 2px solid var(--purple); text-align: center; font-weight: bold; font-size: 16px; outline: none; }
-        
         .footer-save { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; border-top: 1px solid var(--border); text-align: center; z-index: 100; }
         .btn-final { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; max-width: 400px; }
+        .notice-badge { font-size: 10px; background: #fee2e2; color: #ef4444; padding: 4px 8px; border-radius: 6px; font-weight: bold; margin-top: 4px; display: inline-block;}
     </style>
 </head>
 <body>
@@ -85,8 +82,16 @@
         <a href="dashboard.html" class="btn-back"><i class="fas fa-th-large"></i> Dashboard</a>
         <div style="text-align: right;">
             <h2 style="margin:0; font-size:16px;">Pase de Lista</h2>
-            <span id="fecha-hoy" style="font-size:12px; color:var(--accent); font-weight:600;"></span>
         </div>
+    </div>
+
+    <!-- Caja Control de Fecha de Trabajo -->
+    <div class="date-picker-box">
+        <div>
+            <span style="font-size: 11px; font-weight: 800; color: #64748b; display:block; text-transform:uppercase;">Día de Trabajo (Operativo)</span>
+            <span id="fecha-texto-largo" style="font-size: 14px; font-weight: bold; color: var(--accent);"></span>
+        </div>
+        <input type="date" id="fecha-operativa" class="input-date-control" onchange="cambiarFechaManual(this.value)">
     </div>
 
     <span class="filter-label"><i class="fas fa-layer-group"></i> Área de Trabajo</span>
@@ -123,21 +128,42 @@
     let turnoSeleccionado = 'TODOS'; 
     let empleados = [];
     let áreas = [];
-    let turnosMaster = []; // Corregido el espacio en blanco aquí
+    let turnosMaster = [];
     let solicitudes = [];
     let asistenciaLocal = {}; 
+    let fechaTrabajoGlobal = ""; 
+
+    // Calcula el día operativo real del piso
+    function calcularFechaOperativaInicial() {
+        const ahora = new Date();
+        const horaActual = ahora.getHours();
+        
+        // Si entras al sistema entre las 12:00 AM y las 6:00 AM, asume que estás capturando el día de ayer
+        if (horaActual >= 0 && horaActual < 6) {
+            ahora.setDate(ahora.getDate() - 1);
+        }
+        return ahora.toISOString().split('T')[0];
+    }
 
     async function cargarDatos() {
-        const hoy = new Date().toISOString().split('T')[0];
-        document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+        if (!fechaTrabajoGlobal) {
+            fechaTrabajoGlobal = calcularFechaOperativaInicial();
+        }
+        
+        document.getElementById('fecha-operativa').value = fechaTrabajoGlobal;
+        
+        // Formatear texto estético visible
+        const [year, month, day] = fechaTrabajoGlobal.split('-');
+        const dateObj = new Date(year, month - 1, day);
+        document.getElementById('fecha-texto-largo').innerText = dateObj.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
         try {
             const [resEmp, resAreas, resTurnos, resSol, resAsis] = await Promise.all([
                 client.from('rh_empleados').select('id, nombre_completo, foto_url, area_general_id, turno_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
                 client.from('areas_generales').select('*').order('nombre'),
                 client.from('rh_turnos').select('*').order('nombre'),
-                client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', hoy).gte('fecha_fin', hoy),
-                client.from('rh_asistencia_diaria').select('*').eq('fecha', hoy)
+                client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', fechaTrabajoGlobal).gte('fecha_fin', fechaTrabajoGlobal),
+                client.from('rh_asistencia_diaria').select('*').eq('fecha', fechaTrabajoGlobal)
             ]);
 
             empleados = resEmp.data || [];
@@ -145,19 +171,17 @@
             turnosMaster = resTurnos.data || [];
             solicitudes = resSol.data || [];
 
-            // Renderizar chips de Áreas Generales
             const areasContainer = document.getElementById('areas-container');
             areasContainer.innerHTML = `<div class="area-chip ${areaSeleccionada === 'TODOS' ? 'active' : ''}" onclick="filtrarArea('TODOS', this)">TODOS</div>`;
             áreas.forEach(a => {
-                areasContainer.innerHTML += `<div class="area-chip" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
+                areasContainer.innerHTML += `<div class="area-chip ${String(areaSeleccionada) === String(a.id) ? 'active' : ''}" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
             });
 
-            // Renderizar chips de Turnos Operativos
             const turnosContainer = document.getElementById('turnos-container');
             turnosContainer.innerHTML = `<div class="turno-chip ${turnoSeleccionado === 'TODOS' ? 'active' : ''}" onclick="filtrarTurno('TODOS', this)">TODOS</div>`;
             turnosMaster.forEach(t => {
                 let idFiltro = t.nombre.includes('2') ? '2' : (t.nombre.includes('1') ? '1' : String(t.id));
-                turnosContainer.innerHTML += `<div class="turno-chip" onclick="filtrarTurno('${idFiltro}', this)">${t.nombre}</div>`;
+                turnosContainer.innerHTML += `<div class="turno-chip ${String(turnoSeleccionado) === String(idFiltro) ? 'active' : ''}" onclick="filtrarTurno('${idFiltro}', this)">${t.nombre}</div>`;
             });
 
             asistenciaLocal = {};
@@ -173,8 +197,18 @@
 
             render();
         } catch (err) {
-            console.error("Error al inicializar datos de asistencia:", err);
+            console.error("Error general:", err);
         }
+    }
+
+    function cambiarFechaManual(nuevaFecha) {
+        fechaTrabajoGlobal = nuevaFecha;
+        renderLoading();
+        cargarDatos();
+    }
+
+    function renderLoading() {
+        document.getElementById('lista-empleados').innerHTML = `<div style="text-align:center; padding:50px; color:#94a3b8;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
     }
 
     function filtrarArea(id, element) {
@@ -202,6 +236,10 @@
         const container = document.getElementById('lista-empleados');
         container.innerHTML = '';
 
+        // Identificar el día de la semana de la fecha cargada (0=Domingo, 5=Viernes, etc.)
+        const [y, m, d] = fechaTrabajoGlobal.split('-');
+        const diaSemana = new Date(y, m - 1, d).getDay();
+
         const filtrados = empleados.filter(e => {
             const cumpleArea = areaSeleccionada === 'TODOS' || String(e.area_general_id) === String(areaSeleccionada);
             const cumpleTurno = turnoSeleccionado === 'TODOS' || String(e.turno_id) === String(turnoSeleccionado);
@@ -209,7 +247,7 @@
         });
 
         if (filtrados.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8; font-size:13px;">No hay operadores activos asignados a este sector y turno.</div>`;
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8; font-size:13px;">No hay operadores activos en este sector/turno.</div>`;
             return;
         }
 
@@ -224,6 +262,10 @@
 
             let controles = '';
             let controlesDinamicos = '';
+            
+            // Detectar si el empleado pertenece al Turno 2 y es operativo de Viernes
+            const esTurno2 = String(emp.turno_id) === '2' || (emp.turno_id && String(emp.turno_id).includes('2'));
+            const esViernesDeTurno2 = esTurno2 && diaSemana === 5;
 
             if (modo === 'asistencia') {
                 if (sol) {
@@ -239,7 +281,7 @@
                                 ${data.estado === 'P' ? 'PRESENTE' : data.estado === 'R' ? 'RETARDO' : 'FALTA'}
                                 ${subInfo}
                             </span>
-                            <button class="btn-delete" onclick="borrarRegistro('${emp.id}')" style="border:none; background:none; color:var(--danger); cursor:pointer; font-size: 16px;">
+                            <button class="btn-delete" onclick="borrarRegistro('${emp.id}')" style="border:none; background:none; color:var(--danger); cursor:pointer; font-size:16px;">
                                 <i class="fas fa-undo"></i>
                             </button>
                         </div>`;
@@ -274,11 +316,20 @@
                     }
                 }
             } else {
-                controles = `
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
-                        <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
-                    </div>`;
+                // Modo tiempo extra
+                if (esViernesDeTurno2) {
+                    controles = `
+                        <div style="text-align:right;">
+                            <span style="font-size:11px; font-weight:bold; color:var(--warning);"><i class="fas fa-info-circle"></i> Extensión Regular</span>
+                            <br><small style="font-size:9px; color:#64748b;">Salida obligatoria 7:30 AM</small>
+                        </div>`;
+                } else {
+                    controles = `
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="number" class="input-extra" value="${data.horas_extra}" onchange="updateExtra('${emp.id}', this.value)" step="0.5" min="0">
+                            <span style="font-size:10px; font-weight:bold; color:var(--purple);">HRS</span>
+                        </div>`;
+                }
             }
 
             card.innerHTML = `
@@ -287,7 +338,10 @@
                         <img src="${emp.foto_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}" class="emp-img">
                         <div class="emp-details">
                             <h4>${emp.nombre_completo}</h4>
-                            <p>${emp.rh_puestos?.nombre || 'OPERATIVO'}</p>
+                            <p>${emp.rh_puestos?.nombre || 'OPERATIVO'} 
+                                ${esTurno2 ? '<span style="color:var(--purple); font-weight:800;">[T2]</span>' : ''}
+                            </p>
+                            ${esViernesDeTurno2 && modo === 'asistencia' ? '<span class="notice-badge">Jornada de Viernes (Termina Sábado 7:30 AM)</span>' : ''}
                         </div>
                     </div>
                     ${controles}
@@ -315,22 +369,25 @@
     }
 
     async function borrarRegistro(id) {
-        if(!confirm("¿Resetear registro de asistencia?")) return;
-        const hoy = new Date().toISOString().split('T')[0];
-        await client.from('rh_asistencia_diaria').delete().eq('empleado_id', id).eq('fecha', hoy);
+        if(!confirm("¿Resetear registro de asistencia de esta fecha?")) return;
+        await client.from('rh_asistencia_diaria').delete().eq('empleado_id', id).eq('fecha', fechaTrabajoGlobal);
         delete asistenciaLocal[id];
         render();
     }
 
     async function guardarCambios() {
         const btn = document.getElementById('btn-save');
-        const hoy = new Date().toISOString().split('T')[0];
-        
         let validacionOk = true;
+
+        const [y, m, d] = fechaTrabajoGlobal.split('-');
+        const diaSemana = new Date(y, m - 1, d).getDay();
+        
         const batch = Object.keys(asistenciaLocal)
             .filter(id => asistenciaLocal[id].estado)
             .map(id => {
                 const item = asistenciaLocal[id];
+                const emp = empleados.find(e => e.id === id);
+                
                 if(item.estado === 'R' && !item.hora_llegada && !item.en_db) {
                     alert("Por favor ingresa la hora de llegada para los retardos.");
                     validacionOk = false;
@@ -339,27 +396,35 @@
                     alert("Por favor selecciona la incidencia/motivo para las faltas.");
                     validacionOk = false;
                 }
+
+                // Forzar 0 tiempo extra si es el caso especial del viernes de Turno 2
+                const esTurno2 = String(emp?.turno_id) === '2' || String(emp?.turno_id).includes('2');
+                let hExtra = item.horas_extra || 0;
+                if (esTurno2 && diaSemana === 5) {
+                    hExtra = 0; 
+                }
+
                 return {
                     empleado_id: id,
-                    fecha: hoy,
+                    fecha: fechaTrabajoGlobal, // Guarda exactamente bajo la fecha operativa elegida
                     estado: item.estado,
                     hora_llegada: item.hora_llegada || null,
                     motivo: item.motivo || 'N/A',
-                    horas_extra: item.horas_extra || 0
+                    horas_extra: hExtra
                 };
             });
 
         if (!validacionOk) return;
-        if (batch.length === 0) return alert("No hay pases de lista nuevos marcados.");
+        if (batch.length === 0) return alert("No hay pases de lista nuevos para guardar.");
 
         btn.disabled = true;
         const { error } = await client.from('rh_asistencia_diaria').upsert(batch, { onConflict: 'empleado_id, fecha' });
 
         if (!error) {
-            alert("✅ Registro guardado exitosamente.");
+            alert("✅ Registro operativo guardado con éxito.");
             cargarDatos();
         } else {
-            alert("Error al procesar: " + error.message);
+            alert("Error: " + error.message);
         }
         btn.disabled = false;
     }
