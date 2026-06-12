@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KRAEM - Gestión de Personal e Indicadores</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Chart.js para el Radar -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS para Exportación a Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="config.js"></script>
     
     <style>
         body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
@@ -28,14 +26,7 @@
 </head>
 <body>
 
-    <!-- Inicializador de Supabase (Configurar con tus credenciales si es necesario en otro script superior) -->
-    <script>
-        // Si ya tienes inicializado 'client' o 'supabase' globalmente, este script se acoplará a él.
-        // Asegúrate de tener las llaves declaradas previamente en tu entorno o en el layout principal.
-    </script>
-
     <div class="p-6 max-w-7xl mx-auto">
-        <!-- HEADER -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Módulo de Capital Humano</h1>
@@ -53,7 +44,6 @@
             </div>
         </div>
 
-        <!-- FILTROS PRINCIPALES -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs mb-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                 <div>
@@ -83,9 +73,7 @@
             </div>
         </div>
 
-        <!-- DASHBOARD DE ANÁLISIS INDIVIDUAL -->
         <div id="dash_analisis" class="hidden grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <!-- Ficha del Empleado -->
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs relative flex flex-col justify-between">
                 <div>
                     <button onclick="editarActual()" class="absolute top-4 right-4 text-slate-400 hover:text-blue-600 transition-colors p-1" title="Editar Ficha">
@@ -115,7 +103,6 @@
                 </div>
             </div>
 
-            <!-- Desempeño Operativo / Filtros de Rango -->
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs lg:col-span-2 flex flex-col justify-between">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3 mb-4">
                     <div>
@@ -130,7 +117,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                    <!-- Tarjetas de Métricas -->
                     <div class="grid grid-cols-2 gap-3">
                         <div class="metric-card">
                             <span class="text-[11px] text-slate-400 font-semibold block uppercase">Calidad (Yield)</span>
@@ -153,7 +139,6 @@
                             <span id="val_versatilidad" class="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">80%</span>
                         </div>
                     </div>
-                    <!-- Gráfico de Radar -->
                     <div class="flex justify-center max-h-[180px]">
                         <canvas id="chartRadar"></canvas>
                     </div>
@@ -161,7 +146,6 @@
             </div>
         </div>
 
-        <!-- TABLA PRINCIPAL DE EMPLEADOS -->
         <div class="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full custom-table">
@@ -188,7 +172,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE REGISTRO / EDICIÓN -->
     <div id="modalRegistro" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
@@ -199,7 +182,6 @@
             <input type="hidden" id="edit_id">
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-[60vh] overflow-y-auto pr-1">
-                <!-- Seccion Foto -->
                 <div class="md:col-span-1 flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-xl p-4 bg-slate-50">
                     <div class="w-28 h-28 bg-slate-200 rounded-full flex items-center justify-center overflow-hidden mb-3 border relative">
                         <svg id="modal_icon_user" class="w-12 h-12 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
@@ -211,39 +193,38 @@
                     </label>
                 </div>
 
-                <!-- Datos Laborales y Personales -->
                 <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Nombre Completo *</label>
-                        <input type="text" id="nombre" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" id="nombre" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">NSS</label>
-                        <input type="text" id="nss" placeholder="11 dígitos" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" id="nss" placeholder="11 dígitos" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Fecha de Ingreso *</label>
-                        <input type="date" id="fecha_ingreso" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <input type="date" id="fecha_ingreso" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Área General</label>
-                        <select id="sel_area" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                        <select id="sel_area" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Puesto Operativo</label>
-                        <select id="sel_puesto" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                        <select id="sel_puesto" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Turno Laboral</label>
-                        <select id="sel_turno" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                        <select id="sel_turno" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Ruta de Transporte</label>
-                        <select id="sel_ruta" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"></select>
+                        <select id="sel_ruta" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Talla de Playera</label>
-                        <select id="sel_talla" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <select id="sel_talla" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                             <option value="XS">XS</option>
                             <option value="S">S</option>
                             <option value="M" selected>M</option>
@@ -254,44 +235,43 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Estatus Ficha</label>
-                        <select id="sel_estatus" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <select id="sel_estatus" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                             <option value="ACTIVO">ACTIVO</option>
                             <option value="BAJA">BAJA</option>
                         </select>
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Teléfono Celular</label>
-                        <input type="text" id="telefono_personal" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" id="telefono_personal" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                     </div>
                     <div class="sm:col-span-2">
                         <label class="block text-xs font-semibold text-slate-500 mb-0.5">Dirección Particular</label>
-                        <input type="text" id="direccion" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <input type="text" id="direccion" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                     </div>
                 </div>
 
-                <!-- Información Médica y Emergencias -->
                 <div class="md:col-span-3 border-t border-slate-100 pt-4 mt-2">
-                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Salud y Contacto de Emergencia</h4>
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Salud y Emergencias</h4>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="sm:col-span-2">
                             <label class="block text-xs font-semibold text-slate-500 mb-0.5">Contacto de Emergencia (Nombre)</label>
-                            <input type="text" id="emergencia_nombre" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                            <input type="text" id="emergencia_nombre" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-0.5">Parentesco</label>
-                            <input type="text" id="emergencia_parentesco" placeholder="Ej. Madre, Esposo" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                            <input type="text" id="emergencia_parentesco" placeholder="Ej. Madre, Esposo" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-0.5">Teléfono de Emergencia</label>
-                            <input type="text" id="emergencia_tel" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                            <input type="text" id="emergencia_tel" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-0.5">Tipo de Sangre</label>
-                            <input type="text" id="tipo_sangre" placeholder="Ej. O+" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                            <input type="text" id="tipo_sangre" placeholder="Ej. O+" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-0.5">Alergias / Padecimientos</label>
-                            <input type="text" id="alergias" placeholder="Ninguna" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                            <input type="text" id="alergias" placeholder="Ninguna" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
                         </div>
                     </div>
                 </div>
@@ -304,14 +284,13 @@
         </div>
     </div>
 
-    <!-- MOTOR SCRIPT CON CONTROL SEGURO DE LLAVES FORÁNEAS -->
     <script>
+        // Nota: 'client' se hereda directamente desde config.js de manera global.
         let db_empleados = [];
         let db_filtrados = [];
         let chartRadar;
         let currentEmpId = null;
 
-        // Catálogos cargados en memoria
         let cat_areas = [];
         let cat_puestos = [];
         let cat_rutas = [];
@@ -334,7 +313,7 @@
 
         async function init() {
             try {
-                // Descarga directa de catálogos base
+                // Descarga de catálogos base usando el 'client' global heredado
                 const { data: areas } = await client.from('areas_generales').select('id, nombre').order('nombre');
                 cat_areas = areas || [];
 
@@ -347,7 +326,6 @@
                 const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
                 cat_turnos = turnos || [];
                 
-                // Rellenar selects
                 const fill = (id, data, esFiltro = false) => {
                     const s = document.getElementById(id);
                     if(!s) return;
@@ -369,28 +347,26 @@
 
                 await listarEmpleados();
             } catch (err) {
-                console.error("Error crítico de inicialización:", err);
-                alert("Error al vincular catálogos básicos: " + err.message);
+                console.error("Error crítico de vinculación:", err);
+                alert("Error al mapear catálogos con config.js: " + err.message);
             }
         }
 
         async function listarEmpleados() {
-            // Consulta limpia y plana para evitar que registros rotos (ej: turno_id="1") congelen el fetch
             const { data, error } = await client.from('rh_empleados').select('*').order('nombre_completo');
 
             if (error) { 
                 console.error("Supabase Error:", error);
-                alert("Error cargando empleados: " + error.message);
+                alert("Error cargando personal: " + error.message);
                 return; 
             }
 
             if (!data || data.length === 0) {
                 const tbody = document.getElementById('lista_empleados');
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 25px; color: #64748b;">No existen registros cargados en 'rh_empleados'.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 25px; color: #64748b;">No existen registros en la tabla.</td></tr>`;
                 return;
             }
 
-            // Cruce manual en caliente
             db_empleados = data.map(e => {
                 const areaObj = cat_areas.find(a => a.id === e.area_general_id);
                 const puestoObj = cat_puestos.find(p => p.id === e.puesto_id);
@@ -402,8 +378,7 @@
                     area_txt: areaObj ? areaObj.nombre : '-',
                     puesto_txt: puestoObj ? puestoObj.nombre : '-',
                     ruta_txt: rutaObj ? rutaObj.nombre : '-',
-                    // Protección por si el ID guardado no es un UUID compatible
-                    turno_txt: turnoObj ? turnoObj.nombre : (e.turno_id ? `Id Incompatible (${e.turno_id})` : '-'), 
+                    turno_txt: turnoObj ? turnoObj.nombre : (e.turno_id ? `Incompatible (${e.turno_id})` : '-'), 
                     antiguedad_txt: calcularAntiguedadExacta(e.fecha_ingreso)
                 };
             });
@@ -428,7 +403,7 @@
             
             const tbody = document.getElementById('lista_empleados');
             if (db_filtrados.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #475569; padding: 20px;">Ningún operador coincide con los filtros seleccionados.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: #475569; padding: 20px;">No hay operadores que coincidan con los filtros.</td></tr>`;
                 return;
             }
 
@@ -463,7 +438,6 @@
             if (emp.fecha_ingreso) {
                 const fIngreso = new Date(emp.fecha_ingreso + 'T00:00:00'); 
                 const fHoy = new Date();
-                
                 let aniosCumplidos = fHoy.getFullYear() - fIngreso.getFullYear();
                 const m = fHoy.getMonth() - fIngreso.getMonth();
                 if (m < 0 || (m === 0 && fHoy.getDate() < fIngreso.getDate())) {
@@ -472,9 +446,7 @@
                 diasTotales = obtenerDiasLey(aniosCumplidos);
             }
 
-            // Calculo de Vacaciones Solicitadas y Aprobadas
             const { data: sol } = await client.from('rh_solicitudes').select('fecha_inicio, fecha_fin').eq('empleado_id', id).eq('tipo','VACACIONES').eq('estatus','APROBADO');
-            
             let diasTomados = 0;
             sol?.forEach(s => {
                 if(s.fecha_inicio && s.fecha_fin) {
@@ -494,16 +466,13 @@
             let fHastaMax = new Date(fHasta); fHastaMax.setHours(23,59,59,999);
             document.getElementById('rango_texto').innerText = `${fDesde} a ${fHasta}`;
 
-            // Métricas de Producción (Inspección)
             const { data: prod } = await client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').eq('operador', emp.nombre_completo).gte('fecha', fDesde).lte('fecha', fHasta);
             let ti=0, td=0; prod?.forEach(p => { ti += p.cant_inspeccionada; td += p.cant_defectuosa; });
             const yieldVal = ti > 0 ? parseFloat(((1 - (td/ti)) * 100).toFixed(1)) : 100;
 
-            // Asistencia Diaria
             const { data: asistencia } = await client.from('rh_asistencia_diaria').select('estado').eq('empleado_id', id).gte('fecha', fDesde).lte('fecha', fHasta);
             let totalDiasAsis = asistencia?.length || 0;
             let conteoP = 0, conteoR = 0, conteoF = 0;
-            
             asistencia?.forEach(a => {
                 if(a.estado === 'P') conteoP++;
                 if(a.estado === 'R') conteoR++;
@@ -513,13 +482,12 @@
             const asistenciaVal = totalDiasAsis > 0 ? Math.round(((conteoP + conteoR) / totalDiasAsis) * 100) : 100;
             const puntualidadVal = (conteoP + conteoR) > 0 ? Math.round((conteoP / (conteoP + conteoR)) * 100) : 100;
 
-            // Evaluaciones 5S
             const { data: ev5s } = await client.from('rh_evaluaciones_5s').select('puntuacion').eq('empleado_id', id).gte('created_at', fDesde).lte('created_at', fHastaMax.toISOString());
             let total5sScore = 0;
             ev5s?.forEach(ev => total5sScore += ev.puntuacion);
             const val5s = ev5s?.length > 0 ? Math.round(total5sScore / ev5s.length) : 100;
 
-            const versatilidadVal = 80; // Hardcoded estándar
+            const versatilidadVal = 80;
 
             document.getElementById('val_yield').innerText = yieldVal + '%';
             document.getElementById('val_asistencia').innerText = asistenciaVal + '%'; 
@@ -560,7 +528,6 @@
 
         async function guardarEmpleado() {
             const id = document.getElementById('edit_id').value;
-            
             const obj = {
                 nombre_completo: document.getElementById('nombre').value,
                 nss: document.getElementById('nss').value,
@@ -569,19 +536,16 @@
                 fecha_ingreso: document.getElementById('fecha_ingreso').value || null,
                 turno_id: document.getElementById('sel_turno').value || null,
                 ruta_id: document.getElementById('sel_ruta').value || null,
-                
                 tipo_sangre: document.getElementById('tipo_sangre').value,
                 tipo_sanguineo: document.getElementById('tipo_sangre').value, 
                 talla_playera: document.getElementById('sel_talla').value,
                 direccion: document.getElementById('direccion').value,
                 telefono_personal: document.getElementById('telefono_personal').value,
-                
                 emergencia_nombre: document.getElementById('emergencia_nombre').value,
                 contacto_emergencia_nombre: document.getElementById('emergencia_nombre').value,
                 emergencia_tel: document.getElementById('emergencia_tel').value,
                 contacto_emergencia_telefono: document.getElementById('emergencia_tel').value,
                 emergencia_parentesco: document.getElementById('emergencia_parentesco').value,
-                
                 alergias: document.getElementById('alergias').value,
                 estatus: document.getElementById('sel_estatus').value || 'ACTIVO'
             };
@@ -589,7 +553,7 @@
             const { error } = id ? await client.from('rh_empleados').update(obj).eq('id', id) : await client.from('rh_empleados').insert([obj]);
             
             if(!error) { alert("¡Guardado exitosamente!"); cerrarModal(); listarEmpleados(); }
-            else { alert("Error al guardar en base de datos: " + error.message); }
+            else { alert("Error al guardar: " + error.message); }
         }
 
         function editarActual() {
@@ -602,7 +566,6 @@
             document.getElementById('sel_area').value = emp.area_general_id || "";
             document.getElementById('sel_puesto').value = emp.puesto_id || "";
             document.getElementById('fecha_ingreso').value = emp.fecha_ingreso || "";
-            // Descartamos IDs legacy "1" o "2" en el input para forzar a guardar UUIDs válidos
             document.getElementById('sel_turno').value = (emp.turno_id === "1" || emp.turno_id === "2") ? "" : (emp.turno_id || "");
             document.getElementById('sel_ruta').value = emp.ruta_id || "";
             document.getElementById('sel_talla').value = emp.talla_playera || "M";
@@ -646,7 +609,7 @@
         function exportarExcel() {
             const ws = XLSX.utils.json_to_sheet(db_filtrados);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Personal_Kraem"); 
+            XLSX.utils.book_append_sheet(wb, ws, "Personal"); 
             XLSX.writeFile(wb, "Personal_Kraem.xlsx");
         }
 
