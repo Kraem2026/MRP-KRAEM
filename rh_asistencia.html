@@ -85,7 +85,6 @@
         </div>
     </div>
 
-    <!-- Caja Control de Fecha de Trabajo -->
     <div class="date-picker-box">
         <div>
             <span style="font-size: 11px; font-weight: 800; color: #64748b; display:block; text-transform:uppercase;">Día de Trabajo (Operativo)</span>
@@ -133,12 +132,12 @@
     let asistenciaLocal = {}; 
     let fechaTrabajoGlobal = ""; 
 
-    // Calcula el día operativo real del piso
+    // UUID específico del Turno 2 en tu Base de Datos
+    const ID_TURNO_2 = '57128cef-7a49-40c9-b6af-d82ac82c20ab';
+
     function calcularFechaOperativaInicial() {
         const ahora = new Date();
         const horaActual = ahora.getHours();
-        
-        // Si entras al sistema entre las 12:00 AM y las 6:00 AM, asume que estás capturando el día de ayer
         if (horaActual >= 0 && horaActual < 6) {
             ahora.setDate(ahora.getDate() - 1);
         }
@@ -152,7 +151,6 @@
         
         document.getElementById('fecha-operativa').value = fechaTrabajoGlobal;
         
-        // Formatear texto estético visible
         const [year, month, day] = fechaTrabajoGlobal.split('-');
         const dateObj = new Date(year, month - 1, day);
         document.getElementById('fecha-texto-largo').innerText = dateObj.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
@@ -174,14 +172,14 @@
             const areasContainer = document.getElementById('areas-container');
             areasContainer.innerHTML = `<div class="area-chip ${areaSeleccionada === 'TODOS' ? 'active' : ''}" onclick="filtrarArea('TODOS', this)">TODOS</div>`;
             áreas.forEach(a => {
-                areasContainer.innerHTML += `<div class="area-chip ${String(areaSeleccionada) === String(a.id) ? 'active' : ''}" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
+                areasContainer.innerHTML += `<div class="area-chip ${String(areaSeleccionada).trim() === String(a.id).trim() ? 'active' : ''}" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
             });
 
+            // CORRECCIÓN: Quitamos el mapeo de caracteres manuales ('1' o '2') para usar directamente los UUIDs limpios
             const turnosContainer = document.getElementById('turnos-container');
             turnosContainer.innerHTML = `<div class="turno-chip ${turnoSeleccionado === 'TODOS' ? 'active' : ''}" onclick="filtrarTurno('TODOS', this)">TODOS</div>`;
             turnosMaster.forEach(t => {
-                let idFiltro = t.nombre.includes('2') ? '2' : (t.nombre.includes('1') ? '1' : String(t.id));
-                turnosContainer.innerHTML += `<div class="turno-chip ${String(turnoSeleccionado) === String(idFiltro) ? 'active' : ''}" onclick="filtrarTurno('${idFiltro}', this)">${t.nombre}</div>`;
+                turnosContainer.innerHTML += `<div class="turno-chip ${String(turnoSeleccionado).trim() === String(t.id).trim() ? 'active' : ''}" onclick="filtrarTurno('${t.id}', this)">${t.nombre}</div>`;
             });
 
             asistenciaLocal = {};
@@ -236,13 +234,13 @@
         const container = document.getElementById('lista-empleados');
         container.innerHTML = '';
 
-        // Identificar el día de la semana de la fecha cargada (0=Domingo, 5=Viernes, etc.)
         const [y, m, d] = fechaTrabajoGlobal.split('-');
         const diaSemana = new Date(y, m - 1, d).getDay();
 
+        // CORRECCIÓN: El filtrado de datos ahora hace una comparación estricta de cadenas UUID sin fallos de conversión
         const filtrados = empleados.filter(e => {
-            const cumpleArea = areaSeleccionada === 'TODOS' || String(e.area_general_id) === String(areaSeleccionada);
-            const cumpleTurno = turnoSeleccionado === 'TODOS' || String(e.turno_id) === String(turnoSeleccionado);
+            const cumpleArea = areaSeleccionada === 'TODOS' || String(e.area_general_id).trim() === String(areaSeleccionada).trim();
+            const cumpleTurno = turnoSeleccionado === 'TODOS' || String(e.turno_id).trim() === String(turnoSeleccionado).trim();
             return cumpleArea && cumpleTurno;
         });
 
@@ -263,8 +261,8 @@
             let controles = '';
             let controlesDinamicos = '';
             
-            // Detectar si el empleado pertenece al Turno 2 y es operativo de Viernes
-            const esTurno2 = String(emp.turno_id) === '2' || (emp.turno_id && String(emp.turno_id).includes('2'));
+            // CORRECCIÓN: Cambiado para buscar exactamente la coincidencia limpia del UUID o el texto del Turno 2
+            const esTurno2 = String(emp.turno_id).trim() === ID_TURNO_2 || (emp.turno_id && String(emp.turno_id).includes('2'));
             const esViernesDeTurno2 = esTurno2 && diaSemana === 5;
 
             if (modo === 'asistencia') {
@@ -316,7 +314,6 @@
                     }
                 }
             } else {
-                // Modo tiempo extra
                 if (esViernesDeTurno2) {
                     controles = `
                         <div style="text-align:right;">
@@ -397,8 +394,7 @@
                     validacionOk = false;
                 }
 
-                // Forzar 0 tiempo extra si es el caso especial del viernes de Turno 2
-                const esTurno2 = String(emp?.turno_id) === '2' || String(emp?.turno_id).includes('2');
+                const esTurno2 = String(emp?.turno_id).trim() === ID_TURNO_2 || String(emp?.turno_id).includes('2');
                 let hExtra = item.horas_extra || 0;
                 if (esTurno2 && diaSemana === 5) {
                     hExtra = 0; 
@@ -406,7 +402,7 @@
 
                 return {
                     empleado_id: id,
-                    fecha: fechaTrabajoGlobal, // Guarda exactamente bajo la fecha operativa elegida
+                    fecha: fechaTrabajoGlobal,
                     estado: item.estado,
                     hora_llegada: item.hora_llegada || null,
                     motivo: item.motivo || 'N/A',
