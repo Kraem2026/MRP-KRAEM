@@ -19,7 +19,7 @@
         }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .header-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
-        .btn-action { background: var(--primary); color: white; padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+        .btn-action { color: white; padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
         .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
         .filter-group label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--primary); }
@@ -51,19 +51,20 @@
         <h2 style="margin:0;"><i class="fas fa-microchip"></i> KRAEM | Business Intelligence 5'S</h2>
         <p style="margin:5px 0 0; color: var(--text-secondary); font-size: 14px;">Panel de Control y Comparativa de Desempeño</p>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <button onclick="generatePDF()" class="btn-action" style="background: #2563eb;"><i class="fas fa-file-pdf"></i> Generar Reporte Semanal</button>
-        <button onclick="exportToExcel()" class="btn-action" style="background: #15803d;"><i class="fas fa-file-excel"></i> Exportar CSV</button>
-        <button onclick="loadData()" class="btn-action"><i class="fas fa-sync-alt"></i> Actualizar</button>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button onclick="generatePDF()" class="btn-action" style="background: #2563eb;"><i class="fas fa-file-pdf"></i> Reporte Semanal</button>
+        <button onclick="exportToExcel()" class="btn-action" style="background: #15803d;"><i class="fas fa-file-excel"></i> Resumen CSV</button>
+        <button onclick="exportarMatrizDetallada()" class="btn-action" style="background: #6b21a8;"><i class="fas fa-table"></i> Exportar Matriz Preguntas</button>
+        <button onclick="loadData()" class="btn-action" style="background: #4f46e5;"><i class="fas fa-sync-alt"></i></button>
         <a href="dashboard.html" class="btn-action" style="background: #64748b;"><i class="fas fa-home"></i> Inicio</a>
     </div>
 </div>
 
 <div class="filter-bar">
-    <div class="filter-group"><label>Desde</label><input type="date" id="f-inicio"></div>
-    <div class="filter-group"><label>Hasta</label><input type="date" id="f-fin"></div>
-    <div class="filter-group"><label>Área General</label><select id="f-area" onchange="actualizarFiltroMaquinas()"><option value="">Todas las Áreas</option></select></div>
-    <div class="filter-group"><label>Turno</label><select id="f-turno" onchange="loadData()"><option value="">Todos los Turnos</option></select></div>
+    <div class="filter-group"><label>Desde</label><input type="date" id="f-inicio" onchange="loadData()"></div>
+    <div class="filter-group"><label>Hasta</label><input type="date" id="f-fin" onchange="loadData()"></div>
+    <div class="filter-group"><label>Área General</label><select id="f-area" onchange="cambioFiltrosEstratégicos()"><option value="">Todas las Áreas</option></select></div>
+    <div class="filter-group"><label>Turno</label><select id="f-turno" onchange="cambioFiltrosEstratégicos()"><option value="">Todos los Turnos</option></select></div>
     <div class="filter-group"><label>Máquina</label><select id="f-maquina" onchange="loadData()"><option value="">Todas</option></select></div>
     <div class="filter-group"><label>Operador</label><select id="f-operador" onchange="loadData()"><option value="">Todos</option></select></div>
 </div>
@@ -111,6 +112,16 @@
 <script>
 let lineChart, radarChart, barChart;
 let lastFetchedData = [];
+let masterEmpleados = [];
+let masterTurnos = [];
+
+const preguntasTexto = [
+    ["S1_P1_Solo_material_necesario", "S1_P2_Scrap_identificado", "S1_P3_Sin_objetos_innecesarios", "S1_P4_Herramientas_en_uso", "S1_P5_Mesa_despejada"],
+    ["S2_P1_Herramientas_en_su_lugar", "S2_P2_Material_en_su_lugar", "S2_P3_Area_libre_de_obstaculos", "S2_P4_Contenedores_identificados", "S2_P5_Instrucciones_visibles"],
+    ["S3_P1_Area_libre_de_polvo", "S3_P2_Piso_limpio", "S3_P3_Contenedores_limpios", "S3_P4_Maquina_limpia", "S3_P5_Mesa_limpia"],
+    ["S4_P1_Instrucciones_actualizadas", "S4_P2_Uso_de_uniforme", "S4_P3_Etiquetas_correctas", "S4_P4_Area_delimitada", "S4_P5_Cumple_estandar"],
+    ["S5_P1_Habito_de_limpieza", "S5_P2_Sigue_instrucciones", "S5_P3_Respeta_ubicacion", "S5_P4_Reporta_anomalias", "S5_P5_Conoce_5S"]
+];
 
 async function init() {
     const hoy = new Date();
@@ -118,21 +129,56 @@ async function init() {
     document.getElementById('f-inicio').value = primero.toISOString().split('T')[0];
     document.getElementById('f-fin').value = hoy.toISOString().split('T')[0];
 
-    // Cargar áreas correctas maestras (areas_generales)
+    // Cargar Catálogos Maestros
     const { data: areas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
-    const { data: emps } = await client.from('rh_empleados').select('id, nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
     const { data: turnos } = await client.from('rh_turnos').select('*').order('nombre');
+    const { data: emps } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
     
+    masterEmpleados = emps || [];
+    masterTurnos = turnos || [];
+
     const aSel = document.getElementById('f-area');
     areas?.forEach(a => aSel.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
     
     const tSel = document.getElementById('f-turno');
     turnos?.forEach(t => tSel.innerHTML += `<option value="${t.id}">${t.nombre}</option>`);
 
-    const oSel = document.getElementById('f-operador');
-    emps?.forEach(e => oSel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`);
-
+    // Inicializar render de operadores y máquinas
+    filtrarSelectOperadores();
     actualizarFiltroMaquinas();
+}
+
+// Disparador cuando cambia el área o turno en la barra superior
+function cambioFiltrosEstratégicos(){
+    filtrarSelectOperadores();
+    actualizarFiltroMaquinas();
+}
+
+// Filtra el select de operadores de la interfaz según el área y el turno elegidos arriba
+function filtrarSelectOperadores(){
+    const areaId = document.getElementById('f-area').value;
+    const turnoUuid = document.getElementById('f-turno').value;
+    const oSel = document.getElementById('f-operador');
+    
+    // Obtener valor numérico del turno ("1" o "2")
+    const turnoObj = masterTurnos.find(t => String(t.id) === String(turnoUuid));
+    const nombreTurno = turnoObj ? turnoObj.nombre : '';
+    const turnoNumerico = nombreTurno.includes('2') ? '2' : (nombreTurno.includes('1') ? '1' : '');
+
+    // Filtrar localmente el maestro de empleados
+    const filtrados = masterEmpleados.filter(e => {
+        const cumpleArea = !areaId || String(e.area_general_id || '') === String(areaId);
+        const cumpleTurno = !turnoUuid || String(e.turno_id || '') === String(turnoNumerico);
+        return cumpleArea && cumpleTurno;
+    });
+
+    // Re-renderizar el select manteniendo la opción por defecto
+    oSel.innerHTML = '<option value="">Todos los Operadores</option>';
+    filtrados.forEach(e => {
+        oSel.innerHTML += `<option value="${e.id}">${e.nombre_completo}</option>`;
+    });
+
+    loadData();
 }
 
 async function actualizarFiltroMaquinas(){
@@ -142,9 +188,7 @@ async function actualizarFiltroMaquinas(){
 
     try {
         let query = client.from('mes_machines').select('*').eq('active', true);
-        if(areaId) {
-            query = query.eq('area_general_id', areaId);
-        }
+        if(areaId) query = query.eq('area_general_id', areaId);
         const { data: maquinas } = await query.order('machine_code');
         
         maquinas?.forEach(m => {
@@ -168,9 +212,8 @@ async function loadData() {
     let fFin = new Date(fin);
     fFin.setHours(23,59,59,999);
 
-    // CONSULTA MODIFICADA: Ahora incluye el JOIN con 'rh_turnos' a través del alias foráneo
     let query = client.from('rh_evaluaciones_5s')
-        .select('*, areas_generales(nombre), mes_machines(machine_code), rh_empleados!empleado_id(nombre_completo), rh_turnos(nombre)')
+        .select('*, areas_generales(nombre), mes_machines(machine_code), rh_empleados!empleado_id(nombre_completo), rh_turnos(nombre), auditor:rh_empleados!auditor_id(nombre_completo)')
         .gte('created_at', inicio)
         .lte('created_at', fFin.toISOString())
         .order('created_at', { ascending: true });
@@ -265,7 +308,6 @@ function updateComparisonChart() {
     let grouped = {};
     
     lastFetchedData.forEach(audit => {
-        // MODIFICADO: Añadido mapeo para agrupar por el objeto relacional 'rh_turnos'
         let key = (type === 'area') ? (audit.areas_generales?.nombre || "Sin Área") : 
                   (type === 'maquina') ? (audit.mes_machines?.machine_code || "Sin Código") : 
                   (type === 'turno') ? (audit.rh_turnos?.nombre || "Sin Turno") :
@@ -288,6 +330,49 @@ function updateComparisonChart() {
     });
 }
 
+// NUEVA FUNCIÓN: Exporta la matriz completa de las 25 preguntas desglosadas por renglón
+function exportarMatrizDetallada() {
+    if (lastFetchedData.length === 0) { alert("No hay datos cargados para exportar la matriz."); return; }
+    
+    // Generar encabezados dinámicos
+    let csv = "\uFEFFFecha,Auditor,Operador,Area,Turno,Maquina,Calificacion_Total";
+    for (let s = 0; s < 5; s++) {
+        for (let p = 0; p < 5; p++) {
+            csv += `,${preguntasTexto[s][p]}`;
+        }
+    }
+    csv += "\n";
+
+    // Recorrer renglones de auditorías
+    lastFetchedData.forEach(row => {
+        const res = row.respuestas_json || {};
+        const fecha = new Date(row.created_at).toLocaleDateString();
+        const auditor = row.auditor?.nombre_completo || 'N/A';
+        const operador = row.rh_empleados?.nombre_completo || 'N/A';
+        const area = row.areas_generales?.nombre || 'N/A';
+        const turno = row.rh_turnos?.nombre || 'N/A';
+        const maquina = row.mes_machines?.machine_code || 'N/A';
+        const total = row.puntuacion || 0;
+
+        csv += `"${fecha}","${auditor}","${operador}","${area}","${turno}","${maquina}",${total}%`;
+
+        // Extraer secuencialmente el score crudo de cada una de las 25 preguntas
+        for (let s = 0; s < 5; s++) {
+            for (let p = 0; p < 5; p++) {
+                const valorPregunta = res[`${s}_${p}`] !== undefined ? res[`${s}_${p}`] : "";
+                csv += `,${valorPregunta}`;
+            }
+        }
+        csv += "\n";
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Matriz_Detallada_Preguntas_5S_${new Date().getTime()}.csv`;
+    link.click();
+}
+
 function exportToExcel() {
     if (lastFetchedData.length === 0) { alert("No hay datos para exportar"); return; }
     let csv = "\uFEFFFecha,Area,Turno,Maquina,Operador,S1,S2,S3,S4,S5,Total,Observaciones\n";
@@ -298,7 +383,6 @@ function exportToExcel() {
         const a = s.map((v, i) => Math.round((v / (c[i] || 1)) * 100));
         let obs = row.observaciones ? Object.values(row.observaciones).filter(t => t.trim()).join(" | ").replace(/,/g, ";") : "";
         
-        // MODIFICADO: Se incluye la columna 'Turno' en la exportación
         csv += `${new Date(row.created_at).toLocaleDateString()},"${row.areas_generales?.nombre || ''}","${row.rh_turnos?.nombre || ''}","${row.mes_machines?.machine_code || ''}","${row.rh_empleados?.nombre_completo || ''}",${a[0]},${a[1]},${a[2]},${a[3]},${a[4]},${row.puntuacion},"${obs}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -375,7 +459,6 @@ async function generatePDF() {
         doc.setFont(undefined, 'normal');
         doc.text(new Date(audit.created_at).toLocaleDateString(), margin + 5, yPos + 12);
         
-        // MODIFICADO: Se concatena el nombre del turno en el listado del PDF impreso
         const empName = (audit.rh_empleados?.nombre_completo || 'N/A').substring(0, 18);
         const areaName = audit.areas_generales?.nombre || 'N/A';
         const turnoName = audit.rh_turnos?.nombre || 'N/A';
