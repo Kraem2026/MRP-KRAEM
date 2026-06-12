@@ -25,21 +25,24 @@
             font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;
         }
 
-        /* Filtro de Áreas */
-        .areas-filter { 
-            display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 15px; 
+        /* Filtros por Contenedores Sliders */
+        .areas-filter, .turnos-filter { 
+            display: flex; gap: 8px; overflow-x: auto; padding: 5px 0 10px; 
             scrollbar-width: none;
         }
-        .areas-filter::-webkit-scrollbar { display: none; }
+        .areas-filter::-webkit-scrollbar, .turnos-filter::-webkit-scrollbar { display: none; }
 
-        .area-chip { 
+        .area-chip, .turno-chip { 
             white-space: nowrap; padding: 8px 16px; background: white; border: 1px solid var(--border);
             border-radius: 20px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; transition: 0.2s;
         }
-        .area-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .area-chip.active, .turno-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Segmentador de etiquetas visuales rápidas */
+        .filter-label { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #64748b; margin: 10px 0 4px 4px; display: block; letter-spacing: 0.5px; }
 
         /* Tabs */
-        .tabs-container { display: flex; background: white; border: 1px solid var(--border); margin-bottom: 15px; border-radius: 12px; overflow: hidden; }
+        .tabs-container { display: flex; background: white; border: 1px solid var(--border); margin: 15px 0; border-radius: 12px; overflow: hidden; }
         .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; font-size: 13px; color: #64748b; transition: 0.3s; }
         .tab.active { color: var(--accent); background: #eff6ff; border-bottom: 3px solid var(--accent); }
 
@@ -86,8 +89,14 @@
         </div>
     </div>
 
+    <span class="filter-label"><i class="fas fa-layer-group"></i> Área de Trabajo</span>
     <div class="areas-filter" id="areas-container">
         <div class="area-chip active" onclick="filtrarArea('TODOS', this)">TODOS</div>
+    </div>
+
+    <span class="filter-label"><i class="fas fa-clock"></i> Turno</span>
+    <div class="turnos-filter" id="turnos-container">
+        <div class="turno-chip active" onclick="filtrarTurno('TODOS', this)">TODOS</div>
     </div>
 
     <div class="tabs-container">
@@ -111,8 +120,10 @@
 <script>
     let modo = 'asistencia';
     let areaSeleccionada = 'TODOS';
+    let turnoSeleccionado = 'TODOS'; // Nueva variable de control
     let empleados = [];
     let áreas = [];
+    let turnos Master = []; // Almacén maestro de turnos
     let solicitudes = [];
     let asistenciaLocal = {}; 
 
@@ -121,22 +132,34 @@
         document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
 
         try {
-            // CORRECCIÓN: Se cambió 'area_id' por 'area_general_id' en la selección
-            const [resEmp, resAreas, resSol, resAsis] = await Promise.all([
-                client.from('rh_empleados').select('id, nombre_completo, foto_url, area_general_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
+            // Se añade la consulta paralela a la tabla 'rh_turnos' y se extrae el campo 'turno_id' de los empleados
+            const [resEmp, resAreas, resTurnos, resSol, resAsis] = await Promise.all([
+                client.from('rh_empleados').select('id, nombre_completo, foto_url, area_general_id, turno_id, rh_puestos(nombre)').eq('estatus', 'ACTIVO').order('nombre_completo'),
                 client.from('areas_generales').select('*').order('nombre'),
+                client.from('rh_turnos').select('*').order('nombre'),
                 client.from('rh_solicitudes').select('empleado_id, tipo').eq('estatus', 'APROBADO').lte('fecha_inicio', hoy).gte('fecha_fin', hoy),
                 client.from('rh_asistencia_diaria').select('*').eq('fecha', hoy)
             ]);
 
             empleados = resEmp.data || [];
             áreas = resAreas.data || [];
+            turnosMaster = resTurnos.data || [];
             solicitudes = resSol.data || [];
 
+            // Renderizar chips de Áreas Generales
             const areasContainer = document.getElementById('areas-container');
             areasContainer.innerHTML = `<div class="area-chip ${areaSeleccionada === 'TODOS' ? 'active' : ''}" onclick="filtrarArea('TODOS', this)">TODOS</div>`;
             áreas.forEach(a => {
                 areasContainer.innerHTML += `<div class="area-chip" onclick="filtrarArea('${a.id}', this)">${a.nombre}</div>`;
+            });
+
+            // NUEVO: Renderizar chips de Turnos Operativos
+            const turnosContainer = document.getElementById('turnos-container');
+            turnosContainer.innerHTML = `<div class="turno-chip ${turnoSeleccionado === 'TODOS' ? 'active' : ''}" onclick="filtrarTurno('TODOS', this)">TODOS</div>`;
+            turnosMaster.forEach(t => {
+                // Identificar el ID numérico correspondiente para la lógica de filtrado del empleado
+                let idFiltro = t.nombre.includes('2') ? '2' : (t.nombre.includes('1') ? '1' : t.id);
+                turnosContainer.innerHTML += `<div class="turno-chip" onclick="filtrarTurno('${idFiltro}', this)">${t.nombre}</div>`;
             });
 
             asistenciaLocal = {};
@@ -163,6 +186,14 @@
         render();
     }
 
+    // NUEVA FUNCIÓN: Manejo del clic en los chips de turnos
+    function filtrarTurno(id, element) {
+        turnoSeleccionado = id;
+        document.querySelectorAll('.turno-chip').forEach(c => c.classList.remove('active'));
+        element.classList.add('active');
+        render();
+    }
+
     function cambiarTab(nuevoModo) {
         modo = nuevoModo;
         document.getElementById('tab-asis').classList.toggle('active', modo === 'asistencia');
@@ -174,8 +205,17 @@
         const container = document.getElementById('lista-empleados');
         container.innerHTML = '';
 
-        // CORRECCIÓN: Se evalúa 'e.area_general_id' en lugar de 'e.area_id'
-        const filtrados = empleados.filter(e => areaSeleccionada === 'TODOS' || e.area_general_id == areaSeleccionada);
+        // SE OPTIMIZÓ EL FILTRO: Valida simultáneamente el área seleccionada y el turno del empleado
+        const filtrados = empleados.filter(e => {
+            const cumpleArea = areaSeleccionada === 'TODOS' || String(e.area_general_id) === String(areaSeleccionada);
+            const cumpleTurno = turnoSeleccionado === 'TODOS' || String(e.turno_id) === String(turnoSeleccionado);
+            return cumpleArea && cumpleTurno;
+        });
+
+        if (filtrados.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding:40px; color:#94a3b8; font-size:13px;">No hay operadores activos asignados a este sector y turno.</div>`;
+            return;
+        }
 
         filtrados.forEach(emp => {
             const sol = solicitudes.find(s => s.empleado_id === emp.id);
