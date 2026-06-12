@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM | Gestión de Turnos y Horarios</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; --success: #22c55e; --danger: #ef4444; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 8px; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        form { background: #f1f5f9; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px; }
+        label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; }
+        input, select { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: white; outline: none; }
+        .dias-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .dia-input { display: flex; flex-direction: column; gap: 2px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; border: 1px solid var(--border); text-align: left; font-size: 13px; }
+        th { background: #f8fafc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h2><i class="fas fa-clock"></i> Administración de Turnos y Horarios</h2>
+        <a href="dashboard.html" class="btn" style="background:#64748b; color:white;"><i class="fas fa-arrow-left"></i> Panel</a>
+    </header>
+
+    <div class="grid-layout">
+        <div>
+            <form id="turno-form">
+                <input type="hidden" id="turno-id">
+                <h3 id="form-title" style="margin:0 0 10px 0; font-size:16px;">Crear Nuevo Turno</h3>
+                
+                <label>Nombre del Turno</label>
+                <input type="text" id="nombre" placeholder="Ej. Turno 3 / Nocturno" required>
+                
+                <label>Hora de Entrada (Formato 24h)</label>
+                <input type="time" id="entrada" required>
+
+                <label>Horas Equivalentes por Día</label>
+                <div class="dias-grid">
+                    <div class="dia-input"><label>Lun</label><input type="number" step="0.5" id="h_lunes" value="9.5"></div>
+                    <div class="dia-input"><label>Mar</label><input type="number" step="0.5" id="h_martes" value="9.5"></div>
+                    <div class="dia-input"><label>Mié</label><input type="number" step="0.5" id="h_miercoles" value="9.5"></div>
+                    <div class="dia-input"><label>Jue</label><input type="number" step="0.5" id="h_jueves" value="9.5"></div>
+                    <div class="dia-input"><label>Vie</label><input type="number" step="0.5" id="h_viernes" value="9.5"></div>
+                    <div class="dia-input"><label>Sáb</label><input type="number" step="0.5" id="h_sabado" value="0"></div>
+                    <div class="dia-input"><label>Dom</label><input type="number" step="0.5" id="h_domingo" value="0"></div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;"><i class="fas fa-save"></i> Guardar</button>
+                    <button type="button" class="btn" style="background:#cbd5e1;" onclick="limpiarFormulario()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        <div>
+            <h3 style="margin:0 0 10px 0; font-size:16px;">Turnos Configurados</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Entrada</th>
+                        <th>Lun-Vie</th>
+                        <th>Sáb</th>
+                        <th>Dom</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="turnos-table-body">
+                    <tr><td colspan="6">Cargando turnos...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function cargarTurnos() {
+        const { data: turnos, error } = await client.from('rh_turnos').select('*').order('nombre');
+        if (error) return alert("Error al cargar turnos: " + error.message);
+        
+        const tbody = document.getElementById('turnos-table-body');
+        if(!turnos || turnos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">No hay turnos registrados.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = turnos.map(t => `
+            <tr>
+                <strong><td>${t.nombre}</td></strong>
+                <td><i class="far fa-clock"></i> ${t.entrada || 'No asignada'}</td>
+                <td>${t.h_lunes}h</td>
+                <td>${t.h_sabado}h</td>
+                <td>${t.h_domingo}h</td>
+                <td>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn" style="background:#e2e8f0; padding:5px 8px; font-size:12px;" onclick='editarTurno(${JSON.stringify(t)})'><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger" style="padding:5px 8px; font-size:12px;" onclick="eliminarTurno('${t.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('turno-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('turno-id').value;
+        const payload = {
+            nombre: document.getElementById('nombre').value,
+            entrada: document.getElementById('entrada').value,
+            h_lunes: parseFloat(document.getElementById('h_lunes').value) || 0,
+            h_martes: parseFloat(document.getElementById('h_martes').value) || 0,
+            h_miercoles: parseFloat(document.getElementById('h_miercoles').value) || 0,
+            h_jueves: parseFloat(document.getElementById('h_jueves').value) || 0,
+            h_viernes: parseFloat(document.getElementById('h_viernes').value) || 0,
+            h_sabado: parseFloat(document.getElementById('h_sabado').value) || 0,
+            h_domingo: parseFloat(document.getElementById('h_domingo').value) || 0,
+        };
+
+        let error;
+        if (id) {
+            ({ error } = await client.from('rh_turnos').update(payload).eq('id', id));
+        } else {
+            ({ error } = await client.from('rh_turnos').insert([payload]));
+        }
+
+        if (error) alert("Error al guardar: " + error.message);
+        else {
+            limpiarFormulario();
+            cargarTurnos();
+        }
+    });
+
+    function editarTurno(turno) {
+        document.getElementById('turno-id').value = turno.id;
+        document.getElementById('nombre').value = turno.nombre;
+        document.getElementById('entrada').value = turno.entrada ? turno.entrada.substring(0,5) : '';
+        document.getElementById('h_lunes').value = turno.h_lunes;
+        document.getElementById('h_martes').value = turno.h_martes;
+        document.getElementById('h_miercoles').value = turno.h_miercoles;
+        document.getElementById('h_jueves').value = turno.h_jueves;
+        document.getElementById('h_viernes').value = turno.h_viernes;
+        document.getElementById('h_sabado').value = turno.h_sabado;
+        document.getElementById('h_domingo').value = turno.h_domingo;
+        document.getElementById('form-title').innerText = "Editar Turno: " + turno.nombre;
+    }
+
+    async function eliminarTurno(id) {
+        if (!confirm("¿Seguro que deseas eliminar este turno? Esto podría afectar a los empleados asociados.")) return;
+        const { error } = await client.from('rh_turnos').delete().eq('id', id);
+        if (error) alert("Error al eliminar: " + error.message);
+        else cargarTurnos();
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('turno-form').reset();
+        document.getElementById('turno-id').value = '';
+        document.getElementById('form-title').innerText = "Crear Nuevo Turno";
+    }
+
+    window.onload = cargarTurnos;
+</script>
+</body>
+</html>
