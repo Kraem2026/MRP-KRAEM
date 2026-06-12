@@ -91,7 +91,7 @@
             </div>
         </div>
         <div class="control-group"><label>Área</label><select id="v_area" onchange="cargarData()"><option value="">Todas</option></select></div>
-        <div class="control-group"><label>Turno</label><select id="v_turno" onchange="cargarData()"><option value="">Todos</option><option value="1">1</option><option value="2">2</option></select></div>
+        <div class="control-group"><label>Turno</label><select id="v_turno" onchange="cargarData()"><option value="">Todos</option></select></div>
         <div class="control-group"><label>Nombre</label><input type="text" id="v_nombre" placeholder="Buscar..." onkeyup="filtrarLocal()"></div>
     </div>
 
@@ -128,13 +128,18 @@
 
 <script>
     let globalData = [];
-    const HORA_ENTRADA_OFICIAL = "07:00"; 
-    const HORAS_JORNADA_NORMAL = 9.6;     
+    let turnosConfig = []; // Almacenará los turnos cargados de Supabase
 
     async function init() {
         const { data: areas } = await client.from('areas_generales').select('*').order('nombre');
         const selArea = document.getElementById('v_area');
         areas?.forEach(a => selArea.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
+        
+        // Modificado para mapear dinámicamente los UUIDs reales de tus turnos
+        const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
+        const selTurno = document.getElementById('v_turno');
+        selTurno.innerHTML = '<option value="">Todos</option>';
+        turnos?.forEach(t => selTurno.innerHTML += `<option value="${t.id}">${t.nombre}</option>`);
         
         const hoy = new Date();
         document.getElementById('v_desde').value = hoy.toISOString().split('T')[0];
@@ -151,23 +156,32 @@
         document.getElementById('c_rango').style.display = v === 'rango' ? 'flex' : 'none';
     }
 
-    function calcularHorasTrabajadasEnRetardo(horaLlegada) {
-        if (!horaLlegada) return HORAS_JORNADA_NORMAL;
+    // Nueva función auxiliar para obtener las horas base asignadas por día de la semana
+    function obtenerHorasBaseDelDia(turno, numeroDia) {
+        if (!turno) return 0;
+        const mapaDias = { 1: turno.h_lunes, 2: turno.h_martes, 3: turno.h_miercoles, 4: turno.h_jueves, 5: turno.h_viernes, 6: turno.h_sabado, 0: turno.h_domingo };
+        return parseFloat(mapaDias[numeroDia]) || 0;
+    }
+
+    // Modificado para usar la hora de entrada y horas normales dinámicas del turno correspondiente
+    function calcularHorasTrabajadasEnRetardo(horaLlegada, turno, numeroDia) {
+        const horasJornadaNormal = obtenerHorasBaseDelDia(turno, numeroDia);
+        if (!horaLlegada || !turno || !turno.entrada) return horasJornadaNormal;
         try {
-            const [hOficial, mOficial] = HORA_ENTRADA_OFICIAL.split(':').map(Number);
+            const [hOficial, mOficial] = turno.entrada.split(':').map(Number);
             const [hLlegada, mLlegada] = horaLlegada.split(':').map(Number);
             
             const minutosOficial = hOficial * 60 + mOficial;
             const minutosLlegada = hLlegada * 60 + mLlegada;
             
             const diferenciaMinutos = minutosLlegada - minutosOficial;
-            if (diferenciaMinutos <= 0) return HORAS_JORNADA_NORMAL;
+            if (diferenciaMinutos <= 0) return horasJornadaNormal;
             
             const horasPerdidas = diferenciaMinutos / 60;
-            const resultado = HORAS_JORNADA_NORMAL - horasPerdidas;
+            const resultado = horasJornadaNormal - horasPerdidas;
             return resultado > 0 ? parseFloat(resultado.toFixed(2)) : 0;
         } catch (e) {
-            return HORAS_JORNADA_NORMAL;
+            return horasJornadaNormal;
         }
     }
 
@@ -190,11 +204,15 @@
         const iniStr = inicio.toISOString().split('T')[0];
         const finStr = fin.toISOString().split('T')[0];
 
-        const [resEmp, resAsi, resSol] = await Promise.all([
+        // Añadida la descarga simultánea de la tabla rh_turnos para cruzar los datos
+        const [resEmp, resAsi, resSol, resTurnos] = await Promise.all([
             client.from('rh_empleados').select('id, nombre_completo, area_general_id, turno_id').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
             client.from('rh_asistencia_diaria').select('*').gte('fecha', iniStr).lte('fecha', finStr),
-            client.from('rh_solicitudes').select('*').eq('estatus','APROBADO').or(`fecha_inicio.lte.${finStr},fecha_fin.gte.${iniStr}`)
+            client.from('rh_solicitudes').select('*').eq('estatus','APROBADO').or(`fecha_inicio.lte.${finStr},fecha_fin.gte.${iniStr}`),
+            client.from('rh_turnos').select('*')
         ]);
+
+        turnosConfig = resTurnos.data || [];
 
         let headHTML = `<tr><th class="emp-name">Colaborador</th>`;
         for(let i=0; i<diasDiff; i++) {
@@ -214,26 +232,33 @@
             let fCount = 0, pCount = 0, aCount = 0, rCount = 0, hCount = 0, horasTrabajadasPeriodo = 0;
             let fila = `<tr class="row-emp"><td class="emp-name">${emp.nombre_completo}</td>`;
             
+            // Busca la configuración exacta del turno asignado al empleado
+            const miTurno = turnosConfig.find(t => String(t.id) === String(emp.turno_id));
+            
             for(let i=0; i<diasDiff; i++) {
                 let d = new Date(inicio); d.setDate(d.getDate() + i);
                 const fStr = d.toISOString().split('T')[0];
+                const diaSemana = d.getDay();
                 const sol = resSol.data.find(s => s.empleado_id === emp.id && fStr >= s.fecha_inicio && fStr <= s.fecha_fin);
                 const asi = resAsi.data.find(a => a.empleado_id === emp.id && a.fecha === fStr);
+                
+                // Obtiene dinámicamente las horas que le correspondía trabajar ese día de la semana
+                const horasJornadaNormal = obtenerHorasBaseDelDia(miTurno, diaSemana);
                 
                 let celda = '-';
                 if(sol) {
                     celda = `<small style="color:blue; font-weight:bold;">${sol.tipo.substring(0,3)}</small>`;
                     pCount++;
-                    if(sol.tipo !== 'PERMISO S/GOCE' && sol.tipo !== 'SUSPENSION' && d.getDay() !== 0) {
-                        horasTrabajadasPeriodo += HORAS_JORNADA_NORMAL;
+                    if(sol.tipo !== 'PERMISO S/GOCE' && sol.tipo !== 'SUSPENSION' && diaSemana !== 0) {
+                        horasTrabajadasPeriodo += horasJornadaNormal;
                     }
                 } else if(asi) {
                     if(asi.estado === 'P') {
                         aCount++;
-                        if(d.getDay() !== 0) horasTrabajadasPeriodo += HORAS_JORNADA_NORMAL;
+                        if(diaSemana !== 0) horasTrabajadasPeriodo += horasJornadaNormal;
                     } else if(asi.estado === 'R') {
                         rCount++;
-                        if(d.getDay() !== 0) horasTrabajadasPeriodo += calcularHorasTrabajadasEnRetardo(asi.hora_llegada);
+                        if(diaSemana !== 0) horasTrabajadasPeriodo += calcularHorasTrabajadasEnRetardo(asi.hora_llegada, miTurno, diaSemana);
                     } else if(asi.estado === 'F') {
                         fCount++;
                     }
@@ -243,7 +268,7 @@
                     celda = txt + hex;
                     hCount += parseFloat(asi.horas_extra || 0);
                 }
-                fila += `<td class="${d.getDay()===0?'domingo':''}">${celda}</td>`;
+                fila += `<td class="${diaSemana===0?'domingo':''}">${celda}</td>`;
             }
 
             globalData.push({ nombre: emp.nombre_completo.toLowerCase(), a: aCount, f: fCount, r: rCount, p: pCount, h: hCount, ht: horasTrabajadasPeriodo });
