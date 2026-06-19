@@ -2,337 +2,219 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM | Consulta FIFO con Escáner</title>
+<title>KRAEM | Despacho Sugerido FIFO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
 <style>
-:root{
-  --primary:#2563eb;
-  --primary-dark:#1d4ed8;
-  --bg:#f8fafc;
-  --card:#ffffff;
-  --text:#0f172a;
-  --border:#e2e8f0;
-  --success:#166534;
-  --success-bg:#dcfce7;
-  --warning:#f59e0b;
-  --text-secondary:#64748b;
-}
+    :root { 
+        --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
+        --border: #e2e8f0; --primary: #007bff; --success: #27ae60; --warning: #f39c12; --danger: #dc3545;
+    }
+    [data-theme="dark"] { 
+        --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
+        --border: #334155; 
+    }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding:15px; margin:0; color: var(--text); }
+    
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background: var(--card); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border); max-width:500px; margin: 0 auto 15px auto; }
+    .btn-nav { background:#6c757d; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:8px; font-weight:bold; font-size:12px; }
 
-*{ margin:0; padding:0; box-sizing:border-box; }
-body{ font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); padding:15px; }
-.container{ max-width:1100px; margin:auto; }
+    .container { max-width:500px; margin:auto; background:var(--card); padding:20px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.1); border: 1px solid var(--border); margin-top: 20px; }
+    h2 { text-align:center; margin-top:0; color: var(--text); }
+    label { font-weight:800; display:block; margin-top:15px; font-size:11px; color: var(--text-secondary); text-transform: uppercase; }
+    
+    /* Buscador con botón QR en un mismo renglón */
+    .input-with-btn { display: flex; gap: 5px; align-items: center; }
+    input { width:100%; padding:12px; margin-top:5px; border-radius:8px; border:1px solid var(--border); font-size:15px; box-sizing:border-box; background: var(--bg); color: var(--text); }
+    .btn-qr { background: var(--primary); color: white; border: none; padding: 12px 15px; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 5px; height: 47px; box-sizing: border-box; }
 
-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background: var(--card); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); }
-.back-btn{ background:#6c757d; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold; }
+    .autobox { background:var(--card); border:1px solid var(--border); position:absolute; width:100%; z-index:1000; max-height:200px; overflow-y:auto; display:none; border-radius:0 0 8px 8px; box-shadow:0 10px 20px rgba(0,0,0,0.1); }
+    .autobox div { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); font-size:14px; }
+    .autobox div:hover { background: var(--bg); color: var(--primary); }
+    
+    /* DISEÑO DE RECUADROS ADAPTATIVOS */
+    .fifo-card { background: var(--bg); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 15px; position: relative; border-left: 5px solid var(--primary); }
+    .fifo-card.oldest { border-left: 5px solid var(--warning); background: rgba(243, 156, 18, 0.05); border: 1px solid var(--warning); border-left: 6px solid var(--warning); }
+    .badge-status { position: absolute; top: 10px; right: 10px; background: var(--warning); color: white; padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+    .part-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    
+    /* Grid de datos interna para que se vea excelente en Celular y PC */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
+    .info-block { display: flex; flex-direction: column; }
+    .info-label { font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: bold; }
+    .info-value { font-size: 14px; font-weight: bold; margin-top: 2px; }
 
-.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.04); margin-bottom:20px; position: relative; }
+    .loc-info { color: var(--primary); font-weight: bold; }
+    .qty-info { font-size: 22px; font-weight: bold; color: var(--success); text-align: right; grid-column: 2; margin-top: -5px; }
 
-.group{ display:flex; flex-direction:column; position: relative; }
-label{ font-size:11px; font-weight:800; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing: 0.5px; }
-
-/* Contenedor del Buscador y Botón de Cámara */
-.search-wrapper { display: flex; gap: 8px; width: 100%; }
-.input-search { border:1px solid #cbd5e1; border-radius:10px; padding:12px; font-size:15px; background:white; width: 100%; text-transform:uppercase; }
-
-/* Lista de Sugerencias Predictivas */
-.suggestions-list {
-  position: absolute; top: 100%; left: 0; width: 100%; background: white;
-  border: 1px solid #cbd5e1; border-radius: 10px; max-height: 200px; overflow-y: auto;
-  z-index: 999; box-shadow: 0 8px 16px rgba(0,0,0,0.1); display: none;
-}
-.suggestion-item { padding: 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
-.suggestion-item:hover { background: #f0f7ff; color: var(--primary); font-weight: bold; }
-.suggestion-item span { font-size: 12px; color: var(--text-secondary); }
-
-.btn { border:none; border-radius:10px; padding:12px 18px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:8px; transition:.2s; font-size: 14px; }
-.btn-primary { background:var(--primary); color:white; justify-content: center; width: 100%; }
-.btn-primary:hover { background:var(--primary-dark); }
-.btn-scan { background:var(--warning); color:white; white-space: nowrap; }
-
-#reader { width: 100%; max-width: 400px; margin: 15px auto; border-radius: 12px; overflow: hidden; display: none; border: 2px dashed var(--warning); }
-
-/* CONTENEDOR DE RECUADROS / TARJETAS FIFO */
-.fifo-container { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
-
-/* Estilo para los bloques comunes en espera */
-.fifo-box {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 15px; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-}
-
-/* 🚨 RECUADRO SUPERIOR: SACAR ESTE PRIMERO */
-.fifo-box.first-priority {
-  border: 3px solid #22c55e; background: var(--success-bg);
-  position: relative; box-shadow: 0 6px 15px rgba(34, 197, 94, 0.15);
-}
-.priority-indicator {
-  grid-column: 1 / -1; background: #22c55e; color: white; padding: 6px 12px;
-  font-weight: 900; font-size: 12px; border-radius: 6px; display: inline-flex;
-  align-items: center; gap: 6px; text-transform: uppercase; width: max-content;
-}
-
-/* Sub-bloques internos dentro de cada recuadro */
-.data-cell { display: flex; flex-direction: column; }
-.data-cell .title { font-size: 11px; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 3px; }
-.data-cell .value { font-size: 14px; font-weight: 700; color: var(--text); }
-
-.qty-badge { background: var(--primary); color: white; padding: 6px 12px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; display: inline-block; }
-.first-priority .qty-badge { background: #22c55e; }
-.loc-badge { color: #2563eb; font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 4px; }
-
-/* DISEÑO ADAPTABLE (PC vs CELULAR) */
-@media (max-width: 768px) {
-  .fifo-box {
-    grid-template-columns: 1fr 1fr; /* En celular se acomoda en 2 columnas por renglón */
-    gap: 12px;
-    padding: 14px;
-  }
-  .priority-indicator { grid-column: 1 / -1; width: 100%; justify-content: center; }
-  .cell-full-mobile { grid-column: 1 / -1; } /* Forzar a que la descripción ocupe todo el ancho */
-}
+    /* Estilos del Modal de Cámara */
+    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(4px); }
+    .modal-content { background:var(--card); padding:25px; border-radius:15px; width:90%; max-width:400px; color: var(--text); border: 1px solid var(--border); }
+    #reader { width: 100%; background: black; border-radius: 8px; overflow: hidden; margin-top: 10px; }
 </style>
 </head>
 <body>
 
+<header>
+    <button class="btn-nav" onclick="location.href='dashboard.html'">⬅ <span>Volver</span></button>
+    <div style="font-weight: bold; font-size: 13px; color: var(--text-secondary);">KRAEM MRP</div>
+</header>
+
 <div class="container">
-  <header>
-    <h2 style="font-size: 20px;"><i class="fas fa-hourglass-start" style="color:var(--primary)"></i> Consulta de Prioridad FIFO</h2>
-    <button class="back-btn" onclick="location.href='dashboard.html'">⬅ Menú</button>
-  </header>
-
-  <div class="card">
-    <div class="group">
-      <label>Escriba o Escanee Código (N° Parte / Ubicación)</label>
-      <div class="search-wrapper">
-        <input type="text" id="targetSearch" class="input-search" placeholder="Ej. PART-123 o CARRO-04" autocomplete="off" oninput="manejarInputPredictivo(this.value)">
-        <button class="btn btn-scan" onclick="alternarEscaner()" id="btnScanControl">
-          <i class="fas fa-camera"></i> Escanear
-        </button>
-      </div>
-      <div id="suggestions" class="suggestions-list"></div>
-    </div>
-
-    <div id="reader"></div>
+    <h2><i class="fas fa-boxes"></i> ¿Qué lote debo tomar?</h2>
+    <p style="font-size: 13px; color: var(--text-secondary); text-align: center; margin-top: -10px;">Consulta FIFO para Operadores y Montacargas</p>
     
-    <div style="margin-top: 15px;">
-      <button class="btn btn-primary" onclick="consultarFIFO()"><i class="fas fa-search"></i> Calcular Flujo de Salida</button>
+    <div style="position:relative;">
+        <label>Escribe o Escanea Número de Parte</label>
+        <div class="input-with-btn">
+            <input id="partSearch" placeholder="Ej: KRM-1023..." autocomplete="off">
+            <button class="btn-qr" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
+        </div>
+        <div id="partResults" class="autobox"></div>
     </div>
-  </div>
 
-  <div id="fifoResultContainer" class="fifo-container">
-    <div style="text-align: center; color: #94a3b8; padding: 40px; background: white; border-radius: 16px; border: 1px solid var(--border);">
-      <i class="fas fa-search-location" style="font-size: 32px; margin-bottom: 10px; color: #cbd5e1;"></i>
-      <p>Esperando Número de Parte o Contenedor para evaluar orden de salida.</p>
+    <div id="resultadoDespacho" style="margin-top: 20px;"></div>
+</div>
+
+<div id="modalQR" class="modal" onclick="if(event.target==this)cerrarEscaner()">
+    <div class="modal-content">
+        <h3 style="margin-top:0; text-align:center;">Escaneando Código QR</h3>
+        <div id="reader"></div>
+        <button onclick="cerrarEscaner()" style="margin-top:15px; width:100%; background:var(--danger); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:8px;">Cancelar</button>
     </div>
-  </div>
 </div>
 
 <script>
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
+let parts = [];
 let html5QrcodeScanner = null;
-let todosLosRegistros = []; // Caché local para autocompletado rápido
 
-// Al iniciar, cargamos el inventario en memoria para que el buscador predictivo sea instantáneo
-async function inicializarInventario() {
-  const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
-  if (!error && data) {
-    todosLosRegistros = data;
-  }
+async function loadParts() {
+    const {data: p} = await _client.from('parts').select('id, part_number').limit(2000);
+    if(p) parts = p;
 }
+loadParts();
 
-// 1. MANEJO DEL BUSCADOR PREDICTIVO (SUGERENCIAS ADAPTATIVAS)
-function manejarInputPredictivo(valor) {
-  const query = valor.trim().toUpperCase();
-  const box = document.getElementById('suggestions');
-  
-  if (!query || todosLosRegistros.length === 0) {
-    box.style.display = 'none';
-    return;
-  }
+partSearch.oninput = () => {
+    const v = partSearch.value.toUpperCase();
+    partResults.innerHTML = '';
+    if(!v) { partResults.style.display = 'none'; return; }
+    const m = parts.filter(p => p.part_number.includes(v)).slice(0,8);
+    m.forEach(p => {
+        const d = document.createElement('div');
+        d.textContent = p.part_number;
+        d.onclick = () => {
+            partSearch.value = p.part_number;
+            partResults.style.display = 'none';
+            buscarEstrategiaFIFO(p.id, p.part_number);
+        };
+        partResults.appendChild(d);
+    });
+    partResults.style.display = m.length ? 'block' : 'none';
+};
 
-  // Filtrar coincidencias únicas por número de parte o ubicación
-  const filtrados = [];
-  const mapeoSet = new Set();
-
-  todosLosRegistros.forEach(r => {
-    if (r.part_number && r.part_number.toUpperCase().includes(query) && !mapeoSet.has(r.part_number)) {
-      mapeoSet.add(r.part_number);
-      filtrados.push({ texto: r.part_number, sub: r.part_name || 'Sin descripción', tipo: 'Parte' });
-    }
-    if (r.location && r.location.toUpperCase().includes(query) && !mapeoSet.has(r.location)) {
-      mapeoSet.add(r.location);
-      filtrados.push({ texto: r.location, sub: `Ubicación / Contenedor`, tipo: 'Loc' });
-    }
-  });
-
-  if (filtrados.length === 0) {
-    box.style.display = 'none';
-    return;
-  }
-
-  box.innerHTML = filtrados.slice(0, 8).map(f => `
-    <div class="suggestion-item" onclick="seleccionarSugerencia('${f.texto}')">
-      <strong>${f.texto}</strong>
-      <span>${f.sub} (${f.tipo})</span>
-    </div>
-  `).join('');
-  
-  box.style.display = 'block';
-}
-
-function seleccionarSugerencia(texto) {
-  document.getElementById('targetSearch').value = texto;
-  document.getElementById('suggestions').style.display = 'none';
-  consultarFIFO(); // Lanza la consulta directo al seleccionar
-}
-
-// Ocultar dropdown si se hace clic fuera de él
+// Ocultar recuadro de autocompletado al presionar afuera
 document.addEventListener('click', function(e) {
-  if (e.target.id !== 'targetSearch') {
-    document.getElementById('suggestions').style.display = 'none';
-  }
+    if (e.target.id !== 'partSearch') {
+        partResults.style.display = 'none';
+    }
 });
 
+async function buscarEstrategiaFIFO(partId, partNumber) {
+    const divResultados = document.getElementById('resultadoDespacho');
+    divResultados.innerHTML = '<p style="text-align:center;">Buscando en carritos y locaciones...</p>';
 
-// 2. LOGICA Y RENDERIZADO DEL ORDEN FIFO (EN RECUADROS ADAPTATIVOS)
-async function consultarFIFO() {
-  const buscador = document.getElementById('targetSearch').value.trim().toUpperCase();
-  if (!buscador) return alert('Por favor, ingrese o escanee un dato válido.');
+    const { data: inventario, error } = await _client
+        .from('v_inventory_by_location')
+        .select('*')
+        .eq('part_id', partId)
+        .gt('quantity', 0)
+        .order('created_at', { ascending: true });
 
-  const contenedor = document.getElementById('fifoResultContainer');
-  contenedor.innerHTML = '<div style="text-align:center; padding:30px; font-weight:bold;">Analizando tiempos de permanencia...</div>';
+    if (error || !inventario || inventario.length === 0) {
+        divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--danger); font-weight: bold;">❌ No hay existencias disponibles de la parte ${partNumber} en ninguna ubicación.</div>`;
+        return;
+    }
 
-  // Volvemos a traer la información fresca desde la vista consolidada
-  const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
+    divResultados.innerHTML = '<h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin-bottom:10px;">Ruta de recolección recomendada:</h3>';
 
-  if (error) {
-    contenedor.innerHTML = `<div style="color:red; text-align:center; padding:20px;">Error: ${error.message}</div>`;
-    return;
-  }
+    inventario.forEach((item, index) => {
+        const esPrimero = index === 0;
+        const card = document.createElement('div');
+        card.className = `fifo-card ${esPrimero ? 'oldest' : ''}`;
+        
+        // Identificar si está en Carro/Contenedor o Suelto
+        const carritoCode = item.container_code ? item.container_code : 'N/A (Suelto)';
 
-  // Filtrar según coincida con el Número de Parte o con la Ubicación/Carrito ingresado
-  let inventarioFiltrado = data.filter(r => 
-    (r.part_number && r.part_number.toUpperCase().includes(buscador)) || 
-    (r.location && r.location.toUpperCase().includes(buscador))
-  );
-
-  if (inventarioFiltrado.length === 0) {
-    contenedor.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;">No se encontró material activo con ese criterio.</div>';
-    return;
-  }
-
-  // Regla de Oro del FIFO: Ordenar de la fecha más antigua a la más reciente (created_at ASC)
-  inventarioFiltrado.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-
-  contenedor.innerHTML = ''; // Limpiar panel
-
-  inventarioFiltrado.forEach((r, index) => {
-    const esPrimero = (index === 0);
-    const fechaFormateada = r.created_at ? new Date(r.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
-
-    const divRecuadro = document.createElement('div');
-    // Le asignamos clase especial al primero en la fila
-    divRecuadro.className = esPrimero ? 'fifo-box first-priority' : 'fifo-box';
-
-    divRecuadro.innerHTML = `
-      ${esPrimero ? `<div class="priority-indicator"><i class="fas fa-exclamation-triangle"></i> 🚨 SACAR ESTE PRIMERO (MÁS ANTIGUO)</div>` : ''}
-      
-      <div class="data-cell">
-        <span class="title">N° Parte</span>
-        <span class="value" style="color:var(--primary); font-size:16px;">${r.part_number}</span>
-      </div>
-
-      <div class="data-cell cell-full-mobile">
-        <span class="title">Descripción</span>
-        <span class="value" style="font-weight:normal; color:#475569;">${r.part_name || r.descripcion || '-'}</span>
-      </div>
-
-      <div class="data-cell">
-        <span class="title">Proyecto</span>
-        <span class="value"><span style="background:#e0f2f1; color:#00796b; padding:2px 6px; border-radius:4px; font-size:12px;">${r.project || r.proyecto || '-'}</span></span>
-      </div>
-
-      <div class="data-cell">
-        <span class="title">Ubicación / Carro</span>
-        <span class="value loc-badge"><i class="fas fa-truck-loading"></i> ${r.location}</span>
-      </div>
-
-      <div class="data-cell">
-        <span class="title">Área Planta</span>
-        <span class="value" style="font-weight:normal;">${r.area || 'Móvil / Libre'}</span>
-      </div>
-
-      <div class="data-cell">
-        <span class="title">Fecha Ingreso</span>
-        <span class="value" style="font-weight:normal; font-size:12px; color:#475569;">${fechaFormateada}</span>
-      </div>
-
-      <div class="data-cell" style="align-items: flex-end; justify-content: center;">
-        <span class="title" style="margin-bottom:4px;">Disponibles</span>
-        <span class="qty-badge">${r.quantity.toLocaleString()}</span>
-      </div>
-    `;
-
-    contenedor.appendChild(divRecuadro);
-  });
+        card.innerHTML = `
+            ${esPrimero ? '<span class="badge-status"><i class="fas fa-exclamation-triangle"></i> ¡TOMAR ESTE PRIMERO!</span>' : ''}
+            <div class="part-title">${partNumber}</div>
+            
+            <div class="info-grid">
+                <div class="info-block">
+                    <span class="info-label">📍 Ubicación Fija</span>
+                    <span class="info-value loc-info">${item.location || 'Área Común'}</span>
+                </div>
+                <div class="info-block">
+                    <span class="info-label">🛒 Carro / Contenedor</span>
+                    <span class="info-value" style="color:#e67e22;"><i class="fas fa-truck-loading"></i> ${carritoCode}</span>
+                </div>
+                <div class="info-block">
+                    <span class="info-label">🔢 Número de Lote</span>
+                    <span class="info-value">${item.lot_number || 'Sin Lote'}</span>
+                </div>
+                <div class="qty-info">
+                    <span class="info-label" style="display:block; font-size:9px; text-align:right; color:var(--text-secondary);">CANTIDAD</span>
+                    ${item.quantity.toLocaleString()} pzas
+                </div>
+            </div>
+        `;
+        divResultados.appendChild(card);
+    });
 }
 
-
-// 3. CAMARA / ESCANER QR
-function alternarEscaner() {
-  const readerDiv = document.getElementById('reader');
-  const btn = document.getElementById('btnScanControl');
-
-  if (readerDiv.style.display === 'block') {
-    detenerEscaner();
-  } else {
-    readerDiv.style.display = 'block';
-    btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
-    btn.style.background = '#ef4444';
-
+// FUNCIONES PARA CONTROL DE CÁMARA QR (Mismo comportamiento que captura)
+function abrirEscaner() {
+    document.getElementById('modalQR').style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("reader");
     html5QrcodeScanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        document.getElementById('targetSearch').value = decodedText.trim().toUpperCase();
-        detenerEscaner();
-        consultarFIFO(); 
-      },
-      (err) => {}
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+            cerrarEscaner();
+            const cleanCode = decodedText.trim().toUpperCase();
+            
+            if (cleanCode.includes('|')) {
+                const tokens = cleanCode.split('|');
+                const numParte = tokens[0].trim();
+                const parteEncontrada = parts.find(p => p.part_number === numParte);
+                if (parteEncontrada) {
+                    partSearch.value = parteEncontrada.part_number;
+                    buscarEstrategiaFIFO(parteEncontrada.id, parteEncontrada.part_number);
+                } else { alert(`Parte "${numParte}" no encontrada.`); }
+            } else {
+                const parteEncontrada = parts.find(p => p.part_number === cleanCode);
+                if (parteEncontrada) {
+                    partSearch.value = parteEncontrada.part_number;
+                    buscarEstrategiaFIFO(parteEncontrada.id, parteEncontrada.part_number);
+                } else { alert(`Número de parte "${cleanCode}" no encontrado.`); }
+            }
+        }
     ).catch(err => {
-      console.error(err);
-      detenerEscaner();
+        alert("Error al abrir cámara: " + err);
+        cerrarEscaner();
     });
-  }
 }
 
-function detenerEscaner() {
-  const readerDiv = document.getElementById('reader');
-  const btn = document.getElementById('btnScanControl');
-  
-  readerDiv.style.display = 'none';
-  btn.innerHTML = '<i class="fas fa-camera"></i> Escanear';
-  btn.style.background = 'var(--warning)';
-
-  if (html5QrcodeScanner) {
-    html5QrcodeScanner.stop().then(() => {
-      html5QrcodeScanner = null;
-    }).catch(err => console.error(err));
-  }
+function cerrarEscaner() {
+    document.getElementById('modalQR').style.display = 'none';
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => { html5QrcodeScanner = null; }).catch(err => console.error(err));
+    }
 }
-
-// Carga inicial al abrir la pantalla
-inicializarInventario();
 </script>
 </body>
 </html>
