@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KRAEM | Despacho Sugerido FIFO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    :root { 
+        --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
+        --border: #e2e8f0; --primary: #007bff; --success: #27ae60; --warning: #f39c12;
+    }
+    [data-theme="dark"] { 
+        --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
+        --border: #334155; 
+    }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding:15px; margin:0; color: var(--text); }
+    .container { max-width:500px; margin:auto; background:var(--card); padding:20px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.1); border: 1px solid var(--border); margin-top: 20px; }
+    h2 { text-align:center; margin-top:0; color: var(--text); }
+    label { font-weight:800; display:block; margin-top:15px; font-size:11px; color: var(--text-secondary); text-transform: uppercase; }
+    input { width:100%; padding:12px; margin-top:5px; border-radius:8px; border:1px solid var(--border); font-size:15px; box-sizing:border-box; background: var(--bg); color: var(--text); }
+    .autobox { background:var(--card); border:1px solid var(--border); position:absolute; width:100%; z-index:1000; max-height:200px; overflow-y:auto; display:none; border-radius:0 0 8px 8px; box-shadow:0 10px 20px rgba(0,0,0,0.1); }
+    .autobox div { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); font-size:14px; }
+    .autobox div:hover { background: var(--bg); color: var(--primary); }
+    .fifo-card { background: var(--bg); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 15px; position: relative; border-left: 5px solid var(--primary); }
+    .fifo-card.oldest { border-left: 5px solid var(--warning); background: rgba(243, 156, 18, 0.05); }
+    .badge-status { position: absolute; top: 10px; right: 10px; background: var(--warning); color: white; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; }
+    .part-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+    .loc-info { font-size: 16px; color: var(--primary); font-weight: bold; }
+    .qty-info { font-size: 20px; font-weight: bold; color: var(--success); text-align: right; margin-top: -25px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2><i class="fas fa-boxes"></i> ¿Qué lote debo tomar?</h2>
+    <p style="font-size: 13px; color: var(--text-secondary); text-align: center; margin-top: -10px;">Consulta FIFO para Operadores y Montacargas</p>
+    
+    <div style="position:relative;">
+        <label>Escribe o Escanea Número de Parte</label>
+        <input id="partSearch" placeholder="Ej: KRM-1023..." autocomplete="off">
+        <div id="partResults" class="autobox"></div>
+    </div>
+
+    <div id="resultadoDespacho" style="margin-top: 20px;">
+        </div>
+</div>
+
+<script>
+const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+let parts = [];
+
+async function loadParts() {
+    const {data: p} = await _client.from('parts').select('id, part_number').limit(2000);
+    if(p) parts = p;
+}
+loadParts();
+
+partSearch.oninput = () => {
+    const v = partSearch.value.toUpperCase();
+    partResults.innerHTML = '';
+    if(!v) { partResults.style.display = 'none'; return; }
+    const m = parts.filter(p => p.part_number.includes(v)).slice(0,8);
+    m.forEach(p => {
+        const d = document.createElement('div');
+        d.textContent = p.part_number;
+        d.onclick = () => {
+            partSearch.value = p.part_number;
+            partResults.style.display = 'none';
+            buscarEstrategiaFIFO(p.id, p.part_number);
+        };
+        partResults.appendChild(d);
+    });
+    partResults.style.display = m.length ? 'block' : 'none';
+};
+
+async function buscarEstrategiaFIFO(partId, partNumber) {
+    const divResultados = document.getElementById('resultadoDespacho');
+    divResultados.innerHTML = '<p style="text-align:center;">Buscando en carritos y locaciones...</p>';
+
+    // Consultamos el inventario disponible agrupado por locación y lote/fecha entrada
+    // Ordenamos por la fecha o id de movimiento original (FIFO)
+    const { data: inventario, error } = await _client
+        .from('v_inventory_by_location')
+        .select('*')
+        .eq('part_id', partId)
+        .gt('quantity', 0)
+        .order('created_at', { ascending: true }); // O por lote si representa fecha lineal
+
+    if (error || !inventario || inventario.length === 0) {
+        divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--danger); font-weight: bold;">❌ No hay existencias disponibles de la parte ${partNumber} en ninguna ubicación.</div>`;
+        return;
+    }
+
+    divResultados.innerHTML = '<h3 style="font-size:14px; text-transform:uppercase; color: var(--text-secondary)">Ruta de recolección recomendada:</h3>';
+
+    inventario.forEach((item, index) => {
+        const esPrimero = index === 0;
+        const card = document.createElement('div');
+        card.className = `fifo-card ${esPrimero ? 'oldest' : ''}`;
+        
+        card.innerHTML = `
+            ${esPrimero ? '<span class="badge-status"><i class="fas fa-exclamation-triangle"></i> ¡TOMAR ESTE PRIMERO!</span>' : ''}
+            <div class="part-title">${partNumber}</div>
+            <div class="loc-info"><i class="fas fa-shopping-cart"></i> UBICACIÓN: <b>${item.location}</b></div>
+            <div style="margin-top: 5px; font-size: 13px; color: var(--text-secondary)">
+                <i class="fas fa-calendar-alt"></i> Verificación visual en Molde: <b>${item.lot_number || 'Sin Lote/Fecha registrada'}</b>
+            </div>
+            <div class="qty-info">${item.quantity} pzas</div>
+        `;
+        divResultados.appendChild(card);
+    });
+}
+</script>
+</body>
+</html>
