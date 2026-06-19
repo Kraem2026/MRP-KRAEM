@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM | Catálogo de Ubicaciones y Contenedores</title>
+<title>KRAEM | Catálogo de Ubicaciones</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
+
 :root{
   --primary:#2563eb;
   --primary-dark:#1d4ed8;
@@ -28,114 +29,180 @@
   box-sizing:border-box;
 }
 
-body{\n  font-family:'Segoe UI',sans-serif;
+body{
+  font-family:'Segoe UI',sans-serif;
   background:var(--bg);
   color:var(--text);
   padding:20px;
 }
 
-.container{\n  max-width:1400px;
+.container{
+  max-width:1400px;
   margin:auto;
 }
 
-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background: var(--card); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); }
-.btn-nav { background:#6c757d; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:8px; font-weight:bold; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; }
-
-.grid {
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 20px;
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+  flex-wrap:wrap;
+  gap:15px;
 }
 
-@media(max-width: 900px) {
-  .grid { grid-template-columns: 1fr; }
+.title-box{
+  display:flex;
+  align-items:center;
+  gap:15px;
 }
 
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+.title-icon{
+  width:55px;
+  height:55px;
+  border-radius:14px;
+  background:rgba(37,99,235,.12);
+  color:var(--primary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
 }
 
-.form-group {
-  margin-bottom: 15px;
+h1{
+  font-size:28px;
 }
 
-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 5px;
-  color: #64748b;
-  text-transform: uppercase;
+.subtitle{
+  font-size:13px;
+  color:#64748b;
+  margin-top:3px;
 }
 
-input, select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 14px;
-  background: var(--bg);
-  color: var(--text);
+.btn{
+  border:none;
+  border-radius:10px;
+  padding:12px 18px;
+  cursor:pointer;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  transition:.2s;
+}
+
+.btn:hover{
+  transform:translateY(-1px);
+}
+
+.btn-primary{
+  background:var(--primary);
+  color:white;
+}
+
+.btn-primary:hover{
+  background:var(--primary-dark);
+}
+
+.btn-secondary{
+  background:#e2e8f0;
+  color:#334155;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 4px 12px rgba(0,0,0,.04);
+  margin-bottom:20px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:18px;
+}
+
+.group{
+  display:flex;
+  flex-direction:column;
+}
+
+label{
+  font-size:12px;
+  font-weight:700;
+  color:#475569;
+  margin-bottom:6px;
+  text-transform:uppercase;
+}
+
+input,select{
+  border:1px solid #cbd5e1;
+  border-radius:10px;
+  padding:12px;
+  font-size:14px;
+  background:white;
+}
+
+input:focus,
+select:focus{
+  outline:none;
+  border-color:var(--primary);
 }
 
 input:disabled, select:disabled {
-  background: #e2e8f0;
+  background: #f1f5f9;
   color: #94a3b8;
   cursor: not-allowed;
 }
 
-.btn {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
+.table-card{
+  overflow:auto;
 }
 
-.btn-primary { background: var(--primary); color: white; }
-.btn-primary:hover { background: var(--primary-dark); }
-.btn-secondary { background: #e2e8f0; color: #475569; margin-top: 8px; }
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:1000px;
 }
 
-th, td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
+th{
+  background:#f1f5f9;
+  color:#475569;
+  font-size:12px;
+  text-transform:uppercase;
+  text-align:left;
+  padding:14px;
 }
 
-th {
-  background: var(--bg);
-  font-weight: 600;
-  font-size: 13px;
-  color: #64748b;
+td{
+  padding:14px;
+  border-bottom:1px solid #e2e8f0;
+  font-size:14px;
 }
 
-.actions {
-  display: flex;
-  gap: 8px;
+tr:hover{
+  background:#f8fafc;
 }
 
-.btn-action {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
+.badge{
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
 }
-.btn-edit { color: var(--primary); }
-.btn-delete { color: var(--danger); }
 
-.badge {
+.active{
+  background:#dcfce7;
+  color:#166534;
+}
+
+.inactive{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.badge-tipo {
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 11px;
@@ -143,204 +210,483 @@ th {
 }
 .badge-fijo { background: #e0f2fe; color: #0369a1; }
 .badge-movil { background: #fef3c7; color: #b45309; }
+
+.action-btn{
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.btn-on{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.btn-off{
+  background:#dcfce7;
+  color:#166534;
+}
+
+.btn-edit{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
+.section-title{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:18px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.empty{
+  text-align:center;
+  padding:40px;
+  color:#64748b;
+}
+
 </style>
 </head>
+
 <body>
 
 <div class="container">
-  <header>
-    <a href="dashboard.html" class="btn-nav"><i class="fas fa-arrow-left"></i> Volver</a>
-    <h2>Gestión de Almacén (Ubicaciones y Contenedores)</h2>
-  </header>
 
-  <div class="grid">
-    <div class="card">
-      <h3 id="formTitle" style="margin-bottom: 15px;">Crear Registro</h3>
-      
-      <div class="form-group">
+  <div class="header">
+
+    <div class="title-box">
+
+      <div class="title-icon">
+        <i class="fas fa-map-marker-alt"></i>
+      </div>
+
+      <div>
+        <h1>Catálogo de Ubicaciones</h1>
+        <div class="subtitle">
+          Administración de ubicaciones físicas y contenedores del sistema
+        </div>
+      </div>
+
+    </div>
+
+    <button class="btn btn-secondary"
+      onclick="location.href='ingenieria_catalogos.html'">
+
+      <i class="fas fa-arrow-left"></i>
+      Volver
+
+    </button>
+
+  </div>
+
+  <div class="card">
+
+    <div class="section-title">
+      <i class="fas fa-plus-circle"></i>
+      Nueva Ubicación / Contenedor
+    </div>
+
+    <div class="form-grid">
+
+      <div class="group">
         <label>Tipo de Registro</label>
-        <select id="regType" onchange="toggleFormFields()">
+        <select id="reg_type" onchange="alternarCamposTipo()">
           <option value="Fijo">📍 Ubicación Fija (Carril / Rack)</option>
           <option value="Móvil">🛒 Contenedor Móvil (Carrito / Palet)</option>
         </select>
       </div>
 
-      <div class="form-group div-control-area">
+      <div class="group">
         <label>Área General</label>
-        <select id="area_general_id" onchange="loadAreas()"></select>
+
+        <select id="area_general_id"
+          onchange="cargarAreas()">
+
+          <option value="">
+            Seleccione...
+          </option>
+
+        </select>
       </div>
 
-      <div class="form-group div-control-area">
-        <label>Área Específica</label>
-        <select id="area_id"></select>
+      <div class="group">
+
+        <label>Área</label>
+
+        <select id="area_id">
+
+          <option value="">
+            Seleccione área general...
+          </option>
+
+        </select>
+
       </div>
 
-      <div class="form-group">
-        <label>Código (QR Escaneable)</label>
-        <input type="text" id="location_code" placeholder="Ej: P1 o CARRO-001" style="text-transform: uppercase;">
+      <div class="group">
+
+        <label>Código Ubicación / QR</label>
+
+        <input id="location_code"
+          placeholder="Ej. WIP o CARRO-01" style="text-transform: uppercase;">
+
       </div>
 
-      <div class="form-group">
+      <div class="group">
+
         <label>Nombre / Descripción</label>
-        <input type="text" id="location_name" placeholder="Ej: Fila Piso 1 o Carrito de Serigrafía">
+
+        <input id="location_name"
+          placeholder="Ej. WIP LS o Carrito de Pintura">
+
       </div>
 
-      <button class="btn btn-primary" onclick="guardar()">Guardar Registro</button>
-      <button class="btn btn-secondary" onclick="limpiarFormulario()">Cancelar / Limpiar</button>
     </div>
 
-    <div class="card" style="overflow-x: auto;">
-      <h3 style="margin-bottom: 15px;">Registros en Sistema</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>Código</th>
-            <th>Descripción</th>
-            <th>Área General</th>
-            <th>Área Específica</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="tablaBody"></tbody>
-      </table>
+    <div style="margin-top:20px;">
+
+      <button class="btn btn-primary"
+        onclick="crearUbicacion()">
+
+        <i class="fas fa-save"></i>
+
+        <span id="btn_text">
+          Guardar Ubicación
+        </span>
+
+      </button>
+
     </div>
+
   </div>
+
+  <div class="card table-card">
+
+    <div class="section-title">
+      <i class="fas fa-list"></i>
+      Ubicaciones Registradas
+    </div>
+
+    <table>
+
+      <thead>
+
+        <tr>
+
+          <th>Tipo</th>
+          <th>Área General</th>
+          <th>Área</th>
+          <th>Código (QR)</th>
+          <th>Ubicación</th>
+          <th>Estatus</th>
+          <th>Activar</th>
+          <th>Editar</th>
+
+        </tr>
+
+      </thead>
+
+      <tbody id="body"></tbody>
+
+    </table>
+
+  </div>
+
 </div>
 
 <script>
-// Inicialización de Supabase usando tus datos configurados
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let todasAreas = [];
 let editandoId = null;
-let areasGenerales = [];
-let areasEspecificas = [];
 
-async function init() {
-  // Cargar áreas generales
-  const { data: ag } = await client.from('areas_generales').select('*').order('nombre', { ascending: true });
-  if(ag) {
-    areasGenerales = ag;
-    area_general_id.innerHTML = '<option value="">-- Seleccione Área General --</option>';
-    ag.forEach(item => {
-      area_general_id.innerHTML += `<option value="${item.id}">${item.nombre}</option>`;
-    });
+async function cargarAreasGenerales(){
+
+  const { data, error } = await client
+    .from('areas_generales')
+    .select('*')
+    .eq('active', true)
+    .order('nombre');
+
+  if(error){
+    console.error(error);
+    return;
   }
 
-  // Cargar áreas específicas completas para mapeos rápidos
-  const { data: ae } = await client.from('areas').select('*');
-  if(ae) areasEspecificas = ae;
+  area_general_id.innerHTML =
+    '<option value="">Seleccione...</option>';
 
-  load();
-}
+  data.forEach(a => {
 
-async function loadAreas() {
-  const agId = area_general_id.value;
-  area_id.innerHTML = '<option value="">-- Seleccione Área Específica --</option>';
-  if(!agId) return;
-
-  const filtradas = areasEspecificas.filter(a => a.area_general_id == agId);
-  filtradas.forEach(item => {
-    area_id.innerHTML += `<option value="${item.id}">${item.area_name}</option>`;
-  });
-}
-
-function toggleFormFields() {
-  const type = regType.value;
-  const areaFields = document.querySelectorAll('.div-control-area');
-  
-  if(type === 'Móvil') {
-    // Si es móvil/contenedor, no pertenece a un área fija de manera estricta en el catálogo
-    area_general_id.value = '';
-    area_id.innerHTML = '';
-    areaFields.forEach(f => f.style.display = 'none');
-  } else {
-    areaFields.forEach(f => f.style.display = 'block');
-  }
-}
-
-async function load() {
-  // Traemos todas las ubicaciones y contenedores
-  const { data: locs, error } = await client.from('locations').select('*').order('location_code', { ascending: true });
-  if(error) return console.error(error);
-
-  tablaBody.innerHTML = '';
-  locs.forEach(r => {
-    // Buscar nombres de las áreas vinculadas si existen
-    const areaEsp = areasEspecificas.find(a => a.id === r.area_id);
-    const areaGen = areaEsp ? areasGenerales.find(g => g.id === areaEsp.area_general_id) : null;
-
-    const tr = document.createElement('tr');
-    const badgeClass = r.type === 'Móvil' || r.type === 'Contenedor' ? 'badge-movil' : 'badge-fijo';
-    const badgeLabel = r.type === 'Móvil' || r.type === 'Contenedor' ? 'MÓVIL' : 'FIJO';
-
-    tr.innerHTML = `
-      <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
-      <td><b>${r.location_code}</b></td>
-      <td>${r.location_name || ''}</td>
-      <td>${areaGen ? areaGen.nombre : '<span style="color:#94a3b8">N/A</span>'}</td>
-      <td>${areaEsp ? areaEsp.area_name : '<span style="color:#94a3b8">N/A</span>'}</td>
-      <td class="actions">
-        <button class="btn-action btn-edit" onclick="editar(${JSON.stringify(r).replace(/"/g, '&quot;')})"><i class="fas fa-edit"></i></button>
-        <button class="btn-action btn-delete" onclick="eliminar(${r.id})"><i class="fas fa-trash"></i></button>
-      </td>
+    area_general_id.innerHTML += `
+      <option value="${a.id}">
+        ${a.nombre}
+      </option>
     `;
-    tablaBody.appendChild(tr);
+
   });
+
 }
 
-function editar(r) {
-  editandoId = r.id;
-  document.getElementById('formTitle').innerText = 'Editar Registro';
+async function loadAreas(){
+
+  const { data, error } = await client
+    .from('areas')
+    .select('*')
+    .eq('active', true)
+    .order('area_name');
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  todasAreas = data;
+
+}
+
+async function cargarAreas(){
+
+  const generalId = area_general_id.value;
+
+  area_id.innerHTML =
+    '<option value="">Seleccione...</option>';
+
+  if(!generalId) return;
+
+  const filtradas = todasAreas.filter(
+    a => a.area_general_id == generalId
+  );
+
+  filtradas.forEach(a => {
+
+    area_id.innerHTML += `
+      <option value="${a.id}">
+        ${a.area_name}
+      </option>
+    `;
+
+  });
+
+}
+
+function alternarCamposTipo() {
+  const tipo = reg_type.value;
+  if (tipo === 'Móvil') {
+    // Si es móvil, se desvincula de las áreas fijas obligatorias
+    area_general_id.value = '';
+    area_id.innerHTML = '<option value="">Sin área (Contenedor Móvil)</option>';
+    area_general_id.disabled = true;
+    area_id.disabled = true;
+  } else {
+    area_general_id.disabled = false;
+    area_id.disabled = false;
+    area_id.innerHTML = '<option value="">Seleccione área general...</option>';
+    cargarAreas();
+  }
+}
+
+async function load(){
+
+  const { data, error } = await client
+    .from('locations')
+    .select(`
+      *,
+      areas(
+        area_name,
+        area_general_id,
+        areas_generales(
+          nombre
+        )
+      )
+    `)
+    .order('location_code');
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  body.innerHTML = '';
+
+  if(!data || data.length === 0){
+
+    body.innerHTML = `
+      <tr>
+        <td colspan="8" class="empty">
+          No hay ubicaciones registradas
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  data.forEach(l => {
+
+    const areaGeneral =
+      l.areas?.areas_generales?.nombre || '<span style="color:#94a3b8">N/A</span>';
+
+    const area =
+      l.areas?.area_name || '<span style="color:#94a3b8">N/A</span>';
+
+    const esMovil = l.type === 'Móvil' || l.type === 'Contenedor';
+    const badgeClass = esMovil ? 'badge-movil' : 'badge-fijo';
+    const badgeText = esMovil ? '🛒 MÓVIL' : '📍 FIJO';
+
+    body.innerHTML += `
+
+      <tr>
+
+        <td>
+          <span class="badge-tipo ${badgeClass}">${badgeText}</span>
+        </td>
+
+        <td>
+          <strong>${areaGeneral}</strong>
+        </td>
+
+        <td>${area}</td>
+
+        <td>
+          <strong>${l.location_code}</strong>
+        </td>
+
+        <td>${l.location_name || '-'}</td>
+
+        <td>
+
+          <span class="badge ${l.active ? 'active' : 'inactive'}">
+
+            ${l.active ? 'ACTIVA' : 'INACTIVA'}
+
+          </span>
+
+        </td>
+
+        <td>
+
+          <button
+            class="action-btn ${l.active ? 'btn-on' : 'btn-off'}"
+            onclick="toggle(${l.id}, ${l.active})"
+          >
+
+            ${l.active ? 'Desactivar' : 'Activar'}
+
+          </button>
+
+        </td>
+
+        <td>
+
+          <button
+            class="action-btn btn-edit"
+            onclick="editarUbicacion(
+              ${l.id},
+              '${l.location_code}',
+              '${l.location_name || ''}',
+              ${l.area_id || 'null'},
+              ${l.areas?.area_general_id || 'null'},
+              '${l.type || 'Fijo'}'
+            )"
+          >
+
+            Editar
+
+          </button>
+
+        </td>
+
+      </tr>
+
+    `;
+
+  });
+
+}
+
+function editarUbicacion(
+  id,
+  code,
+  name,
+  area,
+  areaGeneral,
+  type
+){
+
+  editandoId = id;
   
-  // Detectar tipo
-  const esMovil = r.type === 'Móvil' || r.type === 'Contenedor';
-  regType.value = esMovil ? 'Móvil' : 'Fijo';
-  toggleFormFields();
+  // Establecer tipo de registro
+  reg_type.value = (type === 'Móvil' || type === 'Contenedor') ? 'Móvil' : 'Fijo';
+  alternarCamposTipo();
 
-  location_code.value = r.location_code;
-  location_name.value = r.location_name || '';
-
-  if (!esMovil && r.area_id) {
-    const areaEsp = areasEspecificas.find(a => a.id === r.area_id);
-    if(areaEsp) {
-      area_general_id.value = areaEsp.area_general_id;
-      // Forzar carga de áreas específicas del bloque general seleccionado
-      const filtradas = areasEspecificas.filter(a => a.area_general_id == areaEsp.area_general_id);
-      area_id.innerHTML = '';
-      filtradas.forEach(item => {
-        area_id.innerHTML += `<option value="${item.id}">${item.area_name}</option>`;
-      });
-      area_id.value = r.area_id;
-    }
+  if(reg_type.value === 'Fijo') {
+    area_general_id.value = areaGeneral;
+    cargarAreas();
+    setTimeout(() => {
+      area_id.value = area;
+    }, 200);
   }
+
+  location_code.value = code;
+  location_name.value = name;
+
+  btn_text.innerText = 'Actualizar Ubicación';
+
+  window.scrollTo({
+    top:0,
+    behavior:'smooth'
+  });
+
 }
 
-async function guardar() {
-  if(!location_code.value.trim()) return alert('Ingrese el código identificador (QR)');
+async function crearUbicacion(){
 
-  const typeValue = regType.value; // 'Fijo' o 'Móvil'
-  const asignaArea = typeValue === 'Fijo' ? area_id.value : null;
+  const tipoValue = reg_type.value;
 
-  if(typeValue === 'Fijo' && !asignaArea) {
-    return alert('Las ubicaciones fijas deben tener un Área Específica asignada.');
-  }
+  if(tipoValue === 'Fijo' && !area_id.value)
+    return alert('Seleccione un área');
+
+  if(!location_code.value)
+    return alert('Ingrese código');
 
   let error;
-  const payload = {
+  
+  // Si es móvil, se guarda como null el área para desvincularlo por completo
+  const areaAsignada = tipoValue === 'Fijo' ? area_id.value : null;
+
+  const datos = {
+    area_id: areaAsignada,
     location_code: location_code.value.toUpperCase().trim(),
     location_name: location_name.value.trim(),
-    area_id: asignaArea ? parseInt(asignaArea) : null,
-    type: typeValue, // Aquí se guarda la separación clave
-    qr_code: location_code.value.toUpperCase().trim() // El QR por defecto es su propio código
+    type: tipoValue,
+    qr_code: location_code.value.toUpperCase().trim() // El QR hereda el mismo código para el escáner
   };
 
   if(editandoId){
-    const res = await client.from('locations').update(payload).eq('id', editandoId);
+
+    const res = await client
+      .from('locations')
+      .update(datos)
+      .eq('id', editandoId);
+
     error = res.error;
+
   } else {
-    const res = await client.from('locations').insert([{ ...payload, active: true }]);
+
+    const res = await client
+      .from('locations')
+      .insert({
+        ...datos,
+        active: true
+      });
+
     error = res.error;
+
   }
 
   if(error){
@@ -348,30 +694,61 @@ async function guardar() {
     return;
   }
 
-  alert(editandoId ? 'Registro actualizado con éxito' : 'Registro creado con éxito');
+  alert(
+    editandoId
+      ? 'Registro actualizado'
+      : 'Registro creado con éxito'
+  );
+
   limpiarFormulario();
   load();
 }
 
-async function eliminar(id) {
-  if(!confirm('¿Está seguro de eliminar este registro del almacén?')) return;
-  const { error } = await client.from('locations').delete().eq('id', id);
-  if(error) alert(error.message);
-  else { alert('Registro eliminado'); load(); }
-}
+function limpiarFormulario(){
 
-function limpiarFormulario(){\n  editandoId = null;
-  document.getElementById('formTitle').innerText = 'Crear Registro';
-  regType.value = 'Fijo';
+  editandoId = null;
+
+  reg_type.value = 'Fijo';
+  area_general_id.disabled = false;
+  area_id.disabled = false;
+
   area_general_id.value = '';
-  area_id.innerHTML = '';
+  area_id.innerHTML =
+    '<option value="">Seleccione área general...</option>';
+
   location_code.value = '';
   location_name.value = '';
-  toggleFormFields();
+
+  btn_text.innerText = 'Guardar Ubicación';
+
 }
 
-// Arrancar proceso al cargar la página
+async function toggle(id, state){
+
+  await client
+    .from('locations')
+    .update({
+      active: !state
+    })
+    .eq('id', id);
+
+  load();
+
+}
+
+async function init(){
+
+  await cargarAreasGenerales();
+
+  await loadAreas();
+
+  await load();
+
+}
+
 init();
+
 </script>
+
 </body>
 </html>
