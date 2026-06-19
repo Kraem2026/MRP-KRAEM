@@ -7,6 +7,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -235,6 +236,15 @@ tr:hover{
   color:#1d4ed8;
 }
 
+.btn-qr{
+  background:#f1f5f9;
+  color:#0f172a;
+  border: 1px solid #cbd5e1;
+}
+.btn-qr:hover{
+  background:#e2e8f0;
+}
+
 .section-title{
   font-size:18px;
   font-weight:700;
@@ -248,6 +258,60 @@ tr:hover{
   text-align:center;
   padding:40px;
   color:#64748b;
+}
+
+/* MODAL DE IMPRESIÓN DEL QR */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+#print-area {
+  padding: 15px;
+  background: white;
+  display: inline-block;
+}
+#qr-code-canvas {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0;
+}
+#qr-label {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-top: 5px;
+  text-transform: uppercase;
+}
+
+/* Configuración de Impresión Limpia (Para la etiqueta QR) */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-area, #print-area * {
+    visibility: visible;
+  }
+  #print-area {
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    transform: translate(-50%, -50%);
+    border: none;
+    padding: 0;
+  }
 }
 
 </style>
@@ -385,6 +449,7 @@ tr:hover{
           <th>Ubicación</th>
           <th>Estatus</th>
           <th>Activar</th>
+          <th>Imprimir QR</th>
           <th>Editar</th>
 
         </tr>
@@ -399,10 +464,29 @@ tr:hover{
 
 </div>
 
+<div id="qrModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 style="margin-bottom: 10px;">Etiqueta de Identificación</h3>
+    <hr style="border: 0; border-top: 1px solid var(--border); margin-bottom: 15px;">
+    
+    <div id="print-area">
+      <div style="font-size: 12px; font-weight: bold; color: #000; text-transform: uppercase;">KRAEM MRP</div>
+      <div id="qr-code-canvas"></div>
+      <div id="qr-label"></div>
+    </div>
+
+    <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+      <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+      <button class="btn btn-secondary" onclick="cerrarModalQR()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 
 let todasAreas = [];
 let editandoId = null;
+let qrcodeGenerator = null; // Instancia global del generador QR
 
 async function cargarAreasGenerales(){
 
@@ -477,7 +561,6 @@ async function cargarAreas(){
 function alternarCamposTipo() {
   const tipo = reg_type.value;
   if (tipo === 'Móvil') {
-    // Si es móvil, se desvincula de las áreas fijas obligatorias
     area_general_id.value = '';
     area_id.innerHTML = '<option value="">Sin área (Contenedor Móvil)</option>';
     area_general_id.disabled = true;
@@ -517,7 +600,7 @@ async function load(){
 
     body.innerHTML = `
       <tr>
-        <td colspan="8" class="empty">
+        <td colspan="9" class="empty">
           No hay ubicaciones registradas
         </td>
       </tr>
@@ -582,6 +665,15 @@ async function load(){
         </td>
 
         <td>
+          <button
+            class="action-btn btn-qr"
+            onclick="abrirModalQR('${l.location_code}')"
+          >
+            <i class="fas fa-qrcode"></i> QR
+          </button>
+        </td>
+
+        <td>
 
           <button
             class="action-btn btn-edit"
@@ -609,6 +701,29 @@ async function load(){
 
 }
 
+// FUNCIONES PARA CONTROLAR LA GENERACIÓN E IMPRESIÓN DEL QR
+function abrirModalQR(codigo) {
+  const canvasElement = document.getElementById('qr-code-canvas');
+  canvasElement.innerHTML = ""; // Limpiar QR anterior
+  document.getElementById('qr-label').innerText = codigo;
+
+  // Generar el nuevo código QR utilizando la librería qrcode.js
+  qrcodeGenerator = new QRCode(canvasElement, {
+    text: codigo,
+    width: 180,
+    height: 180,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.H
+  });
+
+  document.getElementById('qrModal').style.display = 'flex';
+}
+
+function cerrarModalQR() {
+  document.getElementById('qrModal').style.display = 'none';
+}
+
 function editarUbicacion(
   id,
   code,
@@ -620,7 +735,6 @@ function editarUbicacion(
 
   editandoId = id;
   
-  // Establecer tipo de registro
   reg_type.value = (type === 'Móvil' || type === 'Contenedor') ? 'Móvil' : 'Fijo';
   alternarCamposTipo();
 
@@ -655,8 +769,6 @@ async function crearUbicacion(){
     return alert('Ingrese código');
 
   let error;
-  
-  // Si es móvil, se guarda como null el área para desvincularlo por completo
   const areaAsignada = tipoValue === 'Fijo' ? area_id.value : null;
 
   const datos = {
@@ -664,7 +776,7 @@ async function crearUbicacion(){
     location_code: location_code.value.toUpperCase().trim(),
     location_name: location_name.value.trim(),
     type: tipoValue,
-    qr_code: location_code.value.toUpperCase().trim() // El QR hereda el mismo código para el escáner
+    qr_code: location_code.value.toUpperCase().trim()
   };
 
   if(editandoId){
