@@ -49,7 +49,7 @@
     .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(4px); }
     .modal-content { background:var(--card); padding:25px; border-radius:15px; width:90%; max-width:400px; color: var(--text); border: 1px solid var(--border); }
     
-    .btn-confirm { background:var(--primary); color:white; font-weight:bold; margin-top:25px; border:none; height:50px; cursor:pointer; border-radius:12px; font-size:16px; transition: 0.3s; }
+    .btn-confirm { background:var(--primary); color:white; font-weight:bold; margin-top:25px; border:none; height:50px; cursor:pointer; border-radius:12px; font-size:16px; transition: 0.3s; width: 100%; }
     .btn-confirm:hover { filter: brightness(1.1); transform: translateY(-2px); }
     
     #reader { width: 100%; background: black; border-radius: 8px; overflow: hidden; margin-top: 10px; }
@@ -160,6 +160,9 @@ async function init() {
     
     const {data:l} = await _client.from('locations').select('id, location_code, area_id, type, qr_code');
     if(l) locations = l;
+
+    // Configuración inicial del lote automático ya que arranca en ENTRADA
+    aplicarReglaLoteEntrada();
 }
 init();
 
@@ -170,6 +173,7 @@ function setMode(m) {
     divAreaDest.style.display=(m==='TRANSFERENCIA')?'block':'none'; 
     divAjusteTipo.style.display=(m==='AJUSTE')?'block':'none'; 
     toggleInputs(); 
+    aplicarReglaLoteEntrada();
 }
 
 function toggleInputs() { 
@@ -179,7 +183,30 @@ function toggleInputs() {
     resetSelection(); 
 }
 
-function resetSelection() { selOrigId=null; selDestId=null; originInput.value=''; destInput.value=''; lotInput.value=''; }
+function resetSelection() { 
+    selOrigId=null; selDestId=null; originInput.value=''; destInput.value=''; 
+    aplicarReglaLoteEntrada();
+}
+
+// NUEVA FUNCIÓN: Bloquea y genera la fecha automática AAAAMMDD en ENTRADAS
+function aplicarReglaLoteEntrada() {
+    const lotInput = document.getElementById('lotInput');
+    if (mode === 'ENTRADA') {
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoy.getDate()).padStart(2, '0');
+        
+        lotInput.value = `${yyyy}${mm}${dd}`;
+        lotInput.readOnly = true;
+        lotInput.style.background = 'rgba(108, 117, 125, 0.15)';
+    } else {
+        lotInput.value = '';
+        lotInput.readOnly = false;
+        lotInput.style.background = 'var(--bg)';
+        lotInput.placeholder = "Seleccione ubicación para ver o cargar lote...";
+    }
+}
 
 function toggleTheme() {
     const b = document.body;
@@ -236,7 +263,7 @@ async function onScanSuccess(decodedText) {
                 partSearch.value = parteEncontrada.part_number;
                 selPartId = parteEncontrada.id;
                 qty.value = cantidad;
-                if(lote) lotInput.value = lote;
+                if(mode !== 'ENTRADA' && lote) lotInput.value = lote;
             } else { alert(`Parte "${numParte}" no encontrada.`); }
         } else {
             const parteEncontrada = parts.find(p => p.part_number === cleanCode);
@@ -254,22 +281,28 @@ async function onScanSuccess(decodedText) {
 
         const areaText = areaSelect.options[areaSelect.selectedIndex].text;
 
-        // 1. Validar existencias actuales globales de la ubicación
+        // 1. Validar existencias actuales globales de la ubicación escaneada
         const { data: stockData } = await _client
             .from('v_inventory_by_location')
             .select('*')
             .eq('part_id', selPartId)
             .eq('area', areaText)
-            .eq('location_id', encontrada.id);
+            .eq('location_id', encontrada.id)
+            .gt('quantity', 0);
 
-        const cantidadDisponible = stockData?.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
-
-        if (cantidadDisponible <= 0) {
+        if (!stockData || stockData.length === 0) {
             return alert(`⚠️ ALERTA: No hay stock disponible de esta parte en la ubicación [${encontrada.location_code}]. Selecciona otra ubicación.`);
         }
 
         originInput.value = encontrada.location_code;
         selOrigId = encontrada.id;
+
+        // NUEVO FLUJO REQUERIDO: Si trae un solo lote se selecciona solo, si trae varios abre el modal de stock
+        if (stockData.length === 1) {
+            if (stockData[0].lot_number) lotInput.value = stockData[0].lot_number;
+        } else {
+            abrirModalStock(); // Abre automático para forzar al operador a elegir de la lista
+        }
     }
     else if (qrTargetField === 'DESTINO') {
         const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
@@ -289,7 +322,6 @@ function cerrarEscaner() {
     }
 }
 
-// NUEVA FUNCIÓN INTERMEDIA: Alerta inteligente si saca más piezas de las que tiene el lote más viejo en ese carro
 async function procesarGuardado() {
     const { data: { session } } = await _client.auth.getSession();
     if (!session) return alert("Inicia sesión primero.");
@@ -303,41 +335,61 @@ async function procesarGuardado() {
 
     if (requiereOrigen && selOrigId) {
         const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+        const loteSeleccionado = lotInput.value.trim().toUpperCase();
+
+        if (!loteSeleccionado) return alert("❌ Debe seleccionar un número de Lote antes de continuar.");
+
+        // NUEVA REGLA 3: VALIDACIÓN ESTRICTA DE FIFO GLOBAL EN ALMACÉN
+        const { data: todosLosLotes } = await _client
+            .from('v_inventory_by_location')
+            .select('lot_number, location, quantity')
+            .eq('part_id', selPartId)
+            .eq('area', areaText)
+            .gt('quantity', 0)
+            .order('created_at', { ascending: true }); // El lote físico más antiguo primero
+
+        if (todosLosLotes && todosLosLotes.length > 0) {
+            const loteMasViejoGlobal = todosLosLotes[0].lot_number;
+            const ubicacionMasViejoGlobal = todosLosLotes[0].location;
+
+            // Si el operador está intentando sacar un lote que NO es el más antiguo del almacén
+            if (loteSeleccionado !== loteMasViejoGlobal) {
+                alert(`⚠️ ¡ALERTA CRÍTICA DE CONTROL FIFO! ⚠️\n\n` +
+                      `El contenedor escaneado NO contiene el lote más antiguo del almacén para esta parte.\n\n` +
+                      `• Lote Escaneado/Seleccionado: ${loteSeleccionado}\n` +
+                      `• Lote Más Antiguo Requerido: ${loteMasViejoGlobal || 'Sin Lote'}\n` +
+                      `• Ubicado actualmente en: [${ubicacionMasViejoGlobal}]\n\n` +
+                      `❌ Operación cancelada. Por favor, localice el lote correcto usando el buscador de lotes.`);
+                return; // Frena por completo la transacción
+            }
+        }
         
-        // Consultar los lotes (fechas de molde) vigentes dentro del carrito ordenados por antigüedad
+        // Alerta secundaria si saca más piezas de las que tiene este lote específico en el carro
         const { data: lotesEnCarro } = await _client
             .from('v_inventory_by_location')
             .select('lot_number, quantity')
             .eq('part_id', selPartId)
             .eq('location_id', selOrigId)
             .eq('area', areaText)
-            .gt('quantity', 0)
-            .order('created_at', { ascending: true }); // Orden FIFO natural
+            .eq('lot_number', loteSeleccionado)
+            .gt('quantity', 0);
 
         if (lotesEnCarro && lotesEnCarro.length > 0) {
-            let loteMasViejoCant = lotesEnCarro[0].quantity;
-            let loteMasViejoNombre = lotesEnCarro[0].lot_number || "Sin Fecha/Lote";
+            let loteCant = lotesEnCarro[0].quantity;
 
-            // Si la cantidad que se quiere sacar es mayor a lo que le queda al lote más viejo
-            if (q > loteMasViejoCant) {
-                let piezasExcedentes = q - loteMasViejoCant;
-                
+            if (q > loteCant) {
+                let piezasExcedentes = q - loteCant;
                 let conf = confirm(`⚠️ ALERTA DE MEZCLA EN CARRO:\n\n` +
-                      `Estás retirando ${q} piezas, pero el lote más viejo en esta ubicación (${loteMasViejoNombre}) solo tiene ${loteMasViejoCant} piezas.\n\n` +
-                      `Las ${piezasExcedentes} piezas restantes se descontarán del siguiente lote en automático.\n\n` +
-                      `👉 ¿Confirmas que se revisó el fechador del molde y se vació el producto antiguo en físico?`);
+                      `Estás retirando ${q} piezas, pero el lote seleccionado (${loteSeleccionado}) solo cuenta con ${loteCant} piezas en este carro.\n\n` +
+                      `Las ${piezasExcedentes} piezas restantes se descontarán del lote inmediato siguiente.\n\n` +
+                      `👉 ¿Confirmas que revisaste el fechador del molde en piso y el producto antiguo se vació físicamente?`);
                       
-                if (!conf) return; // Cancela el guardado si el operario prefiere verificar en piso
-            }
-            
-            // Si el operario seleccionó un lote desde el modal, amarrarlo
-            if(!lotInput.value && lotesEnCarro[0].lot_number) {
-                lotInput.value = lotesEnCarro[0].lot_number;
+                if (!conf) return; 
             }
         }
     }
 
-    // Si todo es correcto, ejecuta el guardado directo
+    // Si todo es correcto y pasó el candado FIFO, se ejecuta el guardado directo
     guardarMovimiento(session.user.id, q, comm);
 }
 
