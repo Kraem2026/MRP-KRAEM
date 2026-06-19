@@ -19,104 +19,275 @@
   --card:#ffffff;
   --text:#0f172a;
   --border:#e2e8f0;
-  --success:#22c55e;
+  --success:#166534;
+  --success-bg:#dcfce7;
   --warning:#f59e0b;
+  --text-secondary:#64748b;
 }
 
 *{ margin:0; padding:0; box-sizing:border-box; }
-body{ font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); padding:20px; }
-.container{ max-width:1200px; margin:auto; }
+body{ font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); padding:15px; }
+.container{ max-width:1100px; margin:auto; }
 
-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; }
+header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; background: var(--card); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); }
 .back-btn{ background:#6c757d; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-weight:bold; }
 
-.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.04); margin-bottom:20px; }
-.search-box { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.04); margin-bottom:20px; position: relative; }
 
-.group{ display:flex; flex-direction:column; margin-bottom: 15px; }
-label{ font-size:12px; font-weight:700; color:#475569; margin-bottom:6px; text-transform:uppercase; }
-input{ border:1px solid #cbd5e1; border-radius:10px; padding:12px; font-size:14px; background:white; width: 100%; }
+.group{ display:flex; flex-direction:column; position: relative; }
+label{ font-size:11px; font-weight:800; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing: 0.5px; }
 
-.btn{ border:none; border-radius:10px; padding:12px 18px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:8px; transition:.2s; }
-.btn-primary{ background:var(--primary); color:white; }
-.btn-scan{ background:var(--warning); color:white; height: 48px; }
+/* Contenedor del Buscador y Botón de Cámara */
+.search-wrapper { display: flex; gap: 8px; width: 100%; }
+.input-search { border:1px solid #cbd5e1; border-radius:10px; padding:12px; font-size:15px; background:white; width: 100%; text-transform:uppercase; }
 
-/* Contenedor de la cámara */
+/* Lista de Sugerencias Predictivas */
+.suggestions-list {
+  position: absolute; top: 100%; left: 0; width: 100%; background: white;
+  border: 1px solid #cbd5e1; border-radius: 10px; max-height: 200px; overflow-y: auto;
+  z-index: 999; box-shadow: 0 8px 16px rgba(0,0,0,0.1); display: none;
+}
+.suggestion-item { padding: 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
+.suggestion-item:hover { background: #f0f7ff; color: var(--primary); font-weight: bold; }
+.suggestion-item span { font-size: 12px; color: var(--text-secondary); }
+
+.btn { border:none; border-radius:10px; padding:12px 18px; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:8px; transition:.2s; font-size: 14px; }
+.btn-primary { background:var(--primary); color:white; justify-content: center; width: 100%; }
+.btn-primary:hover { background:var(--primary-dark); }
+.btn-scan { background:var(--warning); color:white; white-space: nowrap; }
+
 #reader { width: 100%; max-width: 400px; margin: 15px auto; border-radius: 12px; overflow: hidden; display: none; border: 2px dashed var(--warning); }
 
-table{ width:100%; border-collapse:collapse; margin-top: 15px; }
-th{ background:#1e293b; color:white; font-size:12px; text-transform:uppercase; text-align:left; padding:14px; }
-td{ padding:14px; border-bottom:1px solid #e2e8f0; font-size:14px; }
-tr:nth-child(even){ background:#f8fafc; }
+/* CONTENEDOR DE RECUADROS / TARJETAS FIFO */
+.fifo-container { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
 
-/* Marcador visual del FIFO */
-.fifo-first { background: #dcfce7 !important; border-left: 5px solid var(--success); }
-.badge-fifo { background: var(--success); color: white; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-.badge-normal { background: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 6px; font-size: 11px; }
+/* Estilo para los bloques comunes en espera */
+.fifo-box {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 15px; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+/* 🚨 RECUADRO SUPERIOR: SACAR ESTE PRIMERO */
+.fifo-box.first-priority {
+  border: 3px solid #22c55e; background: var(--success-bg);
+  position: relative; box-shadow: 0 6px 15px rgba(34, 197, 94, 0.15);
+}
+.priority-indicator {
+  grid-column: 1 / -1; background: #22c55e; color: white; padding: 6px 12px;
+  font-weight: 900; font-size: 12px; border-radius: 6px; display: inline-flex;
+  align-items: center; gap: 6px; text-transform: uppercase; width: max-content;
+}
+
+/* Sub-bloques internos dentro de cada recuadro */
+.data-cell { display: flex; flex-direction: column; }
+.data-cell .title { font-size: 11px; font-weight: bold; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 3px; }
+.data-cell .value { font-size: 14px; font-weight: 700; color: var(--text); }
+
+.qty-badge { background: var(--primary); color: white; padding: 6px 12px; border-radius: 8px; font-size: 16px; font-weight: bold; text-align: center; display: inline-block; }
+.first-priority .qty-badge { background: #22c55e; }
+.loc-badge { color: #2563eb; font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 4px; }
+
+/* DISEÑO ADAPTABLE (PC vs CELULAR) */
+@media (max-width: 768px) {
+  .fifo-box {
+    grid-template-columns: 1fr 1fr; /* En celular se acomoda en 2 columnas por renglón */
+    gap: 12px;
+    padding: 14px;
+  }
+  .priority-indicator { grid-column: 1 / -1; width: 100%; justify-content: center; }
+  .cell-full-mobile { grid-column: 1 / -1; } /* Forzar a que la descripción ocupe todo el ancho */
+}
 </style>
 </head>
 <body>
 
 <div class="container">
   <header>
-    <h2><i class="fas fa-hourglass-start" style="color:var(--primary)"></i> Flujo FIFO (First In, First Out)</h2>
+    <h2 style="font-size: 20px;"><i class="fas fa-hourglass-start" style="color:var(--primary)"></i> Consulta de Prioridad FIFO</h2>
     <button class="back-btn" onclick="location.href='dashboard.html'">⬅ Menú</button>
   </header>
 
   <div class="card">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-      
-      <div class="group">
-        <label>Buscar por N° Parte o Ubicación</label>
-        <div class="search-box">
-          <input type="text" id="targetSearch" placeholder="Escanee o escriba No. Parte o Ubicación móvil/fija..." style="text-transform:uppercase;">
-          <button class="btn btn-scan" onclick="alternarEscaner()" id="btnScanControl">
-            <i class="fas fa-camera"></i> Escanear
-          </button>
-        </div>
+    <div class="group">
+      <label>Escriba o Escanee Código (N° Parte / Ubicación)</label>
+      <div class="search-wrapper">
+        <input type="text" id="targetSearch" class="input-search" placeholder="Ej. PART-123 o CARRO-04" autocomplete="off" oninput="manejarInputPredictivo(this.value)">
+        <button class="btn btn-scan" onclick="alternarEscaner()" id="btnScanControl">
+          <i class="fas fa-camera"></i> Escanear
+        </button>
       </div>
-
+      <div id="suggestions" class="suggestions-list"></div>
     </div>
 
     <div id="reader"></div>
     
-    <div style="margin-top: 10px;">
-      <button class="btn btn-primary" onclick="consultarFIFO()"><i class="fas fa-search"></i> Consultar Orden FIFO</button>
+    <div style="margin-top: 15px;">
+      <button class="btn btn-primary" onclick="consultarFIFO()"><i class="fas fa-search"></i> Calcular Flujo de Salida</button>
     </div>
   </div>
 
-  <div class="card" style="overflow-x: auto;">
-    <h3 style="margin-bottom: 15px;"><i class="fas fa-list-ol"></i> Prioridad de Salida Sugerida</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Prioridad</th>
-          <th>N° Parte</th>
-          <th>Descripción</th>
-          <th>Proyecto</th>
-          <th>Ubicación / Contenedor</th>
-          <th>Área</th>
-          <th>Cantidad</th>
-          <th>Fecha Ingreso</th>
-        </tr>
-      </thead>
-      <tbody id="fifoBody">
-        <tr>
-          <td colspan="8" style="text-align: center; color: #94a3b8; padding: 30px;">
-            Ingrese o escanee un número de parte o ubicación para calcular las prioridades.
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div id="fifoResultContainer" class="fifo-container">
+    <div style="text-align: center; color: #94a3b8; padding: 40px; background: white; border-radius: 16px; border: 1px solid var(--border);">
+      <i class="fas fa-search-location" style="font-size: 32px; margin-bottom: 10px; color: #cbd5e1;"></i>
+      <p>Esperando Número de Parte o Contenedor para evaluar orden de salida.</p>
+    </div>
   </div>
 </div>
 
 <script>
-// Inicialización del cliente de Supabase
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let html5QrcodeScanner = null;
+let todosLosRegistros = []; // Caché local para autocompletado rápido
 
+// Al iniciar, cargamos el inventario en memoria para que el buscador predictivo sea instantáneo
+async function inicializarInventario() {
+  const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
+  if (!error && data) {
+    todosLosRegistros = data;
+  }
+}
+
+// 1. MANEJO DEL BUSCADOR PREDICTIVO (SUGERENCIAS ADAPTATIVAS)
+function manejarInputPredictivo(valor) {
+  const query = valor.trim().toUpperCase();
+  const box = document.getElementById('suggestions');
+  
+  if (!query || todosLosRegistros.length === 0) {
+    box.style.display = 'none';
+    return;
+  }
+
+  // Filtrar coincidencias únicas por número de parte o ubicación
+  const filtrados = [];
+  const mapeoSet = new Set();
+
+  todosLosRegistros.forEach(r => {
+    if (r.part_number && r.part_number.toUpperCase().includes(query) && !mapeoSet.has(r.part_number)) {
+      mapeoSet.add(r.part_number);
+      filtrados.push({ texto: r.part_number, sub: r.part_name || 'Sin descripción', tipo: 'Parte' });
+    }
+    if (r.location && r.location.toUpperCase().includes(query) && !mapeoSet.has(r.location)) {
+      mapeoSet.add(r.location);
+      filtrados.push({ texto: r.location, sub: `Ubicación / Contenedor`, tipo: 'Loc' });
+    }
+  });
+
+  if (filtrados.length === 0) {
+    box.style.display = 'none';
+    return;
+  }
+
+  box.innerHTML = filtrados.slice(0, 8).map(f => `
+    <div class="suggestion-item" onclick="seleccionarSugerencia('${f.texto}')">
+      <strong>${f.texto}</strong>
+      <span>${f.sub} (${f.tipo})</span>
+    </div>
+  `).join('');
+  
+  box.style.display = 'block';
+}
+
+function seleccionarSugerencia(texto) {
+  document.getElementById('targetSearch').value = texto;
+  document.getElementById('suggestions').style.display = 'none';
+  consultarFIFO(); // Lanza la consulta directo al seleccionar
+}
+
+// Ocultar dropdown si se hace clic fuera de él
+document.addEventListener('click', function(e) {
+  if (e.target.id !== 'targetSearch') {
+    document.getElementById('suggestions').style.display = 'none';
+  }
+});
+
+
+// 2. LOGICA Y RENDERIZADO DEL ORDEN FIFO (EN RECUADROS ADAPTATIVOS)
+async function consultarFIFO() {
+  const buscador = document.getElementById('targetSearch').value.trim().toUpperCase();
+  if (!buscador) return alert('Por favor, ingrese o escanee un dato válido.');
+
+  const contenedor = document.getElementById('fifoResultContainer');
+  contenedor.innerHTML = '<div style="text-align:center; padding:30px; font-weight:bold;">Analizando tiempos de permanencia...</div>';
+
+  // Volvemos a traer la información fresca desde la vista consolidada
+  const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
+
+  if (error) {
+    contenedor.innerHTML = `<div style="color:red; text-align:center; padding:20px;">Error: ${error.message}</div>`;
+    return;
+  }
+
+  // Filtrar según coincida con el Número de Parte o con la Ubicación/Carrito ingresado
+  let inventarioFiltrado = data.filter(r => 
+    (r.part_number && r.part_number.toUpperCase().includes(buscador)) || 
+    (r.location && r.location.toUpperCase().includes(buscador))
+  );
+
+  if (inventarioFiltrado.length === 0) {
+    contenedor.innerHTML = '<div style="text-align:center; padding:30px; color:#64748b;">No se encontró material activo con ese criterio.</div>';
+    return;
+  }
+
+  // Regla de Oro del FIFO: Ordenar de la fecha más antigua a la más reciente (created_at ASC)
+  inventarioFiltrado.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+
+  contenedor.innerHTML = ''; // Limpiar panel
+
+  inventarioFiltrado.forEach((r, index) => {
+    const esPrimero = (index === 0);
+    const fechaFormateada = r.created_at ? new Date(r.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
+
+    const divRecuadro = document.createElement('div');
+    // Le asignamos clase especial al primero en la fila
+    divRecuadro.className = esPrimero ? 'fifo-box first-priority' : 'fifo-box';
+
+    divRecuadro.innerHTML = `
+      ${esPrimero ? `<div class="priority-indicator"><i class="fas fa-exclamation-triangle"></i> 🚨 SACAR ESTE PRIMERO (MÁS ANTIGUO)</div>` : ''}
+      
+      <div class="data-cell">
+        <span class="title">N° Parte</span>
+        <span class="value" style="color:var(--primary); font-size:16px;">${r.part_number}</span>
+      </div>
+
+      <div class="data-cell cell-full-mobile">
+        <span class="title">Descripción</span>
+        <span class="value" style="font-weight:normal; color:#475569;">${r.part_name || r.descripcion || '-'}</span>
+      </div>
+
+      <div class="data-cell">
+        <span class="title">Proyecto</span>
+        <span class="value"><span style="background:#e0f2f1; color:#00796b; padding:2px 6px; border-radius:4px; font-size:12px;">${r.project || r.proyecto || '-'}</span></span>
+      </div>
+
+      <div class="data-cell">
+        <span class="title">Ubicación / Carro</span>
+        <span class="value loc-badge"><i class="fas fa-truck-loading"></i> ${r.location}</span>
+      </div>
+
+      <div class="data-cell">
+        <span class="title">Área Planta</span>
+        <span class="value" style="font-weight:normal;">${r.area || 'Móvil / Libre'}</span>
+      </div>
+
+      <div class="data-cell">
+        <span class="title">Fecha Ingreso</span>
+        <span class="value" style="font-weight:normal; font-size:12px; color:#475569;">${fechaFormateada}</span>
+      </div>
+
+      <div class="data-cell" style="align-items: flex-end; justify-content: center;">
+        <span class="title" style="margin-bottom:4px;">Disponibles</span>
+        <span class="qty-badge">${r.quantity.toLocaleString()}</span>
+      </div>
+    `;
+
+    contenedor.appendChild(divRecuadro);
+  });
+}
+
+
+// 3. CAMARA / ESCANER QR
 function alternarEscaner() {
   const readerDiv = document.getElementById('reader');
   const btn = document.getElementById('btnScanControl');
@@ -130,15 +301,14 @@ function alternarEscaner() {
 
     html5QrcodeScanner = new Html5Qrcode("reader");
     html5QrcodeScanner.start(
-      { facingMode: "environment" }, // Prioriza la cámara trasera en móviles
+      { facingMode: "environment" },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        // Código escaneado con éxito
         document.getElementById('targetSearch').value = decodedText.trim().toUpperCase();
         detenerEscaner();
-        consultarFIFO(); // Lanza la búsqueda en automático al detectar código
+        consultarFIFO(); 
       },
-      (errorMessage) => { /* Silenciar errores de lectura continuos */ }
+      (err) => {}
     ).catch(err => {
       console.error(err);
       detenerEscaner();
@@ -161,70 +331,8 @@ function detenerEscaner() {
   }
 }
 
-async function consultarFIFO() {
-  const searchVal = document.getElementById('targetSearch').value.trim().toUpperCase();
-  if (!searchVal) return alert('Por favor escriba o escanee un criterio de búsqueda.');
-
-  const body = document.getElementById('fifoBody');
-  body.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Analizando histórico FIFO...</td></tr>';
-
-  // Consultamos usando la vista v_inventory_by_location_proyectos ordenando por fecha de ingreso
-  // Nota: Si cuentas con una columna 'created_at' o 'fecha_ingreso' en la vista o movimientos, la ordenamos de más antigua a más reciente.
-  const { data, error } = await client
-    .from('v_inventory_by_location_proyectos')
-    .select('*');
-
-  if (error) {
-    body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:red;">Error al cargar datos: ${error.message}</td></tr>`;
-    return;
-  }
-
-  // Filtrar de manera dinámica si el parámetro coincide con el número de parte O con la ubicación (fija/carrito)
-  let filtrados = data.filter(r => 
-    (r.part_number && r.part_number.toUpperCase().includes(searchVal)) || 
-    (r.location && r.location.toUpperCase().includes(searchVal))
-  );
-
-  // Ordenar de forma estricta (FIFO): El registro con fecha más antigua va primero
-  // Si tu vista no expone la fecha directamente, asume el orden por ID del lote/movimiento o añade la columna temporalmente.
-  filtrados.sort((a, b) => {
-    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-  });
-
-  body.innerHTML = '';
-
-  if (filtrados.length === 0) {
-    body.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">No se encontró inventario activo para este criterio.</td></tr>';
-    return;
-  }
-
-  filtrados.forEach((r, idx) => {
-    const tr = document.createElement('tr');
-    
-    // Al primer registro (el más antiguo) le asignamos estilo especial FIFO
-    if (idx === 0) {
-      tr.className = 'fifo-first';
-    }
-
-    const prioridadBadge = idx === 0 
-      ? '<span class="badge-fifo"><i class="fas fa-star"></i> SACAR PRIMERO</span>' 
-      : `<span class="badge-normal">Espera #${idx + 1}</span>`;
-
-    const fechaLegible = r.created_at ? new Date(r.created_at).toLocaleString('es-MX') : 'N/A';
-
-    tr.innerHTML = `
-      <td>${prioridadBadge}</td>
-      <td><b>${r.part_number}</b></td>
-      <td style="color:#64748b; font-size:13px;">${r.part_name || r.descripcion || ''}</td>
-      <td><span class="tag-project" style="background:#e0f2f1; color:#00796b; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${r.project || '-'}</span></td>
-      <td style="color:#3498db; font-weight:bold;"><i class="fas fa-box"></i> ${r.location}</td>
-      <td>${r.area || 'Móvil'}</td>
-      <td><strong style="color:var(--primary); font-size:15px;">${r.quantity}</strong></td>
-      <td style="font-size:12px; color:#475569;">${fechaLegible}</td>
-    `;
-    body.appendChild(tr);
-  });
-}
+// Carga inicial al abrir la pantalla
+inicializarInventario();
 </script>
 </body>
 </html>
