@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Captura Inventario - Sistema Pro</title>
+<title>Captura Inventario - Sistema Pro KRAEM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
@@ -10,7 +10,7 @@
 <style>
     :root { 
         --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
-        --border: #e2e8f0; --primary: #007bff; --success: #27ae60; --danger: #dc3545;
+        --border: #e2e8f0; --primary: #007bff; --success: #27ae60; --danger: #dc3545; --warning: #f39c12;
     }
     [data-theme="dark"] { 
         --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
@@ -36,6 +36,7 @@
     
     .input-with-btn { display: flex; gap: 5px; align-items: center; }
     .btn-qr { background: var(--primary); color: white; border: none; padding: 12px 15px; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 5px; height: 47px; box-sizing: border-box; }
+    .btn-qr.btn-warning-qr { background: var(--warning); }
 
     .tabs { display:flex; gap:5px; margin-bottom:20px; background: var(--bg); padding: 5px; border-radius: 10px; }
     .tabs button { flex:1; background: transparent; border:none; padding:10px; cursor:pointer; font-size:10px; font-weight:bold; border-radius:8px; color: var(--text-secondary); transition: 0.2s; }
@@ -86,6 +87,9 @@
         <div id="partResults" class="autobox"></div>
     </div>
 
+    <label id="lLot">Número de Lote / Fecha Prod (Molde)</label>
+    <input id="lotInput" placeholder="Ej: 15/05/24 o escanea...">
+
     <label id="lAreaOrig">Área Origen</label>
     <select id="areaSelect" onchange="resetSelection()"></select>
 
@@ -94,7 +98,10 @@
     
     <div id="divOrigen" style="display:none;">
         <label id="lLocOrig">📍 Ubicación ORIGEN</label>
-        <input id="originInput" readonly onclick="abrirModalStock()" placeholder="..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
+        <div class="input-with-btn">
+            <input id="originInput" readonly onclick="abrirModalStock()" placeholder="Haz clic o escanea Origen..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
+            <button class="btn-qr btn-warning-qr" onclick="abrirEscaner('ORIGEN')"><i class="fas fa-camera"></i></button>
+        </div>
     </div>
     
     <div id="divDestino" style="position:relative;">
@@ -109,7 +116,7 @@
     <label id="lQty">Cantidad</label><input type="number" id="qty" placeholder="0">
     <label id="lComm">Comentario</label><input id="comment" placeholder="...">
 
-    <button id="btnConfirm" onclick="guardar()" class="btn-confirm">CONFIRMAR MOVIMIENTO</button>
+    <button id="btnConfirm" onclick="procesarGuardado()" class="btn-confirm">CONFIRMAR MOVIMIENTO</button>
 </div>
 
 <div id="modalStock" class="modal" onclick="if(event.target==this)cerrarModal()"><div class="modal-content"><h3 id="txtStockTitle" style="margin-top:0">Stock en esta ubicación</h3><div id="modalList"></div><button id="btnCloseModal" onclick="cerrarModal()" style="margin-top:15px; width:100%; background:var(--bg); border:1px solid var(--border); padding:10px; cursor:pointer; color: var(--text); border-radius:8px;">Cerrar</button></div></div>
@@ -137,7 +144,6 @@ async function init() {
         userDisplay.innerHTML = "👤 OPERADOR: " + userShort;
         loginBtn.innerHTML = "✅ " + userShort;
         loginBtn.classList.add('online');
-        loginBtn.onclick = null;
     } else {
         userDisplay.innerHTML = "⚠️ DEBES INICIAR SESIÓN";
         loginBtn.innerHTML = "🔑 Login";
@@ -173,7 +179,7 @@ function toggleInputs() {
     resetSelection(); 
 }
 
-function resetSelection() { selOrigId=null; selDestId=null; originInput.value=''; destInput.value=''; }
+function resetSelection() { selOrigId=null; selDestId=null; originInput.value=''; destInput.value=''; lotInput.value=''; }
 
 function toggleTheme() {
     const b = document.body;
@@ -199,7 +205,6 @@ function setLang(lang) {
     document.getElementById('btnCloseModal').innerText = t.close;
 }
 
-// --- ESCÁNER INTELIGENTE ---
 function abrirEscaner(target) {
     qrTargetField = target;
     document.getElementById('modalQR').style.display = 'flex';
@@ -215,36 +220,57 @@ function abrirEscaner(target) {
     });
 }
 
-function onScanSuccess(decodedText) {
+async function onScanSuccess(decodedText) {
     cerrarEscaner();
     const cleanCode = decodedText.trim().toUpperCase();
     
     if (qrTargetField === 'PARTE') {
-        // DETECCIÓN DE STD PACK (Estructura PARTE|CANTIDAD como: KRM-1023|500)
         if (cleanCode.includes('|')) {
             const tokens = cleanCode.split('|');
             const numParte = tokens[0].trim();
             const cantidad = tokens[1].trim();
+            const lote = tokens[2] ? tokens[2].trim() : '';
             
             const parteEncontrada = parts.find(p => p.part_number === numParte);
             if (parteEncontrada) {
                 partSearch.value = parteEncontrada.part_number;
                 selPartId = parteEncontrada.id;
-                qty.value = cantidad; // Autollena la cantidad del Std Pack
-            } else {
-                alert(`Parte "${numParte}" no encontrada en el catálogo.`);
-            }
+                qty.value = cantidad;
+                if(lote) lotInput.value = lote;
+            } else { alert(`Parte "${numParte}" no encontrada.`); }
         } else {
-            // Escaneo de QR de parte sencillo sin cantidad
             const parteEncontrada = parts.find(p => p.part_number === cleanCode);
             if (parteEncontrada) {
                 partSearch.value = parteEncontrada.part_number;
                 selPartId = parteEncontrada.id;
-            } else {
-                alert(`Número de parte "${cleanCode}" no encontrado.`);
-            }
+            } else { alert(`Número de parte "${cleanCode}" no encontrado.`); }
         }
     } 
+    else if (qrTargetField === 'ORIGEN') {
+        if (!selPartId) return alert("❌ Primero debes seleccionar o escanear un Número de Parte.");
+
+        const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
+        if (!encontrada) return alert(`❌ Ubicación Origen "${cleanCode}" no existe en el catálogo.`);
+
+        const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+
+        // 1. Validar existencias actuales globales de la ubicación
+        const { data: stockData } = await _client
+            .from('v_inventory_by_location')
+            .select('*')
+            .eq('part_id', selPartId)
+            .eq('area', areaText)
+            .eq('location_id', encontrada.id);
+
+        const cantidadDisponible = stockData?.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
+
+        if (cantidadDisponible <= 0) {
+            return alert(`⚠️ ALERTA: No hay stock disponible de esta parte en la ubicación [${encontrada.location_code}]. Selecciona otra ubicación.`);
+        }
+
+        originInput.value = encontrada.location_code;
+        selOrigId = encontrada.id;
+    }
     else if (qrTargetField === 'DESTINO') {
         const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
         if (encontrada) {
@@ -252,9 +278,7 @@ function onScanSuccess(decodedText) {
             else areaSelect.value = encontrada.area_id;
             destInput.value = encontrada.location_code;
             selDestId = encontrada.id;
-        } else {
-            alert(`Ubicación "${cleanCode}" no encontrada.`);
-        }
+        } else { alert(`Ubicación "${cleanCode}" no encontrada.`); }
     }
 }
 
@@ -265,21 +289,75 @@ function cerrarEscaner() {
     }
 }
 
-async function guardar() {
+// NUEVA FUNCIÓN INTERMEDIA: Alerta inteligente si saca más piezas de las que tiene el lote más viejo en ese carro
+async function procesarGuardado() {
     const { data: { session } } = await _client.auth.getSession();
     if (!session) return alert("Inicia sesión primero.");
+    
     const q = parseInt(qty.value);
     const comm = comment.value;
-    if(!selPartId || !q || !comm) return alert("Completa los campos.");
+    if(!selPartId || !q || !comm) return alert("Completa los campos obligatorios.");
+
+    const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG');
+    const requiereOrigen = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg);
+
+    if (requiereOrigen && selOrigId) {
+        const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+        
+        // Consultar los lotes (fechas de molde) vigentes dentro del carrito ordenados por antigüedad
+        const { data: lotesEnCarro } = await _client
+            .from('v_inventory_by_location')
+            .select('lot_number, quantity')
+            .eq('part_id', selPartId)
+            .eq('location_id', selOrigId)
+            .eq('area', areaText)
+            .gt('quantity', 0)
+            .order('created_at', { ascending: true }); // Orden FIFO natural
+
+        if (lotesEnCarro && lotesEnCarro.length > 0) {
+            let loteMasViejoCant = lotesEnCarro[0].quantity;
+            let loteMasViejoNombre = lotesEnCarro[0].lot_number || "Sin Fecha/Lote";
+
+            // Si la cantidad que se quiere sacar es mayor a lo que le queda al lote más viejo
+            if (q > loteMasViejoCant) {
+                let piezasExcedentes = q - loteMasViejoCant;
+                
+                let conf = confirm(`⚠️ ALERTA DE MEZCLA EN CARRO:\n\n` +
+                      `Estás retirando ${q} piezas, pero el lote más viejo en esta ubicación (${loteMasViejoNombre}) solo tiene ${loteMasViejoCant} piezas.\n\n` +
+                      `Las ${piezasExcedentes} piezas restantes se descontarán del siguiente lote en automático.\n\n` +
+                      `👉 ¿Confirmas que se revisó el fechador del molde y se vació el producto antiguo en físico?`);
+                      
+                if (!conf) return; // Cancela el guardado si el operario prefiere verificar en piso
+            }
+            
+            // Si el operario seleccionó un lote desde el modal, amarrarlo
+            if(!lotInput.value && lotesEnCarro[0].lot_number) {
+                lotInput.value = lotesEnCarro[0].lot_number;
+            }
+        }
+    }
+
+    // Si todo es correcto, ejecuta el guardado directo
+    guardarMovimiento(session.user.id, q, comm);
+}
+
+async function guardarMovimiento(userId, q, comm) {
     const areaText = areaSelect.options[areaSelect.selectedIndex].text;
-    const base = { part_id: selPartId, area: areaText, comment: comm, user_id: session.user.id };
+    const lote = lotInput.value.trim().toUpperCase();
+    const base = { part_id: selPartId, area: areaText, comment: comm, user_id: userId, lot_number: lote };
     let rows = [];
-    if(mode==='ENTRADA'||(mode==='AJUSTE'&&ajusteTipo.value==='POS')) rows.push({...base, quantity:q, to_location_id:selDestId, movement_type:mode});
-    else if(mode==='SALIDA'||(mode==='AJUSTE'&&ajusteTipo.value==='NEG')) rows.push({...base, quantity:-q, from_location_id:selOrigId, movement_type:mode});
+    
+    if(mode==='ENTRADA'||(mode==='AJUSTE'&&ajusteTipo.value==='POS')) {
+        rows.push({...base, quantity:q, to_location_id:selDestId, movement_type:mode});
+    }
+    else if(mode==='SALIDA'||(mode==='AJUSTE'&&ajusteTipo.value==='NEG')) {
+        rows.push({...base, quantity:-q, from_location_id:selOrigId, movement_type:mode});
+    }
     else if(mode==='TRANSFERENCIA') {
         rows.push({...base, quantity:-q, from_location_id:selOrigId, movement_type:'TRANSFERENCIA'});
         rows.push({...base, quantity:q, to_location_id:selDestId, movement_type:'TRANSFERENCIA', area:areaDestSelect.options[areaDestSelect.selectedIndex].text});
     }
+    
     const {error} = await _client.from('inventory_movements').insert(rows);
     if(error) alert(error.message); else { alert("Movimiento guardado con éxito"); location.reload(); }
 }
@@ -299,8 +377,7 @@ destInput.oninput = () => {
     const m = locations.filter(l=>l.area_id==aId && l.location_code.includes(v)).slice(0,10);
     m.forEach(l=>{ 
         const d=document.createElement('div'); 
-        const tipoBadge = l.type ? ` [${l.type}]` : '';
-        d.textContent = l.location_code + tipoBadge; 
+        d.textContent=l.location_code; 
         d.onclick=()=>{destInput.value=l.location_code; selDestId=l.id; destBox.style.display='none';}; 
         destBox.appendChild(d); 
     });
@@ -308,10 +385,24 @@ destInput.oninput = () => {
 };
 
 async function abrirModalStock() {
+    if (!selPartId) return alert("Selecciona un número de parte primero.");
     modalStock.style.display='flex';
-    const {data} = await _client.from('v_inventory_by_location').select('*').eq('part_id', selPartId).eq('area', areaSelect.options[areaSelect.selectedIndex].text);
+    const {data} = await _client.from('v_inventory_by_location').select('*').eq('part_id', selPartId).eq('area', areaSelect.options[areaSelect.selectedIndex].text).gt('quantity', 0);
     modalList.innerHTML = data?.length ? '' : '<p style="text-align:center; color:var(--text-secondary)">Sin stock disponible</p>';
-    data?.forEach(i=>{ const d=document.createElement('div'); d.style.padding='12px'; d.style.borderBottom='1px solid var(--border)'; d.style.cursor='pointer'; d.innerHTML=`${i.location} - <b style="color:var(--success)">${i.quantity}</b>`; d.onclick=()=>{originInput.value=i.location; selOrigId=i.location_id; cerrarModal();}; modalList.appendChild(d); });
+    data?.forEach(i=>{ 
+        const d=document.createElement('div'); 
+        d.style.padding='12px'; 
+        d.style.borderBottom='1px solid var(--border)'; 
+        d.style.cursor='pointer'; 
+        d.innerHTML=`📍 <b>${i.location}</b> - Lote: <b>${i.lot_number || 'S/L'}</b> - <b style="color:var(--success)">${i.quantity} pzas</b>`; 
+        d.onclick=()=>{
+            originInput.value=i.location; 
+            selOrigId=i.location_id; 
+            if(i.lot_number) lotInput.value=i.lot_number; 
+            cerrarModal();
+        }; 
+        modalList.appendChild(d); 
+    });
 }
 function cerrarModal(){ modalStock.style.display='none'; }
 </script>
