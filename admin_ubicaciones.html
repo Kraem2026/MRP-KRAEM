@@ -6,702 +6,272 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
+<!-- LIBRERÍA GENERADORA DE QR COMPATIBLE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
-
 :root{
-  --primary:#2563eb;
-  --primary-dark:#1d4ed8;
-  --bg:#f8fafc;
-  --card:#ffffff;
-  --text:#1e293b;
-  --border:#e2e8f0;
-  --success:#22c55e;
-  --danger:#ef4444;
+  --primary:#2563eb; --primary-dark:#1d4ed8; --bg:#f8fafc; --card:#ffffff;
+  --text:#1e293b; --border:#e2e8f0; --success:#22c55e; --danger:#ef4444;
 }
+*{ margin:0; padding:0; box-sizing:border-box; }
+body{ font-family:'Segoe UI',sans-serif; background:var(--bg); color:var(--text); padding:20px; }
+.container{ max-width:1400px; margin:auto; }
+.header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:15px; }
+.title-box{ display:flex; align-items:center; gap:15px; }
+.title-icon{ width:55px; height:55px; border-radius:14px; background:rgba(37,99,235,.12); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:24px; }
+h1{ font-size:28px; }
+.subtitle{ font-size:13px; color:#64748b; margin-top:3px; }
+.btn{ border:none; border-radius:10px; padding:12px 18px; cursor:pointer; font-weight:700; display:flex; align-items:center; gap:8px; transition:.2s; }
+.btn:hover{ transform:translateY(-1px); }
+.btn-primary{ background:var(--primary); color:white; }
+.btn-secondary{ background:#e2e8f0; color:#334155; }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.04); margin-bottom:20px; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:18px; }
+.group{ display:flex; flex-direction:column; }
+label{ font-size:12px; font-weight:700; color:#475569; margin-bottom:6px; text-transform:uppercase; }
+input,select{ border:1px solid #cbd5e1; border-radius:10px; padding:12px; font-size:14px; background:white; }
+.table-card{ overflow:auto; }
+table{ width:100%; border-collapse:collapse; min-width:1000px; }
+th{ background:#f1f5f9; color:#475569; font-size:12px; text-transform:uppercase; text-align:left; padding:14px; }
+td{ padding:14px; border-bottom:1px solid #e2e8f0; font-size:14px; }
+tr:hover{ background:#f8fafc; }
+.badge{ padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+.active{ background:#dcfce7; color:#166534; }
+.inactive{ background:#fee2e2; color:#991b1b; }
+.action-btn{ border:none; padding:8px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+.btn-on{ background:#fee2e2; color:#991b1b; }
+.btn-off{ background:#dcfce7; color:#166534; }
+.btn-edit{ background:#dbeafe; color:#1d4ed8; }
+.btn-qr-gen { background: #5b21b6; color: white; }
+.section-title{ font-size:18px; font-weight:700; margin-bottom:18px; display:flex; align-items:center; gap:10px; }
+.empty{ text-align:center; padding:40px; color:#64748b; }
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-body{
-  font-family:'Segoe UI',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  padding:20px;
-}
-
-.container{
-  max-width:1400px;
-  margin:auto;
-}
-
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:25px;
-  flex-wrap:wrap;
-  gap:15px;
-}
-
-.title-box{
-  display:flex;
-  align-items:center;
-  gap:15px;
-}
-
-.title-icon{
-  width:55px;
-  height:55px;
-  border-radius:14px;
-  background:rgba(37,99,235,.12);
-  color:var(--primary);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:24px;
-}
-
-h1{
-  font-size:28px;
-}
-
-.subtitle{
-  font-size:13px;
-  color:#64748b;
-  margin-top:3px;
-}
-
-.btn{
-  border:none;
-  border-radius:10px;
-  padding:12px 18px;
-  cursor:pointer;
-  font-weight:700;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  transition:.2s;
-}
-
-.btn:hover{
-  transform:translateY(-1px);
-}
-
-.btn-primary{
-  background:var(--primary);
-  color:white;
-}
-
-.btn-primary:hover{
-  background:var(--primary-dark);
-}
-
-.btn-secondary{
-  background:#e2e8f0;
-  color:#334155;
-}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:20px;
-  box-shadow:0 4px 12px rgba(0,0,0,.04);
-  margin-bottom:20px;
-}
-
-.form-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-  gap:18px;
-}
-
-.group{
-  display:flex;
-  flex-direction:column;
-}
-
-label{
-  font-size:12px;
-  font-weight:700;
-  color:#475569;
-  margin-bottom:6px;
-  text-transform:uppercase;
-}
-
-input,select{
-  border:1px solid #cbd5e1;
-  border-radius:10px;
-  padding:12px;
-  font-size:14px;
-  background:white;
-}
-
-input:focus,
-select:focus{
-  outline:none;
-  border-color:var(--primary);
-}
-
-.table-card{
-  overflow:auto;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  min-width:1000px;
-}
-
-th{
-  background:#f1f5f9;
-  color:#475569;
-  font-size:12px;
-  text-transform:uppercase;
-  text-align:left;
-  padding:14px;
-}
-
-td{
-  padding:14px;
-  border-bottom:1px solid #e2e8f0;
-  font-size:14px;
-}
-
-tr:hover{
-  background:#f8fafc;
-}
-
-.badge{
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
-  font-weight:700;
-}
-
-.active{
-  background:#dcfce7;
-  color:#166534;
-}
-
-.inactive{
-  background:#fee2e2;
-  color:#991b1b;
-}
-
-.action-btn{
-  border:none;
-  padding:8px 12px;
-  border-radius:8px;
-  font-size:12px;
-  font-weight:700;
-  cursor:pointer;
-}
-
-.btn-on{
-  background:#fee2e2;
-  color:#991b1b;
-}
-
-.btn-off{
-  background:#dcfce7;
-  color:#166534;
-}
-
-.btn-edit{
-  background:#dbeafe;
-  color:#1d4ed8;
-}
-
-.section-title{
-  font-size:18px;
-  font-weight:700;
-  margin-bottom:18px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.empty{
-  text-align:center;
-  padding:40px;
-  color:#64748b;
-}
-
+/* Modal del QR */
+.modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index:2000; }
+.modal-content { background:white; padding:25px; border-radius:15px; text-align:center; max-width:300px; width:90%; }
+#qrcode { display: flex; justify-content: center; margin: 15px 0; }
 </style>
 </head>
 
 <body>
 
 <div class="container">
-
   <div class="header">
-
     <div class="title-box">
-
-      <div class="title-icon">
-        <i class="fas fa-map-marker-alt"></i>
-      </div>
-
+      <div class="title-icon"><i class="fas fa-map-marker-alt"></i></div>
       <div>
         <h1>Catálogo de Ubicaciones</h1>
-        <div class="subtitle">
-          Administración de ubicaciones físicas del sistema
-        </div>
+        <div class="subtitle">Administración de ubicaciones físicas del sistema</div>
       </div>
-
     </div>
-
-    <button class="btn btn-secondary"
-      onclick="location.href='ingenieria_catalogos.html'">
-
-      <i class="fas fa-arrow-left"></i>
-      Volver
-
-    </button>
-
+    <button class="btn btn-secondary" onclick="location.href='ingenieria_catalogos.html'"><i class="fas fa-arrow-left"></i> Volver</button>
   </div>
 
   <div class="card">
-
-    <div class="section-title">
-      <i class="fas fa-plus-circle"></i>
-      Nueva Ubicación
-    </div>
-
+    <div class="section-title"><i class="fas fa-plus-circle"></i> Nueva Ubicación</div>
     <div class="form-grid">
-
       <div class="group">
         <label>Área General</label>
-
-        <select id="area_general_id"
-          onchange="cargarAreas()">
-
-          <option value="">
-            Seleccione...
-          </option>
-
-        </select>
+        <select id="area_general_id" onchange="cargarAreas()"><option value="">Seleccione...</option></select>
       </div>
-
       <div class="group">
-
         <label>Área</label>
-
-        <select id="area_id">
-
-          <option value="">
-            Seleccione área general...
-          </option>
-
-        </select>
-
+        <select id="area_id"><option value="">Seleccione área general...</option></select>
       </div>
-
       <div class="group">
-
         <label>Código Ubicación</label>
-
-        <input id="location_code"
-          placeholder="Ej. WIP">
-
+        <input id="location_code" placeholder="Ej. WIP">
       </div>
-
       <div class="group">
-
         <label>Nombre Ubicación</label>
-
-        <input id="location_name"
-          placeholder="Ej. WIP LS">
-
+        <input id="location_name" placeholder="Ej. WIP LS">
       </div>
-
     </div>
-
     <div style="margin-top:20px;">
-
-      <button class="btn btn-primary"
-        onclick="crearUbicacion()">
-
-        <i class="fas fa-save"></i>
-
-        <span id="btn_text">
-          Guardar Ubicación
-        </span>
-
-      </button>
-
+      <button class="btn btn-primary" onclick="crearUbicacion()"><i class="fas fa-save"></i> <span id="btn_text">Guardar Ubicación</span></button>
     </div>
-
   </div>
 
   <div class="card table-card">
-
-    <div class="section-title">
-      <i class="fas fa-list"></i>
-      Ubicaciones Registradas
-    </div>
-
+    <div class="section-title"><i class="fas fa-list"></i> Ubicaciones Registradas</div>
     <table>
-
       <thead>
-
         <tr>
-
           <th>Área General</th>
           <th>Área</th>
           <th>Código</th>
           <th>Ubicación</th>
           <th>Estatus</th>
+          <th>QR</th>
           <th>Activar</th>
           <th>Editar</th>
-
         </tr>
-
       </thead>
-
       <tbody id="body"></tbody>
-
     </table>
-
   </div>
+</div>
 
+<!-- VENTANA MODAL PARA IMPRIMIR EL QR -->
+<div id="qrModal" class="modal" onclick="if(event.target==this)cerrarQrModal()">
+    <div class="modal-content">
+        <h3 id="qrTitle">Código QR</h3>
+        <div id="qrcode"></div>
+        <button class="btn btn-primary" onclick="descargarQR()" style="width:100%; justify-content:center; margin-bottom:8px;"><i class="fas fa-download"></i> Descargar</button>
+        <button class="btn btn-secondary" onclick="cerrarQrModal()" style="width:100%; justify-content:center;">Cerrar</button>
+    </div>
 </div>
 
 <script>
+// Pegamos las credenciales directamente para asegurar compatibilidad inmediata
+const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let todasAreas = [];
 let editandoId = null;
+let currentQrCode = '';
 
 async function cargarAreasGenerales(){
-
-  const { data, error } = await client
-    .from('areas_generales')
-    .select('*')
-    .eq('active', true)
-    .order('nombre');
-
-  if(error){
-    console.error(error);
-    return;
-  }
-
-  area_general_id.innerHTML =
-    '<option value="">Seleccione...</option>';
-
-  data.forEach(a => {
-
-    area_general_id.innerHTML += `
-      <option value="${a.id}">
-        ${a.nombre}
-      </option>
-    `;
-
-  });
-
+  const { data, error } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
+  if(error) return console.error(error);
+  area_general_id.innerHTML = '<option value="">Seleccione...</option>';
+  data.forEach(a => { area_general_id.innerHTML += `<option value="${a.id}">${a.nombre}</option>`; });
 }
 
 async function loadAreas(){
-
-  const { data, error } = await client
-    .from('areas')
-    .select('*')
-    .eq('active', true)
-    .order('area_name');
-
-  if(error){
-    console.error(error);
-    return;
-  }
-
+  const { data, error } = await client.from('areas').select('*').eq('active', true).order('area_name');
+  if(error) return console.error(error);
   todasAreas = data;
-
 }
 
 async function cargarAreas(){
-
   const generalId = area_general_id.value;
-
-  area_id.innerHTML =
-    '<option value="">Seleccione...</option>';
-
+  area_id.innerHTML = '<option value="">Seleccione...</option>';
   if(!generalId) return;
-
-  const filtradas = todasAreas.filter(
-    a => a.area_general_id == generalId
-  );
-
-  filtradas.forEach(a => {
-
-    area_id.innerHTML += `
-      <option value="${a.id}">
-        ${a.area_name}
-      </option>
-    `;
-
-  });
-
+  const filtradas = todasAreas.filter(a => a.area_general_id == generalId);
+  filtradas.forEach(a => { area_id.innerHTML += `<option value="${a.id}">${a.area_name}</option>`; });
 }
 
 async function load(){
-
-  const { data, error } = await client
-    .from('locations')
-    .select(`
-      *,
-      areas(
-        area_name,
-        area_general_id,
-        areas_generales(
-          nombre
-        )
-      )
-    `)
-    .order('location_code');
-
-  if(error){
-    console.error(error);
-    return;
-  }
-
+  const { data, error } = await client.from('locations').select(`*, areas(area_name, area_general_id, areas_generales(nombre))`).order('location_code');
+  if(error) return console.error(error);
   body.innerHTML = '';
-
   if(!data || data.length === 0){
-
-    body.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty">
-          No hay ubicaciones registradas
-        </td>
-      </tr>
-    `;
-
+    body.innerHTML = `<tr><td colspan="8" class="empty">No hay ubicaciones registradas</td></tr>`;
     return;
   }
 
   data.forEach(l => {
-
-    const areaGeneral =
-      l.areas?.areas_generales?.nombre || '-';
-
-    const area =
-      l.areas?.area_name || '-';
+    const areaGeneral = l.areas?.areas_generales?.nombre || '-';
+    const area = l.areas?.area_name || '-';
+    // Generar el código que leerá el escáner (su propio código de ubicación o el campo qr_code)
+    const valorQR = l.qr_code || l.location_code;
 
     body.innerHTML += `
-
       <tr>
-
-        <td>
-          <strong>${areaGeneral}</strong>
-        </td>
-
+        <td><strong>${areaGeneral}</strong></td>
         <td>${area}</td>
-
-        <td>
-          <strong>${l.location_code}</strong>
-        </td>
-
+        <td><strong>${l.location_code}</strong></td>
         <td>${l.location_name || '-'}</td>
-
+        <td><span class="badge ${l.active ? 'active' : 'inactive'}">${l.active ? 'ACTIVA' : 'INACTIVA'}</span></td>
         <td>
-
-          <span class="badge ${l.active ? 'active' : 'inactive'}">
-
-            ${l.active ? 'ACTIVA' : 'INACTIVA'}
-
-          </span>
-
-        </td>
-
-        <td>
-
-          <button
-            class="action-btn ${l.active ? 'btn-on' : 'btn-off'}"
-            onclick="toggle(${l.id}, ${l.active})"
-          >
-
-            ${l.active ? 'Desactivar' : 'Activar'}
-
+          <button class="action-btn btn-qr-gen" onclick="verQR('${valorQR}')">
+            <i class="fas fa-qrcode"></i> Ver QR
           </button>
-
         </td>
-
-        <td>
-
-          <button
-            class="action-btn btn-edit"
-            onclick="editarUbicacion(
-              ${l.id},
-              '${l.location_code}',
-              '${l.location_name || ''}',
-              ${l.area_id},
-              ${l.areas?.area_general_id || 'null'}
-            )"
-          >
-
-            Editar
-
-          </button>
-
-        </td>
-
+        <td><button class="action-btn ${l.active ? 'btn-on' : 'btn-off'}" onclick="toggle(${l.id}, ${l.active})">${l.active ? 'Desactivar' : 'Activar'}</button></td>
+        <td><button class="action-btn btn-edit" onclick="editarUbicacion(${l.id},'${l.location_code}','${l.location_name || ''}',${l.area_id},${l.areas?.area_general_id || 'null'})">Editar</button></td>
       </tr>
-
     `;
-
   });
-
 }
 
-function editarUbicacion(
-  id,
-  code,
-  name,
-  area,
-  areaGeneral
-){
+// LOGICA PARA MOSTRAR Y GENERAR EL QR EN LA VENTANA MODAL
+function verQR(texto) {
+    currentQrCode = texto;
+    document.getElementById('qrTitle').innerText = "Ubicación: " + texto;
+    const container = document.getElementById('qrcode');
+    container.innerHTML = ''; // Limpiar QR anterior
+    
+    // Configurar generación
+    new QRCode(container, {
+        text: texto,
+        width: 180,
+        height: 180,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+    
+    document.getElementById('qrModal').style.display = 'flex';
+}
 
+function cerrarQrModal() {
+    document.getElementById('qrModal').style.display = 'none';
+}
+
+function descargarQR() {
+    const img = document.querySelector('#qrcode img');
+    if (img) {
+        const link = document.createElement('a');
+        link.href = img.src;
+        link.download = `QR_Ubicacion_${currentQrCode}.png`;
+        link.click();
+    }
+}
+
+function editarUbicacion(id, code, name, area, areaGeneral){
   editandoId = id;
-
   area_general_id.value = areaGeneral;
-
   cargarAreas();
-
-  setTimeout(() => {
-
-    area_id.value = area;
-
-  }, 200);
-
+  setTimeout(() => { area_id.value = area; }, 200);
   location_code.value = code;
-
   location_name.value = name;
-
   btn_text.innerText = 'Actualizar Ubicación';
-
-  window.scrollTo({
-    top:0,
-    behavior:'smooth'
-  });
-
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 
 async function crearUbicacion(){
-
-  if(!area_id.value)
-    return alert('Seleccione un área');
-
-  if(!location_code.value)
-    return alert('Ingrese código');
-
+  if(!area_id.value) return alert('Seleccione un área');
+  if(!location_code.value) return alert('Ingrese código');
   let error;
+  const upperCode = location_code.value.toUpperCase();
 
   if(editandoId){
-
-    const res = await client
-      .from('locations')
-      .update({
-
-        area_id: area_id.value,
-
-        location_code:
-          location_code.value.toUpperCase(),
-
-        location_name:
-          location_name.value
-
-      })
-      .eq('id', editandoId);
-
+    const res = await client.from('locations').update({ area_id: area_id.value, location_code: upperCode, location_name: location_name.value, qr_code: upperCode }).eq('id', editandoId);
     error = res.error;
-
   } else {
-
-    const res = await client
-      .from('locations')
-      .insert({
-
-        area_id: area_id.value,
-
-        location_code:
-          location_code.value.toUpperCase(),
-
-        location_name:
-          location_name.value,
-
-        active:true
-
-      });
-
+    const res = await client.from('locations').insert({ area_id: area_id.value, location_code: upperCode, location_name: location_name.value, qr_code: upperCode, active:true });
     error = res.error;
-
   }
-
-  if(error){
-    alert(error.message);
-    return;
-  }
-
-  alert(
-    editandoId
-      ? 'Ubicación actualizada'
-      : 'Ubicación creada'
-  );
-
+  if(error) return alert(error.message);
+  alert(editandoId ? 'Ubicación actualizada' : 'Ubicación creada');
   limpiarFormulario();
-
   load();
-
 }
 
 function limpiarFormulario(){
-
   editandoId = null;
-
   area_general_id.value = '';
-  area_id.innerHTML =
-    '<option value="">Seleccione área general...</option>';
-
+  area_id.innerHTML = '<option value="">Seleccione área general...</option>';
   location_code.value = '';
   location_name.value = '';
-
   btn_text.innerText = 'Guardar Ubicación';
-
 }
 
 async function toggle(id, state){
-
-  await client
-    .from('locations')
-    .update({
-      active: !state
-    })
-    .eq('id', id);
-
+  await client.from('locations').update({ active: !state }).eq('id', id);
   load();
-
 }
 
 async function init(){
-
   await cargarAreasGenerales();
-
   await loadAreas();
-
   await load();
-
 }
-
 init();
-
 </script>
-
 </body>
 </html>
