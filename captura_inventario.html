@@ -18,12 +18,10 @@
     }
 
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding:15px; margin:0; color: var(--text); transition: 0.3s; }
-    
-    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background: var(--card); padding: 12px 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background: var(--card); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); }
     .btn-nav { background:#6c757d; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:8px; font-weight:bold; font-size:12px; }
     .btn-login { background:var(--danger); display: none; }
     .btn-login.online { background:var(--success); }
-
     .controls { display: flex; gap: 8px; align-items: center; }
     .lang-btn { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
     .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
@@ -81,7 +79,10 @@
 
     <div style="position:relative;">
         <label id="lPart">Número de Parte</label>
-        <input id="partSearch" placeholder="..." autocomplete="off">
+        <div class="input-with-btn">
+            <input id="partSearch" placeholder="Busca o escanea etiqueta..." autocomplete="off">
+            <button class="btn-qr" onclick="abrirEscaner('PARTE')"><i class="fas fa-camera"></i></button>
+        </div>
         <div id="partResults" class="autobox"></div>
     </div>
 
@@ -99,7 +100,7 @@
     <div id="divDestino" style="position:relative;">
         <label id="lLocDest">📍 Ubicación DESTINO</label>
         <div class="input-with-btn">
-            <input id="destInput" placeholder="..." autocomplete="off">
+            <input id="destInput" placeholder="Busca o escanea ubicación..." autocomplete="off">
             <button class="btn-qr" onclick="abrirEscaner('DESTINO')"><i class="fas fa-camera"></i></button>
         </div>
         <div id="destBox" class="autobox"></div>
@@ -167,36 +168,8 @@ function setMode(m) {
 
 function toggleInputs() { 
     const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG'); 
-    
     divOrigen.style.display = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg) ? 'block' : 'none'; 
     divDestino.style.display = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg)) ? 'block' : 'none'; 
-    
-    const lblOrig = document.getElementById('lLocOrig');
-    const lblDest = document.getElementById('lLocDest');
-    const inpOrig = document.getElementById('originInput');
-    const inpDest = document.getElementById('destInput');
-
-    if (mode === 'ENTRADA') {
-        lblDest.innerHTML = "🛒 Ubicación/Carrito DESTINO";
-        inpDest.placeholder = "Escanea o busca Destino...";
-    } 
-    else if (mode === 'TRANSFERENCIA') {
-        lblOrig.innerHTML = "📦 Ubicación/Carrito ORIGEN";
-        inpOrig.placeholder = "Selecciona Origen del Stock...";
-        lblDest.innerHTML = "📍 Ubicación/Piso DESTINO";
-        inpDest.placeholder = "Escanea o busca Destino...";
-    } 
-    else if (mode === 'SALIDA') {
-        lblOrig.innerHTML = "📦 Ubicación ORIGEN";
-        inpOrig.placeholder = "Selecciona de dónde sale...";
-    } 
-    else {
-        lblOrig.innerHTML = "📍 Ubicación ORIGEN";
-        lblDest.innerHTML = "📍 Ubicación DESTINO";
-        inpOrig.placeholder = "...";
-        inpDest.placeholder = "...";
-    }
-
     resetSelection(); 
 }
 
@@ -226,7 +199,7 @@ function setLang(lang) {
     document.getElementById('btnCloseModal').innerText = t.close;
 }
 
-// --- FUNCIONES DEL ESCÁNER QR ---
+// --- ESCÁNER INTELIGENTE ---
 function abrirEscaner(target) {
     qrTargetField = target;
     document.getElementById('modalQR').style.display = 'flex';
@@ -246,31 +219,49 @@ function onScanSuccess(decodedText) {
     cerrarEscaner();
     const cleanCode = decodedText.trim().toUpperCase();
     
-    // Buscamos la ubicación que coincida con el QR escaneado
-    const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
-    
-    if (encontrada) {
-        if (qrTargetField === 'DESTINO') {
-            // Cambiar automáticamente el selector de área si corresponde
-            if (mode === 'TRANSFERENCIA') {
-                areaDestSelect.value = encontrada.area_id;
+    if (qrTargetField === 'PARTE') {
+        // DETECCIÓN DE STD PACK (Estructura PARTE|CANTIDAD como: KRM-1023|500)
+        if (cleanCode.includes('|')) {
+            const tokens = cleanCode.split('|');
+            const numParte = tokens[0].trim();
+            const cantidad = tokens[1].trim();
+            
+            const parteEncontrada = parts.find(p => p.part_number === numParte);
+            if (parteEncontrada) {
+                partSearch.value = parteEncontrada.part_number;
+                selPartId = parteEncontrada.id;
+                qty.value = cantidad; // Autollena la cantidad del Std Pack
             } else {
-                areaSelect.value = encontrada.area_id;
+                alert(`Parte "${numParte}" no encontrada en el catálogo.`);
             }
+        } else {
+            // Escaneo de QR de parte sencillo sin cantidad
+            const parteEncontrada = parts.find(p => p.part_number === cleanCode);
+            if (parteEncontrada) {
+                partSearch.value = parteEncontrada.part_number;
+                selPartId = parteEncontrada.id;
+            } else {
+                alert(`Número de parte "${cleanCode}" no encontrado.`);
+            }
+        }
+    } 
+    else if (qrTargetField === 'DESTINO') {
+        const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
+        if (encontrada) {
+            if (mode === 'TRANSFERENCIA') areaDestSelect.value = encontrada.area_id;
+            else areaSelect.value = encontrada.area_id;
             destInput.value = encontrada.location_code;
             selDestId = encontrada.id;
+        } else {
+            alert(`Ubicación "${cleanCode}" no encontrada.`);
         }
-    } else {
-        alert(`Ubicación con código QR "${cleanCode}" no encontrada en el catálogo.`);
     }
 }
 
 function cerrarEscaner() {
     document.getElementById('modalQR').style.display = 'none';
     if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => {
-            html5QrcodeScanner = null;
-        }).catch(err => console.error(err));
+        html5QrcodeScanner.stop().then(() => { html5QrcodeScanner = null; }).catch(err => console.error(err));
     }
 }
 
