@@ -5,6 +5,7 @@
 <title>Captura Inventario - Sistema Pro</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
     :root { 
@@ -35,6 +36,9 @@
     label { font-weight:800; display:block; margin-top:15px; font-size:11px; color: var(--text-secondary); text-transform: uppercase; }
     input, select { width:100%; padding:12px; margin-top:5px; border-radius:8px; border:1px solid var(--border); font-size:15px; box-sizing:border-box; background: var(--bg); color: var(--text); }
     
+    .input-with-btn { display: flex; gap: 5px; align-items: center; }
+    .btn-qr { background: var(--primary); color: white; border: none; padding: 12px 15px; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 5px; height: 47px; box-sizing: border-box; }
+
     .tabs { display:flex; gap:5px; margin-bottom:20px; background: var(--bg); padding: 5px; border-radius: 10px; }
     .tabs button { flex:1; background: transparent; border:none; padding:10px; cursor:pointer; font-size:10px; font-weight:bold; border-radius:8px; color: var(--text-secondary); transition: 0.2s; }
     .tabs button.active { background:var(--primary); color:white; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
@@ -48,6 +52,8 @@
     
     .btn-confirm { background:var(--primary); color:white; font-weight:bold; margin-top:25px; border:none; height:50px; cursor:pointer; border-radius:12px; font-size:16px; transition: 0.3s; }
     .btn-confirm:hover { filter: brightness(1.1); transform: translateY(-2px); }
+    
+    #reader { width: 100%; background: black; border-radius: 8px; overflow: hidden; margin-top: 10px; }
 </style>
 </head>
 <body data-theme="light">
@@ -85,9 +91,19 @@
     <div id="divAreaDest" style="display:none;"><label id="lAreaDest">Área Destino</label><select id="areaDestSelect" onchange="resetSelection()"></select></div>
     <div id="divAjusteTipo" style="display:none;"><label id="lType">Tipo Ajuste</label><select id="ajusteTipo" onchange="toggleInputs()"><option value="POS">(+) Positivo</option><option value="NEG">(-) Negativo</option></select></div>
     
-    <div id="divOrigen" style="display:none;"><label id="lLocOrig">📍 Ubicación ORIGEN</label><input id="originInput" readonly onclick="abrirModalStock()" placeholder="..." style="background:rgba(255,253,231,0.1); cursor:pointer;"></div>
+    <div id="divOrigen" style="display:none;">
+        <label id="lLocOrig">📍 Ubicación ORIGEN</label>
+        <input id="originInput" readonly onclick="abrirModalStock()" placeholder="..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
+    </div>
     
-    <div id="divDestino" style="position:relative;"><label id="lLocDest">📍 Ubicación DESTINO</label><input id="destInput" placeholder="..." autocomplete="off"><div id="destBox" class="autobox"></div></div>
+    <div id="divDestino" style="position:relative;">
+        <label id="lLocDest">📍 Ubicación DESTINO</label>
+        <div class="input-with-btn">
+            <input id="destInput" placeholder="..." autocomplete="off">
+            <button class="btn-qr" onclick="abrirEscaner('DESTINO')"><i class="fas fa-camera"></i></button>
+        </div>
+        <div id="destBox" class="autobox"></div>
+    </div>
 
     <label id="lQty">Cantidad</label><input type="number" id="qty" placeholder="0">
     <label id="lComm">Comentario</label><input id="comment" placeholder="...">
@@ -97,10 +113,13 @@
 
 <div id="modalStock" class="modal" onclick="if(event.target==this)cerrarModal()"><div class="modal-content"><h3 id="txtStockTitle" style="margin-top:0">Stock en esta ubicación</h3><div id="modalList"></div><button id="btnCloseModal" onclick="cerrarModal()" style="margin-top:15px; width:100%; background:var(--bg); border:1px solid var(--border); padding:10px; cursor:pointer; color: var(--text); border-radius:8px;">Cerrar</button></div></div>
 
+<div id="modalQR" class="modal" onclick="if(event.target==this)cerrarEscaner()"><div class="modal-content"><h3 style="margin-top:0; text-align:center;">Escaneando Código QR</h3><div id="reader"></div><button onclick="cerrarEscaner()" style="margin-top:15px; width:100%; background:var(--danger); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:8px;">Cancelar</button></div></div>
+
 <script>
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let parts=[], locations=[], areas=[], mode='ENTRADA', selPartId=null, selOrigId=null, selDestId=null;
+let html5QrcodeScanner = null, qrTargetField = '';
 
 const i18n = {
     es: { back: "Volver", title: "Captura de Inventario", lPart: "Número de Parte", lAreaOrig: "Área Origen", lAreaDest: "Área Destino", lType: "Tipo Ajuste", lLocOrig: "📍 Ubicación ORIGEN", lLocDest: "📍 Ubicación DESTINO", lQty: "Cantidad", lComm: "Comentario", btnConfirm: "CONFIRMAR MOVIMIENTO", stockTitle: "Stock disponible", close: "Cerrar" },
@@ -132,8 +151,7 @@ async function init() {
     const {data:p} = await _client.from('parts').select('id, part_number').limit(2000);
     if(p) parts = p;
     
-    // --- IMPORTANTE: Traemos también la columna 'type' que agregamos a Supabase ---
-    const {data:l} = await _client.from('locations').select('id, location_code, area_id, type');
+    const {data:l} = await _client.from('locations').select('id, location_code, area_id, type, qr_code');
     if(l) locations = l;
 }
 init();
@@ -158,16 +176,15 @@ function toggleInputs() {
     const inpOrig = document.getElementById('originInput');
     const inpDest = document.getElementById('destInput');
 
-    // Mapeo básico de textos guía según el modo de operación
     if (mode === 'ENTRADA') {
         lblDest.innerHTML = "🛒 Ubicación/Carrito DESTINO";
-        inpDest.placeholder = "Selecciona Destino...";
+        inpDest.placeholder = "Escanea o busca Destino...";
     } 
     else if (mode === 'TRANSFERENCIA') {
         lblOrig.innerHTML = "📦 Ubicación/Carrito ORIGEN";
-        inpOrig.placeholder = "Selecciona Origen...";
+        inpOrig.placeholder = "Selecciona Origen del Stock...";
         lblDest.innerHTML = "📍 Ubicación/Piso DESTINO";
-        inpDest.placeholder = "Selecciona Destino...";
+        inpDest.placeholder = "Escanea o busca Destino...";
     } 
     else if (mode === 'SALIDA') {
         lblOrig.innerHTML = "📦 Ubicación ORIGEN";
@@ -209,6 +226,54 @@ function setLang(lang) {
     document.getElementById('btnCloseModal').innerText = t.close;
 }
 
+// --- FUNCIONES DEL ESCÁNER QR ---
+function abrirEscaner(target) {
+    qrTargetField = target;
+    document.getElementById('modalQR').style.display = 'flex';
+    
+    html5QrcodeScanner = new Html5Qrcode("reader");
+    html5QrcodeScanner.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess
+    ).catch(err => {
+        alert("Error al abrir cámara: " + err);
+        cerrarEscaner();
+    });
+}
+
+function onScanSuccess(decodedText) {
+    cerrarEscaner();
+    const cleanCode = decodedText.trim().toUpperCase();
+    
+    // Buscamos la ubicación que coincida con el QR escaneado
+    const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
+    
+    if (encontrada) {
+        if (qrTargetField === 'DESTINO') {
+            // Cambiar automáticamente el selector de área si corresponde
+            if (mode === 'TRANSFERENCIA') {
+                areaDestSelect.value = encontrada.area_id;
+            } else {
+                areaSelect.value = encontrada.area_id;
+            }
+            destInput.value = encontrada.location_code;
+            selDestId = encontrada.id;
+        }
+    } else {
+        alert(`Ubicación con código QR "${cleanCode}" no encontrada en el catálogo.`);
+    }
+}
+
+function cerrarEscaner() {
+    document.getElementById('modalQR').style.display = 'none';
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+            html5QrcodeScanner = null;
+        }).catch(err => console.error(err));
+    }
+}
+
 async function guardar() {
     const { data: { session } } = await _client.auth.getSession();
     if (!session) return alert("Inicia sesión primero.");
@@ -243,7 +308,6 @@ destInput.oninput = () => {
     const m = locations.filter(l=>l.area_id==aId && l.location_code.includes(v)).slice(0,10);
     m.forEach(l=>{ 
         const d=document.createElement('div'); 
-        // Agregamos una etiqueta visual pequeña en el buscador para saber qué tipo de ubicación es (PISO o CARRO)
         const tipoBadge = l.type ? ` [${l.type}]` : '';
         d.textContent = l.location_code + tipoBadge; 
         d.onclick=()=>{destInput.value=l.location_code; selDestId=l.id; destBox.style.display='none';}; 
