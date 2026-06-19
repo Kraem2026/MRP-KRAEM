@@ -78,6 +78,7 @@
         <button id="btnAJUSTE" onclick="setMode('AJUSTE')">AJUSTE</button>
     </div>
 
+    <!-- Buscador de Parte -->
     <div style="position:relative;">
         <label id="lPart">Número de Parte</label>
         <div class="input-with-btn">
@@ -87,30 +88,51 @@
         <div id="partResults" class="autobox"></div>
     </div>
 
+    <!-- Lote -->
     <label id="lLot">Número de Lote / Fecha Prod (Molde)</label>
     <input id="lotInput" placeholder="Ej: 15/05/24 o escanea...">
 
+    <!-- Áreas Generales -->
     <label id="lAreaOrig">Área Origen</label>
     <select id="areaSelect" onchange="resetSelection()"></select>
 
     <div id="divAreaDest" style="display:none;"><label id="lAreaDest">Área Destino</label><select id="areaDestSelect" onchange="resetSelection()"></select></div>
     <div id="divAjusteTipo" style="display:none;"><label id="lType">Tipo Ajuste</label><select id="ajusteTipo" onchange="toggleInputs()"><option value="POS">(+) Positivo</option><option value="NEG">(-) Negativo</option></select></div>
     
+    <!-- SECCIÓN DE ORIGEN (Salidas, Transferencias, Ajuste Negativo) -->
     <div id="divOrigen" style="display:none;">
-        <label id="lLocOrig">📍 Ubicación ORIGEN</label>
+        <label id="lLocOrig">📍 Ubicación Fija ORIGEN</label>
         <div class="input-with-btn">
             <input id="originInput" readonly onclick="abrirModalStock()" placeholder="Haz clic o escanea Origen..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
             <button class="btn-qr btn-warning-qr" onclick="abrirEscaner('ORIGEN')"><i class="fas fa-camera"></i></button>
         </div>
+
+        <label id="lContOrig">🛒 Contenedor / Carrito ORIGEN</label>
+        <div class="input-with-btn">
+            <input id="contOriginInput" readonly placeholder="Se autoselecciona al elegir stock..." style="background:rgba(240,240,240,0.15);">
+            <button class="btn-qr btn-warning-qr" onclick="abrirEscaner('CONT_ORIGEN')"><i class="fas fa-camera"></i></button>
+        </div>
     </div>
     
-    <div id="divDestino" style="position:relative;">
-        <label id="lLocDest">📍 Ubicación DESTINO</label>
-        <div class="input-with-btn">
-            <input id="destInput" placeholder="Busca o escanea ubicación..." autocomplete="off">
-            <button class="btn-qr" onclick="abrirEscaner('DESTINO')"><i class="fas fa-camera"></i></button>
+    <!-- SECCIÓN DE DESTINO (Entradas, Transferencias, Ajuste Positivo) -->
+    <div id="divDestino">
+        <div id="divDestinoFijo" style="position:relative;">
+            <label id="lLocDest">📍 Ubicación Fija DESTINO</label>
+            <div class="input-with-btn">
+                <input id="destInput" placeholder="Busca o escanea ubicación fija..." autocomplete="off">
+                <button class="btn-qr" onclick="abrirEscaner('DESTINO')"><i class="fas fa-camera"></i></button>
+            </div>
+            <div id="destBox" class="autobox"></div>
         </div>
-        <div id="destBox" class="autobox"></div>
+
+        <div id="divDestinoContenedor" style="position:relative; margin-top:15px;">
+            <label id="lContDest">🛒 Contenedor / Carrito DESTINO</label>
+            <div class="input-with-btn">
+                <input id="destContInput" placeholder="Busca o escanea carrito..." autocomplete="off">
+                <button class="btn-qr" onclick="abrirEscaner('CONT_DESTINO')"><i class="fas fa-camera"></i></button>
+            </div>
+            <div id="destContBox" class="autobox"></div>
+        </div>
     </div>
 
     <label id="lQty">Cantidad</label><input type="number" id="qty" placeholder="0">
@@ -119,14 +141,17 @@
     <button id="btnConfirm" onclick="procesarGuardado()" class="btn-confirm">CONFIRMAR MOVIMIENTO</button>
 </div>
 
+<!-- Modal Stock Origen -->
 <div id="modalStock" class="modal" onclick="if(event.target==this)cerrarModal()"><div class="modal-content"><h3 id="txtStockTitle" style="margin-top:0">Stock en esta ubicación</h3><div id="modalList"></div><button id="btnCloseModal" onclick="cerrarModal()" style="margin-top:15px; width:100%; background:var(--bg); border:1px solid var(--border); padding:10px; cursor:pointer; color: var(--text); border-radius:8px;">Cerrar</button></div></div>
 
+<!-- Modal Escáner QR -->
 <div id="modalQR" class="modal" onclick="if(event.target==this)cerrarEscaner()"><div class="modal-content"><h3 style="margin-top:0; text-align:center;">Escaneando Código QR</h3><div id="reader"></div><button onclick="cerrarEscaner()" style="margin-top:15px; width:100%; background:var(--danger); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:8px;">Cancelar</button></div></div>
 
 <script>
 const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
-let parts=[], locations=[], areas=[], mode='ENTRADA', selPartId=null, selOrigId=null, selDestId=null;
+let parts=[], locations=[], containers=[], areas=[], mode='ENTRADA';
+let selPartId=null, selOrigId=null, selOrigContId=null, selDestId=null, selDestContId=null;
 let html5QrcodeScanner = null, qrTargetField = '';
 
 const i18n = {
@@ -150,18 +175,21 @@ async function init() {
         loginBtn.classList.remove('online');
         loginBtn.onclick = () => { location.href = '/'; };
     }
-    
     loginBtn.style.display = "block";
 
     const {data:a} = await _client.from('areas').select('*');
     if(a) a.forEach(r => { areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; });
+    
     const {data:p} = await _client.from('parts').select('id, part_number').limit(2000);
     if(p) parts = p;
     
+    // Carga de catálogo unificado: Separamos Ubicaciones fijas de Contenedores móviles
     const {data:l} = await _client.from('locations').select('id, location_code, area_id, type, qr_code');
-    if(l) locations = l;
+    if(l) {
+        locations = l.filter(item => item.type !== 'Móvil' && item.type !== 'Contenedor');
+        containers = l.filter(item => item.type === 'Móvil' || item.type === 'Contenedor');
+    }
 
-    // Configuración inicial del lote automático ya que arranca en ENTRADA
     aplicarReglaLoteEntrada();
 }
 init();
@@ -184,11 +212,11 @@ function toggleInputs() {
 }
 
 function resetSelection() { 
-    selOrigId=null; selDestId=null; originInput.value=''; destInput.value=''; 
+    selOrigId=null; selOrigContId=null; selDestId=null; selDestContId=null;
+    originInput.value=''; contOriginInput.value=''; destInput.value=''; destContInput.value=''; 
     aplicarReglaLoteEntrada();
 }
 
-// NUEVA FUNCIÓN: Bloquea y genera la fecha automática AAAAMMDD en ENTRADAS
 function aplicarReglaLoteEntrada() {
     const lotInput = document.getElementById('lotInput');
     if (mode === 'ENTRADA') {
@@ -275,34 +303,18 @@ async function onScanSuccess(decodedText) {
     } 
     else if (qrTargetField === 'ORIGEN') {
         if (!selPartId) return alert("❌ Primero debes seleccionar o escanear un Número de Parte.");
-
         const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
-        if (!encontrada) return alert(`❌ Ubicación Origen "${cleanCode}" no existe en el catálogo.`);
-
-        const areaText = areaSelect.options[areaSelect.selectedIndex].text;
-
-        // 1. Validar existencias actuales globales de la ubicación escaneada
-        const { data: stockData } = await _client
-            .from('v_inventory_by_location')
-            .select('*')
-            .eq('part_id', selPartId)
-            .eq('area', areaText)
-            .eq('location_id', encontrada.id)
-            .gt('quantity', 0);
-
-        if (!stockData || stockData.length === 0) {
-            return alert(`⚠️ ALERTA: No hay stock disponible de esta parte en la ubicación [${encontrada.location_code}]. Selecciona otra ubicación.`);
-        }
-
+        if (!encontrada) return alert(`❌ Ubicación Origen "${cleanCode}" no existe en el catálogo fijos.`);
+        
         originInput.value = encontrada.location_code;
         selOrigId = encontrada.id;
-
-        // NUEVO FLUJO REQUERIDO: Si trae un solo lote se selecciona solo, si trae varios abre el modal de stock
-        if (stockData.length === 1) {
-            if (stockData[0].lot_number) lotInput.value = stockData[0].lot_number;
-        } else {
-            abrirModalStock(); // Abre automático para forzar al operador a elegir de la lista
-        }
+        abrirModalStock(); 
+    }
+    else if (qrTargetField === 'CONT_ORIGEN') {
+        const encontrada = containers.find(c => c.qr_code === cleanCode || c.location_code === cleanCode);
+        if (!encontrada) return alert(`❌ Contenedor "${cleanCode}" no existe.`);
+        contOriginInput.value = encontrada.location_code;
+        selOrigContId = encontrada.id;
     }
     else if (qrTargetField === 'DESTINO') {
         const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
@@ -312,6 +324,13 @@ async function onScanSuccess(decodedText) {
             destInput.value = encontrada.location_code;
             selDestId = encontrada.id;
         } else { alert(`Ubicación "${cleanCode}" no encontrada.`); }
+    }
+    else if (qrTargetField === 'CONT_DESTINO') {
+        const encontrada = containers.find(c => c.qr_code === cleanCode || c.location_code === cleanCode);
+        if (encontrada) {
+            destContInput.value = encontrada.location_code;
+            selDestContId = encontrada.id;
+        } else { alert(`Contenedor "${cleanCode}" no encontrado.`); }
     }
 }
 
@@ -332,6 +351,11 @@ async function procesarGuardado() {
 
     const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG');
     const requiereOrigen = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg);
+    const requiereDestino = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg));
+
+    if (requiereDestino && !selDestId) {
+        return alert("❌ Debe seleccionar una Ubicación Fija de Destino.");
+    }
 
     if (requiereOrigen && selOrigId) {
         const areaText = areaSelect.options[areaSelect.selectedIndex].text;
@@ -339,75 +363,88 @@ async function procesarGuardado() {
 
         if (!loteSeleccionado) return alert("❌ Debe seleccionar un número de Lote antes de continuar.");
 
-        // NUEVA REGLA 3: VALIDACIÓN ESTRICTA DE FIFO GLOBAL EN ALMACÉN
+        // CANDADO FIFO GLOBAL
         const { data: todosLosLotes } = await _client
             .from('v_inventory_by_location')
             .select('lot_number, location, quantity')
             .eq('part_id', selPartId)
             .eq('area', areaText)
             .gt('quantity', 0)
-            .order('created_at', { ascending: true }); // El lote físico más antiguo primero
+            .order('created_at', { ascending: true });
 
         if (todosLosLotes && todosLosLotes.length > 0) {
             const loteMasViejoGlobal = todosLosLotes[0].lot_number;
             const ubicacionMasViejoGlobal = todosLosLotes[0].location;
 
-            // Si el operador está intentando sacar un lote que NO es el más antiguo del almacén
             if (loteSeleccionado !== loteMasViejoGlobal) {
                 alert(`⚠️ ¡ALERTA CRÍTICA DE CONTROL FIFO! ⚠️\n\n` +
-                      `El contenedor escaneado NO contiene el lote más antiguo del almacén para esta parte.\n\n` +
+                      `El contenedor/ubicación escaneado NO contiene el lote más antiguo del almacén.\n\n` +
                       `• Lote Escaneado/Seleccionado: ${loteSeleccionado}\n` +
                       `• Lote Más Antiguo Requerido: ${loteMasViejoGlobal || 'Sin Lote'}\n` +
                       `• Ubicado actualmente en: [${ubicacionMasViejoGlobal}]\n\n` +
-                      `❌ Operación cancelada. Por favor, localice el lote correcto usando el buscador de lotes.`);
-                return; // Frena por completo la transacción
-            }
-        }
-        
-        // Alerta secundaria si saca más piezas de las que tiene este lote específico en el carro
-        const { data: lotesEnCarro } = await _client
-            .from('v_inventory_by_location')
-            .select('lot_number, quantity')
-            .eq('part_id', selPartId)
-            .eq('location_id', selOrigId)
-            .eq('area', areaText)
-            .eq('lot_number', loteSeleccionado)
-            .gt('quantity', 0);
-
-        if (lotesEnCarro && lotesEnCarro.length > 0) {
-            let loteCant = lotesEnCarro[0].quantity;
-
-            if (q > loteCant) {
-                let piezasExcedentes = q - loteCant;
-                let conf = confirm(`⚠️ ALERTA DE MEZCLA EN CARRO:\n\n` +
-                      `Estás retirando ${q} piezas, pero el lote seleccionado (${loteSeleccionado}) solo cuenta con ${loteCant} piezas en este carro.\n\n` +
-                      `Las ${piezasExcedentes} piezas restantes se descontarán del lote inmediato siguiente.\n\n` +
-                      `👉 ¿Confirmas que revisaste el fechador del molde en piso y el producto antiguo se vació físicamente?`);
-                      
-                if (!conf) return; 
+                      `❌ Operación cancelada.`);
+                return;
             }
         }
     }
 
-    // Si todo es correcto y pasó el candado FIFO, se ejecuta el guardado directo
     guardarMovimiento(session.user.id, q, comm);
 }
 
 async function guardarMovimiento(userId, q, comm) {
     const areaText = areaSelect.options[areaSelect.selectedIndex].text;
     const lote = lotInput.value.trim().toUpperCase();
-    const base = { part_id: selPartId, area: areaText, comment: comm, user_id: userId, lot_number: lote };
+    
+    // Mapeamos los ID de contenedor. Si no se seleccionó ninguno o quedó en blanco, va como null (Sin Contenedor)
+    const containerOrigId = selOrigContId || null;
+    const containerDestId = selDestContId || null;
+
+    const base = { 
+        part_id: selPartId, 
+        area: areaText, 
+        comment: comm, 
+        user_id: userId, 
+        lot_number: lote
+    };
+    
     let rows = [];
     
     if(mode==='ENTRADA'||(mode==='AJUSTE'&&ajusteTipo.value==='POS')) {
-        rows.push({...base, quantity:q, to_location_id:selDestId, movement_type:mode});
+        rows.push({
+            ...base, 
+            quantity: q, 
+            to_location_id: selDestId, 
+            to_container_id: containerDestId, 
+            movement_type: mode
+        });
     }
     else if(mode==='SALIDA'||(mode==='AJUSTE'&&ajusteTipo.value==='NEG')) {
-        rows.push({...base, quantity:-q, from_location_id:selOrigId, movement_type:mode});
+        rows.push({
+            ...base, 
+            quantity: -q, 
+            from_location_id: selOrigId, 
+            from_container_id: containerOrigId, 
+            movement_type: mode
+        });
     }
     else if(mode==='TRANSFERENCIA') {
-        rows.push({...base, quantity:-q, from_location_id:selOrigId, movement_type:'TRANSFERENCIA'});
-        rows.push({...base, quantity:q, to_location_id:selDestId, movement_type:'TRANSFERENCIA', area:areaDestSelect.options[areaDestSelect.selectedIndex].text});
+        // Salida del origen
+        rows.push({
+            ...base, 
+            quantity: -q, 
+            from_location_id: selOrigId, 
+            from_container_id: containerOrigId, 
+            movement_type: 'TRANSFERENCIA'
+        });
+        // Entrada al destino
+        rows.push({
+            ...base, 
+            quantity: q, 
+            to_location_id: selDestId, 
+            to_container_id: containerDestId, 
+            movement_type: 'TRANSFERENCIA', 
+            area: areaDestSelect.options[areaDestSelect.selectedIndex].text
+        });
     }
     
     const {error} = await _client.from('inventory_movements').insert(rows);
@@ -436,20 +473,51 @@ destInput.oninput = () => {
     destBox.style.display = m.length?'block':'none';
 };
 
+destContInput.oninput = () => {
+    const v = destContInput.value.toUpperCase();
+    destContBox.innerHTML = '';
+    
+    // Opción por defecto para caja de cartón suelta (Sin Contenedor)
+    const def = document.createElement('div');
+    def.innerHTML = `📦 <b>N/A - Sin Contenedor (Caja / Suelto)</b>`;
+    def.onclick = () => { destContInput.value = "N/A - Sin Contenedor"; selDestContId = null; destContBox.style.display='none'; };
+    destContBox.appendChild(def);
+
+    const m = containers.filter(c => c.location_code.includes(v)).slice(0,10);
+    m.forEach(c => { 
+        const d = document.createElement('div'); 
+        d.innerHTML = `🛒 ${c.location_code}`; 
+        d.onclick = () => { destContInput.value = c.location_code; selDestContId = c.id; destContBox.style.display='none'; }; 
+        destContBox.appendChild(d); 
+    });
+    destContBox.style.display = 'block';
+};
+
 async function abrirModalStock() {
     if (!selPartId) return alert("Selecciona un número de parte primero.");
     modalStock.style.display='flex';
-    const {data} = await _client.from('v_inventory_by_location').select('*').eq('part_id', selPartId).eq('area', areaSelect.options[areaSelect.selectedIndex].text).gt('quantity', 0);
+    
+    const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+    const {data} = await _client.from('v_inventory_by_location').select('*').eq('part_id', selPartId).eq('area', areaText).gt('quantity', 0);
+    
     modalList.innerHTML = data?.length ? '' : '<p style="text-align:center; color:var(--text-secondary)">Sin stock disponible</p>';
     data?.forEach(i=>{ 
         const d=document.createElement('div'); 
         d.style.padding='12px'; 
         d.style.borderBottom='1px solid var(--border)'; 
         d.style.cursor='pointer'; 
-        d.innerHTML=`📍 <b>${i.location}</b> - Lote: <b>${i.lot_number || 'S/L'}</b> - <b style="color:var(--success)">${i.quantity} pzas</b>`; 
+        
+        // Se asume que tu vista 'v_inventory_by_location' puede retornar datos de contenedor (ej: i.container_code)
+        const contLabel = i.container_code ? `🛒 ${i.container_code}` : `📦 Suelto`;
+        d.innerHTML = `📍 <b>${i.location}</b> [${contLabel}] - Lote: <b>${i.lot_number || 'S/L'}</b> - <b style="color:var(--success)">${i.quantity} pzas</b>`; 
+        
         d.onclick=()=>{
-            originInput.value=i.location; 
-            selOrigId=i.location_id; 
+            originInput.value = i.location; 
+            selOrigId = i.location_id; 
+            
+            contOriginInput.value = i.container_code ? i.container_code : "N/A - Sin Contenedor";
+            selOrigContId = i.container_id ? i.container_id : null;
+
             if(i.lot_number) lotInput.value=i.lot_number; 
             cerrarModal();
         }; 
