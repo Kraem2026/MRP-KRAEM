@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
         :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; }
@@ -33,6 +35,15 @@
         .controls { display: flex; gap: 10px; align-items: center; }
         .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Botón morado para QR en la tabla */
+        .btn-qr-gen { background: #5b21b6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-qr-gen:hover { background: #4c1d95; }
+
+        /* Estilos del modal flotante de QR */
+        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(2px); }
+        .modal-content { background:var(--card); padding:25px; border-radius:15px; text-align:center; max-width:300px; width:90%; border: 1px solid var(--border); color: var(--text); }
+        #qrcode { display: flex; justify-content: center; margin: 15px 0; }
     </style>
 </head>
 <body>
@@ -71,16 +82,26 @@
                 <th id="th_proj">Proyecto</th>
                 <th id="th_type">Tipo</th>
                 <th id="th_status">Estatus</th>
-                <th style="width:50px;"></th>
+                <th>Etiqueta</th> <th style="width:50px;"></th>
             </tr>
         </thead>
         <tbody id="partsBody"></tbody>
     </table>
 </div>
 
+<div id="qrModal" class="modal" onclick="if(event.target==this)cerrarQrModal()">
+    <div class="modal-content">
+        <h3 id="qrTitle" style="font-size: 16px; margin-top: 0; font-weight: 700;">Código QR Parte</h3>
+        <div id="qrcode"></div>
+        <button class="btn btn-primary" onclick="descargarQR()" style="width:100%; justify-content:center; margin-bottom:8px;"><i class="fas fa-download"></i> Descargar PNG</button>
+        <button class="btn" onclick="cerrarQrModal()" style="width:100%; justify-content:center;">Cerrar</button>
+    </div>
+</div>
+
 <script>
     let currentLang = localStorage.getItem('lang') || 'es';
     let searchTimeout;
+    let currentQrText = ''; // Variable global para guardar el NP activo al descargar
 
     const translations = {
         es: {
@@ -102,7 +123,6 @@
     async function init() {
         applyTheme();
         setLang(currentLang);
-        // searchOnSupabase se llama dentro de setLang
     }
 
     async function searchOnSupabase() {
@@ -138,13 +158,13 @@
         const l = translations[currentLang];
         
         if (!list || list.length === 0) {
-            body.innerHTML = `<tr><td colspan="6" style="text-align:center;">${l.noRes}</td></tr>`;
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center;">${l.noRes}</td></tr>`;
             return;
         }
 
         body.innerHTML = list.map(p => `
             <tr>
-                <td onclick="location.href='part_ficha_tecnica.html?id=${p.id}'"><strong>${p.part_number}</strong></td>
+                <td onclick="location.href='part_ficha_tecnica.html?id=${p.id}'" style="cursor:pointer;"><strong>${p.part_number}</strong></td>
                 <td>${p.part_name || p.description || '---'}</td>
                 <td>${p.project || '---'}</td>
                 <td>${p.product_type || '---'}</td>
@@ -153,10 +173,48 @@
                     ${p.obsolete ? l.obs : l.act}
                 </td>
                 <td>
+                    <button class="btn-qr-gen" onclick="verQRParte('${p.part_number}')">
+                        <i class="fas fa-qrcode"></i> QR
+                    </button>
+                </td>
+                <td>
                     <a href="ingenieria_nuevo_np.html?id=${p.id}" style="color:var(--primary)"><i class="fas fa-edit"></i></a>
                 </td>
             </tr>
         `).join('');
+    }
+
+    // LOGICA PARA LA VENTANA MODAL Y GENERACIÓN DE CODIOGOS QR
+    function verQRParte(numParte) {
+        currentQrText = numParte;
+        document.getElementById('qrTitle').innerText = "N° Parte: " + numParte;
+        const container = document.getElementById('qrcode');
+        container.innerHTML = ''; // Limpiar gráfico anterior
+        
+        new QRCode(container, {
+            text: numParte,
+            width: 180,
+            height: 180,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+        
+        document.getElementById('qrModal').style.display = 'flex';
+    }
+
+    function cerrarQrModal() {
+        document.getElementById('qrModal').style.display = 'none';
+    }
+
+    function descargarQR() {
+        const img = document.querySelector('#qrcode img');
+        if (img) {
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = `QR_Parte_${currentQrText}.png`;
+            link.click();
+        }
     }
 
     function setLang(lang) {
