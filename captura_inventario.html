@@ -131,7 +131,9 @@ async function init() {
     if(a) a.forEach(r => { areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; });
     const {data:p} = await _client.from('parts').select('id, part_number').limit(2000);
     if(p) parts = p;
-    const {data:l} = await _client.from('locations').select('id, location_code, area_id');
+    
+    // --- IMPORTANTE: Traemos también la columna 'type' que agregamos a Supabase ---
+    const {data:l} = await _client.from('locations').select('id, location_code, area_id, type');
     if(l) locations = l;
 }
 init();
@@ -156,20 +158,19 @@ function toggleInputs() {
     const inpOrig = document.getElementById('originInput');
     const inpDest = document.getElementById('destInput');
 
-    // --- NUEVA LÓGICA INTELIGENTE DE TEXTOS PARA EL ALMACÉN ---
+    // Mapeo básico de textos guía según el modo de operación
     if (mode === 'ENTRADA') {
-        lblDest.innerHTML = "🛒 Carrito DESTINO";
-        inpDest.placeholder = "Ej. CARRO-01...";
+        lblDest.innerHTML = "🛒 Ubicación/Carrito DESTINO";
+        inpDest.placeholder = "Selecciona Destino...";
     } 
     else if (mode === 'TRANSFERENCIA') {
-        lblOrig.innerHTML = "🛒 Carrito ORIGEN";
-        inpOrig.placeholder = "Selecciona Carro...";
-        
-        lblDest.innerHTML = "📍 Piso DESTINO";
-        inpDest.placeholder = "Ej. P1, P2, P3...";
+        lblOrig.innerHTML = "📦 Ubicación/Carrito ORIGEN";
+        inpOrig.placeholder = "Selecciona Origen...";
+        lblDest.innerHTML = "📍 Ubicación/Piso DESTINO";
+        inpDest.placeholder = "Selecciona Destino...";
     } 
     else if (mode === 'SALIDA') {
-        lblOrig.innerHTML = "📦 Ubicación ORIGEN (Carro o Piso)";
+        lblOrig.innerHTML = "📦 Ubicación ORIGEN";
         inpOrig.placeholder = "Selecciona de dónde sale...";
     } 
     else {
@@ -240,7 +241,14 @@ destInput.oninput = () => {
     const aId = (mode==='TRANSFERENCIA')?areaDestSelect.value:areaSelect.value;
     destBox.innerHTML = '';
     const m = locations.filter(l=>l.area_id==aId && l.location_code.includes(v)).slice(0,10);
-    m.forEach(l=>{ const d=document.createElement('div'); d.textContent=l.location_code; d.onclick=()=>{destInput.value=l.location_code; selDestId=l.id; destBox.style.display='none';}; destBox.appendChild(d); });
+    m.forEach(l=>{ 
+        const d=document.createElement('div'); 
+        // Agregamos una etiqueta visual pequeña en el buscador para saber qué tipo de ubicación es (PISO o CARRO)
+        const tipoBadge = l.type ? ` [${l.type}]` : '';
+        d.textContent = l.location_code + tipoBadge; 
+        d.onclick=()=>{destInput.value=l.location_code; selDestId=l.id; destBox.style.display='none';}; 
+        destBox.appendChild(d); 
+    });
     destBox.style.display = m.length?'block':'none';
 };
 
