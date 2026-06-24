@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
     :root { 
@@ -34,8 +35,13 @@
     .autobox div { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); font-size:14px; }
     .autobox div:hover { background: var(--bg); color: var(--primary); }
     
+    /* Encabezado de resultados con botón de Excel */
+    .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 15px; }
+    .btn-excel { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+    .btn-excel:hover { background: #219653; transform: translateY(-1px); }
+
     /* DISEÑO DE RECUADROS ADAPTATIVOS */
-    .fifo-card { background: var(--bg); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 15px; position: relative; border-left: 5px solid var(--primary); }
+    .fifo-card { background: var(--bg); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 10px; position: relative; border-left: 5px solid var(--primary); }
     .fifo-card.oldest { border-left: 5px solid var(--warning); background: rgba(243, 156, 18, 0.05); border: 1px solid var(--warning); border-left: 6px solid var(--warning); }
     .badge-status { position: absolute; top: 10px; right: 10px; background: var(--warning); color: white; padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
     .part-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
@@ -91,6 +97,8 @@ const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co'
 
 let parts = [];
 let html5QrcodeScanner = null;
+let ultimoInventarioBuscado = []; // Variable global para guardar los datos y poder exportarlos
+let ultimoPartNumber = '';
 
 async function loadParts() {
     const {data: p} = await _client.from('parts').select('id, part_number').limit(2000);
@@ -116,7 +124,6 @@ partSearch.oninput = () => {
     partResults.style.display = m.length ? 'block' : 'none';
 };
 
-// Ocultar recuadro de autocompletado al presionar afuera
 document.addEventListener('click', function(e) {
     if (e.target.id !== 'partSearch') {
         partResults.style.display = 'none';
@@ -126,27 +133,38 @@ document.addEventListener('click', function(e) {
 async function buscarEstrategiaFIFO(partId, partNumber) {
     const divResultados = document.getElementById('resultadoDespacho');
     divResultados.innerHTML = '<p style="text-align:center;">Buscando en carritos y locaciones...</p>';
+    
+    ultimoPartNumber = partNumber;
+    ultimoInventarioBuscado = [];
 
     const { data: inventario, error } = await _client
         .from('v_inventory_by_location')
         .select('*')
         .eq('part_id', partId)
         .gt('quantity', 0)
-        .order('created_at', { ascending: true });
+        .order('lot_number', { ascending: true });
 
     if (error || !inventario || inventario.length === 0) {
         divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--danger); font-weight: bold;">❌ No hay existencias disponibles de la parte ${partNumber} en ninguna ubicación.</div>`;
         return;
     }
 
-    divResultados.innerHTML = '<h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin-bottom:10px;">Ruta de recolección recomendada:</h3>';
+    // Guardamos una copia en la variable global para la exportación de Excel
+    ultimoInventarioBuscado = inventario;
+
+    // Crear la estructura de encabezado con el botón de descarga
+    divResultados.innerHTML = `
+        <div class="results-header">
+            <h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin:0;">Ruta de recolección recomendada:</h3>
+            <button class="btn-excel" onclick="descargarExcelFIFO()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+        </div>
+    `;
 
     inventario.forEach((item, index) => {
         const esPrimero = index === 0;
         const card = document.createElement('div');
         card.className = `fifo-card ${esPrimero ? 'oldest' : ''}`;
         
-        // Identificar si está en Carro/Contenedor o Suelto
         const carritoCode = item.container_code ? item.container_code : 'N/A (Suelto)';
 
         card.innerHTML = `
@@ -176,7 +194,41 @@ async function buscarEstrategiaFIFO(partId, partNumber) {
     });
 }
 
-// FUNCIONES PARA CONTROL DE CÁMARA QR (Mismo comportamiento que captura)
+// Función encargada de estructurar los datos y gatillar la descarga del archivo Excel
+function descargarExcelFIFO() {
+    if (!ultimoInventarioBuscado || ultimoInventarioBuscado.length === 0) {
+        alert("No hay datos disponibles para exportar.");
+        return;
+    }
+
+    // Mapeamos los datos de la vista a columnas limpias y entendibles en español
+    const datosExcel = ultimoInventarioBuscado.map((item, index) => ({
+        "Prioridad FIFO": index + 1,
+        "Número de Parte": ultimoPartNumber,
+        "Área": item.area || 'N/A',
+        "Ubicación Fija": item.location || 'Área Común',
+        "Contenedor / Carrito": item.container_code || 'N/A (Suelto)',
+        "Número de Lote": item.lot_number || 'Sin Lote',
+        "Cantidad (Pzas)": item.quantity,
+        "Fecha Registro Sistema": item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A'
+    }));
+
+    // Creamos el libro de trabajo de Excel (Workbook)
+    const hoja = XLSX.utils.json_to_sheet(datosExcel);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Inventario FIFO");
+
+    // Ajustar automáticamente el ancho de las columnas para que se lea perfecto
+    const max_widths = Object.keys(datosExcel[0]).map(key => 
+        Math.max(...datosExcel.map(row => row[key] ? row[key].toString().length : 0), key.length) + 3
+    );
+    hoja['!cols'] = max_widths.map(w => ({ w: w }));
+
+    // Generar la descarga del archivo con el nombre del Número de Parte
+    const nombreArchivo = `FIFO_${ultimoPartNumber}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(libro, nombreArchivo);
+}
+
 function abrirEscaner() {
     document.getElementById('modalQR').style.display = 'flex';
     html5QrcodeScanner = new Html5Qrcode("reader");
