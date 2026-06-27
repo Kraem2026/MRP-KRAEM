@@ -21,7 +21,7 @@
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .header-panel { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px; }
         .btn-action { color: white; padding: 10px 18px; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
-        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; background: var(--card); padding: 20px; border-radius: 166px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-radius: 16px; }
+        .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .filter-group { display: flex; flex-direction: column; gap: 6px; }
         .filter-group label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--primary); }
         select, input { padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 14px; background: #fff; outline: none; }
@@ -246,17 +246,39 @@ function processDashboard(data) {
     let jigSum = 0, jigCount = 0;
     let obsHtml = "", totalPuntos = 0;
 
+    // REINICIO COMPLETO A CERO SI NO HAY REGISTROS EN EL FILTRO SELECCIONADO
+    if (!data || data.length === 0) {
+        document.getElementById('val-global').innerText = "0%";
+        document.getElementById('total-auditorias').innerText = "0 Auditorías en el periodo";
+        document.getElementById('val-jigs').innerText = "N/A";
+        document.getElementById('total-jigs-evals').innerText = "0 Evaluados";
+        
+        for (let i = 1; i <= 5; i++) {
+            const el = document.getElementById(`val-s${i}`);
+            if (el) {
+                el.innerText = "0%";
+                el.parentElement.style.borderTopColor = "#e2e8f0";
+            }
+        }
+        
+        document.getElementById('obs-list').innerHTML = "<p style='text-align:center; padding:20px; color:gray;'>No hay auditorías ni hallazgos para este filtro.</p>";
+        
+        if(radarChart) radarChart.destroy();
+        if(lineChart) lineChart.destroy();
+        if(barChart) barChart.destroy();
+        return;
+    }
+
+    // PROCESAMIENTO SI SÍ CONTIENE REGISTROS
     data.forEach(audit => {
         totalPuntos += audit.puntuacion || 0;
         const resp = audit.respuestas_json || {};
         
         Object.entries(resp).forEach(([key, val]) => {
             if(key.includes('_jig')) {
-                // Es una pregunta de Jigs aislada
                 jigSum += val;
                 jigCount++;
             } else {
-                // Es una pregunta regular de las 5S (0_0 a 4_4)
                 const sIdx = parseInt(key.split('_')[0]);
                 if(sIdx >= 0 && sIdx <= 4) { s_sums[sIdx] += val; s_counts[sIdx]++; }
             }
@@ -285,12 +307,10 @@ function processDashboard(data) {
     document.getElementById('val-global').innerText = globalAvg + "%";
     document.getElementById('total-auditorias').innerText = `${data.length} Auditorías en el periodo`;
 
-    // Render de KPI de Jigs independiente
     if(jigCount > 0) {
         const jigAvg = Math.round((jigSum / jigCount) * 100);
         document.getElementById('val-jigs').innerText = jigAvg + "%";
         document.getElementById('total-jigs-evals').innerText = `${jigCount} Puntos de Jigs`;
-        document.getElementById('jig-container-kpi').style.opacity = "1";
     } else {
         document.getElementById('val-jigs').innerText = "N/A";
         document.getElementById('total-jigs-evals').innerText = "0 Evaluados";
@@ -365,12 +385,9 @@ function updateComparisonChart() {
 function exportarMatrizDetallada() {
     if (lastFetchedData.length === 0) { alert("No hay datos cargados para exportar la matriz."); return; }
     
-    // Encabezados con Tipo de Auditoría y Jigs incluidos
     let csv = "\uFEFFFecha,Tipo_Auditoria,Auditor,Operador,Area,Turno,Maquina,Calificacion_Total,Jigs_Promedio";
     for (let s = 0; s < 5; s++) {
-        for (let p = 0; p < 5; p++) {
-            csv += `,${preguntasTexto[s][p]}`;
-        }
+        for (let p = 0; p < 5; p++) { csv += `,${preguntasTexto[s][p]}`; }
         csv += `,S${s+1}_Pregunta_Jig`;
     }
     csv += "\n";
@@ -386,7 +403,6 @@ function exportarMatrizDetallada() {
         const maquina = row.mes_machines?.machine_code || 'N/A';
         const total = row.puntuacion || 0;
 
-        // Calcular promedio local de jigs
         let jSum = 0, jCount = 0;
         Object.entries(res).forEach(([k, v]) => { if(k.includes('_jig')) { jSum += v; jCount++; } });
         let jigAvgText = jCount > 0 ? `${Math.round((jSum/jCount)*100)}%` : "N/A";
@@ -443,12 +459,7 @@ async function generatePDF() {
     const margin = 30;
     let yPos = 100;
 
-    try {
-        doc.addImage('logo-kraem.jpg', 'JPEG', margin, 30, 100, 40);
-    } catch (e) {
-        doc.setFontSize(18);
-        doc.text("KRAEM", margin, 55);
-    }
+    try { doc.addImage('logo-kraem.jpg', 'JPEG', margin, 30, 100, 40); } catch (e) { doc.setFontSize(18); doc.text("KRAEM", margin, 55); }
 
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
@@ -472,7 +483,6 @@ async function generatePDF() {
         doc.text(`${s_names[i-1]}: ${val}`, 250, yPos + 30 + (i * 18));
     }
 
-    // Agregar indicador de Jigs en el reporte si aplica
     let jigGlobalText = document.getElementById('val-jigs').innerText;
     doc.setFont(undefined, 'bold');
     doc.text(`Cumplimiento Global de Jigs / Disp: ${jigGlobalText}`, 250, yPos + 145);
@@ -527,7 +537,7 @@ async function generatePDF() {
         doc.text(`${avgs[2]}%`, margin + 310, yPos + 12);
         doc.text(`${avgs[3]}%`, margin + 330, yPos + 12);
         doc.text(`${avgs[4]}%`, margin + 350, yPos + 12);
-        doc.text(jText, margin + 375, yPos + 12); doc.text(jigText, margin + 375, yPos + 12);
+        doc.text(jigText, margin + 375, yPos + 12);
         doc.setFont(undefined, 'bold');
         doc.text(`${audit.puntuacion}%`, margin + 405, yPos + 12);
         
