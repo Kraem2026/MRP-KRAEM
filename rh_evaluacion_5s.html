@@ -70,7 +70,7 @@
             text-transform:uppercase;
             margin-bottom:-8px;
         }
-        select, textarea{
+        select, textarea, input[type="checkbox"]{
             width:100%;
             padding:12px;
             border:1px solid var(--border);
@@ -82,6 +82,20 @@
         }
         select:focus, textarea:focus{
             border-color:var(--primary);
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg);
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .checkbox-container input {
+            width: auto;
+            transform: scale(1.2);
         }
         .progress-container{
             background:#e5e7eb;
@@ -102,6 +116,10 @@
             border-radius:14px;
             margin-bottom:12px;
             border-left:5px solid var(--primary);
+        }
+        .question-card.jig-card {
+            border-left-color: var(--warning);
+            background: #fffbeb;
         }
         .options{
             display:flex;
@@ -159,19 +177,6 @@
             color:var(--primary);
             margin:25px 0;
         }
-        .info-box{
-            background:#eff6ff;
-            border:1px solid #bfdbfe;
-            padding:12px;
-            border-radius:12px;
-            margin-bottom:15px;
-            font-size:13px;
-        }
-        .btn-flex-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
@@ -186,6 +191,12 @@
 
     <div id="step-setup">
         <div class="setup-group">
+            <label>Tipo de Auditoría</label>
+            <select id="tipo_auditoria" onchange="cambioTipoAuditoria()">
+                <option value="estacion">Estación de Trabajo / Operador</option>
+                <option value="maquina">Máquina de Inyección (Mtto / Planta)</option>
+            </select>
+
             <label>Área General</label>
             <select id="area_select" onchange="cambioFiltros()">
                 <option value="">Cargando...</option>
@@ -201,7 +212,7 @@
                 <option value="">Seleccione área...</option>
             </select>
 
-            <label>Operador</label>
+            <label id="label_operador">Operador</label>
             <select id="operador_select">
                 <option value="">Seleccione área y turno...</option>
             </select>
@@ -210,6 +221,13 @@
             <select id="auditor_select">
                 <option value="">Cargando...</option>
             </select>
+
+            <div id="jig_toggle_container" style="margin-top: 5px;">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="aplica_jigs">
+                    <span>¿Aplica uso de Jigs / Dispositivos en la estación?</span>
+                </label>
+            </div>
         </div>
 
         <button class="btn-nav" onclick="nextStep()">EMPEZAR AUDITORÍA</button>
@@ -253,14 +271,15 @@ let listaEmpleados = [];
 let listaTurnos = [];
 
 const nombres5S = [
-    "1. SEIRI",
-    "2. SEITON",
-    "3. SEISO",
-    "4. SEIKETSU",
-    "5. SHITSUKE"
+    "1. SEIRI (Clasificar)",
+    "2. SEITON (Ordenar)",
+    "3. SEISO (Limpiar)",
+    "4. SEIKETSU (Estandarizar)",
+    "5. SHITSUKE (Disciplina)"
 ];
 
-const preguntas = [
+// 1. MATRIZ: Estación de Trabajo tradicional
+const preguntasEstacion = [
     ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
     ["¿Herramientas en su lugar?", "¿Material en su lugar?", "¿Área libre de obstáculos?", "¿Contenedores correctamente identificados?", "¿Instrucciones visibles?"],
     ["¿Área libre de polvo?", "¿Piso limpio?", "¿Contenedores limpios?", "¿Máquina limpia?", "¿Mesa limpia?"],
@@ -268,31 +287,61 @@ const preguntas = [
     ["¿Hábito de limpieza?", "¿Sigue instrucciones?", "¿Respeta ubicación?", "¿Reporta anomalías?", "¿Conoce 5S?"]
 ];
 
+// PREGUNTAS EXTRA DE JIGS (Una por cada S, se inyectan si se activa el Checkbox)
+const preguntasJigs = [
+    "¿Solo Jigs de producción actual en uso? (Sin Jigs obsoletos/ajenos)",
+    "¿Jigs guardados en su ubicación asignada o soporte correcto?",
+    "¿Jigs limpios de residuos, y conectores/sensores libres de grasa/polvo?",
+    "¿Jigs identificados/etiquetados y con cables/conexiones en buen estado?",
+    "¿El operador reporta fallas en sensores de Jigs y los maneja con cuidado?"
+];
+
+// 2. MATRIZ: Máquinas de Inyección (Enfoque Técnico y de Mantenimiento)
+const preguntasMaquina = [
+    ["¿Área de máquina libre de refacciones viejas, moldes o mangueras sin usar?", "¿Purga de plástico retirada del área de goteo?", "¿Herramientas de cambio de molde ausentes si no está en Setup?", "¿Herramientas del operador guardadas?", "¿Sin documentos obsoletos en tablero?"],
+    ["¿Mangueras de agua/aceite ordenadas y sin riesgo de tropiezo?", "¿Contenedores de materia prima (Tolva/Alimentador) bien ubicados?", "¿Hieleras, racks de producto y tarimas alineados en su delimitación?", "¿Pistolas de aire y herramientas colgadas en su sitio?", "¿Paros de emergencia accesibles y sin obstrucción?"],
+    ["¿Piso e interior de la máquina libres de fugas de aceite o agua?", "¿Estructura, tolva y guardas libres de polvo o residuos de resina?", "¿Unidad de inyección, pistón y husillo limpios de purgas quemadas?", "¿Bandejas de goteo limpias y sin desborde?", "¿Tablero eléctrico y pantallas limpios y cerrados?"],
+    ["¿Hojas de parámetros y ayudas visuales legibles y vigentes en la máquina?", "¿Puntos de lubricación identificados y con niveles correctos?", "¿Código de colores visible en mangueras de enfriamiento?", "¿Delimitación de seguridad del perímetro de la máquina en buen estado?", "¿Checklist diario de máquina liberado por operador/mtto?"],
+    ["¿El personal limpia la máquina al terminar el turno?", "¿Se respetan los accesos de mantenimiento sin dejar obstrucciones?", "¿Se reportan y atienden fugas críticas de inmediato?", "¿Se usan los botes de basura correctos para purgas/residuos?", "¿El equipo de mtto/producción sigue el estándar de orden de la máquina?"]
+];
+
 async function init(){
     try{
-        // 1. Cargar áreas generales
         const { data: areas, error: errAreas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
         if(errAreas) throw errAreas;
         document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
 
-        // 2. Cargar turnos
         const { data: turnos, error: errTurnos } = await client.from('rh_turnos').select('*').order('nombre');
         if(errTurnos) throw errTurnos;
         listaTurnos = turnos;
         document.getElementById('turno_select').innerHTML = '<option value="">Seleccione...</option>' + turnos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
 
-        // 3. Cargar todos los empleados activos de rh_empleados
         const { data: emps, error: errEmp } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
         if(errEmp) throw errEmp;
         listaEmpleados = emps;
 
-        // Inicializar los selectores en base a los datos obtenidos
         filtrarOperadores();
         cargarAuditorCompleto();
-
     }catch(e){
         console.error(e);
         alert(e.message);
+    }
+}
+
+function cambioTipoAuditoria() {
+    const tipo = document.getElementById('tipo_auditoria').value;
+    const jigToggle = document.getElementById('jig_toggle_container');
+    const opSel = document.getElementById('operador_select');
+    const opLabel = document.getElementById('label_operador');
+
+    if (tipo === 'maquina') {
+        jigToggle.classList.add('hidden');
+        document.getElementById('aplica_jigs').checked = false;
+        // En máquina de inyección, el "operador" puede ser opcional o cargarse igual, dejamos visible pero adaptado
+        opLabel.innerText = "Operador de Máquina / Líder responsable";
+    } else {
+        jigToggle.classList.remove('hidden');
+        opLabel.innerText = "Operador";
     }
 }
 
@@ -324,7 +373,6 @@ async function actualizarMaquinas(){
     }
 }
 
-// Filtra operadores cruzando el ID de 'area_general_id' y buscando si el texto del turno empareja ("1" o "2")
 function filtrarOperadores(){
     const areaId = document.getElementById('area_select').value;
     const turnoUuid = document.getElementById('turno_select').value;
@@ -335,11 +383,8 @@ function filtrarOperadores(){
         return;
     }
 
-    // Buscamos cuál es el nombre del turno seleccionado (Ej: "Turno 1")
     const turnoObj = listaTurnos.find(t => String(t.id) === String(turnoUuid));
     const nombreTurno = turnoObj ? turnoObj.nombre : '';
-
-    // Mapeamos de forma limpia: Si el nombre tiene un '1' su ID numérico es 1, si tiene un '2' es 2
     const turnoNumerico = nombreTurno.includes('2') ? '2' : (nombreTurno.includes('1') ? '1' : '');
 
     const filtrados = listaEmpleados.filter(e => 
@@ -354,7 +399,6 @@ function filtrarOperadores(){
     }
 }
 
-// Carga la lista completa para auditores separada visualmente por turnos usando <optgroup>
 function cargarAuditorCompleto(){
     const audSel = document.getElementById('auditor_select');
     let html = '<option value="">Seleccione...</option>';
@@ -404,7 +448,6 @@ function prevStep(){
         location.href='dashboard.html';
         return;
     }
-    
     currentStep--;
     render();
 }
@@ -417,6 +460,12 @@ function render(){
     const backText = document.getElementById('back-text');
     const backIcon = document.querySelector('#header-back-btn i');
 
+    const tipo = document.getElementById('tipo_auditoria').value;
+    const aplicaJigs = document.getElementById('aplica_jigs').checked;
+    
+    // Seleccionar matriz de preguntas base
+    const matrizPreguntas = (tipo === 'maquina') ? preguntasMaquina : preguntasEstacion;
+
     if(currentStep === 0){
         document.getElementById("step-setup").classList.remove("hidden");
         backText.innerText = "Panel";
@@ -424,17 +473,16 @@ function render(){
     }
     else if(currentStep <= 5){
         document.getElementById("audit-flow").classList.remove("hidden");
-        
         backText.innerText = "Atrás";
         backIcon.className = "fas fa-arrow-left";
 
         const idx = currentStep - 1;
         document.getElementById("section-label").innerText = nombres5S[idx];
         document.getElementById("progress-bar").style.width = (currentStep * 20) + "%";
-
         document.getElementById('obs_input').value = auditData.observaciones[`s${currentStep}`] || "";
 
-        document.getElementById("preguntas_cont").innerHTML = preguntas[idx].map((p, j) => {
+        // Renderizar preguntas base
+        let htmlPreguntas = matrizPreguntas[idx].map((p, j) => {
             const respuestaGuardada = auditData.respuestas[`${idx}_${j}`];
             return `
                 <div class="question-card">
@@ -447,14 +495,33 @@ function render(){
                 </div>`;
         }).join('');
 
+        // AGREGAR PREGUNTA DE JIG SI APLICA
+        if (tipo === 'estacion' && aplicaJigs) {
+            const respuestaJigGuardada = auditData.respuestas[`${idx}_jig`];
+            htmlPreguntas += `
+                <div class="question-card jig-card">
+                    <div style="font-weight:bold; color:#d97706;"><i class="fas fa-tools"></i> CONTROL DE JIGS:</div>
+                    <div style="font-weight:600; margin-top:4px;">${preguntasJigs[idx]}</div>
+                    <div class="options">
+                        <button class="btn-opt ${respuestaJigGuardada === 1 ? 'active' : ''}" data-score="1" onclick="setAns('${idx}_jig',1,this)">SI</button>
+                        <button class="btn-opt ${respuestaJigGuardada === 0.5 ? 'active' : ''}" data-score="0.5" onclick="setAns('${idx}_jig',0.5,this)">PARCIAL</button>
+                        <button class="btn-opt ${respuestaJigGuardada === 0 ? 'active' : ''}" data-score="0" onclick="setAns('${idx}_jig',0,this)">NO</button>
+                    </div>
+                </div>`;
+        }
+
+        document.getElementById("preguntas_cont").innerHTML = htmlPreguntas;
         window.scrollTo(0,0);
     }
     else{
         backText.innerText = "Atrás";
         backIcon.className = "fas fa-arrow-left";
 
+        // Cálculo dinámico del Score dependiendo del número de preguntas respondidas
         const vals = Object.values(auditData.respuestas);
-        auditData.score = Math.round((vals.reduce((a,b)=>a+b,0)/25)*100);
+        const totalPreguntas = aplicaJigs ? 30 : 25; 
+        
+        auditData.score = Math.round((vals.reduce((a,b)=>a+b,0) / totalPreguntas) * 100);
 
         document.getElementById("score-badge").innerText = auditData.score + "%";
         document.getElementById("step-result").classList.remove("hidden");
@@ -478,11 +545,12 @@ async function guardar(){
             puntuacion: auditData.score,
             respuestas_json: auditData.respuestas,
             observaciones: auditData.observaciones,
+            tipo_auditoria: document.getElementById('tipo_auditoria').value, // Guardar el tipo de auditoría en DB
             created_at: new Date().toISOString()
         }]);
 
         if(error) throw error;
-        alert("¡Auditoría guardada!");
+        alert("¡Auditoría guardada con éxito!");
         location.href = 'rh_evaluacion_5s.html';
     }catch(e){
         console.error(e);
