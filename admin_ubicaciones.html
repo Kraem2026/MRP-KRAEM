@@ -109,6 +109,14 @@ h1{
   color:#334155;
 }
 
+.btn-success{
+  background:var(--success);
+  color:white;
+}
+.btn-success:hover{
+  background:#16a34a;
+}
+
 .card{
   background:var(--card);
   border:1px solid var(--border);
@@ -274,7 +282,7 @@ tr:hover{
   background: white;
   padding: 25px;
   border-radius: 16px;
-  width: 320px;
+  width: 350px;
   text-align: center;
   box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
@@ -475,9 +483,12 @@ tr:hover{
       <div id="qr-label"></div>
     </div>
 
-    <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
-      <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
-      <button class="btn btn-secondary" onclick="cerrarModalQR()">Cerrar</button>
+    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+        <button class="btn btn-success" style="flex: 1; justify-content: center;" onclick="descargarCodigoQR()"><i class="fas fa-download"></i> Descargar</button>
+      </div>
+      <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="cerrarModalQR()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -487,6 +498,7 @@ tr:hover{
 let todasAreas = [];
 let editandoId = null;
 let qrcodeGenerator = null; // Instancia global del generador QR
+let codigoQRExtraido = ""; // Almacenar temporalmente el código actual para nombrar la descarga
 
 async function cargarAreasGenerales(){
 
@@ -703,6 +715,7 @@ async function load(){
 
 // FUNCIONES PARA CONTROLAR LA GENERACIÓN E IMPRESIÓN DEL QR
 function abrirModalQR(codigo) {
+  codigoQRExtraido = codigo; // Guardar el código actual
   const canvasElement = document.getElementById('qr-code-canvas');
   canvasElement.innerHTML = ""; // Limpiar QR anterior
   document.getElementById('qr-label').innerText = codigo;
@@ -722,6 +735,35 @@ function abrirModalQR(codigo) {
 
 function cerrarModalQR() {
   document.getElementById('qrModal').style.display = 'none';
+}
+
+// NUEVA FUNCIÓN: Extrae la imagen del QR y fuerza la descarga
+function descargarCodigoQR() {
+  const canvasElement = document.getElementById('qr-code-canvas');
+  // Buscar la imagen generada automáticamente por qrcode.js
+  const img = canvasElement.querySelector('img');
+  
+  if (img && img.src) {
+    const link = document.createElement('a');
+    link.href = img.src; // Pasa el string base64 directo
+    link.download = `QR_${codigoQRExtraido}.png`; // Nombre dinámico del archivo
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } else {
+    // Alternativa en caso de que tarde un milisegundo en cargar el DOM de la imagen
+    const canvas = canvasElement.querySelector('canvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL("image/png");
+      link.download = `QR_${codigoQRExtraido}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      alert("No se pudo procesar la imagen del QR para descarga.");
+    }
+  }
 }
 
 function editarUbicacion(
