@@ -114,13 +114,13 @@
     <div id="divOrigen" style="display:none;">
         <label id="lLocOrig">📍 Ubicación Fija ORIGEN</label>
         <div class="input-with-btn">
-            <input id="originInput" readonly placeholder="Haz clic o escanea Origen..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
+            <input id="originInput" readonly onclick="abrirModalStock()" placeholder="Haz clic o escanea Origen..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
             <button class="btn-qr btn-warning-qr" onclick="abrirEscaner('ORIGEN')"><i class="fas fa-camera"></i></button>
         </div>
 
         <label id="lContOrig">🛒 Contenedor / Carrito ORIGEN</label>
         <div class="input-with-btn">
-            <input id="contOriginInput" readonly placeholder="Haz clic o escanea Carrito..." style="background:rgba(240,240,240,0.15); cursor:pointer;">
+            <input id="contOriginInput" readonly onclick="abrirModalStock()" placeholder="Se autoselecciona al elegir stock..." style="background:rgba(240,240,240,0.15); cursor:pointer;">
             <button class="btn-qr btn-warning-qr" id="btnQrContOrigen" onclick="abrirEscaner('CONT_ORIGEN')"><i class="fas fa-camera"></i></button>
         </div>
     </div>
@@ -170,8 +170,8 @@ const i18n = {
     ko: { back: "뒤로 가기", title: "재고 입력", lPart: "부품 번호", lAreaOrig: "원래 구역", lAreaDest: "대상 구역", lType: "조정 유형", lLocOrig: "📍 원래 위치", lLocDest: "📍 대상 위치", lQty: "수량", lComm: "비고", btnConfirm: "이동 확인", stockTitle: "가용 재고", close: "닫기" }
 };
 
-async function init() {
-    const { data: { session } } = await _client.auth.getSession();
+// MANTENER AUTENTICACIÓN EXACTAMENTE COMO TÚ LA TENÍAS AL FINAL DE TU ARCHIVO ORIGINAL
+_client.auth.onAuthStateChange((event, session) => {
     const loginBtn = document.getElementById('btnLoginStatus');
     const userDisplay = document.getElementById('userDisplay');
     
@@ -187,9 +187,21 @@ async function init() {
         loginBtn.onclick = () => { location.href = '/'; };
     }
     loginBtn.style.display = "block";
+    
+    // Disparar la carga del catálogo completo después de validar sesión
+    cargarCatalogos();
+});
 
+async function cargarCatalogos() {
     const {data:a} = await _client.from('areas').select('*');
-    if(a) a.forEach(r => { areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; });
+    if(a) {
+        areaSelect.innerHTML = '';
+        areaDestSelect.innerHTML = '';
+        a.forEach(r => { 
+            areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; 
+            areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; 
+        });
+    }
     
     const {data:p} = await _client.from('parts').select('id, part_number').limit(2000);
     if(p) parts = p;
@@ -199,14 +211,8 @@ async function init() {
         locations = l.filter(item => item.type !== 'Móvil' && item.type !== 'Contenedor');
         containers = l.filter(item => item.type === 'Móvil' || item.type === 'Contenedor');
     }
-
-    // Volver a activar los clics originales que abren la consulta de stock
-    document.getElementById('originInput').onclick = () => { abrirModalStock(); };
-    document.getElementById('contOriginInput').onclick = () => { abrirModalStock(); };
-
     aplicarReglaLoteEntrada();
 }
-init();
 
 function setMode(m) { 
     mode=m; 
@@ -467,7 +473,7 @@ async function procesarGuardado() {
 
         if (todosLosLotes && todosLosLotes.length > 0) {
             const loteMasViejoGlobal = todosLosLotes[0].lot_number;
-            const ubicacionMasViejoGlobal = todosLos Lotes[0].location;
+            const ubicacionMasViejoGlobal = todosLosLotes[0].location;
 
             if (loteFormateado !== loteMasViejoGlobal) {
                 alert(`⚠️ ¡ALERTA CRÍTICA DE CONTROL FIFO! ⚠️\n\n` +
@@ -497,6 +503,7 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
             lot_number: item.lot_number || ''
         };
         
+        // SALIDA DEL VIEJO PUNTO
         rows.push({
             ...base,
             area: areaOrigText,
@@ -508,6 +515,7 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
             movement_type: 'TRANSFERENCIA'
         });
         
+        // ENTRADA AL NUEVO PUNTO
         rows.push({
             ...base,
             area: areaDestText,
@@ -567,7 +575,6 @@ partSearch.oninput = () => {
     partResults.style.display = m.length?'block':'none';
 };
 
-// Asignación manual correcta del evento input para las ubicaciones destino
 document.body.addEventListener('input', function(e) {
     if (e.target && e.target.id === 'destInput') {
         const v = e.target.value.toUpperCase();
