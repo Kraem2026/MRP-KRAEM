@@ -55,7 +55,6 @@
     #reader { width: 100%; background: black; border-radius: 8px; overflow: hidden; margin-top: 10px; }
 
     .switch-container { display: flex; flex-direction: column; gap: 8px; background: rgba(243, 156, 18, 0.1); border: 1px dashed var(--warning); padding: 12px; border-radius: 10px; margin-top: 10px; }
-    .switch-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
 </style>
 </head>
 <body data-theme="light">
@@ -115,13 +114,13 @@
     <div id="divOrigen" style="display:none;">
         <label id="lLocOrig">📍 Ubicación Fija ORIGEN</label>
         <div class="input-with-btn">
-            <input id="originInput" readonly onclick="abrirModalStock()" placeholder="Haz clic o escanea Origen..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
+            <input id="originInput" readonly placeholder="Haz clic o escanea Origen..." style="background:rgba(255,253,231,0.1); cursor:pointer;">
             <button class="btn-qr btn-warning-qr" onclick="abrirEscaner('ORIGEN')"><i class="fas fa-camera"></i></button>
         </div>
 
         <label id="lContOrig">🛒 Contenedor / Carrito ORIGEN</label>
         <div class="input-with-btn">
-            <input id="contOriginInput" readonly placeholder="Se autoselecciona al elegir stock..." style="background:rgba(240,240,240,0.15);">
+            <input id="contOriginInput" readonly placeholder="Haz clic o escanea Carrito..." style="background:rgba(240,240,240,0.15); cursor:pointer;">
             <button class="btn-qr btn-warning-qr" id="btnQrContOrigen" onclick="abrirEscaner('CONT_ORIGEN')"><i class="fas fa-camera"></i></button>
         </div>
     </div>
@@ -200,6 +199,10 @@ async function init() {
         locations = l.filter(item => item.type !== 'Móvil' && item.type !== 'Contenedor');
         containers = l.filter(item => item.type === 'Móvil' || item.type === 'Contenedor');
     }
+
+    // Volver a activar los clics originales que abren la consulta de stock
+    document.getElementById('originInput').onclick = () => { abrirModalStock(); };
+    document.getElementById('contOriginInput').onclick = () => { abrirModalStock(); };
 
     aplicarReglaLoteEntrada();
 }
@@ -361,7 +364,7 @@ async function onScanSuccess(decodedText) {
         if (!encontrada) return alert(`❌ Contenedor "${cleanCode}" no existe.`);
         contOriginInput.value = encontrada.location_code;
         selOrigContId = encontrada.id;
-        if(transferMode === 'CARRITO') abrirModalStock();
+        abrirModalStock();
     }
     else if (qrTargetField === 'DESTINO') {
         const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
@@ -398,7 +401,6 @@ async function procesarGuardado() {
     
     if(!comm) return alert("Por favor escriba un comentario descriptivo.");
 
-    // FLUJO MASIVO 1: CARRITO COMPLETO
     if(mode === 'TRANSFERENCIA' && transferMode === 'CARRITO') {
         if(!selOrigContId) return alert("❌ Debe seleccionar o escanear el Carrito de ORIGEN.");
         if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
@@ -417,7 +419,6 @@ async function procesarGuardado() {
         return;
     }
 
-    // FLUJO MASIVO 2: UBICACIÓN FIJA COMPLETA
     if(mode === 'TRANSFERENCIA' && transferMode === 'UBICACION') {
         if(!selOrigId) return alert("❌ Debe seleccionar o escanear la Ubicación Fija de ORIGEN.");
         if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
@@ -456,7 +457,7 @@ async function procesarGuardado() {
         const areaText = areaSelect.options[areaSelect.selectedIndex].text;
         if (!loteFormateado) return alert("❌ Debe seleccionar un número de Lote antes de continuar.");
 
-        const { data: todosLos Lotes } = await _client
+        const { data: todosLosLotes } = await _client
             .from('v_inventory_by_location')
             .select('lot_number, location, quantity')
             .eq('part_id', selPartId)
@@ -464,8 +465,8 @@ async function procesarGuardado() {
             .gt('quantity', 0)
             .order('created_at', { ascending: true });
 
-        if (todosLos Lotes && todosLos Lotes.length > 0) {
-            const loteMasViejoGlobal = todosLos Lotes[0].lot_number;
+        if (todosLosLotes && todosLosLotes.length > 0) {
+            const loteMasViejoGlobal = todosLosLotes[0].lot_number;
             const ubicacionMasViejoGlobal = todosLos Lotes[0].location;
 
             if (loteFormateado !== loteMasViejoGlobal) {
@@ -489,7 +490,6 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
     const areaDestText = areaDestSelect.options[areaDestSelect.selectedIndex].text;
     
     registrosStock.forEach(item => {
-        // CORRECCIÓN HISTORIAL 1969: No forzamos created_at, dejamos que PostgreSQL use su valor DEFAULT now()
         const base = {
             part_id: item.part_id,
             comment: tipoMasivo === 'CARRITO' ? `[MASIVO CARRITO] ${comm}` : `[MASIVO UBICACIÓN] ${comm}`,
@@ -497,7 +497,6 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
             lot_number: item.lot_number || ''
         };
         
-        // FILA SALIDA (QUITAR DEL ORIGEN)
         rows.push({
             ...base,
             area: areaOrigText,
@@ -509,7 +508,6 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
             movement_type: 'TRANSFERENCIA'
         });
         
-        // FILA ENTRADA (MANDAR AL DESTINO CORREGIDO)
         rows.push({
             ...base,
             area: areaDestText,
@@ -517,7 +515,6 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
             from_location_id: null,
             from_container_id: null,
             to_location_id: selDestId,
-            // CORRECCIÓN: Si movemos un carro completo, se conserva su ID móvil en el destino, si es masivo por ubicación, se hereda o cambia al contenedor destino opcional
             to_container_id: tipoMasivo === 'CARRITO' ? selOrigContId : (selDestContId || null),
             movement_type: 'TRANSFERENCIA'
         });
@@ -570,6 +567,7 @@ partSearch.oninput = () => {
     partResults.style.display = m.length?'block':'none';
 };
 
+// Asignación manual correcta del evento input para las ubicaciones destino
 document.body.addEventListener('input', function(e) {
     if (e.target && e.target.id === 'destInput') {
         const v = e.target.value.toUpperCase();
