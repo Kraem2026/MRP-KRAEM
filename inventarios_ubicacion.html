@@ -33,13 +33,15 @@
         input { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); width: 100%; box-sizing: border-box; }
 
         .table-container { background: var(--card); border-radius: 12px; overflow-x: auto; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
         th { background: #2d3436; color: white; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; }
         td { padding: 14px 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
 
         .tag-project { background: #e0f2f1; color: #00796b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         [data-theme="dark"] .tag-project { background: #004d40; color: #e0f2f1; }
         .qty-badge { background: #2ecc71; color: white; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+        .cart-badge { background: #ffeaa7; color: #d63031; padding: 3px 8px; border-radius: 6px; font-weight: bold; font-size: 12px; border: 1px solid #fab1a0; }
+        [data-theme="dark"] .cart-badge { background: #2c1a1a; color: #ff7675; border-color: #4a2323; }
     </style>
 </head>
 <body data-theme="light">
@@ -62,6 +64,7 @@
         <div class="filter-group"><label id="lProj">Proyecto</label><input type="text" id="fProj" placeholder="Filtrar proyecto..." oninput="applyFilters()"></div>
         <div class="filter-group"><label id="lArea">Área</label><input type="text" id="fArea" placeholder="Filtrar área..." oninput="applyFilters()"></div>
         <div class="filter-group"><label id="lLoc">Ubicación</label><input type="text" id="fLoc" placeholder="Filtrar ubicación..." oninput="applyFilters()"></div>
+        <div class="filter-group"><label id="lCont">Contenedor / Carro</label><input type="text" id="fCont" placeholder="Filtrar carro..." oninput="applyFilters()"></div>
     </div>
 </div>
 
@@ -74,6 +77,7 @@
                 <th id="thProj">Proyecto</th>
                 <th id="thArea">Área</th>
                 <th id="thLoc">Ubicación</th>
+                <th id="thCont">Contenedor / Carro</th>
                 <th id="thCant">Cantidad</th>
             </tr>
         </thead>
@@ -86,8 +90,8 @@ const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co',
 
 let dataAll = [];
 const i18n = {
-    es: { title: "Inventario por Ubicación", thParte: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thArea: "Área", thLoc: "Ubicación", thCant: "Cantidad", lPart: "N° Parte", lDesc: "Descripción", lProj: "Proyecto", lArea: "Área", lLoc: "Ubicación" },
-    ko: { title: "위치별 재고 현황", thParte: "부품 번호", thDesc: "설명", thProj: "프로젝트", thArea: "구역", thLoc: "위치", thCant: "수량", lPart: "부품 번호", lDesc: "설명", lProj: "프로젝트", lArea: "구역", lLoc: "위치" }
+    es: { title: "Inventario por Ubicación", thParte: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thArea: "Área", thLoc: "Ubicación", thCont: "Contenedor / Carro", thCant: "Cantidad", lPart: "N° Parte", lDesc: "Descripción", lProj: "Proyecto", lArea: "Área", lLoc: "Ubicación", lCont: "Contenedor / Carro" },
+    ko: { title: "위치별 재고 현황", thParte: "부품 번호", thDesc: "설명", thProj: "프로젝트", thArea: "구역", thLoc: "위치", thCont: "운반 수레 / 대차", thCant: "수량", lPart: "부품 번호", lDesc: "설명", lProj: "프로젝트", lArea: "구역", lLoc: "위치", lCont: "운반 수레 / 대차" }
 };
 
 async function loadData() {
@@ -108,7 +112,8 @@ function render(list) {
             <td style="color:var(--text-secondary)">${r.part_name || ''}</td>
             <td><span class="tag-project">${r.project || '-'}</span></td>
             <td>${r.area || ''}</td>
-            <td style="color:#3498db; font-weight:bold;">${r.location}</td>
+            <td style="color:#3498db; font-weight:bold;">📍 ${r.location}</td>
+            <td>${r.container_code ? `<span class="cart-badge"><i class="fas fa-shopping-cart"></i> ${r.container_code}</span>` : '<span style="color:var(--text-secondary); font-style:italic;">📦 Suelto (Sin carro)</span>'}</td>
             <td><span class="qty-badge">${r.quantity}</span></td>
         </tr>
     `).join('');
@@ -120,13 +125,15 @@ function applyFilters() {
     const pr = document.getElementById('fProj').value.toLowerCase();
     const a = document.getElementById('fArea').value.toLowerCase();
     const l = document.getElementById('fLoc').value.toLowerCase();
+    const c = document.getElementById('fCont').value.toLowerCase();
 
     const filtered = dataAll.filter(r => 
         (r.part_number?.toLowerCase().includes(p)) &&
         (r.part_name?.toLowerCase().includes(d)) &&
         (r.project?.toLowerCase().includes(pr)) &&
         (r.area?.toLowerCase().includes(a)) &&
-        (r.location?.toLowerCase().includes(l))
+        (r.location?.toLowerCase().includes(l)) &&
+        ((r.container_code || 'suelto').toLowerCase().includes(c))
     );
     render(filtered);
 }
@@ -134,24 +141,25 @@ function applyFilters() {
 function exportExcel() {
     if (!dataAll.length) return;
     
-    // Obtener datos filtrados actualmente
     const p = document.getElementById('fPart').value.toLowerCase();
     const d = document.getElementById('fDesc').value.toLowerCase();
     const pr = document.getElementById('fProj').value.toLowerCase();
     const a = document.getElementById('fArea').value.toLowerCase();
     const l = document.getElementById('fLoc').value.toLowerCase();
+    const c = document.getElementById('fCont').value.toLowerCase();
 
     const filtered = dataAll.filter(r => 
         (r.part_number?.toLowerCase().includes(p)) &&
         (r.part_name?.toLowerCase().includes(d)) &&
         (r.project?.toLowerCase().includes(pr)) &&
         (r.area?.toLowerCase().includes(a)) &&
-        (r.location?.toLowerCase().includes(l))
+        (r.location?.toLowerCase().includes(l)) &&
+        ((r.container_code || 'suelto').toLowerCase().includes(c))
     );
 
-    let csvContent = "\uFEFFN° Parte,Descripción,Proyecto,Área,Ubicación,Cantidad\n";
+    let csvContent = "\uFEFFN° Parte,Descripción,Proyecto,Área,Ubicación,Contenedor / Carro,Cantidad\n";
     filtered.forEach(r => {
-        csvContent += `"${r.part_number}","${r.part_name || ''}","${r.project || ''}","${r.area || ''}","${r.location}",${r.quantity}\n`;
+        csvContent += `"${r.part_number}","${r.part_name || ''}","${r.project || ''}","${r.area || ''}","${r.location}","${r.container_code || 'Suelto'}",${r.quantity}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -176,12 +184,14 @@ function setLang(lang) {
     document.getElementById('thProj').innerText = t.thProj;
     document.getElementById('thArea').innerText = t.thArea;
     document.getElementById('thLoc').innerText = t.thLoc;
+    document.getElementById('thCont').innerText = t.thCont;
     document.getElementById('thCant').innerText = t.thCant;
     document.getElementById('lPart').innerText = t.lPart;
     document.getElementById('lDesc').innerText = t.lDesc;
     document.getElementById('lProj').innerText = t.lProj;
     document.getElementById('lArea').innerText = t.lArea;
     document.getElementById('lLoc').innerText = t.lLoc;
+    document.getElementById('lCont').innerText = t.lCont;
 }
 
 loadData();
