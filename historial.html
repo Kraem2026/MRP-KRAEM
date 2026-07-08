@@ -103,7 +103,7 @@
         <div class="filter-group"><label id="lHasta">Hasta</label><input type="date" id="fHasta"></div>
         <div class="filter-group"><label id="lPart">N° Parte</label><input type="text" id="fPart" placeholder="Parte o Desc..."></div>
         <div class="filter-group"><label id="lProj">Proyecto</label><input type="text" id="fProj" placeholder="Filtrar proyecto..."></div>
-        <div class="filter-group"><label id="lLoc">Ubicación</label><input type="text" id="fLoc" placeholder="Origen o Destino..."></div>
+        <div class="filter-group"><label id="lLoc">Ubicación / Carro</label><input type="text" id="fLoc" placeholder="Origen, Destino o Carro..."></div>
         <div class="filter-group"><label id="lTipo">Tipo</label><select id="fType"><option value="">TODOS</option><option value="ENTRADA">ENTRADA</option><option value="SALIDA">SALIDA</option><option value="TRANSFERENCIA">TRANSFERENCIA</option><option value="AJUSTE">AJUSTE</option></select></div>
         <div class="filter-group"><label id="lArea">Área</label><input type="text" id="fArea" placeholder="Filtrar área..."></div>
         <div class="filter-group"><label id="lUser">Usuario</label><input type="text" id="fUser" placeholder="Usuario..."></div>
@@ -132,18 +132,16 @@
 </div>
 
 <script>
-// USAR LA VISTA CREADA EN SQL
 const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let datosOriginales = [];
 
 const i18n = {
-    es: { title: "Historial de Movimientos", thFecha: "Fecha y Hora", thParte: "N° Parte", thDescHead: "Descripción", thProjHead: "Proyecto", thOri: "Origen", thDes: "Destino", thCant: "Cant.", thTipoHead: "Tipo", thAreaHead: "Área", thCom: "Comentario", thUser: "Usuario", lDesde:"Desde", lHasta:"Hasta", lPart:"N° Parte", lProj:"Proyecto", lLoc:"Ubicación", lTipo:"Tipo", lArea:"Área", lUser:"Usuario" },
-    ko: { title: "이동 이력", thFecha: "날짜 및 시간", thParte: "부품 번호", thDescHead: "설명", thProjHead: "프로젝트", thOri: "출발지", thDes: "목적지", thCant: "수량", thTipoHead: "유형", thAreaHead: "구역", thCom: "비고", thUser: "사용자", lDesde:"시작일", lHasta:"종료일", lPart:"부품 번호", lProj:"프로젝트", lLoc:"위치", lTipo:"유형", lArea:"구역", lUser:"사용자" }
+    es: { title: "Historial de Movimientos", thFecha: "Fecha y Hora", thParte: "N° Parte", thDescHead: "Descripción", thProjHead: "Proyecto", thOri: "Origen", thDes: "Destino", thCant: "Cant.", thTipoHead: "Tipo", thAreaHead: "Área", thCom: "Comentario", thUser: "Usuario", lDesde:"Desde", lHasta:"Hasta", lPart:"N° Parte", lProj:"Proyecto", lLoc:"Ubicación / Carro", lTipo:"Tipo", lArea:"Área", lUser:"Usuario" },
+    ko: { title: "이동 이력", thFecha: "날짜 및 시간", thParte: "부품 번호", thDescHead: "설명", thProjHead: "프로젝트", thOri: "출발지", thDes: "목적지", thCant: "수량", thTipoHead: "유형", thAreaHead: "구역", thCom: "비고", thUser: "사용자", lDesde:"시작일", lHasta:"종료일", lPart:"부품 번호", lProj:"프로젝트", lLoc:"위치 / 대차", lTipo:"유형", lArea:"구역", lUser:"사용자" }
 };
 
 async function cargarDatos() {
-    // Consultamos la VISTA v_history_master en lugar de la tabla directamente
     const { data, error } = await client
         .from('v_history_master')
         .select('*')
@@ -163,14 +161,19 @@ function renderizar(lista) {
     
     lista.forEach(r => {
         let userDisplay = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'S/U';
+        
+        // Formateo dinámico para incluir los nombres de los carros/contenedores móviles si existen
+        const origenDisplay = r.from_container ? `📍 ${r.from_location} <span style="color:#e67e22; font-weight:bold;">[🛒 ${r.from_container}]</span>` : `📍 ${r.from_location || '-'}`;
+        const destinoDisplay = r.to_container ? `📍 ${r.to_location} <span style="color:#27ae60; font-weight:bold;">[🛒 ${r.to_container}]</span>` : `📍 ${r.to_location || '-'}`;
+
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="color:var(--text-secondary); font-size:11px;">${new Date(r.created_at).toLocaleString()}</td>
             <td><b style="color:var(--text);">${r.part_number || 'N/A'}</b></td>
             <td class="col-desc">${r.description || '-'}</td>
             <td><span class="tag-project">${r.project || '-'}</span></td>
-            <td>${r.from_location || '-'}</td>
-            <td>${r.to_location || '-'}</td>
+            <td>${origenDisplay}</td>
+            <td>${destinoDisplay}</td>
             <td style="text-align:center;"><span class="${r.quantity > 0 ? 'pos' : 'neg'}">${r.quantity > 0 ? '+' + r.quantity : r.quantity}</span></td>
             <td><span class="tag ${r.movement_type}">${r.movement_type}</span></td>
             <td><span class="tag-area">${r.area || ''}</span></td>
@@ -197,10 +200,16 @@ function aplicarFiltros() {
         const desc = (r.description || '').toLowerCase();
         const proj = (r.project || '').toLowerCase();
         
+        // Mapeos para buscar también por el texto del contenedor
+        const lowerFromLoc = (r.from_location || '').toLowerCase();
+        const lowerToLoc = (r.to_location || '').toLowerCase();
+        const lowerFromCont = (r.from_container || '').toLowerCase();
+        const lowerToCont = (r.to_container || '').toLowerCase();
+        
         return (!fDesde || fechaMov >= fDesde) && (!fHasta || fechaMov <= fHasta) && 
                (!fPart || r.part_number?.toLowerCase().includes(fPart) || desc.includes(fPart)) && 
                (!fProj || proj.includes(fProj)) &&
-               (!fLoc || (r.from_location?.toLowerCase().includes(fLoc) || r.to_location?.toLowerCase().includes(fLoc))) &&
+               (!fLoc || lowerFromLoc.includes(fLoc) || lowerToLoc.includes(fLoc) || lowerFromCont.includes(fLoc) || lowerToCont.includes(fLoc)) &&
                (!fType || r.movement_type === fType) && (!fArea || r.area?.toLowerCase().includes(fArea)) &&
                (!fUser || userClean.includes(fUser));
     });
@@ -247,7 +256,9 @@ function exportCSV() {
     let csv = '\uFEFFFecha,Parte,Descripcion,Proyecto,Origen,Destino,Cantidad,Tipo,Area,Comentario,Usuario\n';
     datosOriginales.forEach(r => {
         const userClean = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'S/U';
-        csv += `"${new Date(r.created_at).toLocaleString()}","${r.part_number}","${r.description}","${r.project}","${r.from_location}","${r.to_location}",${r.quantity},"${r.movement_type}","${r.area}","${r.comment}","${userClean}"\n`;
+        const oriStr = r.from_container ? `${r.from_location} [${r.from_container}]` : r.from_location || '-';
+        const destStr = r.to_container ? `${r.to_location} [${r.to_container}]` : r.to_location || '-';
+        csv += `"${new Date(r.created_at).toLocaleString()}","${r.part_number}","${r.description || ''}","${r.project || ''}","${oriStr}","${destStr}",${r.quantity},"${r.movement_type}","${r.area || ''}","${r.comment || ''}","${userClean}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
