@@ -46,7 +46,8 @@
     .fifo-card { background: var(--bg); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 10px; position: relative; border-left: 5px solid var(--primary); }
     .fifo-card.oldest { border-left: 5px solid var(--warning); background: rgba(243, 156, 18, 0.05); border: 1px solid var(--warning); border-left: 6px solid var(--warning); }
     .badge-status { position: absolute; top: 10px; right: 10px; background: var(--warning); color: white; padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-    .part-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .part-title { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
+    .part-desc { font-size: 12px; color: var(--text-secondary); font-style: italic; margin-bottom: 8px; }
     
     .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
     .info-block { display: flex; flex-direction: column; }
@@ -116,7 +117,8 @@ let ultimoInventarioBuscado = [];
 let ultimoCriterioBuscado = '';
 
 async function cargarCatalogos() {
-    const {data: p} = await _client.from('parts').select('id, part_number').limit(2000);
+    // Jalamos también la columna description para el buscador
+    const {data: p} = await _client.from('parts').select('id, part_number, description').limit(2000);
     if(p) parts = p;
 
     const {data: c} = await _client.from('locations').select('id, location_code, type').or('type.eq.Móvil,type.eq.Contenedor');
@@ -138,14 +140,17 @@ partSearch.oninput = () => {
     const v = partSearch.value.toUpperCase();
     partResults.innerHTML = '';
     if(!v) { partResults.style.display = 'none'; return; }
-    const m = parts.filter(p => p.part_number.includes(v)).slice(0,8);
+    
+    // Filtra ya sea por número de parte o por su descripción física
+    const m = parts.filter(p => p.part_number.toUpperCase().includes(v) || (p.description && p.description.toUpperCase().includes(v))).slice(0,8);
     m.forEach(p => {
         const d = document.createElement('div');
-        d.textContent = p.part_number;
+        // Muestra Número de parte + Descripción en la lista desplegable
+        d.innerHTML = `<b>${p.part_number}</b> <span style="font-size:11px; color:var(--text-secondary)">- ${p.description || 'Sin descripción'}</span>`;
         d.onclick = () => {
             partSearch.value = p.part_number;
             partResults.style.display = 'none';
-            buscarEstrategiaFIFO(p.id, p.part_number);
+            buscarEstrategiaFIFO(p.id, p.part_number, p.description);
         };
         partResults.appendChild(d);
     });
@@ -177,7 +182,7 @@ document.addEventListener('click', function(e) {
 });
 
 // CONSULTA 1: ESTRATEGIA FIFO POR PARTE
-async function buscarEstrategiaFIFO(partId, partNumber) {
+async function buscarEstrategiaFIFO(partId, partNumber, partDesc) {
     const divResultados = document.getElementById('resultadoDespacho');
     divResultados.innerHTML = '<p style="text-align:center;">Buscando en almacenes y carritos...</p>';
     
@@ -194,6 +199,9 @@ async function buscarEstrategiaFIFO(partId, partNumber) {
         return;
     }
 
+    // Intentar rescatar la descripción desde la vista si no viene en el parámetro
+    const descripcionFinal = partDesc || inventario[0].part_name || 'Sin descripción disponible';
+
     ultimoInventarioBuscado = inventario;
     divResultados.innerHTML = `
         <div class="results-header">
@@ -209,6 +217,7 @@ async function buscarEstrategiaFIFO(partId, partNumber) {
         card.innerHTML = `
             ${esPrimero ? '<span class="badge-status"><i class="fas fa-exclamation-triangle"></i> ¡TOMAR PRIMERO (FIFO)!</span>' : ''}
             <div class="part-title">${partNumber}</div>
+            <div class="part-desc">${descripcionFinal}</div>
             <div class="info-grid">
                 <div class="info-block"><span class="info-label">📍 Ubicación Fija</span><span class="info-value loc-info">${item.location || 'Área Común'}</span></div>
                 <div class="info-block"><span class="info-label">🛒 Contenedor / Carro</span><span class="info-value" style="color:#e67e22;"><i class="fas fa-truck-loading"></i> ${item.container_code || 'N/A (Suelto)'}</span></div>
@@ -252,6 +261,7 @@ async function buscarContenidoCarrito(containerId, containerCode) {
         card.style.borderLeft = '5px solid #e67e22';
         card.innerHTML = `
             <div class="part-title"><i class="fas fa-cube"></i> P/N: ${item.part_number}</div>
+            <div class="part-desc">${item.part_name || 'Sin descripción disponible'}</div>
             <div class="info-grid">
                 <div class="info-block"><span class="info-label">📍 Estacionado en Ubicación</span><span class="info-value loc-info">${item.location || 'En Movimiento'}</span></div>
                 <div class="info-block"><span class="info-label">🔢 Lote del Material</span><span class="info-value">${item.lot_number || 'Sin Lote'}</span></div>
@@ -269,6 +279,7 @@ function descargarExcel() {
     const datosExcel = ultimoInventarioBuscado.map((item, index) => ({
         "Orden/Prioridad": index + 1,
         "Número de Parte": item.part_number || ultimoCriterioBuscado,
+        "Descripción": item.part_name || 'N/A',
         "Área": item.area || 'N/A',
         "Ubicación Fija": item.location || 'Área Común',
         "Contenedor / Carrito": item.container_code || 'N/A (Suelto)',
@@ -315,7 +326,7 @@ function abrirEscaner() {
             } else if (parteEncontrada) {
                 cambiarModo('PARTE');
                 partSearch.value = parteEncontrada.part_number;
-                buscarEstrategiaFIFO(parteEncontrada.id, parteEncontrada.part_number);
+                buscarEstrategiaFIFO(parteEncontrada.id, parteEncontrada.part_number, parteEncontrada.description);
             } else {
                 alert(`El código "${codigoABuscar}" no coincide con ningún Número de Parte ni Carrito registrado.`);
             }
