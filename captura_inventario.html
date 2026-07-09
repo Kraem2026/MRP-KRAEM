@@ -54,7 +54,13 @@
     
     #reader { width: 100%; background: black; border-radius: 8px; overflow: hidden; margin-top: 10px; }
 
-    .switch-container { display: flex; flex-direction: column; gap: 8px; background: rgba(243, 156, 18, 0.1); border: 1px dashed var(--warning); padding: 12px; border-radius: 10px; margin-top: 10px; }
+    .switch-container { display: flex; align-items: center; justify-content: space-between; background: rgba(243, 156, 18, 0.1); border: 1px dashed var(--warning); padding: 12px; border-radius: 10px; margin-top: 10px; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--warning); }
+    input:checked + .slider:before { transform: translateX(20px); }
 </style>
 </head>
 <body data-theme="light">
@@ -81,12 +87,11 @@
     </div>
 
     <div id="divMoverContenedorCompleto" class="switch-container" style="display:none;">
-        <span style="font-size: 11px; font-weight: 800; color: var(--warning); text-transform: uppercase;"><i class="fas fa-layer-group"></i> Modo de Transferencia</span>
-        <select id="selTransferMode" onchange="alternarModoContenedorCompleto()">
-            <option value="INDIVIDUAL">🔤 Pieza Individual (Normal)</option>
-            <option value="CARRITO">🛒 Mover Carrito Completo</option>
-            <option value="UBICACION">📍 Mover Ubicación Fija Completa</option>
-        </select>
+        <span style="font-size: 13px; font-weight: bold; color: var(--text);"><i class="fas fa-truck-ramp-box"></i> ¿Mover Carrito Físico Completo?</span>
+        <label class="switch">
+            <input type="checkbox" id="chkFullContainer" onchange="alternarModoContenedorCompleto()">
+            <span class="slider"></span>
+        </label>
     </div>
 
     <div id="divPartSearch" style="position:relative;">
@@ -120,7 +125,7 @@
 
         <label id="lContOrig">🛒 Contenedor / Carrito ORIGEN</label>
         <div class="input-with-btn">
-            <input id="contOriginInput" readonly onclick="abrirModalStock()" placeholder="Se autoselecciona al elegir stock..." style="background:rgba(240,240,240,0.15); cursor:pointer;">
+            <input id="contOriginInput" readonly placeholder="Se autoselecciona al elegir stock..." style="background:rgba(240,240,240,0.15);">
             <button class="btn-qr btn-warning-qr" id="btnQrContOrigen" onclick="abrirEscaner('CONT_ORIGEN')"><i class="fas fa-camera"></i></button>
         </div>
     </div>
@@ -170,8 +175,8 @@ const i18n = {
     ko: { back: "뒤로 가기", title: "재고 입력", lPart: "부품 번호", lAreaOrig: "원래 구역", lAreaDest: "대상 구역", lType: "조정 유형", lLocOrig: "📍 원래 위치", lLocDest: "📍 대상 위치", lQty: "수량", lComm: "비고", btnConfirm: "이동 확인", stockTitle: "가용 재고", close: "닫기" }
 };
 
-// MANTENER AUTENTICACIÓN EXACTAMENTE COMO TÚ LA TENÍAS AL FINAL DE TU ARCHIVO ORIGINAL
-_client.auth.onAuthStateChange((event, session) => {
+async function init() {
+    const { data: { session } } = await _client.auth.getSession();
     const loginBtn = document.getElementById('btnLoginStatus');
     const userDisplay = document.getElementById('userDisplay');
     
@@ -187,21 +192,9 @@ _client.auth.onAuthStateChange((event, session) => {
         loginBtn.onclick = () => { location.href = '/'; };
     }
     loginBtn.style.display = "block";
-    
-    // Disparar la carga del catálogo completo después de validar sesión
-    cargarCatalogos();
-});
 
-async function cargarCatalogos() {
     const {data:a} = await _client.from('areas').select('*');
-    if(a) {
-        areaSelect.innerHTML = '';
-        areaDestSelect.innerHTML = '';
-        a.forEach(r => { 
-            areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; 
-            areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; 
-        });
-    }
+    if(a) a.forEach(r => { areaSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; areaDestSelect.innerHTML+=`<option value="${r.id}">${r.area_name}</option>`; });
     
     const {data:p} = await _client.from('parts').select('id, part_number').limit(2000);
     if(p) parts = p;
@@ -211,8 +204,10 @@ async function cargarCatalogos() {
         locations = l.filter(item => item.type !== 'Móvil' && item.type !== 'Contenedor');
         containers = l.filter(item => item.type === 'Móvil' || item.type === 'Contenedor');
     }
+
     aplicarReglaLoteEntrada();
 }
+init();
 
 function setMode(m) { 
     mode=m; 
@@ -221,7 +216,7 @@ function setMode(m) {
     
     document.getElementById('divMoverContenedorCompleto').style.display = (m==='TRANSFERENCIA') ? 'flex' : 'none';
     if(m !== 'TRANSFERENCIA') {
-        document.getElementById('selTransferMode').value = 'INDIVIDUAL';
+        document.getElementById('chkFullContainer').checked = false;
     }
     
     divAreaDest.style.display=(m==='TRANSFERENCIA')?'block':'none'; 
@@ -239,30 +234,24 @@ function toggleInputs() {
 }
 
 function alternarModoContenedorCompleto() {
-    const transferMode = document.getElementById('selTransferMode').value;
+    const chk = document.getElementById('chkFullContainer').checked;
     const divParte = document.getElementById('divPartSearch');
     const divLote = document.getElementById('divLotInput');
     const divCant = document.getElementById('divQtyInput');
     const inputOrigenFijo = document.getElementById('originInput');
-    const inputOrigenCont = document.getElementById('contOriginInput');
     
-    if(mode === 'TRANSFERENCIA' && transferMode === 'CARRITO') {
+    if(mode === 'TRANSFERENCIA' && chk) {
         divParte.style.opacity = "0.4"; partSearch.disabled = true; partSearch.value = "--- CARRITO COMPLETO ---";
-        divLote.style.display = "none"; divCant.style.display = "none";
-        inputOrigenFijo.placeholder = "No requerido (Se leerá todo el Carrito)"; inputOrigenFijo.disabled = true; inputOrigenFijo.value = ""; selOrigId = null;
-        inputOrigenCont.placeholder = "Haz clic para escanear Carrito Origen..."; inputOrigenCont.disabled = false;
-    } 
-    else if(mode === 'TRANSFERENCIA' && transferMode === 'UBICACION') {
-        divParte.style.opacity = "0.4"; partSearch.disabled = true; partSearch.value = "--- UBICACIÓN COMPLETA ---";
-        divLote.style.display = "none"; divCant.style.display = "none";
-        inputOrigenFijo.placeholder = "Haz clic para seleccionar Ubicación Fija Origen..."; inputOrigenFijo.disabled = false;
-        inputOrigenCont.placeholder = "No requerido (Se vaciará la ubicación fija)"; inputOrigenCont.disabled = true; inputOrigenCont.value = ""; selOrigContId = null;
-    }
-    else {
+        divLote.style.display = "none";
+        divCant.style.display = "none";
+        inputOrigenFijo.placeholder = "No requerido (Se usa el Carrito Origen)";
+        inputOrigenFijo.disabled = true;
+    } else {
         divParte.style.opacity = "1"; partSearch.disabled = false; if(partSearch.value.includes("---")) partSearch.value = "";
-        divLote.style.display = "block"; divCant.style.display = "block";
-        inputOrigenFijo.placeholder = "Haz clic o escanea Origen..."; inputOrigenFijo.disabled = false;
-        inputOrigenCont.disabled = false;
+        divLote.style.display = "block";
+        divCant.style.display = "block";
+        inputOrigenFijo.placeholder = "Haz clic o escanea Origen...";
+        inputOrigenFijo.disabled = false;
         aplicarReglaLoteEntrada();
     }
 }
@@ -270,12 +259,13 @@ function alternarModoContenedorCompleto() {
 function resetSelection() { 
     selOrigId=null; selOrigContId=null; selDestId=null; selDestContId=null;
     originInput.value=''; contOriginInput.value=''; if(document.getElementById('destInput')) destInput.value=''; destContInput.value=''; 
-    if(document.getElementById('selTransferMode').value === 'INDIVIDUAL') selPartId=null;
+    if(!document.getElementById('chkFullContainer').checked) selPartId=null;
     aplicarReglaLoteEntrada();
 }
 
 function aplicarReglaLoteEntrada() {
     const contenedor = document.getElementById('containerContenedorLote');
+    
     if (mode === 'AJUSTE') {
         contenedor.innerHTML = `<input type="date" id="lotInput">`;
     } else if (mode === 'ENTRADA') {
@@ -283,6 +273,7 @@ function aplicarReglaLoteEntrada() {
         const yyyy = hoy.getFullYear();
         const mm = String(hoy.getMonth() + 1).padStart(2, '0');
         const dd = String(hoy.getDate()).padStart(2, '0');
+        
         contenedor.innerHTML = `<input id="lotInput" readonly style="background:rgba(108, 117, 125, 0.15);" value="${yyyy}${mm}${dd}">`;
     } else {
         contenedor.innerHTML = `<input id="lotInput" placeholder="Seleccione ubicación para ver o cargar lote...">`;
@@ -332,7 +323,6 @@ async function onScanSuccess(decodedText) {
     cerrarEscaner();
     const cleanCode = decodedText.trim().toUpperCase();
     const lotInput = document.getElementById('lotInput');
-    const transferMode = document.getElementById('selTransferMode').value;
     
     if (qrTargetField === 'PARTE') {
         if (cleanCode.includes('|')) {
@@ -357,7 +347,6 @@ async function onScanSuccess(decodedText) {
         }
     } 
     else if (qrTargetField === 'ORIGEN') {
-        if (!selPartId && transferMode === 'INDIVIDUAL') return alert("❌ Primero debes seleccionar o escanear un Número de Parte.");
         const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
         if (!encontrada) return alert(`❌ Ubicación Origen "${cleanCode}" no existe en el catálogo fijos.`);
         
@@ -401,15 +390,15 @@ async function procesarGuardado() {
     const { data: { session } } = await _client.auth.getSession();
     if (!session) return alert("Inicia sesión primero.");
     
-    const transferMode = document.getElementById('selTransferMode').value;
+    const isFullContainer = document.getElementById('chkFullContainer').checked;
     const comm = comment.value;
     const lotInput = document.getElementById('lotInput');
     
     if(!comm) return alert("Por favor escriba un comentario descriptivo.");
 
-    if(mode === 'TRANSFERENCIA' && transferMode === 'CARRITO') {
-        if(!selOrigContId) return alert("❌ Debe seleccionar o escanear el Carrito de ORIGEN.");
-        if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
+    if(mode === 'TRANSFERENCIA' && isFullContainer) {
+        if(!selOrigContId) return alert("❌ Debe seleccionar o escanear el Carrito/Contenedor de ORIGEN.");
+        if(!selDestId) return alert("❌ Debe seleccionar o escanear la Ubicación Fija de DESTINO.");
         
         const { data: stockCarrito } = await _client
             .from('v_inventory_by_location')
@@ -418,28 +407,10 @@ async function procesarGuardado() {
             .gt('quantity', 0);
             
         if(!stockCarrito || stockCarrito.length === 0) {
-            return alert("❌ Este carrito no tiene ningún número de parte asignado actualmente.");
+            return alert("❌ Este carrito no tiene ningún número de parte asignado actualmente en el sistema.");
         }
         
-        guardarMovimientoMasivo(session.user.id, comm, stockCarrito, 'CARRITO');
-        return;
-    }
-
-    if(mode === 'TRANSFERENCIA' && transferMode === 'UBICACION') {
-        if(!selOrigId) return alert("❌ Debe seleccionar o escanear la Ubicación Fija de ORIGEN.");
-        if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
-        
-        const { data: stockUbicacion } = await _client
-            .from('v_inventory_by_location')
-            .select('*')
-            .eq('location_id', selOrigId)
-            .gt('quantity', 0);
-            
-        if(!stockUbicacion || stockUbicacion.length === 0) {
-            return alert("❌ Esta ubicación física no tiene stock registrado actualmente.");
-        }
-        
-        guardarMovimientoMasivo(session.user.id, comm, stockUbicacion, 'UBICACION');
+        guardarMovimientoMasivoContenedor(session.user.id, comm, stockCarrito);
         return;
     }
 
@@ -450,17 +421,22 @@ async function procesarGuardado() {
     const requiereOrigen = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg);
     const requiereDestino = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg));
 
-    if (requiereDestino && !selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de Destino.");
-    if (requiereOrigen && !selOrigId) return alert("❌ Debe seleccionar una Ubicación Fija de Origen.");
+    if (requiereDestino && !selDestId) {
+        return alert("❌ Debe seleccionar una Ubicación Fija de Destino.");
+    }
+    if (requiereOrigen && !selOrigId) {
+        return alert("❌ Debe seleccionar una Ubicación Fija de Origen.");
+    }
 
     let loteFormateado = lotInput.value.trim().toUpperCase();
     if (mode === 'AJUSTE') {
-        if (!loteFormateado) return alert("❌ Debe seleccionar una fecha para el Ajuste.");
+        if (!loteFormateado) return alert("❌ Debe seleccionar una fecha en el calendario para el Lote del Ajuste.");
         loteFormateado = loteFormateado.replace(/-/g, "");
     }
 
     if (requiereOrigen && mode !== 'AJUSTE' && selOrigId) {
         const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+
         if (!loteFormateado) return alert("❌ Debe seleccionar un número de Lote antes de continuar.");
 
         const { data: todosLosLotes } = await _client
@@ -477,10 +453,10 @@ async function procesarGuardado() {
 
             if (loteFormateado !== loteMasViejoGlobal) {
                 alert(`⚠️ ¡ALERTA CRÍTICA DE CONTROL FIFO! ⚠️\n\n` +
-                      `El lote escaneado NO es el más antiguo.\n\n` +
-                      `• Lote Escaneado: ${loteFormateado}\n` +
-                      `• Lote Requerido: ${loteMasViejoGlobal || 'Sin Lote'}\n` +
-                      `• Encontrado en: [${ubicacionMasViejoGlobal}]\n\n` +
+                      `El contenedor/ubicación escaneado NO contiene el lote más antiguo del almacén.\n\n` +
+                      `• Lote Escaneado/Seleccionado: ${loteFormateado}\n` +
+                      `• Lote Más Antiguo Requerido: ${loteMasViejoGlobal || 'Sin Lote'}\n` +
+                      `• Ubicado actualmente en: [${ubicacionMasViejoGlobal}]\n\n` +
                       `❌ Operación cancelada.`);
                 return;
             }
@@ -490,32 +466,36 @@ async function procesarGuardado() {
     guardarMovimiento(session.user.id, q, comm, loteFormateado);
 }
 
-async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo) {
+async function guardarMovimientoMasivoContenedor(userId, comm, stockCarrito) {
     let rows = [];
     const areaOrigText = areaSelect.options[areaSelect.selectedIndex].text;
     const areaDestText = areaDestSelect.options[areaDestSelect.selectedIndex].text;
     
-    registrosStock.forEach(item => {
+    // El contenedor destino por defecto es el mismo contenedor móvil que movemos,
+    // a menos que se haya escaneado deliberadamente otro contenedor destino.
+    const containerDestId = selDestContId || selOrigContId;
+    
+    stockCarrito.forEach(item => {
         const base = {
             part_id: item.part_id,
-            comment: tipoMasivo === 'CARRITO' ? `[MASIVO CARRITO] ${comm}` : `[MASIVO UBICACIÓN] ${comm}`,
+            comment: `[MOVIMIENTO MASIVO CARRITO] ${comm}`,
             user_id: userId,
             lot_number: item.lot_number || ''
         };
         
-        // SALIDA DEL VIEJO PUNTO
+        // FILA 1: Descontar del punto de Origen exacto
         rows.push({
             ...base,
             area: areaOrigText,
             quantity: -item.quantity,
             from_location_id: item.location_id,
-            from_container_id: item.container_id || null, 
+            from_container_id: selOrigContId,
             to_location_id: null,
             to_container_id: null,
             movement_type: 'TRANSFERENCIA'
         });
         
-        // ENTRADA AL NUEVO PUNTO
+        // FILA 2: Cargar al punto de Destino exacto
         rows.push({
             ...base,
             area: areaDestText,
@@ -523,7 +503,7 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
             from_location_id: null,
             from_container_id: null,
             to_location_id: selDestId,
-            to_container_id: tipoMasivo === 'CARRITO' ? selOrigContId : (selDestContId || null),
+            to_container_id: containerDestId,
             movement_type: 'TRANSFERENCIA'
         });
     });
@@ -532,7 +512,7 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
     if(error) {
         alert("Error al procesar movimiento masivo: " + error.message);
     } else {
-        alert(`¡Éxito! Se movieron en bloque ${registrosStock.length} ítems correctamente.`);
+        alert(`¡Éxito! Se movieron en bloque ${stockCarrito.length} ítems del carrito.`);
         location.reload();
     }
 }
@@ -553,14 +533,49 @@ async function guardarMovimiento(userId, q, comm, loteEspecifico) {
     let rows = [];
     
     if(mode==='ENTRADA'||(mode==='AJUSTE'&&ajusteTipo.value==='POS')) {
-        rows.push({ ...base, quantity: q, to_location_id: selDestId, to_container_id: containerDestId, movement_type: mode });
+        rows.push({
+            ...base, 
+            quantity: q, 
+            from_location_id: null,
+            from_container_id: null,
+            to_location_id: selDestId, 
+            to_container_id: containerDestId, 
+            movement_type: mode
+        });
     }
     else if(mode==='SALIDA'||(mode==='AJUSTE'&&ajusteTipo.value==='NEG')) {
-        rows.push({ ...base, quantity: -q, from_location_id: selOrigId, from_container_id: containerOrigId, movement_type: mode });
+        rows.push({
+            ...base, 
+            quantity: -q, 
+            from_location_id: selOrigId, 
+            from_container_id: containerOrigId, 
+            to_location_id: null,
+            to_container_id: null,
+            movement_type: mode
+        });
     }
     else if(mode==='TRANSFERENCIA') {
-        rows.push({ ...base, quantity: -q, from_location_id: selOrigId, from_container_id: containerOrigId, movement_type: 'TRANSFERENCIA' });
-        rows.push({ ...base, quantity: q, to_location_id: selDestId, to_container_id: containerDestId, movement_type: 'TRANSFERENCIA', area: areaDestSelect.options[areaDestSelect.selectedIndex].text });
+        // Salida
+        rows.push({
+            ...base, 
+            quantity: -q, 
+            from_location_id: selOrigId, 
+            from_container_id: containerOrigId, 
+            to_location_id: null,
+            to_container_id: null,
+            movement_type: 'TRANSFERENCIA'
+        });
+        // Entrada
+        rows.push({
+            ...base, 
+            quantity: q, 
+            from_location_id: null,
+            from_container_id: null,
+            to_location_id: selDestId, 
+            to_container_id: containerDestId, 
+            movement_type: 'TRANSFERENCIA', 
+            area: areaDestSelect.options[areaDestSelect.selectedIndex].text
+        });
     }
     
     const {error} = await _client.from('inventory_movements').insert(rows);
@@ -611,20 +626,16 @@ destContInput.oninput = () => {
 };
 
 async function abrirModalStock() {
-    const transferMode = document.getElementById('selTransferMode').value;
-    const isMasivo = (mode === 'TRANSFERENCIA' && (transferMode === 'CARRITO' || transferMode === 'UBICACION'));
-    if (!selPartId && !isMasivo) return alert("Selecciona un número de parte primero.");
+    const isFullContainer = document.getElementById('chkFullContainer').checked;
+    if (!selPartId && !isFullContainer) return alert("Selecciona un número de parte primero.");
     
     modalStock.style.display='flex';
     const areaText = areaSelect.options[areaSelect.selectedIndex].text;
     
     let query = _client.from('v_inventory_by_location').select('*').eq('area', areaText).gt('quantity', 0);
-    
-    if (mode === 'TRANSFERENCIA' && transferMode === 'CARRITO' && selOrigContId) {
+    if (isFullContainer && selOrigContId) {
         query = query.eq('container_id', selOrigContId);
-    } else if (mode === 'TRANSFERENCIA' && transferMode === 'UBICACION' && selOrigId) {
-        query = query.eq('location_id', selOrigId);
-    } else if (!isMasivo) {
+    } else if (!isFullContainer) {
         query = query.eq('part_id', selPartId);
     }
     
@@ -647,7 +658,7 @@ async function abrirModalStock() {
             contOriginInput.value = i.container_code ? i.container_code : "N/A - Sin Contenedor";
             selOrigContId = i.container_id ? i.container_id : null;
 
-            if(!isMasivo && mode !== 'AJUSTE' && i.lot_number) {
+            if(!isFullContainer && mode !== 'AJUSTE' && i.lot_number) {
                 const lotInput = document.getElementById('lotInput');
                 if (lotInput) lotInput.value=i.lot_number;
             } 
