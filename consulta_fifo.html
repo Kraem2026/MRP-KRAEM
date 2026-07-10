@@ -12,6 +12,7 @@
     :root { 
         --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
         --border: #e2e8f0; --primary: #007bff; --success: #27ae60; --warning: #f39c12; --danger: #dc3545;
+        --info: #17a2b8;
     }
     [data-theme="dark"] { 
         --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
@@ -26,7 +27,7 @@
     h2 { text-align:center; margin-top:0; color: var(--text); }
     
     .tabs { display:flex; gap:5px; margin-bottom:15px; background: var(--bg); padding: 5px; border-radius: 10px; }
-    .tabs button { flex:1; background: transparent; border:none; padding:10px; cursor:pointer; font-size:11px; font-weight:bold; border-radius:8px; color: var(--text-secondary); transition: 0.2s; }
+    .tabs button { flex:1; background: transparent; border:none; padding:10px 5px; cursor:pointer; font-size:10px; font-weight:bold; border-radius:8px; color: var(--text-secondary); transition: 0.2s; white-space: nowrap; }
     .tabs button.active { background:var(--primary); color:white; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
 
     label { font-weight:800; display:block; margin-top:15px; font-size:11px; color: var(--text-secondary); text-transform: uppercase; }
@@ -73,10 +74,12 @@
     <h2><i class="fas fa-boxes"></i> Consulta de Inventario</h2>
     
     <div class="tabs">
-        <button id="tabPARTE" class="active" onclick="cambiarModo('PARTE')"><i class="fas fa-barcode"></i> NÚMERO DE PARTE</button>
-        <button id="tabCARRITO" onclick="cambiarModo('CARRITO')"><i class="fas fa-truck-loading"></i> CONSULTAR CARRITO</button>
+        <button id="tabPARTE" class="active" onclick="cambiarModo('PARTE')"><i class="fas fa-barcode"></i> P/N FIFO</button>
+        <button id="tabUBICACION" onclick="cambiarModo('UBICACION')"><i class="fas fa-map-marker-alt"></i> UBICACIÓN FIJA</button>
+        <button id="tabCARRITO" onclick="cambiarModo('CARRITO')"><i class="fas fa-truck-loading"></i> CARRITO MÓVIL</button>
     </div>
     
+    <!-- MODO 1: NÚMERO DE PARTE -->
     <div id="divBusquedaParte" style="position:relative;">
         <label>Escribe o Escanea Número de Parte</label>
         <div class="input-with-btn">
@@ -86,6 +89,17 @@
         <div id="partResults" class="autobox"></div>
     </div>
 
+    <!-- MODO 2: UBICACIÓN FIJA (NUEVO) -->
+    <div id="divBusquedaUbicacion" style="position:relative; display:none;">
+        <label>Escribe o Escanea Localidad Fija</label>
+        <div class="input-with-btn">
+            <input id="locSearch" placeholder="Ej: RACK-A1, ESTANTE-02..." autocomplete="off">
+            <button class="btn-qr" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
+        </div>
+        <div id="locResults" class="autobox"></div>
+    </div>
+
+    <!-- MODO 3: CARRITO MÓVIL -->
     <div id="divBusquedaCarrito" style="position:relative; display:none;">
         <label>Escribe o Escanea Código de Carrito / Contenedor</label>
         <div class="input-with-btn">
@@ -111,27 +125,36 @@ const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co'
 
 let parts = [];
 let containers = [];
-let modoConsulta = 'PARTE'; // 'PARTE' o 'CARRITO'
+let fixedLocations = []; // Catálogo de ubicaciones fijas
+let modoConsulta = 'PARTE'; 
 let html5QrcodeScanner = null;
 let ultimoInventarioBuscado = [];
 let ultimoCriterioBuscado = '';
 
 async function cargarCatalogos() {
-    // Jalamos también la columna description para el buscador
     const {data: p} = await _client.from('parts').select('id, part_number, description').limit(2000);
     if(p) parts = p;
 
+    // 1. Carritos Móviles o Contenedores
     const {data: c} = await _client.from('locations').select('id, location_code, type').or('type.eq.Móvil,type.eq.Contenedor');
     if(c) containers = c;
+
+    // 2. Ubicaciones Fijas (Se excluyen las de tipo Móvil o Contenedor)
+    const {data: l} = await _client.from('locations').select('id, location_code, type').not('type', 'in', '("Móvil","Contenedor")');
+    if(l) fixedLocations = l;
 }
 cargarCatalogos();
 
 function cambiarModo(modo) {
     modoConsulta = modo;
     document.getElementById('tabPARTE').classList.toggle('active', modo === 'PARTE');
+    document.getElementById('tabUBICACION').classList.toggle('active', modo === 'UBICACION');
     document.getElementById('tabCARRITO').classList.toggle('active', modo === 'CARRITO');
+    
     document.getElementById('divBusquedaParte').style.display = modo === 'PARTE' ? 'block' : 'none';
+    document.getElementById('divBusquedaUbicacion').style.display = modo === 'UBICACION' ? 'block' : 'none';
     document.getElementById('divBusquedaCarrito').style.display = modo === 'CARRITO' ? 'block' : 'none';
+    
     document.getElementById('resultadoDespacho').innerHTML = '';
 }
 
@@ -141,11 +164,9 @@ partSearch.oninput = () => {
     partResults.innerHTML = '';
     if(!v) { partResults.style.display = 'none'; return; }
     
-    // Filtra ya sea por número de parte o por su descripción física
     const m = parts.filter(p => p.part_number.toUpperCase().includes(v) || (p.description && p.description.toUpperCase().includes(v))).slice(0,8);
     m.forEach(p => {
         const d = document.createElement('div');
-        // Muestra Número de parte + Descripción en la lista desplegable
         d.innerHTML = `<b>${p.part_number}</b> <span style="font-size:11px; color:var(--text-secondary)">- ${p.description || 'Sin descripción'}</span>`;
         d.onclick = () => {
             partSearch.value = p.part_number;
@@ -155,6 +176,25 @@ partSearch.oninput = () => {
         partResults.appendChild(d);
     });
     partResults.style.display = m.length ? 'block' : 'none';
+};
+
+// Autocompletado Ubicaciones Fijas (Nuevo)
+locSearch.oninput = () => {
+    const v = locSearch.value.toUpperCase();
+    locResults.innerHTML = '';
+    if(!v) { locResults.style.display = 'none'; return; }
+    const m = fixedLocations.filter(l => l.location_code.toUpperCase().includes(v)).slice(0,8);
+    m.forEach(l => {
+        const d = document.createElement('div');
+        d.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${l.location_code}`;
+        d.onclick = () => {
+            locSearch.value = l.location_code;
+            locResults.style.display = 'none';
+            buscarContenidoUbicacion(l.location_code);
+        };
+        locResults.appendChild(d);
+    });
+    locResults.style.display = m.length ? 'block' : 'none';
 };
 
 // Autocompletado Carritos
@@ -178,6 +218,7 @@ cartSearch.oninput = () => {
 
 document.addEventListener('click', function(e) {
     if (e.target.id !== 'partSearch') partResults.style.display = 'none';
+    if (e.target.id !== 'locSearch') locResults.style.display = 'none';
     if (e.target.id !== 'cartSearch') cartResults.style.display = 'none';
 });
 
@@ -199,10 +240,9 @@ async function buscarEstrategiaFIFO(partId, partNumber, partDesc) {
         return;
     }
 
-    // Intentar rescatar la descripción desde la vista si no viene en el parámetro
     const descripcionFinal = partDesc || inventario[0].part_name || 'Sin descripción disponible';
-
     ultimoInventarioBuscado = inventario;
+    
     divResultados.innerHTML = `
         <div class="results-header">
             <h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin:0;">Ruta FIFO sugerida:</h3>
@@ -229,7 +269,51 @@ async function buscarEstrategiaFIFO(partId, partNumber, partDesc) {
     });
 }
 
-// CONSULTA 2: CONTENIDO ESPECÍFICO DE UN CARRITO
+// CONSULTA 2: CONTENIDO ESPECÍFICO DE UNA UBICACIÓN FIJA (NUEVO)
+async function buscarContenidoUbicacion(locationCode) {
+    const divResultados = document.getElementById('resultadoDespacho');
+    divResultados.innerHTML = '<p style="text-align:center;">Verificando materiales en la ubicación fija...</p>';
+    
+    ultimoCriterioBuscado = locationCode;
+    const { data: inventario, error } = await _client
+        .from('v_inventory_by_location')
+        .select('*')
+        .eq('location', locationCode)
+        .gt('quantity', 0)
+        .order('part_number', { ascending: true });
+
+    if (error || !inventario || inventario.length === 0) {
+        divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--warning); font-weight: bold;">📍 La ubicación fija [${locationCode}] está VACÍA actualmente en sistema.</div>`;
+        return;
+    }
+
+    ultimoInventarioBuscado = inventario;
+    divResultados.innerHTML = `
+        <div class="results-header">
+            <h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin:0;">Materiales en esta Ubicación:</h3>
+            <button class="btn-excel" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+        </div>
+    `;
+
+    inventario.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'fifo-card';
+        card.style.borderLeft = '5px solid var(--info)';
+        card.innerHTML = `
+            <div class="part-title"><i class="fas fa-cube"></i> P/N: ${item.part_number}</div>
+            <div class="part-desc">${item.part_name || 'Sin descripción disponible'}</div>
+            <div class="info-grid">
+                <div class="info-block"><span class="info-label">🛒 Contenedor / Carro</span><span class="info-value" style="color:#e67e22;"><i class="fas fa-truck-loading"></i> ${item.container_code || 'N/A (Suelto)'}</span></div>
+                <div class="info-block"><span class="info-label">🔢 Lote del Material</span><span class="info-value">${item.lot_number || 'Sin Lote'}</span></div>
+                <div class="info-block"><span class="info-label">🏭 Área</span><span class="info-value" style="font-size:12px;">${item.area || 'N/A'}</span></div>
+                <div class="qty-info"><span class="info-label" style="display:block; font-size:9px; text-align:right;">CANTIDAD</span>${item.quantity.toLocaleString()} pzas</div>
+            </div>
+        `;
+        divResultados.appendChild(card);
+    });
+}
+
+// CONSULTA 3: CONTENIDO ESPECÍFICO DE UN CARRITO
 async function buscarContenidoCarrito(containerId, containerCode) {
     const divResultados = document.getElementById('resultadoDespacho');
     divResultados.innerHTML = '<p style="text-align:center;">Verificando carga del carrito...</p>';
@@ -278,7 +362,7 @@ function descargarExcel() {
 
     const datosExcel = ultimoInventarioBuscado.map((item, index) => ({
         "Orden/Prioridad": index + 1,
-        "Número de Parte": item.part_number || ultimoCriterioBuscado,
+        "Número de Parte": item.part_number || 'N/A',
         "Descripción": item.part_name || 'N/A',
         "Área": item.area || 'N/A',
         "Ubicación Fija": item.location || 'Área Común',
@@ -290,7 +374,7 @@ function descargarExcel() {
 
     const hoja = XLSX.utils.json_to_sheet(datosExcel);
     const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, "Consulta");
+    XXLSX.utils.book_append_sheet(libro, hoja, "Consulta");
     
     const max_widths = Object.keys(datosExcel[0]).map(key => Math.max(...datosExcel.map(row => row[key] ? row[key].toString().length : 0), key.length) + 3);
     hoja['!cols'] = max_widths.map(w => ({ w: w }));
@@ -309,26 +393,30 @@ function abrirEscaner() {
             cerrarEscaner();
             const cleanCode = decodedText.trim().toUpperCase();
             
-            // 1. Validar si es un código QR compuesto (etiqueta)
             let codigoABuscar = cleanCode;
             if (cleanCode.includes('|')) {
                 codigoABuscar = cleanCode.split('|')[0].trim();
             }
 
-            // 2. Lógica Inteligente de detección
+            // Lógica inteligente de detección de 3 vías:
             const carritoEncontrado = containers.find(c => c.location_code === codigoABuscar);
+            const ubicacionFijaEncontrada = fixedLocations.find(l => l.location_code === codigoABuscar);
             const parteEncontrada = parts.find(p => p.part_number === codigoABuscar);
 
             if (carritoEncontrado) {
                 cambiarModo('CARRITO');
                 cartSearch.value = carritoEncontrado.location_code;
                 buscarContenidoCarrito(carritoEncontrado.id, carritoEncontrado.location_code);
+            } else if (ubicacionFijaEncontrada) {
+                cambiarModo('UBICACION');
+                locSearch.value = ubicacionFijaEncontrada.location_code;
+                buscarContenidoUbicacion(ubicacionFijaEncontrada.location_code);
             } else if (parteEncontrada) {
                 cambiarModo('PARTE');
                 partSearch.value = parteEncontrada.part_number;
                 buscarEstrategiaFIFO(parteEncontrada.id, parteEncontrada.part_number, parteEncontrada.description);
             } else {
-                alert(`El código "${codigoABuscar}" no coincide con ningún Número de Parte ni Carrito registrado.`);
+                alert(`El código "${codigoABuscar}" no coincide con ningún Número de Parte, Ubicación Fija o Carrito registrado.`);
             }
         }
     ).catch(err => {
