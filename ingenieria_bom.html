@@ -2,13 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Gestión de BOM e Inyección - KRAEM</title>
+    <title>Gestión de BOM - KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
     <script src="config.js"></script>
 
     <style>
@@ -46,6 +47,12 @@
         .controls { display: flex; gap: 8px; align-items: center; }
         .lang-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Modal Estilos */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card); padding: 25px; border-radius: 16px; max-width: 500px; width: 90%; text-align: center; }
+        .progress-bar-container { width: 100%; background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; margin: 15px 0; }
+        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
     </style>
 </head>
 <body>
@@ -53,9 +60,16 @@
 <header>
     <div style="display: flex; align-items: center; gap: 15px;">
         <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
-        <h2 style="margin:0;" id="txt_title">Estructura de Materiales e Inyección (BOM)</h2>
+        <h2 style="margin:0;" id="txt_title">Estructura de Materiales (BOM)</h2>
     </div>
     <div class="controls">
+        <!-- Botón Oculto de Tipo File -->
+        <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none" onchange="handleExcelUpload(event)">
+        
+        <button class="btn btn-success" onclick="document.getElementById('excelFileInput').click()">
+            <i class="fas fa-file-upload"></i> Cargar/Actualizar Excel BOM
+        </button>
+        
         <button class="btn" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
         <button class="btn" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
         <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
@@ -66,8 +80,8 @@
 
 <div class="main-container">
     <div class="panel search-box">
-        <h4 id="txt_select_pt" style="margin-top:0">Buscar Producto Terminado / Sub-Ensamble</h4>
-        <input type="text" id="inputSearchPT" placeholder="Buscar por P/NO o Nombre..." onkeyup="fetchPTs()">
+        <h4 id="txt_select_pt" style="margin-top:0">Seleccionar Producto Terminado</h4>
+        <input type="text" id="inputSearchPT" placeholder="Buscar PT por número de parte o nombre..." onkeyup="fetchPTs()">
         <div class="pt-list" id="ptList"></div>
     </div>
 
@@ -88,22 +102,35 @@
                 <thead>
                     <tr>
                         <th>Nivel</th>
-                        <th id="th_comp">Componente / Parte</th>
-                        <th id="th_type">Tipo / Material</th>
+                        <th id="th_comp">Componente / Materia Prima</th>
+                        <th id="th_type">Tipo / Material Grade</th>
                         <th>C/Time (s)</th>
                         <th>Cav.</th>
                         <th>Peso Neto (KG)</th>
                         <th>Peso Colada (KG)</th>
                         <th>Peso Total (KG)</th>
                         <th>U/S</th>
-                        <th style="background:#eff6ff; color:#1e40af;">Requerido en WMS</th>
+                        <th style="background:#eff6ff; color:#1e40af;">Requerido WMS</th>
                     </tr>
                 </thead>
                 <tbody id="bomBody">
-                    <tr><td colspan="10" style="text-align:center; color:var(--secondary)">Seleccione un Producto Terminado para desplegar su BOM.</td></tr>
+                    <tr><td colspan="10" style="text-align:center; color:var(--secondary)">Seleccione un PT para ver su estructura o cargue un archivo de Excel.</td></tr>
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- Modal de Carga / Progreso -->
+<div class="modal-overlay" id="uploadModal">
+    <div class="modal-content">
+        <i class="fas fa-sync-alt fa-spin fa-2x" style="color:var(--primary);"></i>
+        <h3 style="margin: 15px 0 5px 0;">Procesando e Importando BOM</h3>
+        <p style="font-size:12px; color:var(--secondary);" id="modalStatusText">Leyendo archivo de Excel...</p>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <small id="modalSubText">Por favor, no cierre esta ventana mientras se actualiza Supabase.</small>
     </div>
 </div>
 
@@ -114,12 +141,12 @@
 
     const translations = {
         es: {
-            title: "Estructura de Materiales e Inyección (BOM)", selectPT: "Seleccionar Producto / Ensamble",
-            thComp: "Componente / Descripción", thType: "Tipo / Especificación Resina"
+            title: "Estructura de Materiales (BOM)", selectPT: "Seleccionar Producto Terminado",
+            thComp: "Componente / Materia Prima", thType: "Tipo / Material Grade"
         },
         ko: {
-            title: "사출 자재 명세서 (BOM) 관리", selectPT: "완제품 / 반제품 선택",
-            thComp: "부품명 / 품번", thType: "유형 / 사출 원자재 스펙"
+            title: "자재 명세서 (BOM) 관리", selectPT: "완제품 선택",
+            thComp: "부품 / 원자재", thType: "유형 / 사출 원자재 스펙"
         }
     };
 
@@ -133,7 +160,7 @@
         const q = document.getElementById('inputSearchPT').value.trim();
         let query = client.from('parts').select('id, part_number, part_name, product_type')
                           .eq('obsolete', false)
-                          .in('product_type', ['PT', 'SUB_ASSY', 'ASSY']);
+                          .neq('product_type', 'RESINA');
 
         if (q) query = query.or(`part_number.ilike.%${q}%,part_name.ilike.%${q}%`);
 
@@ -159,7 +186,7 @@
             .from('bom_structures') 
             .select(`
                 *,
-                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type, unit_of_measure)
+                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type)
             `)
             .eq('parent_id', id)
             .order('bom_level', { ascending: true });
@@ -173,7 +200,7 @@
         const batchQty = parseFloat(document.getElementById('batchQty').value) || 1;
 
         if (allBomData.length === 0) {
-            body.innerHTML = `<tr><td colspan="10" style="text-align:center;">No hay componentes o materias primas asociadas a esta parte.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="10" style="text-align:center;">No tiene componentes o materias primas asociadas.</td></tr>`;
             return;
         }
 
@@ -182,7 +209,6 @@
             const totalKgPerPiece = parseFloat(item.total_weight_kg) || 0;
             const usage = parseFloat(item.usage_qty) || 1;
 
-            // Si es resina/materia prima, el requerimiento se mide en KG, si es componente en Piezas (EA)
             let reqWmsText = '';
             if (child.product_type === 'RESINA' || item.unit === 'KG') {
                 const totalKgNeeded = (totalKgPerPiece * usage * batchQty).toFixed(2);
@@ -215,6 +241,134 @@
         }).join('');
     }
 
+    // --- PROCESAMIENTO E IMPORTACIÓN DE EXCEL DIRECTO A SUPABASE ---
+    async function handleExcelUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const modal = document.getElementById('uploadModal');
+        const statusText = document.getElementById('modalStatusText');
+        const progressBar = document.getElementById('progressBar');
+        modal.style.display = 'flex';
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames.includes('Prod-BOM master') ? 'Prod-BOM master' : workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                statusText.innerText = "Limpiando y analizando datos del Excel...";
+                
+                let currentParentPartNumber = null;
+                let currentParentId = null;
+                let totalRows = rows.length;
+                let processedCount = 0;
+
+                // Empezamos desde la fila 9 (índice 8) donde inician los datos en la plantilla de KRAEM
+                for (let i = 8; i < rows.length; i++) {
+                    const row = rows[i];
+                    processedCount++;
+
+                    // Actualizar barra de progreso
+                    if (i % 20 === 0 || i === rows.length - 1) {
+                        const pct = Math.round((processedCount / totalRows) * 100);
+                        progressBar.style.width = pct + '%';
+                        statusText.innerText = `Procesando fila ${processedCount} de ${totalRows} (${pct}%)...`;
+                    }
+
+                    if (!row || row.length === 0) continue;
+
+                    const enSub = row[2] ? row[2].toString().trim() : '';
+                    const clientName = row[3] ? row[3].toString().trim() : '';
+                    const carModel = row[4] ? row[4].toString().trim() : '';
+                    const parentPNo = row[6] ? row[6].toString().trim() : '';
+                    const componentPNo = row[13] ? row[13].toString().trim() : '';
+                    const componentName = row[14] ? row[14].toString().trim() : '';
+                    const materialGrade = row[15] ? row[15].toString().trim() : '';
+                    const supplier = row[17] ? row[17].toString().trim() : '';
+                    
+                    const cycleTime = parseFloat(row[19]) || 0;
+                    const cavities = parseInt(row[20]) || 1;
+                    const netWeight = parseFloat(row[21]) || 0;
+                    const gateWeight = parseFloat(row[22]) || 0;
+                    const totalWeight = parseFloat(row[23]) || 0;
+                    const unit = row[24] ? row[24].toString().trim() : 'KG';
+                    const usageQty = parseFloat(row[25]) || 1;
+
+                    // Si la fila marca un nuevo Padre/Ensamble
+                    if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN') {
+                        currentParentPartNumber = parentPNo;
+                        currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT');
+                    }
+
+                    if (!componentPNo || !currentParentId || componentPNo === 'TBD') continue;
+
+                    const childProductType = unit === 'KG' ? 'RESINA' : 'COMPONENTE';
+                    const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit);
+
+                    // Insertar relación en bom_structures
+                    await client.from('bom_structures').insert({
+                        parent_id: currentParentId,
+                        child_id: childId,
+                        bom_level: enSub === 'EN' ? 1 : 2,
+                        client: clientName,
+                        car_model: carModel,
+                        cycle_time_sec: cycleTime,
+                        cavities: cavities,
+                        net_weight_kg: netWeight,
+                        gate_weight_kg: gateWeight,
+                        total_weight_kg: totalWeight,
+                        unit: unit,
+                        usage_qty: usageQty,
+                        material_grade: materialGrade,
+                        supplier_name: supplier
+                    });
+                }
+
+                modal.style.display = 'none';
+                alert('¡BOM importado y actualizado exitosamente en Supabase!');
+                fetchPTs(); // Recargar la lista lateral de productos
+            } catch (err) {
+                console.error("Error importando el archivo:", err);
+                modal.style.display = 'none';
+                alert('Ocurrió un error al procesar el archivo Excel. Verifique la consola para más detalles.');
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    async function getOrCreatePart(partNumber, partName, productType, unit = 'EA') {
+        const { data: existing } = await client
+            .from('parts')
+            .select('id')
+            .eq('part_number', partNumber)
+            .maybeSingle();
+
+        if (existing) return existing.id;
+
+        const { data: inserted, error } = await client
+            .from('parts')
+            .insert({
+                part_number: partNumber,
+                part_name: partName,
+                product_type: productType,
+                unit_of_measure: unit
+            })
+            .select('id')
+            .single();
+
+        if (error) {
+            console.error(`Error creando parte ${partNumber}:`, error.message);
+            return null;
+        }
+
+        return inserted.id;
+    }
+
     function exportExcel() {
         const ws = XLSX.utils.table_to_sheet(document.getElementById('bomTable'));
         const wb = XLSX.utils.book_new();
@@ -225,7 +379,7 @@
     function exportPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape');
-        doc.text(`BOM Especializado: ${document.getElementById('selectedPTName').innerText} (${document.getElementById('selectedPTNumber').innerText})`, 14, 15);
+        doc.text(`BOM Especializado: ${document.getElementById('selectedPTName').innerText}`, 14, 15);
         doc.autoTable({ html: '#bomTable', startY: 20 });
         doc.save(`BOM_${document.getElementById('selectedPTNumber').innerText}.pdf`);
     }
