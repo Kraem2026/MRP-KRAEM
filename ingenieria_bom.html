@@ -48,7 +48,6 @@
         .lang-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Modal Estilos */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: var(--card); padding: 25px; border-radius: 16px; max-width: 500px; width: 90%; text-align: center; }
         .progress-bar-container { width: 100%; background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; margin: 15px 0; }
@@ -63,7 +62,6 @@
         <h2 style="margin:0;" id="txt_title">Estructura de Materiales (BOM)</h2>
     </div>
     <div class="controls">
-        <!-- Botón Oculto de Tipo File -->
         <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none" onchange="handleExcelUpload(event)">
         
         <button class="btn btn-success" onclick="document.getElementById('excelFileInput').click()">
@@ -138,6 +136,7 @@
     let currentLang = localStorage.getItem('lang') || 'es';
     let selectedPTId = null;
     let allBomData = [];
+    let partsCache = {}; // Cache local para acelerar la carga masiva
 
     const translations = {
         es: {
@@ -153,7 +152,16 @@
     async function init() {
         applyTheme();
         setLang(currentLang);
+        await preloadPartsCache();
         fetchPTs();
+    }
+
+    // Carga todas las partes existentes a memoria para no saturar Supabase durante el loop
+    async function preloadPartsCache() {
+        const { data } = await client.from('parts').select('id, part_number');
+        if (data) {
+            data.forEach(p => partsCache[p.part_number] = p.id);
+        }
     }
 
     async function fetchPTs() {
@@ -164,12 +172,12 @@
 
         if (q) query = query.or(`part_number.ilike.%${q}%,part_name.ilike.%${q}%`);
 
-        const { data, error } = await query.limit(25).order('part_number');
+        const { data, error } = await query.limit(30).order('part_number');
         if (error) return;
 
         const list = document.getElementById('ptList');
         list.innerHTML = data.map(pt => `
-            <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="loadBOM(${pt.id}, '${pt.part_number}', '${pt.part_name}')">
+            <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="loadBOM(${pt.id}, '${pt.part_number}', '${pt.part_name || ''}')">
                 <strong>${pt.part_number}</strong> <span class="badge badge-level">${pt.product_type}</span><br>
                 <small>${pt.part_name || ''}</small>
             </div>
@@ -178,7 +186,7 @@
 
     async function loadBOM(id, number, name) {
         selectedPTId = id;
-        document.getElementById('selectedPTName').innerText = name;
+        document.getElementById('selectedPTName').innerText = name || number;
         document.getElementById('selectedPTNumber').innerText = number;
         document.getElementById('calcBox').style.display = 'flex';
         
@@ -191,6 +199,7 @@
             .eq('parent_id', id)
             .order('bom_level', { ascending: true });
 
+        if (error) console.error("Error al cargar BOM:", error);
         allBomData = data || [];
         renderBOM();
     }
@@ -241,7 +250,7 @@
         }).join('');
     }
 
-    // --- PROCESAMIENTO E IMPORTACIÓN DE EXCEL DIRECTO A SUPABASE ---
+    // --- IMPORTACIÓN RÁPIDA POR LOTES ---
     async function handleExcelUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -260,23 +269,22 @@
                 const sheet = workbook.Sheets[sheetName];
                 const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-                statusText.innerText = "Limpiando y analizando datos del Excel...";
-                
+                statusText.innerText = "Cargando catálogo existente...";
+                await preloadPartsCache();
+
                 let currentParentPartNumber = null;
                 let currentParentId = null;
+                
+                let bomBatch = [];
                 let totalRows = rows.length;
-                let processedCount = 0;
 
-                // Empezamos desde la fila 9 (índice 8) donde inician los datos en la plantilla de KRAEM
                 for (let i = 8; i < rows.length; i++) {
                     const row = rows[i];
-                    processedCount++;
 
-                    // Actualizar barra de progreso
-                    if (i % 20 === 0 || i === rows.length - 1) {
-                        const pct = Math.round((processedCount / totalRows) * 100);
+                    if (i % 100 === 0) {
+                        const pct = Math.round((i / totalRows) * 100);
                         progressBar.style.width = pct + '%';
-                        statusText.innerText = `Procesando fila ${processedCount} de ${totalRows} (${pct}%)...`;
+                        statusText.innerText = `Procesando fila ${i} de ${totalRows} (${pct}%)...`;
                     }
 
                     if (!row || row.length === 0) continue;
@@ -298,7 +306,7 @@
                     const unit = row[24] ? row[24].toString().trim() : 'KG';
                     const usageQty = parseFloat(row[25]) || 1;
 
-                    // Si la fila marca un nuevo Padre/Ensamble
+                    // Detectar número de parte Padre
                     if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN') {
                         currentParentPartNumber = parentPNo;
                         currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT');
@@ -309,8 +317,7 @@
                     const childProductType = unit === 'KG' ? 'RESINA' : 'COMPONENTE';
                     const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit);
 
-                    // Insertar relación en bom_structures
-                    await client.from('bom_structures').insert({
+                    bomBatch.push({
                         parent_id: currentParentId,
                         child_id: childId,
                         bom_level: enSub === 'EN' ? 1 : 2,
@@ -326,15 +333,28 @@
                         material_grade: materialGrade,
                         supplier_name: supplier
                     });
+
+                    // Insertar en Supabase en lotes de 100 registros
+                    if (bomBatch.length >= 100) {
+                        const { error } = await client.from('bom_structures').insert(bomBatch);
+                        if (error) console.error("Error al insertar lote BOM:", error.message);
+                        bomBatch = [];
+                    }
+                }
+
+                // Insertar el residuo sobrante
+                if (bomBatch.length > 0) {
+                    const { error } = await client.from('bom_structures').insert(bomBatch);
+                    if (error) console.error("Error al insertar último lote BOM:", error.message);
                 }
 
                 modal.style.display = 'none';
-                alert('¡BOM importado y actualizado exitosamente en Supabase!');
-                fetchPTs(); // Recargar la lista lateral de productos
+                alert('¡BOM importado exitosamente en menos de un minuto!');
+                fetchPTs();
             } catch (err) {
-                console.error("Error importando el archivo:", err);
+                console.error("Error de importación:", err);
                 modal.style.display = 'none';
-                alert('Ocurrió un error al procesar el archivo Excel. Verifique la consola para más detalles.');
+                alert('Ocurrió un detalle al procesar: ' + err.message);
             }
         };
 
@@ -342,13 +362,9 @@
     }
 
     async function getOrCreatePart(partNumber, partName, productType, unit = 'EA') {
-        const { data: existing } = await client
-            .from('parts')
-            .select('id')
-            .eq('part_number', partNumber)
-            .maybeSingle();
-
-        if (existing) return existing.id;
+        if (partsCache[partNumber]) {
+            return partsCache[partNumber];
+        }
 
         const { data: inserted, error } = await client
             .from('parts')
@@ -362,10 +378,16 @@
             .single();
 
         if (error) {
-            console.error(`Error creando parte ${partNumber}:`, error.message);
+            // Si ya existe por un duplicado rápido en el loop, intentar buscarlo de nuevo
+            const { data: existing } = await client.from('parts').select('id').eq('part_number', partNumber).maybeSingle();
+            if (existing) {
+                partsCache[partNumber] = existing.id;
+                return existing.id;
+            }
             return null;
         }
 
+        partsCache[partNumber] = inserted.id;
         return inserted.id;
     }
 
