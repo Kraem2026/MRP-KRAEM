@@ -2,128 +2,486 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <title>Gestión de BOM - KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión BOM / Carga Excel - WMS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
     <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
 
-    <header class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md">
-        <div class="flex items-center space-x-3">
-            <a href="catalogos_ingenieria.html" class="text-slate-400 hover:text-white"><i class="fa-solid fa-arrow-left text-xl"></i></a>
-            <h1 class="text-xl font-bold">Gestión BOM y Carga de Archivos KRAEM</h1>
-        </div>
-    </header>
-
-    <main class="flex-1 container mx-auto p-4 sm:p-6 max-w-7xl space-y-6">
+    <style>
+        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --secondary: #64748b; --success: #22c55e; --warning: #f59e0b; }
+        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
         
-        <!-- Dropzone / Carga Excel -->
-        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-            <h2 class="text-lg font-bold text-slate-700 mb-2"><i class="fa-solid fa-file-excel text-emerald-600 mr-2"></i> Importador Máster de Estructuras (Excel KRAEM)</h2>
-            <p class="text-xs text-slate-500 mb-4">Sube el archivo Excel máster para procesar los Productos Terminados, Sub-ensambles y Resinas automáticamente.</p>
-            
-            <div class="flex items-center justify-center w-full">
-                <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
-                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
-                        <p class="text-sm text-slate-600 font-semibold">Haz clic o arrastra aquí tu archivo Excel (.xlsx)</p>
-                    </div>
-                    <input type="file" id="excel-file" accept=".xlsx, .xls" class="hidden" onchange="processExcel(event)">
-                </label>
+        header { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto 20px auto; flex-wrap: wrap; gap: 10px; }
+        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 13px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-success { background: var(--success); color: white; border: none; }
+
+        .main-container { max-width: 1400px; margin: auto; display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+        @media (max-width: 1024px) { .main-container { grid-template-columns: 1fr; } }
+
+        .panel { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .search-box { position: sticky; top: 20px; height: fit-content; }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); box-sizing: border-box; margin-bottom: 10px; }
+        
+        .pt-list { max-height: 550px; overflow-y: auto; margin-top: 10px; }
+        .pt-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s; }
+        .pt-item:hover { background: rgba(37, 99, 235, 0.08); }
+        .pt-item.active { background: var(--primary); color: white; }
+
+        .bom-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; }
+        .calc-box { display: flex; align-items: center; gap: 10px; background: var(--bg); padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th { text-align: left; padding: 10px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--secondary); background: rgba(0,0,0,0.02); }
+        td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .badge { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .badge-level { background: #e0f2fe; color: #0369a1; }
+        .badge-resin { background: #fef3c7; color: #b45309; }
+
+        .controls { display: flex; gap: 8px; align-items: center; }
+        .lang-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; }
+        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--card); padding: 25px; border-radius: 16px; max-width: 500px; width: 90%; text-align: center; }
+        .progress-bar-container { width: 100%; background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; margin: 15px 0; }
+        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
+        <h2 style="margin:0;" id="txt_title">Estructura de Materiales (BOM)</h2>
+    </div>
+    <div class="controls">
+        <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none" onchange="handleExcelUpload(event)">
+        
+        <button class="btn btn-success" onclick="document.getElementById('excelFileInput').click()">
+            <i class="fas fa-file-upload"></i> Cargar/Actualizar Excel BOM
+        </button>
+        
+        <button class="btn" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
+        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+        <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+</header>
+
+<div class="main-container">
+    <div class="panel search-box">
+        <h4 id="txt_select_pt" style="margin-top:0">Seleccionar Producto Terminado</h4>
+        <input type="text" id="inputSearchPT" placeholder="Buscar PT por número de parte o nombre..." onkeyup="fetchPTs()">
+        <div class="pt-list" id="ptList"></div>
+    </div>
+
+    <div class="panel">
+        <div class="bom-header">
+            <div>
+                <h3 id="selectedPTName" style="margin:0">---</h3>
+                <small id="selectedPTNumber" style="color:var(--secondary)">Seleccione un número de parte</small>
+            </div>
+            <div class="calc-box" id="calcBox" style="display:none;">
+                <label style="font-size:12px; font-weight:600;"><i class="fas fa-calculator"></i> Simular Lote (Pcs):</label>
+                <input type="number" id="batchQty" value="1000" style="width:100px; margin:0;" onchange="renderBOM()" onkeyup="renderBOM()">
             </div>
         </div>
 
-        <!-- Calculadora WMS de Necesidades de Lote -->
-        <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
-            <h2 class="text-lg font-bold text-slate-700 mb-4"><i class="fa-solid fa-calculator text-blue-600 mr-2"></i> Simulación y Requerimiento de Lote</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Producto Terminado (PT)</label>
-                    <input type="text" id="calc-part" placeholder="Ingrese NP del PT" class="w-full p-2 border rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Cantidad de Lote A Producir (PZAS)</label>
-                    <input type="number" id="calc-qty" value="1000" class="w-full p-2 border rounded-lg text-sm">
-                </div>
-                <div class="flex items-end">
-                    <button onclick="calculateBatchRequirements()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm">Calcular Requerimiento</button>
-                </div>
-            </div>
-
-            <!-- Tabla Resultados Cálculo -->
-            <div id="calc-results" class="hidden border-t pt-4">
-                <h3 class="text-sm font-bold text-slate-700 mb-2">Explosión de Materiales Requerida:</h3>
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-100 text-slate-600 text-xs">
-                        <tr>
-                            <th class="p-2">Componente / Resina</th>
-                            <th class="p-2">Tipo</th>
-                            <th class="p-2">Cant. Unit (BOM)</th>
-                            <th class="p-2 font-bold text-blue-600">Requerimiento Total Lote</th>
-                        </tr>
-                    </thead>
-                    <tbody id="calc-table-body" class="divide-y">
-                    </tbody>
-                </table>
-            </div>
+        <div id="bomContent" style="overflow-x: auto;">
+            <table id="bomTable">
+                <thead>
+                    <tr>
+                        <th>Nivel</th>
+                        <th id="th_comp">Componente / Materia Prima</th>
+                        <th id="th_type">Tipo / Material Grade</th>
+                        <th>C/Time (s)</th>
+                        <th>Cav.</th>
+                        <th>Peso Neto (KG)</th>
+                        <th>Peso Colada (KG)</th>
+                        <th>Peso Total (KG)</th>
+                        <th>U/S</th>
+                        <th style="background:#eff6ff; color:#1e40af;">Requerido WMS</th>
+                    </tr>
+                </thead>
+                <tbody id="bomBody">
+                    <tr><td colspan="10" style="text-align:center; color:var(--secondary)">Seleccione un PT para ver su estructura o cargue un archivo de Excel.</td></tr>
+                </tbody>
+            </table>
         </div>
+    </div>
+</div>
 
-    </main>
+<!-- Modal de Carga / Progreso -->
+<div class="modal-overlay" id="uploadModal">
+    <div class="modal-content">
+        <i class="fas fa-sync-alt fa-spin fa-2x" style="color:var(--primary);"></i>
+        <h3 style="margin: 15px 0 5px 0;">Procesando e Importando BOM</h3>
+        <p style="font-size:12px; color:var(--secondary);" id="modalStatusText">Leyendo archivo de Excel...</p>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <small id="modalSubText">Por favor, no cierre esta ventana mientras se actualiza Supabase.</small>
+    </div>
+</div>
 
-    <script>
-        async function processExcel(e) {
-            const file = e.target.files[0];
-            if(!file) return;
+<script>
+    let currentLang = localStorage.getItem('lang') || 'es';
+    let selectedPTId = null;
+    let allBomData = [];
+    let partsCache = {}; // Caché local para acelerar la búsqueda de partes
 
-            const reader = new FileReader();
-            reader.onload = async (evt) => {
-                const data = new Uint8Array(evt.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    const translations = {
+        es: {
+            title: "Estructura de Materiales (BOM)", selectPT: "Seleccionar Producto Terminado",
+            thComp: "Componente / Materia Prima", thType: "Tipo / Material Grade"
+        },
+        ko: {
+            title: "자재 명세서 (BOM) 관리", selectPT: "완제품 선택",
+            thComp: "부품 / 원자재", thType: "유형 / 사출 원자재 스펙"
+        }
+    };
 
-                // Procesa a partir de la fila 10 según la estructura KRAEM
-                for(let i = 9; i < rows.length; i++) {
-                    const row = rows[i];
-                    if(!row || !row[1]) continue;
+    async function init() {
+        applyTheme();
+        setLang(currentLang);
+        await preloadPartsCache();
+        fetchPTs();
+    }
 
-                    const pType = row[0] === 'EN' ? 'PT' : 'COMPONENTE';
-                    const partNum = row[1].toString().trim();
-                    const partName = row[2] ? row[2].toString().trim() : '';
+    // Pre-cargar partes a memoria local para evitar peticiones redundantes a Supabase
+    async function preloadPartsCache() {
+        const { data, error } = await client.from('parts').select('id, part_number');
+        if (data) {
+            partsCache = {};
+            data.forEach(p => {
+                if (p.part_number) partsCache[p.part_number.trim()] = p.id;
+            });
+        }
+    }
 
-                    await supabaseClient.from('parts').upsert({
-                        part_number: partNum,
-                        part_name: partName,
-                        product_type: pType
-                    }, { onConflict: 'part_number' });
-                }
-                alert("Proceso de importación Excel completado con éxito.");
-            };
-            reader.readAsArrayBuffer(file);
+    async function fetchPTs() {
+        const q = document.getElementById('inputSearchPT').value.trim();
+        let query = client.from('parts').select('id, part_number, part_name, product_type')
+                          .neq('product_type', 'RESINA');
+
+        if (q) query = query.or(`part_number.ilike.%${q}%,part_name.ilike.%${q}%`);
+
+        const { data, error } = await query.limit(30).order('part_number');
+        if (error) {
+            console.error("Error al obtener productos:", error);
+            return;
         }
 
-        async function calculateBatchRequirements() {
-            const partNum = document.getElementById('calc-part').value.trim();
-            const qty = parseFloat(document.getElementById('calc-qty').value) || 0;
+        const list = document.getElementById('ptList');
+        if (!data || data.length === 0) {
+            list.innerHTML = `<div style="padding:10px; color:var(--secondary); text-align:center;">No se encontraron productos.</div>`;
+            return;
+        }
 
-            if(!partNum) return alert("Ingrese un Número de Parte");
+        list.innerHTML = data.map(pt => `
+            <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="loadBOM(${pt.id}, '${pt.part_number}', '${pt.part_name || ''}')">
+                <strong>${pt.part_number}</strong> <span class="badge badge-level">${pt.product_type || 'PT'}</span><br>
+                <small>${pt.part_name || ''}</small>
+            </div>
+        `).join('');
+    }
 
-            // Simulación de cálculo
-            const tbody = document.getElementById('calc-table-body');
-            tbody.innerHTML = `
+    async function loadBOM(id, number, name) {
+        selectedPTId = id;
+        document.getElementById('selectedPTName').innerText = name || number;
+        document.getElementById('selectedPTNumber').innerText = number;
+        document.getElementById('calcBox').style.display = 'flex';
+        
+        const { data, error } = await client
+            .from('bom_structures') 
+            .select(`
+                *,
+                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type)
+            `)
+            .eq('parent_id', id)
+            .order('bom_level', { ascending: true });
+
+        if (error) {
+            console.error("Error al cargar BOM:", error);
+            alert("Error consultando la base de datos: " + error.message);
+        }
+        allBomData = data || [];
+        renderBOM();
+    }
+
+    function renderBOM() {
+        const body = document.getElementById('bomBody');
+        const batchQty = parseFloat(document.getElementById('batchQty').value) || 1;
+
+        if (allBomData.length === 0) {
+            body.innerHTML = `<tr><td colspan="10" style="text-align:center;">No tiene componentes o materias primas asociadas.</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = allBomData.map(item => {
+            const child = item.child || {};
+            const totalKgPerPiece = parseFloat(item.total_weight_kg) || 0;
+            const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
+
+            let reqWmsText = '';
+            if (child.product_type === 'RESINA' || (item.unit && item.unit.toUpperCase() === 'KG')) {
+                const totalKgNeeded = (totalKgPerPiece * usage * batchQty).toFixed(2);
+                reqWmsText = `<strong>${totalKgNeeded} KG</strong>`;
+            } else {
+                const totalPcsNeeded = (usage * batchQty).toFixed(0);
+                reqWmsText = `<strong>${totalPcsNeeded} ${item.unit || 'EA'}</strong>`;
+            }
+
+            return `
                 <tr>
-                    <td class="p-2 font-mono">RES-PP-001</td>
-                    <td class="p-2">RESINA</td>
-                    <td class="p-2">0.125 KG</td>
-                    <td class="p-2 font-bold text-blue-600">${(qty * 0.125).toFixed(2)} KG</td>
+                    <td><span class="badge badge-level">Lvl ${item.bom_level || 1}</span></td>
+                    <td>
+                        <strong>${child.part_number || 'N/A'}</strong><br>
+                        <small style="color:var(--secondary)">${child.part_name || ''}</small>
+                    </td>
+                    <td>
+                        <span class="badge ${child.product_type === 'RESINA' ? 'badge-resin' : ''}">${child.product_type || 'COMPONENTE'}</span><br>
+                        <small>${item.material_grade || ''}</small>
+                    </td>
+                    <td>${item.cycle_time_sec || '-'}</td>
+                    <td>${item.cavities || '-'}</td>
+                    <td>${item.net_weight_kg || '0.000'}</td>
+                    <td>${item.gate_weight_kg || '0.000'}</td>
+                    <td><strong>${item.total_weight_kg || '0.000'}</strong></td>
+                    <td>${usage}</td>
+                    <td style="background:#f0f9ff; color:#1e40af;">${reqWmsText}</td>
                 </tr>
             `;
-            document.getElementById('calc-results').classList.remove('hidden');
+        }).join('');
+    }
+
+    // --- CARGADOR DE EXCEL AJUSTADO PARA KRAEM ---
+    async function handleExcelUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const modal = document.getElementById('uploadModal');
+        const statusText = document.getElementById('modalStatusText');
+        const progressBar = document.getElementById('progressBar');
+        modal.style.display = 'flex';
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Buscar la hoja 'Prod-BOM master' o usar la primera
+                const sheetName = workbook.SheetNames.includes('Prod-BOM master') ? 'Prod-BOM master' : workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                statusText.innerText = "Cargando catálogo existente de piezas...";
+                await preloadPartsCache();
+
+                let currentParentPartNumber = null;
+                let currentParentId = null;
+                let currentClient = '';
+                let currentCarModel = '';
+                
+                let bomBatch = [];
+                let totalRows = rows.length;
+                let totalInsertedCount = 0;
+
+                // En tu archivo KRAEM los datos inician en la fila 10 (índice 9)
+                for (let i = 9; i < rows.length; i++) {
+                    const row = rows[i];
+
+                    if (i % 50 === 0) {
+                        const pct = Math.round((i / totalRows) * 100);
+                        progressBar.style.width = pct + '%';
+                        statusText.innerText = `Procesando fila ${i + 1} de ${totalRows} (${pct}%)...`;
+                    }
+
+                    if (!row || row.length === 0) continue;
+
+                    // Lectura exacta según columnas de tu Excel KRAEM:
+                    const enSub          = row[2] ? row[2].toString().trim() : '';
+                    const clientName     = row[3] ? row[3].toString().trim() : '';
+                    const carModel       = row[4] ? row[4].toString().trim() : '';
+                    const parentPNo      = row[6] ? row[6].toString().trim() : '';
+                    const componentPNo   = row[13] ? row[13].toString().trim() : '';
+                    const componentName  = row[14] ? row[14].toString().trim() : '';
+                    const materialGrade  = row[15] ? row[15].toString().trim() : '';
+                    const supplier       = row[17] ? row[17].toString().trim() : '';
+                    
+                    const cycleTime  = parseFloat(row[19]) || 0;
+                    const cavities   = parseInt(row[20]) || 1;
+                    const netWeight  = parseFloat(row[21]) || 0;
+                    const gateWeight = parseFloat(row[22]) || 0;
+                    const totalWeight= parseFloat(row[23]) || (netWeight + gateWeight);
+                    const unit       = row[24] ? row[24].toString().trim() : 'KG';
+                    const usageQty   = parseFloat(row[25]) || 1;
+
+                    // Mantener cliente y modelo vigentes
+                    if (clientName) currentClient = clientName;
+                    if (carModel) currentCarModel = carModel;
+
+                    // Detectar producto Padre (ASS'Y)
+                    if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN' && parentPNo !== 'TBD') {
+                        currentParentPartNumber = parentPNo;
+                        currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT');
+                    }
+
+                    // Saltar filas vacías, no identificadas o 'TBD'
+                    if (!componentPNo || !currentParentId || componentPNo === 'TBD') continue;
+
+                    const childProductType = unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE';
+                    const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit);
+
+                    if (!childId) {
+                        console.warn(`No se pudo procesar la parte: ${componentPNo}`);
+                        continue;
+                    }
+
+                    bomBatch.push({
+                        parent_id: currentParentId,
+                        child_id: childId,
+                        quantity: usageQty,          // <-- Soluciona el error de not-null constraint
+                        usage_qty: usageQty,
+                        bom_level: enSub.toUpperCase() === 'EN' ? 1 : 2,
+                        client: currentClient,
+                        car_model: currentCarModel,
+                        cycle_time_sec: cycleTime,
+                        cavities: cavities,
+                        net_weight_kg: netWeight,
+                        gate_weight_kg: gateWeight,
+                        total_weight_kg: totalWeight,
+                        unit: unit,
+                        material_grade: materialGrade,
+                        supplier_name: supplier
+                    });
+
+                    // Inserción por lotes de 50 registros
+                    if (bomBatch.length >= 50) {
+                        const { error } = await client.from('bom_structures').insert(bomBatch);
+                        if (error) {
+                            console.error("Error de inserción en Supabase:", error);
+                            alert("Error al guardar en Supabase: " + error.message);
+                            modal.style.display = 'none';
+                            return;
+                        } else {
+                            totalInsertedCount += bomBatch.length;
+                        }
+                        bomBatch = [];
+                    }
+                }
+
+                // Inserción del remanente final
+                if (bomBatch.length > 0) {
+                    const { error } = await client.from('bom_structures').insert(bomBatch);
+                    if (error) {
+                        console.error("Error al insertar el lote final:", error);
+                        alert("Error en el lote final de Supabase: " + error.message);
+                    } else {
+                        totalInsertedCount += bomBatch.length;
+                    }
+                }
+
+                modal.style.display = 'none';
+                if (totalInsertedCount > 0) {
+                    alert(`¡Importación completada! Se procesaron e insertaron ${totalInsertedCount} registros en el BOM.`);
+                } else {
+                    alert("Aviso: El archivo fue procesado pero no se insertó ninguna fila.");
+                }
+                
+                // Recargar interfaz
+                await preloadPartsCache();
+                fetchPTs();
+
+            } catch (err) {
+                console.error("Error crítico de procesamiento:", err);
+                modal.style.display = 'none';
+                alert('Ocurrió un error al procesar el archivo: ' + err.message);
+            }
+        };
+
+        reader.readAsArrayBuffer(file);
+    }
+
+    async function getOrCreatePart(partNumber, partName, productType, unit = 'EA') {
+        const cleanPN = partNumber.trim();
+        
+        if (partsCache[cleanPN]) {
+            return partsCache[cleanPN];
         }
-    </script>
+
+        const { data: inserted, error } = await client
+            .from('parts')
+            .insert({
+                part_number: cleanPN,
+                part_name: partName,
+                product_type: productType,
+                unit_of_measure: unit
+            })
+            .select('id')
+            .single();
+
+        if (error) {
+            // Si ya existía en la BD por un registro duplicado rápido, re-consultamos
+            const { data: existing } = await client.from('parts').select('id').eq('part_number', cleanPN).maybeSingle();
+            if (existing) {
+                partsCache[cleanPN] = existing.id;
+                return existing.id;
+            }
+            console.error("Error creando parte:", error.message);
+            return null;
+        }
+
+        partsCache[cleanPN] = inserted.id;
+        return inserted.id;
+    }
+
+    function exportExcel() {
+        const ws = XLSX.utils.table_to_sheet(document.getElementById('bomTable'));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "BOM");
+        XLSX.writeFile(wb, `BOM_${document.getElementById('selectedPTNumber').innerText}.xlsx`);
+    }
+
+    function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        doc.text(`BOM Especializado: ${document.getElementById('selectedPTName').innerText}`, 14, 15);
+        doc.autoTable({ html: '#bomTable', startY: 20 });
+        doc.save(`BOM_${document.getElementById('selectedPTNumber').innerText}.pdf`);
+    }
+
+    function setLang(lang) {
+        currentLang = lang;
+        localStorage.setItem('lang', lang);
+        const l = translations[lang];
+        document.getElementById('txt_title').innerText = l.title;
+        document.getElementById('txt_select_pt').innerText = l.selectPT;
+        document.getElementById('th_comp').innerText = l.thComp;
+        document.getElementById('th_type').innerText = l.thType;
+    }
+
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }
+
+    function applyTheme() {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    }
+
+    init();
+</script>
 </body>
 </html>
