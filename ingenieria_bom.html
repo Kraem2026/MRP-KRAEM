@@ -136,7 +136,7 @@
     let currentLang = localStorage.getItem('lang') || 'es';
     let selectedPTId = null;
     let allBomData = [];
-    let partsCache = {}; // Cache local para acelerar la carga masiva
+    let partsCache = {}; // Caché local para acelerar la búsqueda de partes
 
     const translations = {
         es: {
@@ -156,29 +156,39 @@
         fetchPTs();
     }
 
-    // Carga todas las partes existentes a memoria para no saturar Supabase durante el loop
+    // Pre-cargar partes a memoria local para evitar peticiones redundantes a Supabase
     async function preloadPartsCache() {
-        const { data } = await client.from('parts').select('id, part_number');
+        const { data, error } = await client.from('parts').select('id, part_number');
         if (data) {
-            data.forEach(p => partsCache[p.part_number] = p.id);
+            partsCache = {};
+            data.forEach(p => {
+                if (p.part_number) partsCache[p.part_number.trim()] = p.id;
+            });
         }
     }
 
     async function fetchPTs() {
         const q = document.getElementById('inputSearchPT').value.trim();
         let query = client.from('parts').select('id, part_number, part_name, product_type')
-                          .eq('obsolete', false)
                           .neq('product_type', 'RESINA');
 
         if (q) query = query.or(`part_number.ilike.%${q}%,part_name.ilike.%${q}%`);
 
         const { data, error } = await query.limit(30).order('part_number');
-        if (error) return;
+        if (error) {
+            console.error("Error al obtener productos:", error);
+            return;
+        }
 
         const list = document.getElementById('ptList');
+        if (!data || data.length === 0) {
+            list.innerHTML = `<div style="padding:10px; color:var(--secondary); text-align:center;">No se encontraron productos.</div>`;
+            return;
+        }
+
         list.innerHTML = data.map(pt => `
             <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="loadBOM(${pt.id}, '${pt.part_number}', '${pt.part_name || ''}')">
-                <strong>${pt.part_number}</strong> <span class="badge badge-level">${pt.product_type}</span><br>
+                <strong>${pt.part_number}</strong> <span class="badge badge-level">${pt.product_type || 'PT'}</span><br>
                 <small>${pt.part_name || ''}</small>
             </div>
         `).join('');
@@ -199,7 +209,10 @@
             .eq('parent_id', id)
             .order('bom_level', { ascending: true });
 
-        if (error) console.error("Error al cargar BOM:", error);
+        if (error) {
+            console.error("Error al cargar BOM:", error);
+            alert("Error consultando la base de datos: " + error.message);
+        }
         allBomData = data || [];
         renderBOM();
     }
@@ -219,7 +232,7 @@
             const usage = parseFloat(item.usage_qty) || 1;
 
             let reqWmsText = '';
-            if (child.product_type === 'RESINA' || item.unit === 'KG') {
+            if (child.product_type === 'RESINA' || (item.unit && item.unit.toUpperCase() === 'KG')) {
                 const totalKgNeeded = (totalKgPerPiece * usage * batchQty).toFixed(2);
                 reqWmsText = `<strong>${totalKgNeeded} KG</strong>`;
             } else {
@@ -250,7 +263,7 @@
         }).join('');
     }
 
-    // --- IMPORTACIÓN RÁPIDA POR LOTES ---
+    // --- CARGADOR DE EXCEL AJUSTADO PARA KRAEM ---
     async function handleExcelUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -265,64 +278,81 @@
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Buscar la hoja 'Prod-BOM master' o usar la primera
                 const sheetName = workbook.SheetNames.includes('Prod-BOM master') ? 'Prod-BOM master' : workbook.SheetNames[0];
                 const sheet = workbook.Sheets[sheetName];
                 const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-                statusText.innerText = "Cargando catálogo existente...";
+                statusText.innerText = "Cargando catálogo existente de piezas...";
                 await preloadPartsCache();
 
                 let currentParentPartNumber = null;
                 let currentParentId = null;
+                let currentClient = '';
+                let currentCarModel = '';
                 
                 let bomBatch = [];
                 let totalRows = rows.length;
+                let totalInsertedCount = 0;
 
-                for (let i = 8; i < rows.length; i++) {
+                // En tu archivo KRAEM los datos inician en la fila 10 (índice 9)
+                for (let i = 9; i < rows.length; i++) {
                     const row = rows[i];
 
-                    if (i % 100 === 0) {
+                    if (i % 50 === 0) {
                         const pct = Math.round((i / totalRows) * 100);
                         progressBar.style.width = pct + '%';
-                        statusText.innerText = `Procesando fila ${i} de ${totalRows} (${pct}%)...`;
+                        statusText.innerText = `Procesando fila ${i + 1} de ${totalRows} (${pct}%)...`;
                     }
 
                     if (!row || row.length === 0) continue;
 
-                    const enSub = row[2] ? row[2].toString().trim() : '';
-                    const clientName = row[3] ? row[3].toString().trim() : '';
-                    const carModel = row[4] ? row[4].toString().trim() : '';
-                    const parentPNo = row[6] ? row[6].toString().trim() : '';
-                    const componentPNo = row[13] ? row[13].toString().trim() : '';
-                    const componentName = row[14] ? row[14].toString().trim() : '';
-                    const materialGrade = row[15] ? row[15].toString().trim() : '';
-                    const supplier = row[17] ? row[17].toString().trim() : '';
+                    // Lectura exacta según columnas de tu Excel KRAEM:
+                    const enSub          = row[2] ? row[2].toString().trim() : '';
+                    const clientName     = row[3] ? row[3].toString().trim() : '';
+                    const carModel       = row[4] ? row[4].toString().trim() : '';
+                    const parentPNo      = row[6] ? row[6].toString().trim() : '';
+                    const componentPNo   = row[13] ? row[13].toString().trim() : '';
+                    const componentName  = row[14] ? row[14].toString().trim() : '';
+                    const materialGrade  = row[15] ? row[15].toString().trim() : '';
+                    const supplier       = row[17] ? row[17].toString().trim() : '';
                     
-                    const cycleTime = parseFloat(row[19]) || 0;
-                    const cavities = parseInt(row[20]) || 1;
-                    const netWeight = parseFloat(row[21]) || 0;
+                    const cycleTime  = parseFloat(row[19]) || 0;
+                    const cavities   = parseInt(row[20]) || 1;
+                    const netWeight  = parseFloat(row[21]) || 0;
                     const gateWeight = parseFloat(row[22]) || 0;
-                    const totalWeight = parseFloat(row[23]) || 0;
-                    const unit = row[24] ? row[24].toString().trim() : 'KG';
-                    const usageQty = parseFloat(row[25]) || 1;
+                    const totalWeight= parseFloat(row[23]) || (netWeight + gateWeight);
+                    const unit       = row[24] ? row[24].toString().trim() : 'KG';
+                    const usageQty   = parseFloat(row[25]) || 1;
 
-                    // Detectar número de parte Padre
-                    if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN') {
+                    // Mantener cliente y modelo vigentes
+                    if (clientName) currentClient = clientName;
+                    if (carModel) currentCarModel = carModel;
+
+                    // Detectar producto Padre (ASS'Y)
+                    if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN' && parentPNo !== 'TBD') {
                         currentParentPartNumber = parentPNo;
                         currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT');
                     }
 
+                    // Saltar filas vacías, no identificadas o 'TBD'
                     if (!componentPNo || !currentParentId || componentPNo === 'TBD') continue;
 
-                    const childProductType = unit === 'KG' ? 'RESINA' : 'COMPONENTE';
+                    const childProductType = unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE';
                     const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit);
+
+                    if (!childId) {
+                        console.warn(`No se pudo procesar la parte: ${componentPNo}`);
+                        continue;
+                    }
 
                     bomBatch.push({
                         parent_id: currentParentId,
                         child_id: childId,
-                        bom_level: enSub === 'EN' ? 1 : 2,
-                        client: clientName,
-                        car_model: carModel,
+                        bom_level: enSub.toUpperCase() === 'EN' ? 1 : 2,
+                        client: currentClient,
+                        car_model: currentCarModel,
                         cycle_time_sec: cycleTime,
                         cavities: cavities,
                         net_weight_kg: netWeight,
@@ -334,27 +364,47 @@
                         supplier_name: supplier
                     });
 
-                    // Insertar en Supabase en lotes de 100 registros
-                    if (bomBatch.length >= 100) {
+                    // Inserción por lotes de 50 registros
+                    if (bomBatch.length >= 50) {
                         const { error } = await client.from('bom_structures').insert(bomBatch);
-                        if (error) console.error("Error al insertar lote BOM:", error.message);
+                        if (error) {
+                            console.error("Error de inserción en Supabase:", error);
+                            alert("Error al guardar en Supabase: " + error.message);
+                            modal.style.display = 'none';
+                            return;
+                        } else {
+                            totalInsertedCount += bomBatch.length;
+                        }
                         bomBatch = [];
                     }
                 }
 
-                // Insertar el residuo sobrante
+                // Inserción del remanente final
                 if (bomBatch.length > 0) {
                     const { error } = await client.from('bom_structures').insert(bomBatch);
-                    if (error) console.error("Error al insertar último lote BOM:", error.message);
+                    if (error) {
+                        console.error("Error al insertar el lote final:", error);
+                        alert("Error en el lote final de Supabase: " + error.message);
+                    } else {
+                        totalInsertedCount += bomBatch.length;
+                    }
                 }
 
                 modal.style.display = 'none';
-                alert('¡BOM importado exitosamente en menos de un minuto!');
+                if (totalInsertedCount > 0) {
+                    alert(`¡Importación completada! Se procesaron e insertaron ${totalInsertedCount} registros en el BOM.`);
+                } else {
+                    alert("Aviso: El archivo fue procesado pero no se insertó ninguna fila. Verifica que hayas ejecutado la actualización de la tabla en Supabase SQL Editor.");
+                }
+                
+                // Recargar interfaz
+                await preloadPartsCache();
                 fetchPTs();
+
             } catch (err) {
-                console.error("Error de importación:", err);
+                console.error("Error crítico de procesamiento:", err);
                 modal.style.display = 'none';
-                alert('Ocurrió un detalle al procesar: ' + err.message);
+                alert('Ocurrió un error al procesar el archivo: ' + err.message);
             }
         };
 
@@ -362,14 +412,16 @@
     }
 
     async function getOrCreatePart(partNumber, partName, productType, unit = 'EA') {
-        if (partsCache[partNumber]) {
-            return partsCache[partNumber];
+        const cleanPN = partNumber.trim();
+        
+        if (partsCache[cleanPN]) {
+            return partsCache[cleanPN];
         }
 
         const { data: inserted, error } = await client
             .from('parts')
             .insert({
-                part_number: partNumber,
+                part_number: cleanPN,
                 part_name: partName,
                 product_type: productType,
                 unit_of_measure: unit
@@ -378,16 +430,17 @@
             .single();
 
         if (error) {
-            // Si ya existe por un duplicado rápido en el loop, intentar buscarlo de nuevo
-            const { data: existing } = await client.from('parts').select('id').eq('part_number', partNumber).maybeSingle();
+            // Si ya existía en la BD por un registro duplicado rápido, re-consultamos
+            const { data: existing } = await client.from('parts').select('id').eq('part_number', cleanPN).maybeSingle();
             if (existing) {
-                partsCache[partNumber] = existing.id;
+                partsCache[cleanPN] = existing.id;
                 return existing.id;
             }
+            console.error("Error creando parte:", error.message);
             return null;
         }
 
-        partsCache[partNumber] = inserted.id;
+        partsCache[cleanPN] = inserted.id;
         return inserted.id;
     }
 
