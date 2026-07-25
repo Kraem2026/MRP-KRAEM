@@ -2,257 +2,148 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catálogo de Ingeniería - KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Maestro de Partes - WMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <script src="config.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-    <style>
-        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; }
-        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 20px auto; flex-wrap: wrap; gap: 10px; }
-        
-        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; border: none; }
-        
-        .search-container { background: var(--card); padding: 15px; border-radius: 16px; border: 1px solid var(--border); max-width: 1200px; margin: 0 auto 20px auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-        input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); outline: none; }
-
-        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); max-width: 1200px; margin: auto; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
-        th { background: #1e293b; color: white; padding: 15px; font-size: 11px; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 13px; }
-        
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .dot-active { background: var(--success); }
-        .dot-obs { background: var(--danger); }
-
-        .controls { display: flex; gap: 10px; align-items: center; }
-        .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
-        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Botón morado para QR en la tabla */
-        .btn-qr-gen { background: #5b21b6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-qr-gen:hover { background: #4c1d95; }
-
-        /* Estilos del modal flotante de QR */
-        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(2px); }
-        .modal-content { background:var(--card); padding:25px; border-radius:15px; text-align:center; max-width:300px; width:90%; border: 1px solid var(--border); color: var(--text); }
-        #qrcode { display: flex; justify-content: center; margin: 15px 0; }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
 
-<header>
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
-        <h2 style="margin:0;" id="txt_title">Catálogo Maestro</h2>
-    </div>
-    <div class="controls">
-        <a href="ingenieria_nuevo_np.html" class="btn btn-primary" id="btn_new">
-            <i class="fas fa-plus"></i> Nuevo
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <a href="catalogos_ingenieria.html" class="text-slate-400 hover:text-white"><i class="fa-solid fa-arrow-left text-xl"></i></a>
+            <h1 class="text-xl font-bold">Catálogo Maestro de Números de Parte</h1>
+        </div>
+        <a href="ingenieria_nuevo_np.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center">
+            <i class="fa-solid fa-plus mr-2"></i> Nuevo NP
         </a>
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
-        <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 container mx-auto p-4 sm:p-6 max-w-7xl">
+        <!-- Filtros y Búsqueda -->
+        <div class="bg-white p-4 rounded-xl shadow mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+            <div class="relative w-full md:w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+                <input type="text" id="search-input" onkeyup="fetchParts()" placeholder="Buscar por NP, Nombre o Proyecto..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <select id="type-filter" onchange="fetchParts()" class="border rounded-lg px-3 py-2 text-sm bg-slate-50">
+                    <option value="">Todos los Tipos</option>
+                    <option value="PT">Producto Terminado (PT)</option>
+                    <option value="COMPONENTE">Componente</option>
+                    <option value="RESINA">Resina</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="bg-white rounded-xl shadow overflow-hidden border border-slate-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-800 text-white text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3">Tipo</th>
+                            <th class="p-3">Número de Parte</th>
+                            <th class="p-3">Nombre / Descripción</th>
+                            <th class="p-3">Cliente / Prov.</th>
+                            <th class="p-3">Proyecto</th>
+                            <th class="p-3 text-center">UOM</th>
+                            <th class="p-3 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="parts-table-body" class="divide-y divide-slate-200 text-sm">
+                        <!-- Carga dinámica -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal QR -->
+    <div id="qr-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-2" id="modal-part-num">NP-12345</h3>
+            <div class="flex justify-center p-4 bg-slate-50 border rounded-lg mb-4">
+                <canvas id="qr-canvas"></canvas>
+            </div>
+            <div class="flex gap-2 justify-center">
+                <button onclick="downloadQR()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">Descargar PNG</button>
+                <button onclick="closeQRModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold">Cerrar</button>
+            </div>
+        </div>
     </div>
-</header>
 
-<div class="search-container">
-    <input type="text" id="searchPart" placeholder="N° Parte o Nombre..." onkeyup="searchOnSupabase()">
-    <input type="text" id="searchProject" placeholder="Proyecto..." onkeyup="searchOnSupabase()">
-    <select id="filterStatus" onchange="searchOnSupabase()">
-        <option value="" id="opt_all">Todos los estatus</option>
-        <option value="false" id="opt_active">Activos</option>
-        <option value="true" id="opt_obs">Obsoletos</option>
-    </select>
-</div>
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchParts);
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th id="th_part">N° Parte</th>
-                <th id="th_desc">Descripción</th>
-                <th id="th_proj">Proyecto</th>
-                <th id="th_type">Tipo</th>
-                <th id="th_status">Estatus</th>
-                <th>Etiqueta</th> <th style="width:50px;"></th>
-            </tr>
-        </thead>
-        <tbody id="partsBody"></tbody>
-    </table>
-</div>
+        async function fetchParts() {
+            const query = document.getElementById('search-input').value.trim();
+            const type = document.getElementById('type-filter').value;
 
-<div id="qrModal" class="modal" onclick="if(event.target==this)cerrarQrModal()">
-    <div class="modal-content">
-        <h3 id="qrTitle" style="font-size: 16px; margin-top: 0; font-weight: 700;">Código QR Parte</h3>
-        <div id="qrcode"></div>
-        <button class="btn btn-primary" onclick="descargarQR()" style="width:100%; justify-content:center; margin-bottom:8px;"><i class="fas fa-download"></i> Descargar PNG</button>
-        <button class="btn" onclick="cerrarQrModal()" style="width:100%; justify-content:center;">Cerrar</button>
-    </div>
-</div>
+            let req = supabaseClient.from('parts').select('*').order('created_at', { ascending: false });
 
-<script>
-    let currentLang = localStorage.getItem('lang') || 'es';
-    let searchTimeout;
-    let currentQrText = ''; // Variable global para guardar el NP activo al descargar
+            if(type) req = req.eq('product_type', type);
+            if(query) req = req.or(`part_number.ilike.%${query}%,part_name.ilike.%${query}%,project_model.ilike.%${query}%`);
 
-    const translations = {
-        es: {
-            title: "Catálogo Maestro de Ingeniería", new: "Nuevo N.P.",
-            pPart: "N° Parte o Nombre...", pProj: "Filtrar Proyecto...",
-            optAll: "Todos los estatus", optActive: "Activos", optObs: "Obsoletos",
-            thPart: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thType: "Tipo", thStatus: "Estatus",
-            act: "Activo", obs: "Obsoleto", noRes: "Sin resultados."
-        },
-        ko: {
-            title: "마스터 엔지니어링 카탈로그", new: "새 부품 등록",
-            pPart: "부품 번호 또는 이름...", pProj: "프로젝트 필터...",
-            optAll: "모든 상태", optActive: "활성", optObs: "단종",
-            thPart: "부품 번호", thDesc: "설명", thProj: "프로젝트", thType: "유형", thStatus: "상태",
-            act: "활성", obs: "단종", noRes: "결과가 없습니다."
-        }
-    };
+            const { data, error } = await req;
+            if(error) return console.error(error);
 
-    async function init() {
-        applyTheme();
-        setLang(currentLang);
-    }
+            const tbody = document.getElementById('parts-table-body');
+            tbody.innerHTML = '';
 
-    async function searchOnSupabase() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(async () => {
-            const partQ = document.getElementById('searchPart').value.trim();
-            const projQ = document.getElementById('searchProject').value.trim();
-            const statusQ = document.getElementById('filterStatus').value;
-
-            let query = client.from('parts').select('*');
-
-            if (partQ) {
-                query = query.or(`part_number.ilike.%${partQ}%,part_name.ilike.%${partQ}%,description.ilike.%${partQ}%`);
-            }
-            if (projQ) {
-                query = query.ilike('project', `%${projQ}%`);
-            }
-            if (statusQ !== "") {
-                query = query.eq('obsolete', statusQ === "true");
-            }
-
-            const { data, error } = await query
-                .order('id', { ascending: false })
-                .limit(100);
-
-            if (error) return console.error('Error:', error);
-            renderTable(data);
-        }, 300);
-    }
-
-    function renderTable(list) {
-        const body = document.getElementById('partsBody');
-        const l = translations[currentLang];
-        
-        if (!list || list.length === 0) {
-            body.innerHTML = `<tr><td colspan="7" style="text-align:center;">${l.noRes}</td></tr>`;
-            return;
+            data.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-3"><span class="px-2 py-1 text-xs font-bold rounded ${getTypeBadge(p.product_type)}">${p.product_type}</span></td>
+                    <td class="p-3 font-mono font-bold text-blue-600 hover:underline"><a href="part_ficha_tecnica.html?id=${p.id}">${p.part_number}</a></td>
+                    <td class="p-3">${p.part_name}</td>
+                    <td class="p-3">${p.customer || p.supplier || '-'}</td>
+                    <td class="p-3">${p.project_model || '-'}</td>
+                    <td class="p-3 text-center font-bold">${p.unit_of_measure || 'PZA'}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button onclick="openQR('${p.part_number}')" class="text-slate-600 hover:text-blue-600" title="Ver QR"><i class="fa-solid fa-qrcode text-lg"></i></button>
+                        <a href="ingenieria_nuevo_np.html?id=${p.id}" class="text-slate-600 hover:text-amber-600" title="Editar"><i class="fa-solid fa-pen text-lg"></i></a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
-        body.innerHTML = list.map(p => `
-            <tr>
-                <td onclick="location.href='part_ficha_tecnica.html?id=${p.id}'" style="cursor:pointer;"><strong>${p.part_number}</strong></td>
-                <td>${p.part_name || p.description || '---'}</td>
-                <td>${p.project || '---'}</td>
-                <td>${p.product_type || '---'}</td>
-                <td>
-                    <span class="status-dot ${p.obsolete ? 'dot-obs' : 'dot-active'}"></span>
-                    ${p.obsolete ? l.obs : l.act}
-                </td>
-                <td>
-                    <button class="btn-qr-gen" onclick="verQRParte('${p.part_number}')">
-                        <i class="fas fa-qrcode"></i> QR
-                    </button>
-                </td>
-                <td>
-                    <a href="ingenieria_nuevo_np.html?id=${p.id}" style="color:var(--primary)"><i class="fas fa-edit"></i></a>
-                </td>
-            </tr>
-        `).join('');
-    }
+        function getTypeBadge(type) {
+            if(type === 'PT') return 'bg-emerald-100 text-emerald-800';
+            if(type === 'COMPONENTE') return 'bg-blue-100 text-blue-800';
+            return 'bg-purple-100 text-purple-800';
+        }
 
-    // LOGICA PARA LA VENTANA MODAL Y GENERACIÓN DE CODIOGOS QR
-    function verQRParte(numParte) {
-        currentQrText = numParte;
-        document.getElementById('qrTitle').innerText = "N° Parte: " + numParte;
-        const container = document.getElementById('qrcode');
-        container.innerHTML = ''; // Limpiar gráfico anterior
-        
-        new QRCode(container, {
-            text: numParte,
-            width: 180,
-            height: 180,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
-        
-        document.getElementById('qrModal').style.display = 'flex';
-    }
+        let currentQRNum = '';
+        function openQR(partNumber) {
+            currentQRNum = partNumber;
+            document.getElementById('modal-part-num').innerText = partNumber;
+            QRCode.toCanvas(document.getElementById('qr-canvas'), partNumber, { width: 200 }, function (error) {
+                if (error) console.error(error);
+            });
+            document.getElementById('qr-modal').classList.remove('hidden');
+            document.getElementById('qr-modal').classList.add('flex');
+        }
 
-    function cerrarQrModal() {
-        document.getElementById('qrModal').style.display = 'none';
-    }
+        function closeQRModal() {
+            document.getElementById('qr-modal').classList.add('hidden');
+            document.getElementById('qr-modal').classList.remove('flex');
+        }
 
-    function descargarQR() {
-        const img = document.querySelector('#qrcode img');
-        if (img) {
+        function downloadQR() {
+            const canvas = document.getElementById('qr-canvas');
             const link = document.createElement('a');
-            link.href = img.src;
-            link.download = `QR_Parte_${currentQrText}.png`;
+            link.download = `QR_${currentQRNum}.png`;
+            link.href = canvas.toDataURL();
             link.click();
         }
-    }
-
-    function setLang(lang) {
-        currentLang = lang;
-        localStorage.setItem('lang', lang);
-        const l = translations[lang];
-        
-        document.getElementById('txt_title').innerText = l.title;
-        document.getElementById('btn_new').innerHTML = `<i class="fas fa-plus"></i> ${l.new}`;
-        document.getElementById('searchPart').placeholder = l.pPart;
-        document.getElementById('searchProject').placeholder = l.pProj;
-        document.getElementById('opt_all').innerText = l.optAll;
-        document.getElementById('opt_active').innerText = l.optActive;
-        document.getElementById('opt_obs').innerText = l.optObs;
-        document.getElementById('th_part').innerText = l.thPart;
-        document.getElementById('th_desc').innerText = l.thDesc;
-        document.getElementById('th_proj').innerText = l.thProj;
-        document.getElementById('th_type').innerText = l.thType;
-        document.getElementById('th_status').innerText = l.thStatus;
-        
-        searchOnSupabase(); 
-    }
-
-    function toggleTheme() {
-        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-    }
-
-    function applyTheme() {
-        const theme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', theme);
-        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-    }
-
-    init();
-</script>
-
+    </script>
 </body>
 </html>
