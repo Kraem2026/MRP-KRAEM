@@ -229,7 +229,7 @@
         body.innerHTML = allBomData.map(item => {
             const child = item.child || {};
             const totalKgPerPiece = parseFloat(item.total_weight_kg) || 0;
-            const usage = parseFloat(item.usage_qty) || 1;
+            const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
 
             let reqWmsText = '';
             if (child.product_type === 'RESINA' || (item.unit && item.unit.toUpperCase() === 'KG')) {
@@ -256,7 +256,7 @@
                     <td>${item.net_weight_kg || '0.000'}</td>
                     <td>${item.gate_weight_kg || '0.000'}</td>
                     <td><strong>${item.total_weight_kg || '0.000'}</strong></td>
-                    <td>${item.usage_qty || 1}</td>
+                    <td>${usage}</td>
                     <td style="background:#f0f9ff; color:#1e40af;">${reqWmsText}</td>
                 </tr>
             `;
@@ -350,6 +350,8 @@
                     bomBatch.push({
                         parent_id: currentParentId,
                         child_id: childId,
+                        quantity: usageQty,          // <-- Soluciona el error de not-null constraint
+                        usage_qty: usageQty,
                         bom_level: enSub.toUpperCase() === 'EN' ? 1 : 2,
                         client: currentClient,
                         car_model: currentCarModel,
@@ -359,7 +361,6 @@
                         gate_weight_kg: gateWeight,
                         total_weight_kg: totalWeight,
                         unit: unit,
-                        usage_qty: usageQty,
                         material_grade: materialGrade,
                         supplier_name: supplier
                     });
@@ -394,7 +395,7 @@
                 if (totalInsertedCount > 0) {
                     alert(`¡Importación completada! Se procesaron e insertaron ${totalInsertedCount} registros en el BOM.`);
                 } else {
-                    alert("Aviso: El archivo fue procesado pero no se insertó ninguna fila. Verifica que hayas ejecutado la actualización de la tabla en Supabase SQL Editor.");
+                    alert("Aviso: El archivo fue procesado pero no se insertó ninguna fila.");
                 }
                 
                 // Recargar interfaz
