@@ -1,265 +1,125 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Ficha Técnica Maestra - KRAEM</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
-      --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b;
-    }
-    [data-theme="dark"] {
-      --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-    
-    .container { max-width: 1100px; margin: auto; }
-    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    
-    .btn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; color: var(--text); background: var(--card); }
-    .btn-primary { background: var(--primary); color: white; border: none; }
-
-    .main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
-    @media (max-width: 850px) { .main-grid { grid-template-columns: 1fr; } }
-    
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    
-    .product-img-container { width: 100%; height: 280px; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed var(--border); margin-bottom: 15px; position: relative; }
-    .product-img-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    .no-image { color: var(--text-secondary); text-align: center; font-size: 0.9rem; }
-
-    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-    .status-active { background: rgba(34, 197, 94, 0.1); color: var(--success); }
-    .status-obs { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-
-    .spec-group { margin-bottom: 20px; }
-    .spec-title { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
-    .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .spec-item { background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
-    .spec-label { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; }
-    .spec-value { font-size: 1rem; font-weight: 600; }
-
-    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-    .kpi-card { text-align: center; padding: 15px; border-radius: 12px; color: white; }
-    .bg-blue { background: var(--primary); }
-    .bg-orange { background: var(--warning); }
-    .bg-coverage { background: var(--success); }
-
-    h2, h3 { margin: 0; }
-    
-    .controls { display: flex; gap: 8px; align-items: center; }
-    .lang-btn { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
-    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha Técnica de Parte - WMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
 
-<div class="container">
-  <div class="header-actions">
-    <div style="display: flex; gap: 10px;">
-        <button class="btn" onclick="history.back()"><i class="fas fa-arrow-left"></i> <span id="txt_back">Volver</span></button>
-        <div class="controls">
-            <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
-            <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
-            <button class="btn" onclick="toggleTheme()" style="padding: 10px;"><i id="themeIcon" class="fas fa-moon"></i></button>
+    <header class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <a href="admin_partes.html" class="text-slate-400 hover:text-white"><i class="fa-solid fa-arrow-left text-xl"></i></a>
+            <h1 class="text-xl font-bold">Ficha Técnica de Ingeniería</h1>
         </div>
-    </div>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> PDF</button>
-        <button class="btn btn-primary" id="btn_edit"><i class="fas fa-edit"></i> <span id="txt_edit_btn">Editar</span></button>
-    </div>
-  </div>
+        <button onclick="window.print()" class="bg-slate-800 border border-slate-700 hover:bg-slate-700 px-3 py-1.5 rounded text-sm"><i class="fa-solid fa-print mr-1"></i> Imprimir</button>
+    </header>
 
-  <div class="main-grid">
-    <div class="card">
-      <div class="product-img-container" id="container_img">
-        <div class="no-image" id="txt_no_image"><i class="fas fa-image fa-3x"></i><br>Sin imagen</div>
-      </div>
-      
-      <div style="text-align: center; margin-bottom: 20px;">
-        <span id="badge_status" class="status-badge">---</span>
-        <h2 id="txt_part_number" style="margin-top: 10px; font-size: 1.5rem;">Cargando...</h2>
-        <p id="txt_part_name" style="font-size: 0.9rem; color: var(--text-secondary);">Cargando descripción...</p>
-      </div>
+    <main class="flex-1 container mx-auto p-4 sm:p-6 max-w-5xl">
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <!-- Banner Encabezado -->
+            <div class="bg-slate-800 text-white p-6 flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700">
+                <div>
+                    <span id="badge-type" class="px-3 py-1 bg-blue-500 text-xs font-bold rounded-full uppercase tracking-wider">PT</span>
+                    <h2 id="part-num" class="text-3xl font-extrabold font-mono mt-2">PARTE-000</h2>
+                    <p id="part-desc" class="text-slate-300 mt-1 text-lg">Descripción del Producto</p>
+                </div>
+                <div class="mt-4 md:mt-0 text-left md:text-right">
+                    <p class="text-xs text-slate-400 uppercase">Cliente / Modelo</p>
+                    <p id="part-client" class="text-lg font-bold">N/A</p>
+                </div>
+            </div>
 
-      <div class="spec-group">
-        <div class="spec-title" id="title_general">General</div>
-        <div class="spec-grid">
-          <div class="spec-item"><div class="spec-label" id="lbl_client">Cliente</div><div id="val_client" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_project">Proyecto</div><div id="val_project" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_type">Tipo Producto</div><div id="val_type" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_std">Std Pack</div><div id="val_std" class="spec-value">-</div></div>
+            <!-- Dashboard Métricas -->
+            <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 border-b bg-slate-50 text-center">
+                <div class="p-4">
+                    <span class="text-xs text-slate-500 uppercase font-bold">Cavidades</span>
+                    <p id="m-cavities" class="text-2xl font-bold text-slate-800">-</p>
+                </div>
+                <div class="p-4">
+                    <span class="text-xs text-slate-500 uppercase font-bold">Ciclo (Segs)</span>
+                    <p id="m-cycle" class="text-2xl font-bold text-slate-800">-</p>
+                </div>
+                <div class="p-4">
+                    <span class="text-xs text-slate-500 uppercase font-bold">Peso Shot Total (g)</span>
+                    <p id="m-shot" class="text-2xl font-bold text-blue-600">-</p>
+                </div>
+                <div class="p-4">
+                    <span class="text-xs text-slate-500 uppercase font-bold">Stock Actual</span>
+                    <p id="m-stock" class="text-2xl font-bold text-emerald-600">0 PZA</p>
+                </div>
+            </div>
+
+            <!-- Detalles Técnicos Completo -->
+            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Columna Izquierda -->
+                <div class="space-y-4">
+                    <h3 class="text-md font-bold text-slate-700 border-b pb-2"><i class="fa-solid fa-sliders text-blue-600 mr-2"></i> Parámetros Operativos</h3>
+                    <div class="flex justify-between py-1 border-b border-slate-100 text-sm">
+                        <span class="text-slate-500">Unidad de Medida:</span>
+                        <span id="d-uom" class="font-semibold">PZA</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 text-sm">
+                        <span class="text-slate-500">Peso Unitario Pieza:</span>
+                        <span id="d-weight" class="font-semibold">0.00 g</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 text-sm">
+                        <span class="text-slate-500">Peso de Colada (Runner):</span>
+                        <span id="d-runner" class="font-semibold">0.00 g</span>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha -->
+                <div class="space-y-4">
+                    <h3 class="text-md font-bold text-slate-700 border-b pb-2"><i class="fa-solid fa-flask text-blue-600 mr-2"></i> Especificación de Material</h3>
+                    <div class="flex justify-between py-1 border-b border-slate-100 text-sm">
+                        <span class="text-slate-500">Tipo Resina:</span>
+                        <span id="d-resin-type" class="font-semibold">N/A</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 text-sm">
+                        <span class="text-slate-500">Grado Resina:</span>
+                        <span id="d-resin-grade" class="font-semibold">N/A</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-100 text-sm">
+                        <span class="text-slate-500">Tolerancia Merma:</span>
+                        <span id="d-tolerance" class="font-semibold">0%</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
-      </div>
-    </div>
+    </main>
 
-    <div class="card">
-      <div class="spec-group">
-        <div class="spec-title" id="title_eng">Ficha de Ingeniería (Inyección)</div>
-        <div class="spec-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="spec-item"><div class="spec-label" id="lbl_resin">Resina</div><div id="val_resin" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_grade">Grado</div><div id="val_grade" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_color">Color</div><div id="val_color" class="spec-value">-</div></div>
-          
-          <div class="spec-item"><div class="spec-label" id="lbl_cav">Cavidades</div><div id="val_cav" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_cycle">Ciclo (s)</div><div id="val_cycle" class="spec-value">-</div></div>
-          <div class="spec-item" style="border: 1px solid var(--warning);"><div class="spec-label" id="lbl_tol">Tolerancia</div><div id="val_tol" class="spec-value">± 0.0g</div></div>
+    <script>
+        const partId = new URLSearchParams(window.location.search).get('id');
 
-          <div class="spec-item"><div class="spec-label" id="lbl_w_part">Peso Pieza</div><div id="val_w_part" class="spec-value">0.0g</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_w_runner">Colada Prop.</div><div id="val_w_runner" class="spec-value">0.0g</div></div>
-          <div class="spec-item" style="border: 2px solid var(--primary);"><div class="spec-label" id="lbl_w_total">Total Shot</div><div id="val_w_total" class="spec-value" style="color:var(--primary)">0.0g</div></div>
-        </div>
-      </div>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if(!partId) return alert("ID no válido");
+            const { data, error } = await supabaseClient.from('parts').select('*').eq('id', partId).single();
+            if(error) return alert("Error al obtener la información de la parte");
 
-      <div class="spec-group" style="margin-top: 30px;">
-        <div class="spec-title" id="title_plan">Radiografía de Planeación</div>
-        <div class="kpi-grid">
-          <div class="kpi-card bg-blue">
-            <div class="spec-label" id="lbl_inv" style="color:white; opacity:0.8;">Inventario</div>
-            <div id="kpi_inv" class="spec-value" style="font-size: 1.4rem;">0</div>
-          </div>
-          <div class="kpi-card bg-orange">
-            <div class="spec-label" id="lbl_demand" style="color:white; opacity:0.8;">Demanda (30d)</div>
-            <div id="kpi_demand" class="spec-value" style="font-size: 1.4rem;">0</div>
-          </div>
-          <div id="card_coverage" class="kpi-card bg-coverage">
-            <div class="spec-label" id="lbl_days" style="color:white; opacity:0.8;">Cobertura (Días)</div>
-            <div id="kpi_days" class="spec-value" style="font-size: 1.4rem;">0</div>
-          </div>
-        </div>
-      </div>
-      
-      <p id="txt_last_move" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 20px; text-align: right;"></p>
-    </div>
-  </div>
-</div>
+            document.getElementById('badge-type').innerText = data.product_type;
+            document.getElementById('part-num').innerText = data.part_number;
+            document.getElementById('part-desc').innerText = data.part_name;
+            document.getElementById('part-client').innerText = `${data.customer || data.supplier || '-'} / ${data.project_model || '-'}`;
 
-<script src="config.js"></script>
-<script>
-const id = new URLSearchParams(window.location.search).get('id');
-let currentLang = localStorage.getItem('lang') || 'es';
+            document.getElementById('m-cavities').innerText = data.cavities || 1;
+            document.getElementById('m-cycle').innerText = data.cycle_time || 0;
+            
+            const totalShot = ((data.part_weight_g * data.cavities) + data.runner_weight_g).toFixed(2);
+            document.getElementById('m-shot').innerText = `${totalShot} g`;
 
-const translations = {
-    es: {
-        back: "Volver", edit: "Editar", noImg: "Sin imagen", titleGen: "General",
-        lblClient: "Cliente", lblProj: "Proyecto", lblType: "Tipo Producto", lblStd: "Std Pack",
-        titleEng: "Ficha de Ingeniería (Inyección)", lblResin: "Resina", lblGrade: "Grado", lblColor: "Color",
-        lblCav: "Cavidades", lblCycle: "Ciclo (s)", lblTol: "Tolerancia", lblWPart: "Peso Pieza",
-        lblWRun: "Colada Prop.", lblWTotal: "Total Shot", titlePlan: "Radiografía de Planeación",
-        lblInv: "Inventario", lblDem: "Demanda (30d)", lblCov: "Cobertura (Días)", act: "ACTIVO", obs: "OBSOLETO"
-    },
-    ko: {
-        back: "뒤로 가기", edit: "수정하기", noImg: "이미지 없음", titleGen: "일반 정보",
-        lblClient: "고객사", lblProj: "프로젝트", lblType: "제품 유형", lblStd: "표준 포장",
-        titleEng: "엔지니어링 데이터 (사출)", lblResin: "레진", lblGrade: "등급", lblColor: "색상",
-        lblCav: "캐비티", lblCycle: "사이클 (초)", lblTol: "공차", lblWPart: "제품 중량",
-        lblWRun: "러너 중량", lblWTotal: "총 중량", titlePlan: "생산 계획 분석",
-        lblInv: "현재고", lblDem: "수요 (30일)", lblCov: "재고 일수", act: "활성", obs: "단종"
-    }
-};
-
-async function init() {
-  applyTheme();
-  setLang(currentLang);
-  if(!id) return;
-
-  // client viene de config.js
-  const { data: p } = await client.from('parts').select('*').eq('id', id).single();
-  if(!p) return;
-
-  document.getElementById('txt_part_number').innerText = p.part_number;
-  document.getElementById('txt_part_name').innerText = p.part_name || p.description || '---';
-  
-  const b = document.getElementById('badge_status');
-  b.innerText = p.obsolete ? translations[currentLang].obs : translations[currentLang].act;
-  b.className = 'status-badge ' + (p.obsolete ? 'status-obs' : 'status-active');
-
-  if(p.image_url) {
-      document.getElementById('container_img').innerHTML = `<img src="${p.image_url}">`;
-  }
-
-  document.getElementById('val_client').innerText = p.client || '-';
-  document.getElementById('val_project').innerText = p.project || '-';
-  document.getElementById('val_type').innerText = p.product_type || '-'; // MOSTRAR TIPO
-  document.getElementById('val_std').innerText = p.std_pack || '-';
-  
-  document.getElementById('val_resin').innerText = p.resin_type || '-';
-  document.getElementById('val_grade').innerText = p.resin_grade || '-'; // CORREGIDO
-  document.getElementById('val_color').innerText = p.color || '-';
-  document.getElementById('val_cav').innerText = p.cavities || '0';
-  document.getElementById('val_cycle').innerText = (p.cycle_time_seg || '0') + 's';
-  document.getElementById('val_tol').innerText = `± ${p.weight_tolerance || 0}g`; // CORREGIDO
-
-  const wp = parseFloat(p.part_weight_gr || 0);
-  const wr = parseFloat(p.runner_weight_gr || 0);
-  document.getElementById('val_w_part').innerText = wp.toFixed(2) + 'g';
-  document.getElementById('val_w_runner').innerText = wr.toFixed(2) + 'g';
-  document.getElementById('val_w_total').innerText = (wp + wr).toFixed(2) + 'g';
-
-  // Cargar KPI de inventario si existe la vista
-  const { data: kpi } = await client.from('inventory_part_summary').select('*').eq('part_id', id).single();
-  if(kpi) {
-    document.getElementById('kpi_inv').innerText = (kpi.current_inventory || 0).toLocaleString();
-    document.getElementById('kpi_demand').innerText = (kpi.avg_monthly_demand || 0).toLocaleString();
-    const days = kpi.coverage_days || 0;
-    document.getElementById('kpi_days').innerText = days;
-    const c = document.getElementById('card_coverage');
-    if(days < 3) c.style.background = 'var(--danger)';
-    else if(days < 7) c.style.background = 'var(--warning)';
-    else c.style.background = 'var(--success)';
-  }
-
-  document.getElementById('btn_edit').onclick = () => location.href = `ingenieria_nuevo_np.html?id=${id}`;
-
-  const { data: m } = await client.from('inventory_movements').select('created_at').eq('part_id', id).order('created_at',{ascending:false}).limit(1);
-  if(m && m[0]) document.getElementById('txt_last_move').innerText = (currentLang === 'es' ? "Último mov: " : "최근 이동: ") + new Date(m[0].created_at).toLocaleString();
-}
-
-function setLang(lang) {
-    currentLang = lang;
-    localStorage.setItem('lang', lang);
-    const l = translations[lang];
-    document.getElementById('txt_back').innerText = l.back;
-    document.getElementById('txt_edit_btn').innerText = l.edit;
-    document.getElementById('title_general').innerText = l.titleGen;
-    document.getElementById('lbl_client').innerText = l.lblClient;
-    document.getElementById('lbl_project').innerText = l.lblProj;
-    document.getElementById('lbl_type').innerText = l.lblType;
-    document.getElementById('lbl_std').innerText = l.lblStd;
-    document.getElementById('title_eng').innerText = l.titleEng;
-    document.getElementById('lbl_resin').innerText = l.lblResin;
-    document.getElementById('lbl_grade').innerText = l.lblGrade;
-    document.getElementById('lbl_color').innerText = l.lblColor;
-    document.getElementById('lbl_cav').innerText = l.lblCav;
-    document.getElementById('lbl_cycle').innerText = l.lblCycle;
-    document.getElementById('lbl_tol').innerText = l.lblTol;
-    document.getElementById('lbl_w_part').innerText = l.lblWPart;
-    document.getElementById('lbl_w_runner').innerText = l.lblWRun;
-    document.getElementById('lbl_w_total').innerText = l.lblWTotal;
-    document.getElementById('title_plan').innerText = l.titlePlan;
-    document.getElementById('lbl_inv').innerText = l.lblInv;
-    document.getElementById('lbl_demand').innerText = l.lblDem;
-    document.getElementById('lbl_days').innerText = l.lblCov;
-    if(document.getElementById('txt_no_image')) document.getElementById('txt_no_image').innerHTML = `<i class="fas fa-image fa-3x"></i><br>${l.noImg}`;
-}
-
-function toggleTheme() {
-    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-    document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-}
-
-function applyTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-}
-
-init();
-</script>
+            document.getElementById('d-uom').innerText = data.unit_of_measure || 'PZA';
+            document.getElementById('d-weight').innerText = `${data.part_weight_g || 0} g`;
+            document.getElementById('d-runner').innerText = `${data.runner_weight_g || 0} g`;
+            document.getElementById('d-resin-type').innerText = data.resin_type || 'N/A';
+            document.getElementById('d-resin-grade').innerText = data.resin_grade || 'N/A';
+            document.getElementById('d-tolerance').innerText = `${data.weight_tolerance || 0}%`;
+        });
+    </script>
 </body>
 </html>
