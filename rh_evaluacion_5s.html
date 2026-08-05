@@ -337,7 +337,6 @@ function cambioTipoAuditoria() {
     if (tipo === 'maquina') {
         jigToggle.classList.add('hidden');
         document.getElementById('aplica_jigs').checked = false;
-        // En máquina de inyección, el "operador" puede ser opcional o cargarse igual, dejamos visible pero adaptado
         opLabel.innerText = "Operador de Máquina / Líder responsable";
     } else {
         jigToggle.classList.remove('hidden');
@@ -463,7 +462,6 @@ function render(){
     const tipo = document.getElementById('tipo_auditoria').value;
     const aplicaJigs = document.getElementById('aplica_jigs').checked;
     
-    // Seleccionar matriz de preguntas base
     const matrizPreguntas = (tipo === 'maquina') ? preguntasMaquina : preguntasEstacion;
 
     if(currentStep === 0){
@@ -481,7 +479,6 @@ function render(){
         document.getElementById("progress-bar").style.width = (currentStep * 20) + "%";
         document.getElementById('obs_input').value = auditData.observaciones[`s${currentStep}`] || "";
 
-        // Renderizar preguntas base
         let htmlPreguntas = matrizPreguntas[idx].map((p, j) => {
             const respuestaGuardada = auditData.respuestas[`${idx}_${j}`];
             return `
@@ -495,7 +492,6 @@ function render(){
                 </div>`;
         }).join('');
 
-        // AGREGAR PREGUNTA DE JIG SI APLICA
         if (tipo === 'estacion' && aplicaJigs) {
             const respuestaJigGuardada = auditData.respuestas[`${idx}_jig`];
             htmlPreguntas += `
@@ -517,7 +513,6 @@ function render(){
         backText.innerText = "Atrás";
         backIcon.className = "fas fa-arrow-left";
 
-        // Cálculo dinámico del Score dependiendo del número de preguntas respondidas
         const vals = Object.values(auditData.respuestas);
         const totalPreguntas = aplicaJigs ? 30 : 25; 
         
@@ -541,11 +536,12 @@ async function guardar(){
             empleado_id: document.getElementById('operador_select').value,
             auditor_id: document.getElementById('auditor_select').value,
             area_general_id: document.getElementById('area_select').value,
+            turno_id: document.getElementById('turno_select').value, // <--- AQUÍ SE AGREGA EL TURNO
             machine_id: document.getElementById('maquina_select').value,
             puntuacion: auditData.score,
             respuestas_json: auditData.respuestas,
             observaciones: auditData.observaciones,
-            tipo_auditoria: document.getElementById('tipo_auditoria').value, // Guardar el tipo de auditoría en DB
+            tipo_auditoria: document.getElementById('tipo_auditoria').value,
             created_at: new Date().toISOString()
         }]);
 
