@@ -116,6 +116,7 @@
             border-radius:14px;
             margin-bottom:12px;
             border-left:5px solid var(--primary);
+            transition: border-color 0.3s;
         }
         .question-card.jig-card {
             border-left-color: var(--warning);
@@ -287,7 +288,7 @@ const preguntasEstacion = [
     ["¿Hábito de limpieza?", "¿Sigue instrucciones?", "¿Respeta ubicación?", "¿Reporta anomalías?", "¿Conoce 5S?"]
 ];
 
-// PREGUNTAS EXTRA DE JIGS (Una por cada S, se inyectan si se activa el Checkbox)
+// PREGUNTAS EXTRA DE JIGS
 const preguntasJigs = [
     "¿Solo Jigs de producción actual en uso? (Sin Jigs obsoletos/ajenos)",
     "¿Jigs guardados en su ubicación asignada o soporte correcto?",
@@ -424,6 +425,7 @@ function cargarAuditorCompleto(){
 }
 
 function nextStep(){
+    // Validar datos de inicio
     if(currentStep === 0 && (
         !document.getElementById('area_select').value || 
         !document.getElementById('turno_select').value || 
@@ -431,10 +433,33 @@ function nextStep(){
         !document.getElementById('operador_select').value || 
         !document.getElementById('auditor_select').value
     )){
-        return alert("Faltan datos obligatorios");
+        return alert("Faltan datos obligatorios para iniciar.");
     }
 
+    // Validar que todas las preguntas de la S actual estén contestadas
     if(currentStep > 0 && currentStep <= 5){
+        const idx = currentStep - 1;
+        const tipo = document.getElementById('tipo_auditoria').value;
+        const aplicaJigs = document.getElementById('aplica_jigs').checked;
+        const preguntasActuales = (tipo === 'maquina') ? preguntasMaquina[idx] : preguntasEstacion[idx];
+
+        // Verificar preguntas estándar
+        for (let j = 0; j < preguntasActuales.length; j++) {
+            const clave = `${idx}_${j}`;
+            if (auditData.respuestas[clave] === undefined) {
+                return alert(`⚠️ Debes responder la pregunta ${j + 1} para continuar.`);
+            }
+        }
+
+        // Verificar pregunta de Jigs si aplica
+        if (tipo === 'estacion' && aplicaJigs) {
+            const claveJig = `${idx}_jig`;
+            if (auditData.respuestas[claveJig] === undefined) {
+                return alert(`⚠️ Debes responder la pregunta de Control de Jigs para continuar.`);
+            }
+        }
+
+        // Guardar observaciones
         auditData.observaciones[`s${currentStep}`] = document.getElementById('obs_input').value;
     }
 
@@ -483,7 +508,7 @@ function render(){
             const respuestaGuardada = auditData.respuestas[`${idx}_${j}`];
             return `
                 <div class="question-card">
-                    <div style="font-weight:600">${p}</div>
+                    <div style="font-weight:600">${j + 1}. ${p}</div>
                     <div class="options">
                         <button class="btn-opt ${respuestaGuardada === 1 ? 'active' : ''}" data-score="1" onclick="setAns('${idx}_${j}',1,this)">SI</button>
                         <button class="btn-opt ${respuestaGuardada === 0.5 ? 'active' : ''}" data-score="0.5" onclick="setAns('${idx}_${j}',0.5,this)">PARCIAL</button>
@@ -536,7 +561,7 @@ async function guardar(){
             empleado_id: document.getElementById('operador_select').value,
             auditor_id: document.getElementById('auditor_select').value,
             area_general_id: document.getElementById('area_select').value,
-            turno_id: document.getElementById('turno_select').value, // <--- AQUÍ SE AGREGA EL TURNO
+            turno_id: document.getElementById('turno_select').value,
             machine_id: document.getElementById('maquina_select').value,
             puntuacion: auditData.score,
             respuestas_json: auditData.respuestas,
