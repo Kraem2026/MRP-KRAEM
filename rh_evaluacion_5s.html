@@ -3,583 +3,381 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAEM | Auditoría 5S</title>
+    <title>Evaluación y Auditoría 5S</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root{
-            --primary:#2563eb;
-            --success:#22c55e;
-            --warning:#f59e0b;
-            --danger:#ef4444;
-            --bg:#f8fafc;
-            --text:#1e293b;
-            --border:#e2e8f0;
-        }
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-        }
-        body{
-            font-family:'Segoe UI',sans-serif;
-            background:var(--bg);
-            color:var(--text);
-            padding:15px;
-        }
-        .container{
-            max-width:550px;
-            margin:auto;
-            background:white;
-            border-radius:18px;
-            box-shadow:0 4px 15px rgba(0,0,0,0.08);
-            padding:20px;
-            min-height:85vh;
-            display:flex;
-            flex-direction:column;
-        }
-        header{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            margin-bottom:20px;
-            border-bottom:2px solid var(--bg);
-            padding-bottom:12px;
-        }
-        .btn-back{
-            background:none;
-            border:none;
-            color:var(--primary);
-            font-weight:bold;
-            cursor:pointer;
-            display:flex;
-            align-items:center;
-            gap:6px;
-            font-size:14px;
-        }
-        .setup-group{
-            display:grid;
-            gap:14px;
-            margin-bottom:20px;
-        }
-        label{
-            font-size:11px;
-            font-weight:bold;
-            color:var(--primary);
-            text-transform:uppercase;
-            margin-bottom:-8px;
-        }
-        select, textarea, input[type="checkbox"]{
-            width:100%;
-            padding:12px;
-            border:1px solid var(--border);
-            border-radius:10px;
-            font-size:14px;
-            background:white;
-            font-family:inherit;
-            outline:none;
-        }
-        select:focus, textarea:focus{
-            border-color:var(--primary);
-        }
-        .checkbox-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--bg);
-            padding: 12px;
-            border-radius: 10px;
-            cursor: pointer;
-            user-select: none;
-        }
-        .checkbox-container input {
-            width: auto;
-            transform: scale(1.2);
-        }
-        .progress-container{
-            background:#e5e7eb;
-            border-radius:10px;
-            height:10px;
-            margin-bottom:20px;
-            overflow:hidden;
-        }
-        .progress-bar{
-            background:var(--primary);
-            height:100%;
-            width:0%;
-            transition:.3s;
-        }
-        .question-card{
-            background:var(--bg);
-            padding:15px;
-            border-radius:14px;
-            margin-bottom:12px;
-            border-left:5px solid var(--primary);
-            transition: border-color 0.3s;
-        }
-        .question-card.jig-card {
-            border-left-color: var(--warning);
-            background: #fffbeb;
-        }
-        .options{
-            display:flex;
-            gap:8px;
-            margin-top:12px;
-        }
-        .btn-opt{
-            flex:1;
-            padding:10px;
-            border:2px solid var(--border);
-            border-radius:10px;
-            cursor:pointer;
-            font-weight:bold;
-            background:white;
-            font-size:11px;
-            transition:.2s;
-        }
-        .btn-opt.active[data-score="1"]{
-            background:var(--success)!important;
-            color:white;
-            border-color:#16a34a;
-        }
-        .btn-opt.active[data-score="0.5"]{
-            background:var(--warning)!important;
-            color:white;
-            border-color:#d97706;
-        }
-        .btn-opt.active[data-score="0"]{
-            background:var(--danger)!important;
-            color:white;
-            border-color:#dc2626;
-        }
-        .btn-nav{
-            padding:15px;
-            border:none;
-            border-radius:12px;
-            cursor:pointer;
-            font-weight:bold;
-            width:100%;
-            font-size:16px;
-            background:var(--primary);
-            color:white;
-            transition:.2s;
-        }
-        .btn-nav:hover{
-            opacity:.95;
-        }
-        .hidden{
-            display:none !important;
-        }
-        #score-badge{
-            font-size:4rem;
-            font-weight:900;
-            text-align:center;
-            color:var(--primary);
-            margin:25px 0;
-        }
-    </style>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen text-gray-800">
 
-<div class="container">
-    <header>
-        <button class="btn-back" id="header-back-btn" onclick="prevStep()">
-            <i class="fas fa-arrow-left"></i> <span id="back-text">Panel</span>
-        </button>
-        <h3 style="margin:0;">Auditoría 5S</h3>
+    <!-- Header -->
+    <header class="bg-slate-800 text-white shadow-md p-4 mb-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-check text-emerald-400"></i> Auditoría y Evaluación 5S
+            </h1>
+            <a href="rh_empleados.html" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded text-sm transition">
+                <i class="fa-solid fa-users mr-1"></i> Gestión de Personal
+            </a>
+        </div>
     </header>
 
-    <div id="step-setup">
-        <div class="setup-group">
-            <label>Tipo de Auditoría</label>
-            <select id="tipo_auditoria" onchange="cambioTipoAuditoria()">
-                <option value="estacion">Estación de Trabajo / Operador</option>
-                <option value="maquina">Máquina de Inyección (Mtto / Planta)</option>
-            </select>
+    <div class="max-w-7xl mx-auto px-4 pb-12">
+        <!-- Panel Configuración de Evaluación -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">
+                <i class="fa-solid fa-sliders text-indigo-500 mr-2"></i> Parámetros de la Auditoría
+            </h2>
 
-            <label>Área General</label>
-            <select id="area_select" onchange="cambioFiltros()">
-                <option value="">Cargando...</option>
-            </select>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Área General -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Área General *</label>
+                    <select id="area_select" onchange="alCambiarFiltro()" class="w-full border-gray-300 rounded-md border p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">Cargando áreas...</option>
+                    </select>
+                </div>
 
-            <label>Turno</label>
-            <select id="turno_select" onchange="cambioFiltros()">
-                <option value="">Cargando...</option>
-            </select>
+                <!-- Turno -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Turno *</label>
+                    <select id="turno_select" onchange="alCambiarFiltro()" class="w-full border-gray-300 rounded-md border p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">Cargando turnos...</option>
+                    </select>
+                </div>
 
-            <label>Máquina</label>
-            <select id="maquina_select">
-                <option value="">Seleccione área...</option>
-            </select>
+                <!-- Operador / Responsable -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Operador Evaluado *</label>
+                    <select id="operador_select" class="w-full border-gray-300 rounded-md border p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">Seleccione área y turno...</option>
+                    </select>
+                </div>
 
-            <label id="label_operador">Operador</label>
-            <select id="operador_select">
-                <option value="">Seleccione área y turno...</option>
-            </select>
-
-            <label>Auditor (Lista Completa por Turno)</label>
-            <select id="auditor_select">
-                <option value="">Cargando...</option>
-            </select>
-
-            <div id="jig_toggle_container" style="margin-top: 5px;">
-                <label class="checkbox-container">
-                    <input type="checkbox" id="aplica_jigs">
-                    <span>¿Aplica uso de Jigs / Dispositivos en la estación?</span>
-                </label>
+                <!-- Auditor -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Auditor *</label>
+                    <select id="auditor_select" class="w-full border-gray-300 rounded-md border p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">Cargando auditores...</option>
+                    </select>
+                </div>
             </div>
         </div>
 
-        <button class="btn-nav" onclick="nextStep()">EMPEZAR AUDITORÍA</button>
+        <!-- Formulario Cuestionario 5S -->
+        <form id="form_5s" onsubmit="guardarEvaluacion(event)" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2 flex justify-between items-center">
+                <span><i class="fa-solid fa-list-check text-emerald-600 mr-2"></i> Criterios de Evaluación</span>
+                <span class="text-sm font-normal text-gray-500">Puntaje Total: <span id="puntaje_total" class="font-bold text-indigo-600">0%</span></span>
+            </h2>
+
+            <!-- 1. Seiri (Clasificar) -->
+            <div class="mb-6 bg-slate-50 p-4 rounded-md border border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-3 text-md border-b border-slate-200 pb-1">1. Seiri (Clasificar / Seleccionar)</h3>
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded border">
+                        <div class="text-sm">
+                            <p class="font-medium text-gray-800">1.1 Solo existen elementos necesarios en el puesto de trabajo.</p>
+                            <p class="text-xs text-gray-500">Herramientas inutilizadas o fuera de lugar han sido retiradas.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select name="p_1_1" class="eval-score border rounded p-1 text-sm bg-gray-50" onchange="calcularCalificacion()">
+                                <option value="0">0 - No cumple</option>
+                                <option value="1">1 - Parcial</option>
+                                <option value="2" selected>2 - Cumple totalmente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded border">
+                        <div class="text-sm">
+                            <p class="font-medium text-gray-800">1.2 Materiales y materia prima identificados sin exceso de stock.</p>
+                            <p class="text-xs text-gray-500">Solo el lote actual se encuentra en la mesa o estación.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select name="p_1_2" class="eval-score border rounded p-1 text-sm bg-gray-50" onchange="calcularCalificacion()">
+                                <option value="0">0 - No cumple</option>
+                                <option value="1">1 - Parcial</option>
+                                <option value="2" selected>2 - Cumple totalmente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Seiton (Ordenar) -->
+            <div class="mb-6 bg-slate-50 p-4 rounded-md border border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-3 text-md border-b border-slate-200 pb-1">2. Seiton (Ordenar / Organizar)</h3>
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded border">
+                        <div class="text-sm">
+                            <p class="font-medium text-gray-800">2.1 Un lugar para cada cosa y cada cosa en su lugar.</p>
+                            <p class="text-xs text-gray-500">Herramientas delimitadas o etiquetadas claramente.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select name="p_2_1" class="eval-score border rounded p-1 text-sm bg-gray-50" onchange="calcularCalificacion()">
+                                <option value="0">0 - No cumple</option>
+                                <option value="1">1 - Parcial</option>
+                                <option value="2" selected>2 - Cumple totalmente</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded border">
+                        <div class="text-sm">
+                            <p class="font-medium text-gray-800">2.2 Acceso rápido y seguro a herramientas y componentes.</p>
+                            <p class="text-xs text-gray-500">Sin obstáculos ni riesgos de ergonomía.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select name="p_2_2" class="eval-score border rounded p-1 text-sm bg-gray-50" onchange="calcularCalificacion()">
+                                <option value="0">0 - No cumple</option>
+                                <option value="1">1 - Parcial</option>
+                                <option value="2" selected>2 - Cumple totalmente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Seiso (Limpiar) -->
+            <div class="mb-6 bg-slate-50 p-4 rounded-md border border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-3 text-md border-b border-slate-200 pb-1">3. Seiso (Limpieza / Inspeccionar)</h3>
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded border">
+                        <div class="text-sm">
+                            <p class="font-medium text-gray-800">3.1 Pisos, máquinas y superficies libres de polvo, aceite o rebaba.</p>
+                            <p class="text-xs text-gray-500">Se realiza rutina diaria de limpieza al inicio/fin de turno.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select name="p_3_1" class="eval-score border rounded p-1 text-sm bg-gray-50" onchange="calcularCalificacion()">
+                                <option value="0">0 - No cumple</option>
+                                <option value="1">1 - Parcial</option>
+                                <option value="2" selected>2 - Cumple totalmente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Seiketsu (Estandarizar) -->
+            <div class="mb-6 bg-slate-50 p-4 rounded-md border border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-3 text-md border-b border-slate-200 pb-1">4. Seiketsu (Estandarizar)</h3>
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded border">
+                        <div class="text-sm">
+                            <p class="font-medium text-gray-800">4.1 La ayuda visual/estándar de 5S está visible y actualizada.</p>
+                            <p class="text-xs text-gray-500">Checklist o estándar publicado en la estación.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select name="p_4_1" class="eval-score border rounded p-1 text-sm bg-gray-50" onchange="calcularCalificacion()">
+                                <option value="0">0 - No cumple</option>
+                                <option value="1">1 - Parcial</option>
+                                <option value="2" selected>2 - Cumple totalmente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Shitsuke (Disciplina) -->
+            <div class="mb-6 bg-slate-50 p-4 rounded-md border border-slate-200">
+                <h3 class="font-bold text-slate-700 mb-3 text-md border-b border-slate-200 pb-1">5. Shitsuke (Disciplina / Sostener)</h3>
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-3 rounded border">
+                        <div class="text-sm">
+                            <p class="font-medium text-gray-800">5.1 El operador demuestra hábito y compromiso con el cumplimiento de 5S.</p>
+                            <p class="text-xs text-gray-500">Uso adecuado de EPP y seguimiento de reglas del área.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select name="p_5_1" class="eval-score border rounded p-1 text-sm bg-gray-50" onchange="calcularCalificacion()">
+                                <option value="0">0 - No cumple</option>
+                                <option value="1">1 - Parcial</option>
+                                <option value="2" selected>2 - Cumple totalmente</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Observaciones / Oportunidades de Mejora</label>
+                <textarea id="observaciones" rows="3" class="w-full border-gray-300 rounded-md border p-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Ingrese comentarios adicionales o desviaciones encontradas..."></textarea>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="form_5s.reset(); calcularCalificacion();" class="px-5 py-2.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium">
+                    Limpiar
+                </button>
+                <button type="submit" id="btn_guardar" class="px-5 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar Auditoría
+                </button>
+            </div>
+        </form>
     </div>
 
-    <div id="audit-flow" class="hidden">
-        <div class="progress-container">
-            <div id="progress-bar" class="progress-bar"></div>
-        </div>
+    <!-- Logic Script -->
+    <script>
+        // Configuración de Supabase
+        const SUPABASE_URL = 'https://tu-proyecto.supabase.co';
+        const SUPABASE_KEY = 'tu-anon-key';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        <div id="section-label" style="font-weight:bold; color:var(--primary); text-align:center; margin-bottom:15px; font-size:1.2rem;"></div>
+        let listaAreas = [];
+        let listaTurnos = [];
+        let listaEmpleados = [];
 
-        <div id="preguntas_cont"></div>
-
-        <div style="margin-top:20px;">
-            <label>Observaciones de esta sección</label>
-            <textarea id="obs_input" rows="3" placeholder="Hallazgos, mejoras, problemas detectados..."></textarea>
-        </div>
-
-        <button class="btn-nav" style="margin-top:20px;" onclick="nextStep()">SIGUIENTE</button>
-    </div>
-
-    <div id="step-result" class="hidden">
-        <div style="text-align:center; font-weight:bold; font-size:1.2rem;">RESULTADO FINAL</div>
-        <div id="score-badge">0%</div>
-        <button class="btn-nav" style="background:var(--success)" onclick="guardar()">
-            <i class="fas fa-save"></i> GUARDAR AUDITORÍA
-        </button>
-    </div>
-</div>
-
-<script>
-let currentStep = 0;
-let auditData = {
-    respuestas: {},
-    observaciones: {},
-    score: 0
-};
-
-let listaEmpleados = [];
-let listaTurnos = [];
-
-const nombres5S = [
-    "1. SEIRI (Clasificar)",
-    "2. SEITON (Ordenar)",
-    "3. SEISO (Limpiar)",
-    "4. SEIKETSU (Estandarizar)",
-    "5. SHITSUKE (Disciplina)"
-];
-
-// 1. MATRIZ: Estación de Trabajo tradicional
-const preguntasEstacion = [
-    ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
-    ["¿Herramientas en su lugar?", "¿Material en su lugar?", "¿Área libre de obstáculos?", "¿Contenedores correctamente identificados?", "¿Instrucciones visibles?"],
-    ["¿Área libre de polvo?", "¿Piso limpio?", "¿Contenedores limpios?", "¿Máquina limpia?", "¿Mesa limpia?"],
-    ["¿Instrucciones actualizadas?", "¿Uso de uniforme?", "¿Etiquetas correctas?", "¿Área delimitada?", "¿Cumple estándar?"],
-    ["¿Hábito de limpieza?", "¿Sigue instrucciones?", "¿Respeta ubicación?", "¿Reporta anomalías?", "¿Conoce 5S?"]
-];
-
-// PREGUNTAS EXTRA DE JIGS
-const preguntasJigs = [
-    "¿Solo Jigs de producción actual en uso? (Sin Jigs obsoletos/ajenos)",
-    "¿Jigs guardados en su ubicación asignada o soporte correcto?",
-    "¿Jigs limpios de residuos, y conectores/sensores libres de grasa/polvo?",
-    "¿Jigs identificados/etiquetados y con cables/conexiones en buen estado?",
-    "¿El operador reporta fallas en sensores de Jigs y los maneja con cuidado?"
-];
-
-// 2. MATRIZ: Máquinas de Inyección (Enfoque Técnico y de Mantenimiento)
-const preguntasMaquina = [
-    ["¿Área de máquina libre de refacciones viejas, moldes o mangueras sin usar?", "¿Purga de plástico retirada del área de goteo?", "¿Herramientas de cambio de molde ausentes si no está en Setup?", "¿Herramientas del operador guardadas?", "¿Sin documentos obsoletos en tablero?"],
-    ["¿Mangueras de agua/aceite ordenadas y sin riesgo de tropiezo?", "¿Contenedores de materia prima (Tolva/Alimentador) bien ubicados?", "¿Hieleras, racks de producto y tarimas alineados en su delimitación?", "¿Pistolas de aire y herramientas colgadas en su sitio?", "¿Paros de emergencia accesibles y sin obstrucción?"],
-    ["¿Piso e interior de la máquina libres de fugas de aceite o agua?", "¿Estructura, tolva y guardas libres de polvo o residuos de resina?", "¿Unidad de inyección, pistón y husillo limpios de purgas quemadas?", "¿Bandejas de goteo limpias y sin desborde?", "¿Tablero eléctrico y pantallas limpios y cerrados?"],
-    ["¿Hojas de parámetros y ayudas visuales legibles y vigentes en la máquina?", "¿Puntos de lubricación identificados y con niveles correctos?", "¿Código de colores visible en mangueras de enfriamiento?", "¿Delimitación de seguridad del perímetro de la máquina en buen estado?", "¿Checklist diario de máquina liberado por operador/mtto?"],
-    ["¿El personal limpia la máquina al terminar el turno?", "¿Se respetan los accesos de mantenimiento sin dejar obstrucciones?", "¿Se reportan y atienden fugas críticas de inmediato?", "¿Se usan los botes de basura correctos para purgas/residuos?", "¿El equipo de mtto/producción sigue el estándar de orden de la máquina?"]
-];
-
-async function init(){
-    try{
-        const { data: areas, error: errAreas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
-        if(errAreas) throw errAreas;
-        document.getElementById('area_select').innerHTML = '<option value="">Seleccione...</option>' + areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
-
-        const { data: turnos, error: errTurnos } = await client.from('rh_turnos').select('*').order('nombre');
-        if(errTurnos) throw errTurnos;
-        listaTurnos = turnos;
-        document.getElementById('turno_select').innerHTML = '<option value="">Seleccione...</option>' + turnos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
-
-        const { data: emps, error: errEmp } = await client.from('rh_empleados').select('*').eq('estatus', 'ACTIVO').order('nombre_completo');
-        if(errEmp) throw errEmp;
-        listaEmpleados = emps;
-
-        filtrarOperadores();
-        cargarAuditorCompleto();
-    }catch(e){
-        console.error(e);
-        alert(e.message);
-    }
-}
-
-function cambioTipoAuditoria() {
-    const tipo = document.getElementById('tipo_auditoria').value;
-    const jigToggle = document.getElementById('jig_toggle_container');
-    const opSel = document.getElementById('operador_select');
-    const opLabel = document.getElementById('label_operador');
-
-    if (tipo === 'maquina') {
-        jigToggle.classList.add('hidden');
-        document.getElementById('aplica_jigs').checked = false;
-        opLabel.innerText = "Operador de Máquina / Líder responsable";
-    } else {
-        jigToggle.classList.remove('hidden');
-        opLabel.innerText = "Operador";
-    }
-}
-
-function cambioFiltros() {
-    actualizarMaquinas();
-    filtrarOperadores();
-}
-
-async function actualizarMaquinas(){
-    const areaId = document.getElementById('area_select').value;
-    const mSel = document.getElementById('maquina_select');
-    mSel.innerHTML = '<option value="">Cargando...</option>';
-
-    if(!areaId){
-        mSel.innerHTML = '<option value="">Seleccione área...</option>';
-        return;
-    }
-    try{
-        const { data: maquinas, error } = await client.from('mes_machines').select('*').eq('area_general_id', areaId).eq('active', true).eq('maintenance_status', 'Disponible').order('machine_code');
-        if(error) throw error;
-
-        mSel.innerHTML = '<option value="">Seleccione...</option>';
-        maquinas.forEach(m => {
-            mSel.innerHTML += `<option value="${m.id}">${m.machine_code} - ${m.machine_name} (${m.tonnage || '-'} TON)</option>`;
+        document.addEventListener('DOMContentLoaded', async () => {
+            await cargarCatalogos();
+            calcularCalificacion();
         });
-    }catch(e){
-        console.error(e);
-        mSel.innerHTML = '<option value="">Error cargando</option>';
-    }
-}
 
-function filtrarOperadores(){
-    const areaId = document.getElementById('area_select').value;
-    const turnoUuid = document.getElementById('turno_select').value;
-    const opSel = document.getElementById('operador_select');
+        async function cargarCatalogos() {
+            try {
+                // 1. Cargar Áreas Generales
+                const { data: areas, error: errAreas } = await _supabase.from('areas_generales').select('*').order('nombre');
+                if (!errAreas && areas) {
+                    listaAreas = areas;
+                    const areaSel = document.getElementById('area_select');
+                    areaSel.innerHTML = '<option value="">Seleccione Área...</option>' + 
+                        areas.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
+                }
 
-    if(!areaId || !turnoUuid){
-        opSel.innerHTML = '<option value="">Seleccione área y turno...</option>';
-        return;
-    }
+                // 2. Cargar Turnos
+                const { data: turnos, error: errTurnos } = await _supabase.from('rh_turnos').select('*').order('nombre');
+                if (!errTurnos && turnos) {
+                    listaTurnos = turnos;
+                    const turnoSel = document.getElementById('turno_select');
+                    turnoSel.innerHTML = '<option value="">Seleccione Turno...</option>' + 
+                        turnos.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
+                }
 
-    const turnoObj = listaTurnos.find(t => String(t.id) === String(turnoUuid));
-    const nombreTurno = turnoObj ? turnoObj.nombre : '';
-    const turnoNumerico = nombreTurno.includes('2') ? '2' : (nombreTurno.includes('1') ? '1' : '');
+                // 3. Cargar Empleados Activos
+                const { data: empleados, error: errEmps } = await _supabase.from('rh_empleados').select('*').eq('estatus', 'activo').order('nombre_completo');
+                if (!errEmps && empleados) {
+                    listaEmpleados = empleados;
+                }
 
-    const filtrados = listaEmpleados.filter(e => 
-        String(e.area_general_id || '') === String(areaId) && 
-        String(e.turno_id || '') === String(turnoNumerico)
-    );
+                cargarAuditorCompleto();
 
-    if(filtrados.length === 0){
-        opSel.innerHTML = '<option value="">Sin personal en esta combinación</option>';
-    } else {
-        opSel.innerHTML = '<option value="">Seleccione...</option>' + filtrados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-    }
-}
-
-function cargarAuditorCompleto(){
-    const audSel = document.getElementById('auditor_select');
-    let html = '<option value="">Seleccione...</option>';
-
-    listaTurnos.forEach(turno => {
-        const turnoNumerico = turno.nombre.includes('2') ? '2' : (turno.nombre.includes('1') ? '1' : 'OTRO');
-        const empsDelTurno = listaEmpleados.filter(e => String(e.turno_id || '') === String(turnoNumerico));
-        
-        if(empsDelTurno.length > 0){
-            html += `<optgroup label="${turno.nombre}">`;
-            html += empsDelTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-            html += `</optgroup>`;
-        }
-    });
-
-    const sinTurno = listaEmpleados.filter(e => !e.turno_id || (e.turno_id !== '1' && e.turno_id !== '2'));
-    if(sinTurno.length > 0 && listaTurnos.length === 0){
-        html += `<optgroup label="Todos los Empleados">`;
-        html += sinTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-        html += `</optgroup>`;
-    }
-
-    audSel.innerHTML = html;
-}
-
-function nextStep(){
-    // Validar datos de inicio
-    if(currentStep === 0 && (
-        !document.getElementById('area_select').value || 
-        !document.getElementById('turno_select').value || 
-        !document.getElementById('maquina_select').value || 
-        !document.getElementById('operador_select').value || 
-        !document.getElementById('auditor_select').value
-    )){
-        return alert("Faltan datos obligatorios para iniciar.");
-    }
-
-    // Validar que todas las preguntas de la S actual estén contestadas
-    if(currentStep > 0 && currentStep <= 5){
-        const idx = currentStep - 1;
-        const tipo = document.getElementById('tipo_auditoria').value;
-        const aplicaJigs = document.getElementById('aplica_jigs').checked;
-        const preguntasActuales = (tipo === 'maquina') ? preguntasMaquina[idx] : preguntasEstacion[idx];
-
-        // Verificar preguntas estándar
-        for (let j = 0; j < preguntasActuales.length; j++) {
-            const clave = `${idx}_${j}`;
-            if (auditData.respuestas[clave] === undefined) {
-                return alert(`⚠️ Debes responder la pregunta ${j + 1} para continuar.`);
+            } catch (e) {
+                console.error("Error al cargar catálogos:", e);
             }
         }
 
-        // Verificar pregunta de Jigs si aplica
-        if (tipo === 'estacion' && aplicaJigs) {
-            const claveJig = `${idx}_jig`;
-            if (auditData.respuestas[claveJig] === undefined) {
-                return alert(`⚠️ Debes responder la pregunta de Control de Jigs para continuar.`);
+        function alCambiarFiltro() {
+            filtrarOperadores();
+        }
+
+        // CORRECCIÓN CLAVE: Filtrar directamente comparando turno_id real (rh_turnos.id)
+        function filtrarOperadores() {
+            const areaId = document.getElementById('area_select').value;
+            const turnoUuid = document.getElementById('turno_select').value;
+            const opSel = document.getElementById('operador_select');
+
+            if (!areaId || !turnoUuid) {
+                opSel.innerHTML = '<option value="">Seleccione área y turno...</option>';
+                return;
+            }
+
+            const filtrados = listaEmpleados.filter(e => 
+                String(e.area_general_id || '').trim() === String(areaId).trim() && 
+                String(e.turno_id || '').trim() === String(turnoUuid).trim()
+            );
+
+            if (filtrados.length === 0) {
+                opSel.innerHTML = '<option value="">Sin personal en esta combinación</option>';
+            } else {
+                opSel.innerHTML = '<option value="">Seleccione...</option>' + 
+                    filtrados.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
             }
         }
 
-        // Guardar observaciones
-        auditData.observaciones[`s${currentStep}`] = document.getElementById('obs_input').value;
-    }
+        // CORRECCIÓN CLAVE: Agrupar auditores relacionando directamente rh_turnos.id
+        function cargarAuditorCompleto() {
+            const audSel = document.getElementById('auditor_select');
+            let html = '<option value="">Seleccione...</option>';
 
-    currentStep++;
-    render();
-}
+            listaTurnos.forEach(turno => {
+                const empsDelTurno = listaEmpleados.filter(e => String(e.turno_id || '').trim() === String(turno.id).trim());
+                
+                if (empsDelTurno.length > 0) {
+                    html += `<optgroup label="${turno.nombre}">`;
+                    html += empsDelTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+                    html += `</optgroup>`;
+                }
+            });
 
-function prevStep(){
-    if(currentStep === 0){
-        location.href='dashboard.html';
-        return;
-    }
-    currentStep--;
-    render();
-}
+            const sinTurno = listaEmpleados.filter(e => !e.turno_id);
+            if (sinTurno.length > 0) {
+                html += `<optgroup label="Sin Turno Asignado">`;
+                html += sinTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
+                html += `</optgroup>`;
+            }
 
-function render(){
-    document.getElementById("step-setup").classList.add("hidden");
-    document.getElementById("audit-flow").classList.add("hidden");
-    document.getElementById("step-result").classList.add("hidden");
-
-    const backText = document.getElementById('back-text');
-    const backIcon = document.querySelector('#header-back-btn i');
-
-    const tipo = document.getElementById('tipo_auditoria').value;
-    const aplicaJigs = document.getElementById('aplica_jigs').checked;
-    
-    const matrizPreguntas = (tipo === 'maquina') ? preguntasMaquina : preguntasEstacion;
-
-    if(currentStep === 0){
-        document.getElementById("step-setup").classList.remove("hidden");
-        backText.innerText = "Panel";
-        backIcon.className = "fas fa-th-large";
-    }
-    else if(currentStep <= 5){
-        document.getElementById("audit-flow").classList.remove("hidden");
-        backText.innerText = "Atrás";
-        backIcon.className = "fas fa-arrow-left";
-
-        const idx = currentStep - 1;
-        document.getElementById("section-label").innerText = nombres5S[idx];
-        document.getElementById("progress-bar").style.width = (currentStep * 20) + "%";
-        document.getElementById('obs_input').value = auditData.observaciones[`s${currentStep}`] || "";
-
-        let htmlPreguntas = matrizPreguntas[idx].map((p, j) => {
-            const respuestaGuardada = auditData.respuestas[`${idx}_${j}`];
-            return `
-                <div class="question-card">
-                    <div style="font-weight:600">${j + 1}. ${p}</div>
-                    <div class="options">
-                        <button class="btn-opt ${respuestaGuardada === 1 ? 'active' : ''}" data-score="1" onclick="setAns('${idx}_${j}',1,this)">SI</button>
-                        <button class="btn-opt ${respuestaGuardada === 0.5 ? 'active' : ''}" data-score="0.5" onclick="setAns('${idx}_${j}',0.5,this)">PARCIAL</button>
-                        <button class="btn-opt ${respuestaGuardada === 0 ? 'active' : ''}" data-score="0" onclick="setAns('${idx}_${j}',0,this)">NO</button>
-                    </div>
-                </div>`;
-        }).join('');
-
-        if (tipo === 'estacion' && aplicaJigs) {
-            const respuestaJigGuardada = auditData.respuestas[`${idx}_jig`];
-            htmlPreguntas += `
-                <div class="question-card jig-card">
-                    <div style="font-weight:bold; color:#d97706;"><i class="fas fa-tools"></i> CONTROL DE JIGS:</div>
-                    <div style="font-weight:600; margin-top:4px;">${preguntasJigs[idx]}</div>
-                    <div class="options">
-                        <button class="btn-opt ${respuestaJigGuardada === 1 ? 'active' : ''}" data-score="1" onclick="setAns('${idx}_jig',1,this)">SI</button>
-                        <button class="btn-opt ${respuestaJigGuardada === 0.5 ? 'active' : ''}" data-score="0.5" onclick="setAns('${idx}_jig',0.5,this)">PARCIAL</button>
-                        <button class="btn-opt ${respuestaJigGuardada === 0 ? 'active' : ''}" data-score="0" onclick="setAns('${idx}_jig',0,this)">NO</button>
-                    </div>
-                </div>`;
+            audSel.innerHTML = html;
         }
 
-        document.getElementById("preguntas_cont").innerHTML = htmlPreguntas;
-        window.scrollTo(0,0);
-    }
-    else{
-        backText.innerText = "Atrás";
-        backIcon.className = "fas fa-arrow-left";
+        function calcularCalificacion() {
+            const selects = document.querySelectorAll('.eval-score');
+            let totalObtenido = 0;
+            let totalMaximo = selects.length * 2;
 
-        const vals = Object.values(auditData.respuestas);
-        const totalPreguntas = aplicaJigs ? 30 : 25; 
-        
-        auditData.score = Math.round((vals.reduce((a,b)=>a+b,0) / totalPreguntas) * 100);
+            selects.forEach(s => {
+                totalObtenido += parseInt(s.value || 0, 10);
+            });
 
-        document.getElementById("score-badge").innerText = auditData.score + "%";
-        document.getElementById("step-result").classList.remove("hidden");
-    }
-}
+            const porcentaje = totalMaximo > 0 ? Math.round((totalObtenido / totalMaximo) * 100) : 0;
+            document.getElementById('puntaje_total').textContent = `${porcentaje}%`;
+        }
 
-function setAns(id, v, btn){
-    const parent = btn.parentElement;
-    parent.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    auditData.respuestas[id] = v;
-}
+        async function guardarEvaluacion(e) {
+            e.preventDefault();
 
-async function guardar(){
-    try{
-        const { error } = await client.from('rh_evaluaciones_5s').insert([{
-            empleado_id: document.getElementById('operador_select').value,
-            auditor_id: document.getElementById('auditor_select').value,
-            area_general_id: document.getElementById('area_select').value,
-            turno_id: document.getElementById('turno_select').value,
-            machine_id: document.getElementById('maquina_select').value,
-            puntuacion: auditData.score,
-            respuestas_json: auditData.respuestas,
-            observaciones: auditData.observaciones,
-            tipo_auditoria: document.getElementById('tipo_auditoria').value,
-            created_at: new Date().toISOString()
-        }]);
+            const areaId = document.getElementById('area_select').value;
+            const turnoId = document.getElementById('turno_select').value;
+            const operadorId = document.getElementById('operador_select').value;
+            const auditorId = document.getElementById('auditor_select').value;
+            const observaciones = document.getElementById('observaciones').value;
 
-        if(error) throw error;
-        alert("¡Auditoría guardada con éxito!");
-        location.href = 'rh_evaluacion_5s.html';
-    }catch(e){
-        console.error(e);
-        alert(e.message);
-    }
-}
+            if (!areaId || !turnoId || !operadorId || !auditorId) {
+                alert('Por favor complete todos los campos de encabezado (Área, Turno, Operador y Auditor).');
+                return;
+            }
 
-window.onload = init;
-</script>
+            const btn = document.getElementById('btn_guardar');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...';
+
+            try {
+                const puntajeTexto = document.getElementById('puntaje_total').textContent.replace('%', '');
+                
+                const { data, error } = await _supabase.from('rh_evaluaciones_5s').insert([{
+                    area_general_id: areaId,
+                    turno_id: turnoId,
+                    operador_id: operadorId,
+                    auditor_id: auditorId,
+                    calificacion: parseInt(puntajeTexto, 10),
+                    observaciones: observaciones,
+                    fecha_evaluacion: new Date().toISOString()
+                }]).select();
+
+                if (error) throw error;
+
+                alert('¡Evaluación de 5S guardada con éxito!');
+                document.getElementById('form_5s').reset();
+                calcularCalificacion();
+
+            } catch (err) {
+                console.error("Error al guardar evaluación:", err);
+                alert("Ocurrió un error al guardar la auditoría: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-2"></i> Guardar Auditoría';
+            }
+        }
+    </script>
 </body>
 </html>
