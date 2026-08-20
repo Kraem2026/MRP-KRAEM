@@ -105,9 +105,9 @@
                         <th id="th_type">Tipo / Material Grade</th>
                         <th>C/Time (s)</th>
                         <th>Cav.</th>
-                        <th>Peso Neto (KG)</th>
-                        <th>Peso Colada (KG)</th>
-                        <th>Peso Total (KG)</th>
+                        <th>Peso Pieza (g)</th>
+                        <th>Peso Colada (g)</th>
+                        <th>Peso Total (g)</th>
                         <th>U/S</th>
                         <th style="background:#eff6ff; color:#1e40af;">Requerido WMS</th>
                     </tr>
@@ -200,12 +200,12 @@
         document.getElementById('selectedPTNumber').innerText = number;
         document.getElementById('calcBox').style.display = 'flex';
         
-        // Carga la información trayendo los datos técnicos desde la tabla 'parts' asociada
+        // Carga la información utilizando las columnas exactas de la tabla 'parts'
         const { data, error } = await client
             .from('bom_structures') 
             .select(`
                 *,
-                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type, project, client, cycle_time_sec, cavities, net_weight_kg, gate_weight_kg)
+                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type, project, client, cycle_time_seg, cavities, part_weight_gr, runner_weight_gr, resin_grade)
             `)
             .eq('parent_id', id)
             .order('bom_level', { ascending: true });
@@ -230,19 +230,19 @@
         body.innerHTML = allBomData.map(item => {
             const child = item.child || {};
 
-            // PRIORIDAD DE DATOS: Prioriza lo definido en la tabla 'parts' (Catálogo), 
-            // si no está definido, toma el valor guardado en 'bom_structures'.
-            const cycleTime = child.cycle_time_sec ?? item.cycle_time_sec ?? '-';
+            // Mapeo correcto utilizando la estructura real de la tabla 'parts'
+            const cycleTime = child.cycle_time_seg ?? item.cycle_time_sec ?? '-';
             const cavities = child.cavities ?? item.cavities ?? '-';
-            const netWeight = child.net_weight_kg ?? item.net_weight_kg ?? 0;
-            const gateWeight = child.gate_weight_kg ?? item.gate_weight_kg ?? 0;
+            const partWeight = parseFloat(child.part_weight_gr ?? item.net_weight_kg ?? 0);
+            const runnerWeight = parseFloat(child.runner_weight_gr ?? item.gate_weight_kg ?? 0);
 
-            const totalKgPerPiece = (parseFloat(netWeight) + parseFloat(gateWeight)) || (parseFloat(item.total_weight_kg) || 0);
+            const totalGrPerPiece = partWeight + runnerWeight;
             const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
 
             let reqWmsText = '';
             if (child.product_type === 'RESINA' || (item.unit && item.unit.toUpperCase() === 'KG')) {
-                const totalKgNeeded = (totalKgPerPiece * usage * batchQty).toFixed(2);
+                // Convierte gramos a Kilogramos para el cálculo del WMS
+                const totalKgNeeded = ((totalGrPerPiece / 1000) * usage * batchQty).toFixed(2);
                 reqWmsText = `<strong>${totalKgNeeded} KG</strong>`;
             } else {
                 const totalPcsNeeded = (usage * batchQty).toFixed(0);
@@ -259,13 +259,13 @@
                     <td>${item.car_model || child.project || '---'}</td>
                     <td>
                         <span class="badge ${child.product_type === 'RESINA' ? 'badge-resin' : ''}">${child.product_type || 'COMPONENTE'}</span><br>
-                        <small>${item.material_grade || ''}</small>
+                        <small>${child.resin_grade || item.material_grade || ''}</small>
                     </td>
                     <td>${cycleTime}</td>
                     <td>${cavities}</td>
-                    <td>${parseFloat(netWeight).toFixed(3)}</td>
-                    <td>${parseFloat(gateWeight).toFixed(3)}</td>
-                    <td><strong>${totalKgPerPiece.toFixed(3)}</strong></td>
+                    <td>${partWeight.toFixed(1)}</td>
+                    <td>${runnerWeight.toFixed(1)}</td>
+                    <td><strong>${totalGrPerPiece.toFixed(1)}</strong></td>
                     <td>${usage}</td>
                     <td style="background:#f0f9ff; color:#1e40af;">${reqWmsText}</td>
                 </tr>
@@ -328,7 +328,6 @@
                     const cavities   = parseInt(row[20]) || 1;
                     const netWeight  = parseFloat(row[21]) || 0;
                     const gateWeight = parseFloat(row[22]) || 0;
-                    const totalWeight= parseFloat(row[23]) || (netWeight + gateWeight);
                     const unit       = row[24] ? row[24].toString().trim() : 'KG';
                     const usageQty   = parseFloat(row[25]) || 1;
 
@@ -337,13 +336,13 @@
 
                     if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN' && parentPNo !== 'TBD') {
                         currentParentPartNumber = parentPNo;
-                        currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT', 'PZA', currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight);
+                        currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT', 'PZA', currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight, materialGrade);
                     }
 
                     if (!componentPNo || !currentParentId || componentPNo === 'TBD') continue;
 
                     const childProductType = unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE';
-                    const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit, currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight);
+                    const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit, currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight, materialGrade);
 
                     if (!childId) continue;
 
@@ -355,11 +354,6 @@
                         bom_level: enSub.toUpperCase() === 'EN' ? 1 : 2,
                         client: currentClient,
                         car_model: currentCarModel,
-                        cycle_time_sec: cycleTime,
-                        cavities: cavities,
-                        net_weight_kg: netWeight,
-                        gate_weight_kg: gateWeight,
-                        total_weight_kg: totalWeight,
                         unit: unit,
                         material_grade: materialGrade,
                         supplier_name: supplier
@@ -409,7 +403,7 @@
         reader.readAsArrayBuffer(file);
     }
 
-    async function getOrCreatePart(partNumber, partName, productType, unit = 'EA', project = '', clientName = '', cycleTime = 0, cavities = 1, netWeight = 0, gateWeight = 0) {
+    async function getOrCreatePart(partNumber, partName, productType, unit = 'PZA', project = '', clientName = '', cycleTime = 0, cavities = 1, partWeight = 0, runnerWeight = 0, resinGrade = '') {
         const cleanPN = partNumber.trim();
         
         if (partsCache[cleanPN]) {
@@ -423,10 +417,11 @@
             unit_of_measure: unit,
             project: project,
             client: clientName,
-            cycle_time_sec: cycleTime,
+            cycle_time_seg: cycleTime,
             cavities: cavities,
-            net_weight_kg: netWeight,
-            gate_weight_kg: gateWeight
+            part_weight_gr: partWeight,
+            runner_weight_gr: runnerWeight,
+            resin_grade: resinGrade
         };
 
         const { data: inserted, error } = await client
