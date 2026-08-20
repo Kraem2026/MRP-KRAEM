@@ -137,7 +137,7 @@
     let currentLang = localStorage.getItem('lang') || 'es';
     let selectedPTId = null;
     let allBomData = [];
-    let partsCache = {}; // Caché local para acelerar la búsqueda de partes
+    let partsCache = {};
 
     const translations = {
         es: {
@@ -157,7 +157,6 @@
         fetchPTs();
     }
 
-    // Pre-cargar partes a memoria local para evitar peticiones redundantes a Supabase
     async function preloadPartsCache() {
         const { data, error } = await client.from('parts').select('id, part_number');
         if (data) {
@@ -201,12 +200,12 @@
         document.getElementById('selectedPTNumber').innerText = number;
         document.getElementById('calcBox').style.display = 'flex';
         
-        // CORRECCIÓN: Se agrega 'project' y 'client' a la consulta del selector child
+        // Carga la información trayendo los datos técnicos desde la tabla 'parts' asociada
         const { data, error } = await client
             .from('bom_structures') 
             .select(`
                 *,
-                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type, project, client)
+                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type, project, client, cycle_time_sec, cavities, net_weight_kg, gate_weight_kg)
             `)
             .eq('parent_id', id)
             .order('bom_level', { ascending: true });
@@ -230,7 +229,15 @@
 
         body.innerHTML = allBomData.map(item => {
             const child = item.child || {};
-            const totalKgPerPiece = parseFloat(item.total_weight_kg) || 0;
+
+            // PRIORIDAD DE DATOS: Prioriza lo definido en la tabla 'parts' (Catálogo), 
+            // si no está definido, toma el valor guardado en 'bom_structures'.
+            const cycleTime = child.cycle_time_sec ?? item.cycle_time_sec ?? '-';
+            const cavities = child.cavities ?? item.cavities ?? '-';
+            const netWeight = child.net_weight_kg ?? item.net_weight_kg ?? 0;
+            const gateWeight = child.gate_weight_kg ?? item.gate_weight_kg ?? 0;
+
+            const totalKgPerPiece = (parseFloat(netWeight) + parseFloat(gateWeight)) || (parseFloat(item.total_weight_kg) || 0);
             const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
 
             let reqWmsText = '';
@@ -254,11 +261,11 @@
                         <span class="badge ${child.product_type === 'RESINA' ? 'badge-resin' : ''}">${child.product_type || 'COMPONENTE'}</span><br>
                         <small>${item.material_grade || ''}</small>
                     </td>
-                    <td>${item.cycle_time_sec || '-'}</td>
-                    <td>${item.cavities || '-'}</td>
-                    <td>${item.net_weight_kg || '0.000'}</td>
-                    <td>${item.gate_weight_kg || '0.000'}</td>
-                    <td><strong>${item.total_weight_kg || '0.000'}</strong></td>
+                    <td>${cycleTime}</td>
+                    <td>${cavities}</td>
+                    <td>${parseFloat(netWeight).toFixed(3)}</td>
+                    <td>${parseFloat(gateWeight).toFixed(3)}</td>
+                    <td><strong>${totalKgPerPiece.toFixed(3)}</strong></td>
                     <td>${usage}</td>
                     <td style="background:#f0f9ff; color:#1e40af;">${reqWmsText}</td>
                 </tr>
@@ -266,7 +273,6 @@
         }).join('');
     }
 
-    // --- CARGADOR DE EXCEL AJUSTADO PARA KRAEM ---
     async function handleExcelUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -282,7 +288,6 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 
-                // Buscar la hoja 'Prod-BOM master' o usar la primera
                 const sheetName = workbook.SheetNames.includes('Prod-BOM master') ? 'Prod-BOM master' : workbook.SheetNames[0];
                 const sheet = workbook.Sheets[sheetName];
                 const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
@@ -330,23 +335,17 @@
                     if (clientName) currentClient = clientName;
                     if (carModel) currentCarModel = carModel;
 
-                    // Detectar producto Padre (ASS'Y)
                     if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN' && parentPNo !== 'TBD') {
                         currentParentPartNumber = parentPNo;
-                        // CORRECCIÓN: Se pasa currentCarModel y currentClient para guardarse en la tabla 'parts'
-                        currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT', 'PZA', currentCarModel, currentClient);
+                        currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT', 'PZA', currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight);
                     }
 
                     if (!componentPNo || !currentParentId || componentPNo === 'TBD') continue;
 
                     const childProductType = unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE';
-                    // CORRECCIÓN: Se pasan datos del proyecto/cliente a los hijos si aplican
-                    const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit, currentCarModel, currentClient);
+                    const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit, currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight);
 
-                    if (!childId) {
-                        console.warn(`No se pudo procesar la parte: ${componentPNo}`);
-                        continue;
-                    }
+                    if (!childId) continue;
 
                     bomBatch.push({
                         parent_id: currentParentId,
@@ -410,8 +409,7 @@
         reader.readAsArrayBuffer(file);
     }
 
-    // CORRECCIÓN: Función getOrCreatePart ajustada para incluir 'project' y 'client'
-    async function getOrCreatePart(partNumber, partName, productType, unit = 'EA', project = '', clientName = '') {
+    async function getOrCreatePart(partNumber, partName, productType, unit = 'EA', project = '', clientName = '', cycleTime = 0, cavities = 1, netWeight = 0, gateWeight = 0) {
         const cleanPN = partNumber.trim();
         
         if (partsCache[cleanPN]) {
@@ -424,7 +422,11 @@
             product_type: productType,
             unit_of_measure: unit,
             project: project,
-            client: clientName
+            client: clientName,
+            cycle_time_sec: cycleTime,
+            cavities: cavities,
+            net_weight_kg: netWeight,
+            gate_weight_kg: gateWeight
         };
 
         const { data: inserted, error } = await client
