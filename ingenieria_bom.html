@@ -200,7 +200,7 @@
         document.getElementById('selectedPTNumber').innerText = number;
         document.getElementById('calcBox').style.display = 'flex';
         
-        // Carga la información utilizando las columnas exactas de la tabla 'parts'
+        // Consulta unificada mapeada con la tabla 'parts'
         const { data, error } = await client
             .from('bom_structures') 
             .select(`
@@ -230,20 +230,29 @@
         body.innerHTML = allBomData.map(item => {
             const child = item.child || {};
 
-            // Mapeo correcto utilizando la estructura real de la tabla 'parts'
-            const cycleTime = child.cycle_time_seg ?? item.cycle_time_sec ?? '-';
-            const cavities = child.cavities ?? item.cavities ?? '-';
-            const partWeight = parseFloat(child.part_weight_gr ?? item.net_weight_kg ?? 0);
-            const runnerWeight = parseFloat(child.runner_weight_gr ?? item.gate_weight_kg ?? 0);
+            const cycleTime = child.cycle_time_seg ?? '-';
+            const cavities = child.cavities ?? '-';
+            const partWeight = parseFloat(child.part_weight_gr ?? 0);
+            const runnerWeight = parseFloat(child.runner_weight_gr ?? 0);
 
             const totalGrPerPiece = partWeight + runnerWeight;
             const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
 
             let reqWmsText = '';
             if (child.product_type === 'RESINA' || (item.unit && item.unit.toUpperCase() === 'KG')) {
-                // Convierte gramos a Kilogramos para el cálculo del WMS
-                const totalKgNeeded = ((totalGrPerPiece / 1000) * usage * batchQty).toFixed(2);
-                reqWmsText = `<strong>${totalKgNeeded} KG</strong>`;
+                let totalKgNeeded = 0;
+                
+                if (usage < 5 && usage > 0) { 
+                    totalKgNeeded = usage * batchQty;
+                } else if (usage >= 5) {
+                    totalKgNeeded = (usage / 1000) * batchQty;
+                }
+
+                if (totalKgNeeded === 0 && totalGrPerPiece > 0) {
+                    totalKgNeeded = (totalGrPerPiece / 1000) * batchQty;
+                }
+
+                reqWmsText = `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`;
             } else {
                 const totalPcsNeeded = (usage * batchQty).toFixed(0);
                 reqWmsText = `<strong>${totalPcsNeeded} ${item.unit || 'EA'}</strong>`;
@@ -406,10 +415,6 @@
     async function getOrCreatePart(partNumber, partName, productType, unit = 'PZA', project = '', clientName = '', cycleTime = 0, cavities = 1, partWeight = 0, runnerWeight = 0, resinGrade = '') {
         const cleanPN = partNumber.trim();
         
-        if (partsCache[cleanPN]) {
-            return partsCache[cleanPN];
-        }
-
         const payload = {
             part_number: cleanPN,
             part_name: partName,
@@ -424,6 +429,12 @@
             resin_grade: resinGrade
         };
 
+        if (partsCache[cleanPN]) {
+            const existingId = partsCache[cleanPN];
+            await client.from('parts').update(payload).eq('id', existingId);
+            return existingId;
+        }
+
         const { data: inserted, error } = await client
             .from('parts')
             .insert(payload)
@@ -434,6 +445,7 @@
             const { data: existing } = await client.from('parts').select('id').eq('part_number', cleanPN).maybeSingle();
             if (existing) {
                 partsCache[cleanPN] = existing.id;
+                await client.from('parts').update(payload).eq('id', existing.id);
                 return existing.id;
             }
             console.error("Error creando parte:", error.message);
