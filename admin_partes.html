@@ -36,11 +36,9 @@
         .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
         .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Botón morado para QR en la tabla */
         .btn-qr-gen { background: #5b21b6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
         .btn-qr-gen:hover { background: #4c1d95; }
 
-        /* Estilos del modal flotante de QR */
         .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(2px); }
         .modal-content { background:var(--card); padding:25px; border-radius:15px; text-align:center; max-width:300px; width:90%; border: 1px solid var(--border); color: var(--text); }
         #qrcode { display: flex; justify-content: center; margin: 15px 0; }
@@ -101,7 +99,7 @@
 <script>
     let currentLang = localStorage.getItem('lang') || 'es';
     let searchTimeout;
-    let currentQrText = ''; // Variable global para guardar el NP activo al descargar
+    let currentQrText = '';
 
     const translations = {
         es: {
@@ -132,7 +130,7 @@
             const projQ = document.getElementById('searchProject').value.trim();
             const statusQ = document.getElementById('filterStatus').value;
 
-            let query = client.from('parts').select('*');
+            let query = client.from('parts').select('id, part_number, part_name, project, product_type, obsolete, cycle_time_seg, cavities, part_weight_gr, runner_weight_gr, resin_grade');
 
             if (partQ) {
                 query = query.or(`part_number.ilike.%${partQ}%,part_name.ilike.%${partQ}%`);
@@ -184,12 +182,11 @@
         `).join('');
     }
 
-    // LOGICA PARA LA VENTANA MODAL Y GENERACIÓN DE CODIOGOS QR
     function verQRParte(numParte) {
         currentQrText = numParte;
         document.getElementById('qrTitle').innerText = "N° Parte: " + numParte;
         const container = document.getElementById('qrcode');
-        container.innerHTML = ''; // Limpiar gráfico anterior
+        container.innerHTML = '';
         
         new QRCode(container, {
             text: numParte,
