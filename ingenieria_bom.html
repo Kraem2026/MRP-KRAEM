@@ -91,7 +91,7 @@
             </div>
             <div class="calc-box" id="calcBox" style="display:none;">
                 <label style="font-size:12px; font-weight:600;"><i class="fas fa-calculator"></i> Simular Lote (Pcs):</label>
-                <input type="number" id="batchQty" value="1000" style="width:100px; margin:0;" onchange="renderBOM()" onkeyup="renderBOM()">
+                <input type="number" id="batchQty" value="100" style="width:100px; margin:0;" onchange="renderBOM()" onkeyup="renderBOM()">
             </div>
         </div>
 
@@ -200,7 +200,6 @@
         document.getElementById('selectedPTNumber').innerText = number;
         document.getElementById('calcBox').style.display = 'flex';
         
-        // Consulta unificada mapeada con la tabla 'parts'
         const { data, error } = await client
             .from('bom_structures') 
             .select(`
@@ -220,7 +219,7 @@
 
     function renderBOM() {
         const body = document.getElementById('bomBody');
-        const batchQty = parseFloat(document.getElementById('batchQty').value) || 1;
+        const batchQty = parseFloat(document.getElementById('batchQty').value) || 0;
 
         if (allBomData.length === 0) {
             body.innerHTML = `<tr><td colspan="11" style="text-align:center;">No tiene componentes o materias primas asociadas.</td></tr>`;
@@ -232,24 +231,25 @@
 
             const cycleTime = child.cycle_time_seg ?? '-';
             const cavities = child.cavities ?? '-';
-            const partWeight = parseFloat(child.part_weight_gr ?? 0);
-            const runnerWeight = parseFloat(child.runner_weight_gr ?? 0);
+            const partWeight = parseFloat(child.part_weight_gr ?? 0); // En Gramos
+            const runnerWeight = parseFloat(child.runner_weight_gr ?? 0); // En Gramos
 
             const totalGrPerPiece = partWeight + runnerWeight;
             const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
+            const unitUpper = (item.unit || '').toUpperCase();
 
             let reqWmsText = '';
-            if (child.product_type === 'RESINA' || (item.unit && item.unit.toUpperCase() === 'KG')) {
-                let totalKgNeeded = 0;
-                
-                if (usage < 5 && usage > 0) { 
-                    totalKgNeeded = usage * batchQty;
-                } else if (usage >= 5) {
-                    totalKgNeeded = (usage / 1000) * batchQty;
-                }
 
-                if (totalKgNeeded === 0 && totalGrPerPiece > 0) {
-                    totalKgNeeded = (totalGrPerPiece / 1000) * batchQty;
+            // LÓGICA DE SIMULACIÓN Y CÁLCULO
+            if (child.product_type === 'RESINA' || unitUpper === 'KG') {
+                let totalKgNeeded = 0;
+
+                if (totalGrPerPiece > 0) {
+                    // Convertir gramos a KG ( / 1000) y multiplicar por el lote simulado y U/S
+                    totalKgNeeded = (totalGrPerPiece / 1000) * batchQty * usage;
+                } else {
+                    // Si no tiene peso en gramos cargado, usa la relación directa
+                    totalKgNeeded = usage * batchQty;
                 }
 
                 reqWmsText = `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`;
@@ -313,7 +313,8 @@
                 let totalRows = rows.length;
                 let totalInsertedCount = 0;
 
-                for (let i = 9; i < rows.length; i++) {
+                // Empezar desde la fila 10 (índice 10) donde inician los datos del BOM en KRAEM Excel
+                for (let i = 10; i < rows.length; i++) {
                     const row = rows[i];
 
                     if (i % 50 === 0) {
@@ -335,23 +336,52 @@
                     
                     const cycleTime  = parseFloat(row[19]) || 0;
                     const cavities   = parseInt(row[20]) || 1;
-                    const netWeight  = parseFloat(row[21]) || 0;
-                    const gateWeight = parseFloat(row[22]) || 0;
-                    const unit       = row[24] ? row[24].toString().trim() : 'KG';
+                    
+                    // CONVERSIÓN DE UNIDADES: El Excel viene en (KG/pcs). Multiplicamos por 1000 para guardar Gramos en la BD
+                    const netWeightGr  = (parseFloat(row[21]) || 0) * 1000;
+                    const gateWeightGr = (parseFloat(row[22]) || 0) * 1000;
+                    
+                    const unit       = row[24] ? row[24].toString().trim() : 'EA';
                     const usageQty   = parseFloat(row[25]) || 1;
 
                     if (clientName) currentClient = clientName;
                     if (carModel) currentCarModel = carModel;
 
-                    if (parentPNo && parentPNo !== "ASS'Y NO." && parentPNo !== 'NaN' && parentPNo !== 'TBD') {
+                    // Si la fila declara un Ensamble Padre / Producto Terminado
+                    if (parentPNo && !['ASS\'Y NO.', 'NAN', 'TBD', 'PART NO.'].includes(parentPNo.toUpperCase())) {
                         currentParentPartNumber = parentPNo;
-                        currentParentId = await getOrCreatePart(currentParentPartNumber, componentName || currentParentPartNumber, 'PT', 'PZA', currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight, materialGrade);
+                        currentParentId = await getOrCreatePart(
+                            currentParentPartNumber, 
+                            componentName || currentParentPartNumber, 
+                            'PT', 
+                            'PZA', 
+                            currentCarModel, 
+                            currentClient, 
+                            cycleTime, 
+                            cavities, 
+                            netWeightGr, 
+                            gateWeightGr, 
+                            materialGrade
+                        );
                     }
 
-                    if (!componentPNo || !currentParentId || componentPNo === 'TBD') continue;
+                    // Ignorar si la fila no tiene un componente válido o no tiene padre asignado
+                    if (!componentPNo || !currentParentId || ['TBD', 'COMPONENT PART NO.'].includes(componentPNo.toUpperCase())) continue;
 
                     const childProductType = unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE';
-                    const childId = await getOrCreatePart(componentPNo, componentName, childProductType, unit, currentCarModel, currentClient, cycleTime, cavities, netWeight, gateWeight, materialGrade);
+                    const childId = await getOrCreatePart(
+                        componentPNo, 
+                        componentName, 
+                        childProductType, 
+                        unit, 
+                        currentCarModel, 
+                        currentClient, 
+                        cycleTime, 
+                        cavities, 
+                        netWeightGr, 
+                        gateWeightGr, 
+                        materialGrade
+                    );
 
                     if (!childId) continue;
 
