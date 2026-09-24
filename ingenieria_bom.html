@@ -91,7 +91,7 @@
             </div>
             <div class="calc-box" id="calcBox" style="display:none;">
                 <label style="font-size:12px; font-weight:600;"><i class="fas fa-calculator"></i> Simular Lote (Pcs):</label>
-                <input type="number" id="batchQty" value="100" style="width:100px; margin:0;" onchange="renderBOM()" onkeyup="renderBOM()">
+                <input type="number" id="batchQty" value="1000" style="width:100px; margin:0;" onchange="renderBOM()" onkeyup="renderBOM()">
             </div>
         </div>
 
@@ -231,26 +231,35 @@
 
             const cycleTime = child.cycle_time_seg ?? '-';
             const cavities = child.cavities ?? '-';
-            const partWeight = parseFloat(child.part_weight_gr ?? 0); // En Gramos
-            const runnerWeight = parseFloat(child.runner_weight_gr ?? 0); // En Gramos
+            
+            let rawPartWeight = parseFloat(child.part_weight_gr ?? 0);
+            let rawRunnerWeight = parseFloat(child.runner_weight_gr ?? 0);
 
-            const totalGrPerPiece = partWeight + runnerWeight;
+            // NORMALIZACIÓN A GRAMOS PARA MOSTRAR EN LAS COLUMNAS (G):
+            // Si el valor guardado en BD es un decimal pequeño (ej. 0.46, 0.5), significa que venía expresado como KG.
+            // Lo multiplicamos por 1000 para obtener los Gramos reales (ej. 460g o 500g).
+            const partWeightGrams = (rawPartWeight > 0 && rawPartWeight < 10) ? rawPartWeight * 1000 : rawPartWeight;
+            const runnerWeightGrams = (rawRunnerWeight > 0 && rawRunnerWeight < 10) ? rawRunnerWeight * 1000 : rawRunnerWeight;
+            
+            const totalGrPerPiece = partWeightGrams + runnerWeightGrams;
             const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
             const unitUpper = (item.unit || '').toUpperCase();
 
             let reqWmsText = '';
 
-            // LÓGICA DE SIMULACIÓN Y CÁLCULO
+            // CÁLCULO DE REQUERIDO WMS EN KILOGRAMOS:
             if (child.product_type === 'RESINA' || unitUpper === 'KG') {
-                let totalKgNeeded = 0;
+                let weightInKgPerPiece = 0;
 
                 if (totalGrPerPiece > 0) {
-                    // Convertir gramos a KG ( / 1000) y multiplicar por el lote simulado y U/S
-                    totalKgNeeded = (totalGrPerPiece / 1000) * batchQty * usage;
-                } else {
-                    // Si no tiene peso en gramos cargado, usa la relación directa
-                    totalKgNeeded = usage * batchQty;
+                    // Convertir los gramos unitarios a Kilogramos: 500g / 1000 = 0.5 KG
+                    weightInKgPerPiece = totalGrPerPiece / 1000;
+                } else if (rawPartWeight > 0) {
+                    weightInKgPerPiece = rawPartWeight < 10 ? rawPartWeight : rawPartWeight / 1000;
                 }
+
+                // CÁLCULO FINAL CORRECTO: (0.5 KG/pieza) * 1000 piezas * U/S = 500.00 KG
+                let totalKgNeeded = weightInKgPerPiece * batchQty * usage;
 
                 reqWmsText = `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`;
             } else {
@@ -272,8 +281,8 @@
                     </td>
                     <td>${cycleTime}</td>
                     <td>${cavities}</td>
-                    <td>${partWeight.toFixed(1)}</td>
-                    <td>${runnerWeight.toFixed(1)}</td>
+                    <td>${partWeightGrams.toFixed(1)}</td>
+                    <td>${runnerWeightGrams.toFixed(1)}</td>
                     <td><strong>${totalGrPerPiece.toFixed(1)}</strong></td>
                     <td>${usage}</td>
                     <td style="background:#f0f9ff; color:#1e40af;">${reqWmsText}</td>
@@ -313,7 +322,6 @@
                 let totalRows = rows.length;
                 let totalInsertedCount = 0;
 
-                // Empezar desde la fila 10 (índice 10) donde inician los datos del BOM en KRAEM Excel
                 for (let i = 10; i < rows.length; i++) {
                     const row = rows[i];
 
@@ -337,9 +345,13 @@
                     const cycleTime  = parseFloat(row[19]) || 0;
                     const cavities   = parseInt(row[20]) || 1;
                     
-                    // CONVERSIÓN DE UNIDADES: El Excel viene en (KG/pcs). Multiplicamos por 1000 para guardar Gramos en la BD
-                    const netWeightGr  = (parseFloat(row[21]) || 0) * 1000;
-                    const gateWeightGr = (parseFloat(row[22]) || 0) * 1000;
+                    // CONVERSIÓN A GRAMOS EN SUPABASE:
+                    // Si el Excel trae KG (ej. 0.46), se multiplica por 1000 para guardarlo como Gramos (460 g)
+                    const valNet = parseFloat(row[21]) || 0;
+                    const valGate = parseFloat(row[22]) || 0;
+                    
+                    const netWeightGr  = valNet < 10 ? valNet * 1000 : valNet;
+                    const gateWeightGr = valGate < 10 ? valGate * 1000 : valGate;
                     
                     const unit       = row[24] ? row[24].toString().trim() : 'EA';
                     const usageQty   = parseFloat(row[25]) || 1;
@@ -347,7 +359,6 @@
                     if (clientName) currentClient = clientName;
                     if (carModel) currentCarModel = carModel;
 
-                    // Si la fila declara un Ensamble Padre / Producto Terminado
                     if (parentPNo && !['ASS\'Y NO.', 'NAN', 'TBD', 'PART NO.'].includes(parentPNo.toUpperCase())) {
                         currentParentPartNumber = parentPNo;
                         currentParentId = await getOrCreatePart(
@@ -365,7 +376,6 @@
                         );
                     }
 
-                    // Ignorar si la fila no tiene un componente válido o no tiene padre asignado
                     if (!componentPNo || !currentParentId || ['TBD', 'COMPONENT PART NO.'].includes(componentPNo.toUpperCase())) continue;
 
                     const childProductType = unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE';
