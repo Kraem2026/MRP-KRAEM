@@ -1,265 +1,364 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Ficha Técnica Maestra - KRAEM</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
-      --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b;
-    }
-    [data-theme="dark"] {
-      --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-    
-    .container { max-width: 1100px; margin: auto; }
-    .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    
-    .btn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; text-decoration: none; color: var(--text); background: var(--card); }
-    .btn-primary { background: var(--primary); color: white; border: none; }
+    <meta charset="UTF-8">
+    <title>Ficha Técnica Maestra - KRAEM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="config.js"></script>
 
-    .main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
-    @media (max-width: 850px) { .main-grid { grid-template-columns: 1fr; } }
-    
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    
-    .product-img-container { width: 100%; height: 280px; background: #f1f5f9; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px dashed var(--border); margin-bottom: 15px; position: relative; }
-    .product-img-container img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    .no-image { color: var(--text-secondary); text-align: center; font-size: 0.9rem; }
+    <style>
+        :root { 
+            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --secondary: #64748b;
+            --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
+        }
+        [data-theme="dark"] {
+            --bg: #020617; --card: #1e293b; --text: #f1f5f9; --secondary: #94a3b8; --border: #334155;
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        
+        /* Grid Principal de Ficha Técnica */
+        .ficha-main-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 1024px) { .ficha-main-grid { grid-template-columns: 1fr; } }
 
-    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-    .status-active { background: rgba(34, 197, 94, 0.1); color: var(--success); }
-    .status-obs { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .card { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-title { font-size: 0.85rem; font-weight: 700; color: var(--secondary); text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 
-    .spec-group { margin-bottom: 20px; }
-    .spec-title { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
-    .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .spec-item { background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
-    .spec-label { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; }
-    .spec-value { font-size: 1rem; font-weight: 600; }
+        /* KPI Cards para Inventario y Demanda */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { background: var(--card); padding: 15px 20px; border-radius: 14px; border: 1px solid var(--border); text-align: left; position: relative; overflow: hidden; }
+        .kpi-card::before { content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); }
+        .kpi-card.success::before { background: var(--success); }
+        .kpi-card.warning::before { background: var(--warning); }
+        .kpi-title { font-size: 11px; font-weight: 700; color: var(--secondary); text-transform: uppercase; }
+        .kpi-value { font-size: 22px; font-weight: 800; margin: 5px 0 0 0; color: var(--text); }
+        .kpi-subtext { font-size: 11px; color: var(--secondary); margin-top: 3px; }
 
-    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-    .kpi-card { text-align: center; padding: 15px; border-radius: 12px; color: white; }
-    .bg-blue { background: var(--primary); }
-    .bg-orange { background: var(--warning); }
-    .bg-coverage { background: var(--success); }
+        /* Foto del Producto */
+        .product-img-box { width: 100%; height: 260px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); object-fit: cover; display: flex; align-items: center; justify-content: center; color: var(--secondary); margin-bottom: 15px; }
 
-    h2, h3 { margin: 0; }
-    
-    .controls { display: flex; gap: 8px; align-items: center; }
-    .lang-btn { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
-    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
-  </style>
+        /* Tablas */
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 10px; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--secondary); background: rgba(0,0,0,0.02); }
+        td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .badge { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .badge-level { background: #e0f2fe; color: #0369a1; }
+
+        .specs-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; }
+        .spec-item { padding: 8px 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+        .spec-label { font-size: 10px; font-weight: 700; color: var(--secondary); text-transform: uppercase; }
+        .spec-value { font-size: 14px; font-weight: 700; margin-top: 2px; }
+
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
+        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="header-actions">
-    <div style="display: flex; gap: 10px;">
-        <button class="btn" onclick="history.back()"><i class="fas fa-arrow-left"></i> <span id="txt_back">Volver</span></button>
+    <header>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="admin_partes.html" class="btn"><i class="fas fa-arrow-left"></i> Volver al Catálogo</a>
+            <div>
+                <h2 style="margin:0;" id="partNumberTitle">---</h2>
+                <small style="color:var(--secondary);" id="partNameSub">Cargando ficha técnica...</small>
+            </div>
+        </div>
         <div class="controls">
+            <a id="btnEditLink" href="#" class="btn btn-primary"><i class="fas fa-edit"></i> Editar Ficha Técnica / BOM</a>
             <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
             <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
-            <button class="btn" onclick="toggleTheme()" style="padding: 10px;"><i id="themeIcon" class="fas fa-moon"></i></button>
+            <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+        </div>
+    </header>
+
+    <!-- RESUMEN EJECUTIVO KPI (INVENTARIO Y DEMANDA / FORECAST) -->
+    <div class="kpi-grid">
+        <div class="kpi-card success">
+            <div class="kpi-title"><i class="fas fa-boxes-stacked"></i> Inventario Actual Total</div>
+            <div class="kpi-value" id="kpiStock">0 PZA</div>
+            <div class="kpi-subtext">Obtenido de `inventory_movements`</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title"><i class="fas fa-chart-line"></i> Demanda / Salida Prom. Diaria</div>
+            <div class="kpi-value" id="kpiDemand">0 PZA/Día</div>
+            <div class="kpi-subtext">Histórico de Salidas de Almacén</div>
+        </div>
+        <div class="kpi-card warning">
+            <div class="kpi-title"><i class="fas fa-calendar-day"></i> Cobertura de Inventario</div>
+            <div class="kpi-value" id="kpiCoverage">0 Días</div>
+            <div class="kpi-subtext">Días disponibles con el stock actual</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title"><i class="fas fa-box-open"></i> Standard Pack</div>
+            <div class="kpi-value" id="kpiStdPack">0 PZA</div>
+            <div class="kpi-subtext">Empaque Estándar Logístico</div>
         </div>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> PDF</button>
-        <button class="btn btn-primary" id="btn_edit"><i class="fas fa-edit"></i> <span id="txt_edit_btn">Editar</span></button>
-    </div>
-  </div>
 
-  <div class="main-grid">
-    <div class="card">
-      <div class="product-img-container" id="container_img">
-        <div class="no-image" id="txt_no_image"><i class="fas fa-image fa-3x"></i><br>Sin imagen</div>
-      </div>
-      
-      <div style="text-align: center; margin-bottom: 20px;">
-        <span id="badge_status" class="status-badge">---</span>
-        <h2 id="txt_part_number" style="margin-top: 10px; font-size: 1.5rem;">Cargando...</h2>
-        <p id="txt_part_name" style="font-size: 0.9rem; color: var(--text-secondary);">Cargando descripción...</p>
-      </div>
-
-      <div class="spec-group">
-        <div class="spec-title" id="title_general">General</div>
-        <div class="spec-grid">
-          <div class="spec-item"><div class="spec-label" id="lbl_client">Cliente</div><div id="val_client" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_project">Proyecto</div><div id="val_project" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_type">Tipo Producto</div><div id="val_type" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_std">Std Pack</div><div id="val_std" class="spec-value">-</div></div>
+    <!-- VISTA PRINCIPAL DIVISION EN DOS COLUMNAS -->
+    <div class="ficha-main-grid">
+        
+        <!-- COLUMNA IZQUIERDA: FOTO E IDENTIFICACIÓN -->
+        <div>
+            <div class="card">
+                <div class="card-title"><i class="fas fa-camera"></i> Fotografía del Producto</div>
+                <div id="imageBox">
+                    <div class="product-img-box"><i class="fas fa-image fa-3x"></i></div>
+                </div>
+                <div class="specs-list" style="grid-template-columns: 1fr;">
+                    <div class="spec-item">
+                        <div class="spec-label">Tipo de Producto</div>
+                        <div class="spec-value" id="valType">-</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Cliente / Proveedor</div>
+                        <div class="spec-value" id="valClientSup">-</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Proyecto / Vehículo</div>
+                        <div class="spec-value" id="valProject">-</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Estatus</div>
+                        <div class="spec-value" id="valStatus">-</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <div class="card">
-      <div class="spec-group">
-        <div class="spec-title" id="title_eng">Ficha de Ingeniería (Inyección)</div>
-        <div class="spec-grid" style="grid-template-columns: repeat(3, 1fr);">
-          <div class="spec-item"><div class="spec-label" id="lbl_resin">Resina</div><div id="val_resin" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_grade">Grado</div><div id="val_grade" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_color">Color</div><div id="val_color" class="spec-value">-</div></div>
-          
-          <div class="spec-item"><div class="spec-label" id="lbl_cav">Cavidades</div><div id="val_cav" class="spec-value">-</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_cycle">Ciclo (s)</div><div id="val_cycle" class="spec-value">-</div></div>
-          <div class="spec-item" style="border: 1px solid var(--warning);"><div class="spec-label" id="lbl_tol">Tolerancia</div><div id="val_tol" class="spec-value">± 0.0g</div></div>
+        <!-- COLUMNA DERECHA: ESPECIFICACIONES TÉCNICAS Y ESTRUCTURA BOM -->
+        <div>
+            <!-- ESPECIFICACIONES DE INYECCIÓN -->
+            <div class="card">
+                <div class="card-title"><i class="fas fa-cogs"></i> Especificaciones de Ingeniería / Inyección</div>
+                <div class="specs-list">
+                    <div class="spec-item">
+                        <div class="spec-label">Tipo de Resina</div>
+                        <div class="spec-value" id="valResinType">-</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Grado de Resina</div>
+                        <div class="spec-value" id="valResinGrade">-</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Color</div>
+                        <div class="spec-value" id="valColor">-</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Cavidades</div>
+                        <div class="spec-value" id="valCavities">0 Cav.</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Tiempo de Ciclo</div>
+                        <div class="spec-value" id="valCycleTime">0 Seg.</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Peso Pieza (Gramos)</div>
+                        <div class="spec-value" id="valPartWeight">0.0 g</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Peso Colada/Vena (Gramos)</div>
+                        <div class="spec-value" id="valRunnerWeight">0.0 g</div>
+                    </div>
+                    <div class="spec-item">
+                        <div class="spec-label">Peso Total Inyectado</div>
+                        <div class="spec-value" id="valTotalWeight" style="color:var(--primary);">0.0 g</div>
+                    </div>
+                </div>
+            </div>
 
-          <div class="spec-item"><div class="spec-label" id="lbl_w_part">Peso Pieza</div><div id="val_w_part" class="spec-value">0.0g</div></div>
-          <div class="spec-item"><div class="spec-label" id="lbl_w_runner">Colada Prop.</div><div id="val_w_runner" class="spec-value">0.0g</div></div>
-          <div class="spec-item" style="border: 2px solid var(--primary);"><div class="spec-label" id="lbl_w_total">Total Shot</div><div id="val_w_total" class="spec-value" style="color:var(--primary)">0.0g</div></div>
+            <!-- TABLA ESTRUCTURA BOM REQUERIDA / ASOCIADA -->
+            <div class="card">
+                <div class="card-title">
+                    <span><i class="fas fa-sitemap"></i> Estructura de Materiales (BOM)</span>
+                    <a href="dashboard_bom.html" class="btn btn-sm"><i class="fas fa-calculator"></i> Ir a Simulación BOM</a>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nivel</th>
+                                <th>N° Parte Componente</th>
+                                <th>Descripción</th>
+                                <th>Tipo</th>
+                                <th>Consumo (U/S)</th>
+                                <th>Unidad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bomTableBody">
+                            <tr><td colspan="6" style="text-align:center;">Cargando componentes del BOM...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
-      </div>
 
-      <div class="spec-group" style="margin-top: 30px;">
-        <div class="spec-title" id="title_plan">Radiografía de Planeación</div>
-        <div class="kpi-grid">
-          <div class="kpi-card bg-blue">
-            <div class="spec-label" id="lbl_inv" style="color:white; opacity:0.8;">Inventario</div>
-            <div id="kpi_inv" class="spec-value" style="font-size: 1.4rem;">0</div>
-          </div>
-          <div class="kpi-card bg-orange">
-            <div class="spec-label" id="lbl_demand" style="color:white; opacity:0.8;">Demanda (30d)</div>
-            <div id="kpi_demand" class="spec-value" style="font-size: 1.4rem;">0</div>
-          </div>
-          <div id="card_coverage" class="kpi-card bg-coverage">
-            <div class="spec-label" id="lbl_days" style="color:white; opacity:0.8;">Cobertura (Días)</div>
-            <div id="kpi_days" class="spec-value" style="font-size: 1.4rem;">0</div>
-          </div>
-        </div>
-      </div>
-      
-      <p id="txt_last_move" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 20px; text-align: right;"></p>
     </div>
-  </div>
 </div>
 
-<script src="config.js"></script>
 <script>
-const id = new URLSearchParams(window.location.search).get('id');
-let currentLang = localStorage.getItem('lang') || 'es';
+    const partId = new URLSearchParams(window.location.search).get('id');
 
-const translations = {
-    es: {
-        back: "Volver", edit: "Editar", noImg: "Sin imagen", titleGen: "General",
-        lblClient: "Cliente", lblProj: "Proyecto", lblType: "Tipo Producto", lblStd: "Std Pack",
-        titleEng: "Ficha de Ingeniería (Inyección)", lblResin: "Resina", lblGrade: "Grado", lblColor: "Color",
-        lblCav: "Cavidades", lblCycle: "Ciclo (s)", lblTol: "Tolerancia", lblWPart: "Peso Pieza",
-        lblWRun: "Colada Prop.", lblWTotal: "Total Shot", titlePlan: "Radiografía de Planeación",
-        lblInv: "Inventario", lblDem: "Demanda (30d)", lblCov: "Cobertura (Días)", act: "ACTIVO", obs: "OBSOLETO"
-    },
-    ko: {
-        back: "뒤로 가기", edit: "수정하기", noImg: "이미지 없음", titleGen: "일반 정보",
-        lblClient: "고객사", lblProj: "프로젝트", lblType: "제품 유형", lblStd: "표준 포장",
-        titleEng: "엔지니어링 데이터 (사출)", lblResin: "레진", lblGrade: "등급", lblColor: "색상",
-        lblCav: "캐비티", lblCycle: "사이클 (초)", lblTol: "공차", lblWPart: "제품 중량",
-        lblWRun: "러너 중량", lblWTotal: "총 중량", titlePlan: "생산 계획 분석",
-        lblInv: "현재고", lblDem: "수요 (30일)", lblCov: "재고 일수", act: "활성", obs: "단종"
+    async function init() {
+        applyTheme();
+        if (!partId) {
+            alert("No se especificó un número de parte.");
+            location.href = 'admin_partes.html';
+            return;
+        }
+
+        document.getElementById('btnEditLink').href = `ingenieria_nuevo_np.html?id=${partId}`;
+        await loadFichaData();
     }
-};
 
-async function init() {
-  applyTheme();
-  setLang(currentLang);
-  if(!id) return;
+    async function loadFichaData() {
+        // 1. Consultar Ficha Técnica Maestro
+        const { data: p, error } = await client.from('parts').select('*').eq('id', partId).single();
+        if (error || !p) {
+            alert("Error al cargar la información del producto.");
+            return;
+        }
 
-  // client viene de config.js
-  const { data: p } = await client.from('parts').select('*').eq('id', id).single();
-  if(!p) return;
+        // Renderizar Encabezado y Fotos
+        document.getElementById('partNumberTitle').innerText = p.part_number;
+        document.getElementById('partNameSub').innerText = p.part_name || 'Sin nombre asignado';
 
-  document.getElementById('txt_part_number').innerText = p.part_number;
-  document.getElementById('txt_part_name').innerText = p.part_name || '---';
-  
-  const b = document.getElementById('badge_status');
-  b.innerText = p.obsolete ? translations[currentLang].obs : translations[currentLang].act;
-  b.className = 'status-badge ' + (p.obsolete ? 'status-obs' : 'status-active');
+        if (p.image_url) {
+            document.getElementById('imageBox').innerHTML = `<img src="${p.image_url}" class="product-img-box">`;
+        }
 
-  if(p.image_url) {
-      document.getElementById('container_img').innerHTML = `<img src="${p.image_url}">`;
-  }
+        // Renderizar Datos Generales
+        document.getElementById('valType').innerText = p.product_type || 'PT';
+        document.getElementById('valClientSup').innerText = p.client || p.supplier || 'N/A';
+        document.getElementById('valProject').innerText = p.project || 'N/A';
+        document.getElementById('valStatus').innerText = p.obsolete ? 'OBSOLETO' : 'ACTIVO';
 
-  document.getElementById('val_client').innerText = p.client || '-';
-  document.getElementById('val_project').innerText = p.project || '-';
-  document.getElementById('val_type').innerText = p.product_type || '-';
-  document.getElementById('val_std').innerText = p.std_pack || '-';
-  
-  document.getElementById('val_resin').innerText = p.resin_type || '-';
-  document.getElementById('val_grade').innerText = p.resin_grade || '-';
-  document.getElementById('val_color').innerText = p.color || '-';
-  document.getElementById('val_cav').innerText = p.cavities || '0';
-  document.getElementById('val_cycle').innerText = (p.cycle_time_seg || '0') + 's';
-  document.getElementById('val_tol').innerText = `± ${p.weight_tolerance || 0}g`;
+        // Renderizar Especificaciones
+        document.getElementById('valResinType').innerText = p.resin_type || 'N/A';
+        document.getElementById('valResinGrade').innerText = p.resin_grade || 'N/A';
+        document.getElementById('valColor').innerText = p.color || 'N/A';
+        document.getElementById('valCavities').innerText = `${p.cavities || 1} Cav.`;
+        document.getElementById('valCycleTime').innerText = `${p.cycle_time_seg || 0} s`;
+        
+        const partWeight = parseFloat(p.part_weight_gr || 0);
+        const runnerWeight = parseFloat(p.runner_weight_gr || 0);
+        
+        // Ajuste de visualización en Gramos reales
+        const partGr = (partWeight > 0 && partWeight < 10) ? partWeight * 1000 : partWeight;
+        const runnerGr = (runnerWeight > 0 && runnerWeight < 10) ? runnerWeight * 1000 : runnerWeight;
+        
+        document.getElementById('valPartWeight').innerText = `${partGr.toFixed(1)} g`;
+        document.getElementById('valRunnerWeight').innerText = `${runnerGr.toFixed(1)} g`;
+        document.getElementById('valTotalWeight').innerText = `${(partGr + runnerGr).toFixed(1)} g`;
 
-  const wp = parseFloat(p.part_weight_gr || 0);
-  const wr = parseFloat(p.runner_weight_gr || 0);
-  document.getElementById('val_w_part').innerText = wp.toFixed(2) + 'g';
-  document.getElementById('val_w_runner').innerText = wr.toFixed(2) + 'g';
-  document.getElementById('val_w_total').innerText = (wp + wr).toFixed(2) + 'g';
+        document.getElementById('kpiStdPack').innerText = `${p.std_pack || 0} ${p.unit_of_measure || 'PZA'}`;
 
-  // Cargar KPI de inventario si existe la vista
-  const { data: kpi } = await client.from('inventory_part_summary').select('*').eq('part_id', id).single();
-  if(kpi) {
-    document.getElementById('kpi_inv').innerText = (kpi.current_inventory || 0).toLocaleString();
-    document.getElementById('kpi_demand').innerText = (kpi.avg_monthly_demand || 0).toLocaleString();
-    const days = kpi.coverage_days || 0;
-    document.getElementById('kpi_days').innerText = days;
-    const c = document.getElementById('card_coverage');
-    if(days < 3) c.style.background = 'var(--danger)';
-    else if(days < 7) c.style.background = 'var(--warning)';
-    else c.style.background = 'var(--success)';
-  }
+        // 2. Consultar Inventario desde la tabla `inventory_movements`
+        await calculateInventoryAndDemand(p.id, p.unit_of_measure || 'PZA');
 
-  document.getElementById('btn_edit').onclick = () => location.href = `ingenieria_nuevo_np.html?id=${id}`;
+        // 3. Consultar Estructura BOM
+        await loadBomStructure(p.id, p.product_type);
+    }
 
-  const { data: m } = await client.from('inventory_movements').select('created_at').eq('part_id', id).order('created_at',{ascending:false}).limit(1);
-  if(m && m[0]) document.getElementById('txt_last_move').innerText = (currentLang === 'es' ? "Último mov: " : "최근 이동: ") + new Date(m[0].created_at).toLocaleString();
-}
+    async function calculateInventoryAndDemand(id, unit) {
+        // Consultar movimientos de inventario en Supabase
+        const { data: moves, error } = await client
+            .from('inventory_movements')
+            .select('quantity, movement_type, created_at')
+            .eq('part_id', id);
 
-function setLang(lang) {
-    currentLang = lang;
-    localStorage.setItem('lang', lang);
-    const l = translations[lang];
-    document.getElementById('txt_back').innerText = l.back;
-    document.getElementById('txt_edit_btn').innerText = l.edit;
-    document.getElementById('title_general').innerText = l.titleGen;
-    document.getElementById('lbl_client').innerText = l.lblClient;
-    document.getElementById('lbl_project').innerText = l.lblProj;
-    document.getElementById('lbl_type').innerText = l.lblType;
-    document.getElementById('lbl_std').innerText = l.lblStd;
-    document.getElementById('title_eng').innerText = l.titleEng;
-    document.getElementById('lbl_resin').innerText = l.lblResin;
-    document.getElementById('lbl_grade').innerText = l.lblGrade;
-    document.getElementById('lbl_color').innerText = l.lblColor;
-    document.getElementById('lbl_cav').innerText = l.lblCav;
-    document.getElementById('lbl_cycle').innerText = l.lblCycle;
-    document.getElementById('lbl_tol').innerText = l.lblTol;
-    document.getElementById('lbl_w_part').innerText = l.lblWPart;
-    document.getElementById('lbl_w_runner').innerText = l.lblWRun;
-    document.getElementById('lbl_w_total').innerText = l.lblWTotal;
-    document.getElementById('title_plan').innerText = l.titlePlan;
-    document.getElementById('lbl_inv').innerText = l.lblInv;
-    document.getElementById('lbl_demand').innerText = l.lblDem;
-    document.getElementById('lbl_days').innerText = l.lblCov;
-    if(document.getElementById('txt_no_image')) document.getElementById('txt_no_image').innerHTML = `<i class="fas fa-image fa-3x"></i><br>${l.noImg}`;
-}
+        let totalStock = 0;
+        let totalOutflowLast30Days = 0;
 
-function toggleTheme() {
-    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-    document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-}
+        if (moves && moves.length > 0) {
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
 
-function applyTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-}
+            moves.forEach(m => {
+                const qty = parseFloat(m.quantity) || 0;
+                // Sumar entradas, restar salidas
+                if (['ENTRADA', 'IN', 'PRODUCCION'].includes(m.movement_type.toUpperCase())) {
+                    totalStock += qty;
+                } else if (['SALIDA', 'OUT', 'EMBARQUE'].includes(m.movement_type.toUpperCase())) {
+                    totalStock -= qty;
+                    
+                    // Si el movimiento fue en los últimos 30 días, sumar para la demanda histórica
+                    if (new Date(m.created_at) >= thirtyDaysAgo) {
+                        totalOutflowLast30Days += qty;
+                    }
+                }
+            });
+        }
 
-init();
+        const avgDailyDemand = totalOutflowLast30Days / 30;
+        const coverageDays = avgDailyDemand > 0 ? (totalStock / avgDailyDemand) : 0;
+
+        document.getElementById('kpiStock').innerText = `${totalStock.toFixed(0)} ${unit}`;
+        document.getElementById('kpiDemand').innerText = `${avgDailyDemand.toFixed(1)} ${unit}/Día`;
+        document.getElementById('kpiCoverage').innerText = `${coverageDays.toFixed(1)} Días`;
+    }
+
+    async function loadBomStructure(id, productType) {
+        const isParent = (productType === 'PT' || productType === 'SUB-ENSAMBLE');
+        let query = client.from('bom_structures')
+                          .select('*, child:parts!bom_structures_child_id_fkey(*), parent:parts!bom_structures_parent_id_fkey(*)');
+
+        if (isParent) {
+            query = query.eq('parent_id', id);
+        } else {
+            query = query.eq('child_id', id);
+        }
+
+        const { data: bomData, error } = await query;
+        const body = document.getElementById('bomTableBody');
+
+        if (!bomData || bomData.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--secondary);">Este número de parte no tiene componentes asociados en el BOM.</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = bomData.map(b => {
+            const item = isParent ? b.child : b.parent;
+            return `
+                <tr>
+                    <td><span class="badge badge-level">Lvl ${b.bom_level || 1}</span></td>
+                    <td>
+                        <a href="part_ficha_tecnica.html?id=${item.id}" style="color:var(--primary); font-weight:bold; text-decoration:none;">
+                            ${item ? item.part_number : 'N/A'}
+                        </a>
+                    </td>
+                    <td>${item ? item.part_name : ''}</td>
+                    <td><span class="badge badge-level">${item ? item.product_type : '-'}</span></td>
+                    <td><strong>${b.usage_qty || b.quantity || 1}</strong></td>
+                    <td>${b.unit || item.unit_of_measure || 'EA'}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function toggleTheme() {
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    function applyTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    init();
 </script>
 </body>
 </html>
