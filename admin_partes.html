@@ -19,7 +19,7 @@
         
         .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+        .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 6px; }
         
         .search-container { background: var(--card); padding: 15px; border-radius: 16px; border: 1px solid var(--border); max-width: 1300px; margin: 0 auto 20px auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
         input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); outline: none; }
@@ -41,16 +41,8 @@
         .btn-qr-gen { background: #5b21b6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
 
         .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(3px); }
-        .modal-content { background:var(--card); padding:25px; border-radius:16px; max-width:550px; width:90%; border: 1px solid var(--border); color: var(--text); max-height: 85vh; overflow-y: auto; text-align: left; }
+        .modal-content { background:var(--card); padding:25px; border-radius:16px; max-width:300px; width:90%; border: 1px solid var(--border); color: var(--text); text-align: center; }
         #qrcode { display: flex; justify-content: center; margin: 15px 0; }
-        
-        /* Estilos de Ficha Técnica dentro del Modal */
-        .ficha-grid { display: grid; grid-template-columns: 120px 1fr; gap: 15px; margin-bottom: 15px; }
-        .ficha-img { width: 100%; height: 120px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); display: flex; align-items: center; justify-content: center; color: var(--secondary); }
-        .ficha-info p { margin: 3px 0; font-size: 13px; }
-        .bom-subtable { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-        .bom-subtable th { background: var(--bg); color: var(--secondary); padding: 8px; border-bottom: 1px solid var(--border); font-size: 10px; }
-        .bom-subtable td { padding: 8px; border-bottom: 1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -106,63 +98,11 @@
 
 <!-- Modal de Código QR -->
 <div id="qrModal" class="modal" onclick="if(event.target==this)cerrarQrModal()">
-    <div class="modal-content" style="text-align: center; max-width: 300px;">
+    <div class="modal-content">
         <h3 id="qrTitle" style="font-size: 16px; margin-top: 0; font-weight: 700;">Código QR Parte</h3>
         <div id="qrcode"></div>
         <button class="btn btn-primary" onclick="descargarQR()" style="width:100%; justify-content:center; margin-bottom:8px;"><i class="fas fa-download"></i> Descargar PNG</button>
         <button class="btn" onclick="cerrarQrModal()" style="width:100%; justify-content:center;">Cerrar</button>
-    </div>
-</div>
-
-<!-- Modal de Ficha Técnica e Inspección de BOM Integrado -->
-<div id="fichaModal" class="modal" onclick="if(event.target==this)cerrarFichaModal()">
-    <div class="modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-            <div>
-                <h3 id="fichaPartNumber" style="margin: 0; font-size: 18px;">---</h3>
-                <small id="fichaPartName" style="color: var(--secondary);">---</small>
-            </div>
-            <button class="btn btn-sm" onclick="cerrarFichaModal()"><i class="fas fa-times"></i></button>
-        </div>
-
-        <div class="ficha-grid">
-            <div id="fichaImgBox" class="ficha-img">
-                <i class="fas fa-image fa-2x"></i>
-            </div>
-            <div class="ficha-info">
-                <p><strong>Tipo:</strong> <span id="fichaType">-</span></p>
-                <p><strong>Proyecto/Cliente:</strong> <span id="fichaProject">-</span></p>
-                <p><strong>Ciclo / Cavidades:</strong> <span id="fichaCycleCav">-</span></p>
-                <p><strong>Peso Pieza / Colada:</strong> <span id="fichaWeights">-</span></p>
-            </div>
-        </div>
-
-        <div style="border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px;">
-            <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--secondary); text-transform: uppercase;">
-                <i class="fas fa-sitemap"></i> Estructura BOM Asociada
-            </h4>
-            <div style="max-height: 180px; overflow-y: auto;">
-                <table class="bom-subtable">
-                    <thead>
-                        <tr>
-                            <th>Componente</th>
-                            <th>Tipo</th>
-                            <th>U/S</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fichaBomBody">
-                        <tr><td colspan="3" style="text-align: center;">Cargando componentes...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <a id="btnEditFicha" href="#" class="btn btn-primary" style="flex: 1; justify-content: center;">
-                <i class="fas fa-edit"></i> Editar Ficha / BOM
-            </a>
-            <button class="btn" onclick="cerrarFichaModal()" style="flex: 1; justify-content: center;">Cerrar</button>
-        </div>
     </div>
 </div>
 
@@ -236,7 +176,7 @@
 
         body.innerHTML = list.map(p => `
             <tr>
-                <td onclick="verFichaTecnica(${p.id})" style="cursor:pointer; color:var(--primary);">
+                <td onclick="location.href='part_ficha_tecnica.html?id=${p.id}'" style="cursor:pointer; color:var(--primary);">
                     <strong>${p.part_number}</strong>
                 </td>
                 <td>${p.part_name || '---'}</td>
@@ -252,70 +192,17 @@
                     </button>
                 </td>
                 <td style="display: flex; gap: 8px;">
-                    <button class="btn btn-sm" onclick="verFichaTecnica(${p.id})" title="Ver Detalles y BOM">
+                    <!-- BOTÓN VER FICHA TÉCNICA -->
+                    <a href="part_ficha_tecnica.html?id=${p.id}" class="btn btn-sm" title="Ver Ficha Técnica Completa">
                         <i class="fas fa-eye"></i>
-                    </button>
-                    <a href="ingenieria_nuevo_np.html?id=${p.id}" class="btn btn-sm" title="Editar Ficha">
+                    </a>
+                    <!-- BOTÓN EDITAR -->
+                    <a href="ingenieria_nuevo_np.html?id=${p.id}" class="btn btn-sm" title="Editar Ficha / BOM">
                         <i class="fas fa-edit"></i>
                     </a>
                 </td>
             </tr>
         `).join('');
-    }
-
-    // ABRIR MODAL FICHA TÉCNICA Y BOM DETALLADO
-    async function verFichaTecnica(partId) {
-        const { data: p } = await client.from('parts').select('*').eq('id', partId).single();
-        if (!p) return;
-
-        document.getElementById('fichaPartNumber').innerText = p.part_number;
-        document.getElementById('fichaPartName').innerText = p.part_name || 'Sin descripción';
-        document.getElementById('fichaType').innerText = p.product_type || 'PT';
-        document.getElementById('fichaProject').innerText = `${p.project || '-'} / ${p.client || p.supplier || '-'}`;
-        document.getElementById('fichaCycleCav').innerText = `${p.cycle_time_seg || 0}s / ${p.cavities || 1} Cav.`;
-        document.getElementById('fichaWeights').innerText = `${p.part_weight_gr || 0}g (Pieza) / ${p.runner_weight_gr || 0}g (Vena)`;
-        document.getElementById('btnEditFicha').href = `ingenieria_nuevo_np.html?id=${p.id}`;
-
-        const imgBox = document.getElementById('fichaImgBox');
-        if (p.image_url) {
-            imgBox.innerHTML = `<img src="${p.image_url}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`;
-        } else {
-            imgBox.innerHTML = `<i class="fas fa-image fa-2x"></i>`;
-        }
-
-        // Consultar componentes del BOM asociadas
-        const isParent = (p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
-        let bomQuery = client.from('bom_structures').select('*, child:parts!bom_structures_child_id_fkey(*), parent:parts!bom_structures_parent_id_fkey(*)');
-        
-        if (isParent) {
-            bomQuery = bomQuery.eq('parent_id', p.id);
-        } else {
-            bomQuery = bomQuery.eq('child_id', p.id);
-        }
-
-        const { data: bomData } = await bomQuery;
-        const bomBody = document.getElementById('fichaBomBody');
-
-        if (!bomData || bomData.length === 0) {
-            bomBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--secondary);">Sin relaciones registradas en el BOM.</td></tr>`;
-        } else {
-            bomBody.innerHTML = bomData.map(b => {
-                const item = isParent ? b.child : b.parent;
-                return `
-                    <tr>
-                        <td><strong>${item ? item.part_number : 'N/A'}</strong><br><small>${item ? item.part_name : ''}</small></td>
-                        <td><span class="badge-type">${item ? item.product_type : '-'}</span></td>
-                        <td>${b.usage_qty || b.quantity || 1} ${b.unit || 'EA'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        document.getElementById('fichaModal').style.display = 'flex';
-    }
-
-    function cerrarFichaModal() {
-        document.getElementById('fichaModal').style.display = 'none';
     }
 
     function verQRParte(numParte) {
