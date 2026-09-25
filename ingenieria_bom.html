@@ -21,6 +21,7 @@
         .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 13px; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; border: none; }
         .btn-success { background: var(--success); color: white; border: none; }
+        .btn-warning { background: var(--warning); color: white; border: none; }
 
         .main-container { max-width: 1400px; margin: auto; display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
         @media (max-width: 1024px) { .main-container { grid-template-columns: 1fr; } }
@@ -62,6 +63,10 @@
         <h2 style="margin:0;" id="txt_title">Estructura de Materiales (BOM)</h2>
     </div>
     <div class="controls">
+        <button class="btn btn-warning" onclick="downloadTemplate()">
+            <i class="fas fa-file-download"></i> Descargar Plantilla Excel
+        </button>
+
         <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none" onchange="handleExcelUpload(event)">
         
         <button class="btn btn-success" onclick="document.getElementById('excelFileInput').click()">
@@ -78,8 +83,8 @@
 
 <div class="main-container">
     <div class="panel search-box">
-        <h4 id="txt_select_pt" style="margin-top:0">Seleccionar Producto Terminado</h4>
-        <input type="text" id="inputSearchPT" placeholder="Buscar PT por número de parte o nombre..." onkeyup="fetchPTs()">
+        <h4 id="txt_select_pt" style="margin-top:0">Seleccionar Producto Terminado / Sub-ensamble</h4>
+        <input type="text" id="inputSearchPT" placeholder="Buscar por número de parte o nombre..." onkeyup="fetchPTs()">
         <div class="pt-list" id="ptList"></div>
     </div>
 
@@ -113,7 +118,7 @@
                     </tr>
                 </thead>
                 <tbody id="bomBody">
-                    <tr><td colspan="11" style="text-align:center; color:var(--secondary)">Seleccione un PT para ver su estructura o cargue un archivo de Excel.</td></tr>
+                    <tr><td colspan="11" style="text-align:center; color:var(--secondary)">Seleccione un PT o Sub-ensamble para ver su estructura.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -141,11 +146,11 @@
 
     const translations = {
         es: {
-            title: "Estructura de Materiales (BOM)", selectPT: "Seleccionar Producto Terminado",
+            title: "Estructura de Materiales (BOM)", selectPT: "Seleccionar Producto Terminado / Sub-ensamble",
             thComp: "Componente / Materia Prima", thType: "Tipo / Material Grade"
         },
         ko: {
-            title: "자재 명세서 (BOM) 관리", selectPT: "완제품 선택",
+            title: "자재 명세서 (BOM) 관리", selectPT: "완제품 / 서브 조립품 선택",
             thComp: "부품 / 원자재", thType: "유형 / 사출 원자재 스펙"
         }
     };
@@ -167,14 +172,16 @@
         }
     }
 
+    // LISTA LATERAL: Muestra PTs y Sub-ensambles inyectados
     async function fetchPTs() {
         const q = document.getElementById('inputSearchPT').value.trim();
-        let query = client.from('parts').select('id, part_number, part_name, product_type, project')
-                          .neq('product_type', 'RESINA');
+        let query = client.from('parts')
+                          .select('id, part_number, part_name, product_type, project')
+                          .or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%');
 
         if (q) query = query.or(`part_number.ilike.%${q}%,part_name.ilike.%${q}%`);
 
-        const { data, error } = await query.limit(30).order('part_number');
+        const { data, error } = await query.limit(40).order('part_number');
         if (error) {
             console.error("Error al obtener productos:", error);
             return;
@@ -182,13 +189,14 @@
 
         const list = document.getElementById('ptList');
         if (!data || data.length === 0) {
-            list.innerHTML = `<div style="padding:10px; color:var(--secondary); text-align:center;">No se encontraron productos.</div>`;
+            list.innerHTML = `<div style="padding:10px; color:var(--secondary); text-align:center;">No se encontraron PTs o Sub-ensambles.</div>`;
             return;
         }
 
         list.innerHTML = data.map(pt => `
             <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="loadBOM(${pt.id}, '${pt.part_number}', '${pt.part_name || ''}')">
-                <strong>${pt.part_number}</strong> <span class="badge badge-level">${pt.product_type || 'PT'}</span><br>
+                <strong>${pt.part_number}</strong> 
+                <span class="badge ${pt.product_type === 'PT' ? 'badge-level' : 'badge-resin'}">${pt.product_type || 'PT'}</span><br>
                 <small>${pt.part_name || ''} ${pt.project ? '| ' + pt.project : ''}</small>
             </div>
         `).join('');
@@ -235,32 +243,27 @@
             let rawPartWeight = parseFloat(child.part_weight_gr ?? 0);
             let rawRunnerWeight = parseFloat(child.runner_weight_gr ?? 0);
 
-            // NORMALIZACIÓN A GRAMOS PARA MOSTRAR EN LAS COLUMNAS (G):
-            // Si el valor guardado en BD es un decimal pequeño (ej. 0.46, 0.5), significa que venía expresado como KG.
-            // Lo multiplicamos por 1000 para obtener los Gramos reales (ej. 460g o 500g).
+            // Normalizar a gramos si venía como decimal pequeño (<10)
             const partWeightGrams = (rawPartWeight > 0 && rawPartWeight < 10) ? rawPartWeight * 1000 : rawPartWeight;
             const runnerWeightGrams = (rawRunnerWeight > 0 && rawRunnerWeight < 10) ? rawRunnerWeight * 1000 : rawRunnerWeight;
-            
+
             const totalGrPerPiece = partWeightGrams + runnerWeightGrams;
             const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
             const unitUpper = (item.unit || '').toUpperCase();
 
             let reqWmsText = '';
 
-            // CÁLCULO DE REQUERIDO WMS EN KILOGRAMOS:
+            // CÁLCULO DE REQUERIDO WMS EN KG
             if (child.product_type === 'RESINA' || unitUpper === 'KG') {
                 let weightInKgPerPiece = 0;
 
                 if (totalGrPerPiece > 0) {
-                    // Convertir los gramos unitarios a Kilogramos: 500g / 1000 = 0.5 KG
                     weightInKgPerPiece = totalGrPerPiece / 1000;
                 } else if (rawPartWeight > 0) {
                     weightInKgPerPiece = rawPartWeight < 10 ? rawPartWeight : rawPartWeight / 1000;
                 }
 
-                // CÁLCULO FINAL CORRECTO: (0.5 KG/pieza) * 1000 piezas * U/S = 500.00 KG
                 let totalKgNeeded = weightInKgPerPiece * batchQty * usage;
-
                 reqWmsText = `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`;
             } else {
                 const totalPcsNeeded = (usage * batchQty).toFixed(0);
@@ -291,6 +294,38 @@
         }).join('');
     }
 
+    // BOTÓN: GENERAR Y DESCARGAR PLANTILLA ESTÁNDAR
+    function downloadTemplate() {
+        const headers = [
+            "PADRE_NUMERO_PARTE", "PADRE_NOMBRE", "SUB_NUMERO_PARTE", 
+            "COMPONENTE_NUMERO_PARTE", "COMPONENTE_NOMBRE", "TIPO_PRODUCTO", 
+            "PROYECTO", "CLIENTE", "TIEMPO_CICLO_SEG", "CAVIDADES", 
+            "PESO_PIEZA_KG", "PESO_COLADA_KG", "UNIDAD_MEDIDA", "USO_POR_PIEZA"
+        ];
+
+        const sampleRows = [
+            [
+                "85860-BC000GYT", "TRIM-RR PLR, RH", "85861-BC000", 
+                "ST920A-B-WK", "RESINA PP-TD20 BLACK", "RESINA", 
+                "BL7m", "Seoyon", 0, 1, 
+                0.46, 0.04, "KG", 1
+            ],
+            [
+                "85860-BC000GYT", "TRIM-RR PLR, RH", "85861-BC000", 
+                "82315-2W000", "FASTENER CLIP", "COMPONENTE", 
+                "BL7m", "Seoyon", 0, 1, 
+                0, 0, "EA", 2
+            ]
+        ];
+
+        const wsData = [headers, ...sampleRows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "PLANTILLA_BOM");
+        XLSX.writeFile(wb, "Plantilla_Estandar_BOM_KRAEM.xlsx");
+    }
+
+    // PROCESADOR DE LA PLANTILLA ESTÁNDAR
     async function handleExcelUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -306,144 +341,88 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 
-                const sheetName = workbook.SheetNames.includes('Prod-BOM master') ? 'Prod-BOM master' : workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet);
 
                 statusText.innerText = "Cargando catálogo existente de piezas...";
                 await preloadPartsCache();
 
-                let currentParentPartNumber = null;
-                let currentParentId = null;
-                let currentClient = '';
-                let currentCarModel = '';
-                
                 let bomBatch = [];
                 let totalRows = rows.length;
                 let totalInsertedCount = 0;
 
-                for (let i = 10; i < rows.length; i++) {
+                for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
 
-                    if (i % 50 === 0) {
+                    if (i % 20 === 0) {
                         const pct = Math.round((i / totalRows) * 100);
                         progressBar.style.width = pct + '%';
                         statusText.innerText = `Procesando fila ${i + 1} de ${totalRows} (${pct}%)...`;
                     }
 
-                    if (!row || row.length === 0) continue;
-
-                    const enSub          = row[2] ? row[2].toString().trim() : '';
-                    const clientName     = row[3] ? row[3].toString().trim() : '';
-                    const carModel       = row[4] ? row[4].toString().trim() : '';
-                    const parentPNo      = row[6] ? row[6].toString().trim() : '';
-                    const componentPNo   = row[13] ? row[13].toString().trim() : '';
-                    const componentName  = row[14] ? row[14].toString().trim() : '';
-                    const materialGrade  = row[15] ? row[15].toString().trim() : '';
-                    const supplier       = row[17] ? row[17].toString().trim() : '';
+                    const parentPNo = row["PADRE_NUMERO_PARTE"] ? row["PADRE_NUMERO_PARTE"].toString().trim() : '';
+                    const parentName = row["PADRE_NOMBRE"] ? row["PADRE_NOMBRE"].toString().trim() : parentPNo;
                     
-                    const cycleTime  = parseFloat(row[19]) || 0;
-                    const cavities   = parseInt(row[20]) || 1;
+                    const compPNo = row["COMPONENTE_NUMERO_PARTE"] ? row["COMPONENTE_NUMERO_PARTE"].toString().trim() : '';
+                    const compName = row["COMPONENTE_NOMBRE"] ? row["COMPONENTE_NOMBRE"].toString().trim() : compPNo;
                     
-                    // CONVERSIÓN A GRAMOS EN SUPABASE:
-                    // Si el Excel trae KG (ej. 0.46), se multiplica por 1000 para guardarlo como Gramos (460 g)
-                    const valNet = parseFloat(row[21]) || 0;
-                    const valGate = parseFloat(row[22]) || 0;
+                    const productType = row["TIPO_PRODUCTO"] ? row["TIPO_PRODUCTO"].toString().trim().toUpperCase() : 'COMPONENTE';
+                    const project = row["PROYECTO"] ? row["PROYECTO"].toString().trim() : '';
+                    const clientName = row["CLIENTE"] ? row["CLIENTE"].toString().trim() : '';
                     
-                    const netWeightGr  = valNet < 10 ? valNet * 1000 : valNet;
-                    const gateWeightGr = valGate < 10 ? valGate * 1000 : valGate;
+                    const cycleTime = parseFloat(row["TIEMPO_CICLO_SEG"]) || 0;
+                    const cavities = parseInt(row["CAVIDADES"]) || 1;
                     
-                    const unit       = row[24] ? row[24].toString().trim() : 'EA';
-                    const usageQty   = parseFloat(row[25]) || 1;
+                    // Convertir KG a Gramos en Supabase (* 1000)
+                    const weightKg = parseFloat(row["PESO_PIEZA_KG"]) || 0;
+                    const runnerKg = parseFloat(row["PESO_COLADA_KG"]) || 0;
+                    const weightGr = weightKg * 1000;
+                    const runnerGr = runnerKg * 1000;
 
-                    if (clientName) currentClient = clientName;
-                    if (carModel) currentCarModel = carModel;
+                    const unit = row["UNIDAD_MEDIDA"] ? row["UNIDAD_MEDIDA"].toString().trim() : 'EA';
+                    const usageQty = parseFloat(row["USO_POR_PIEZA"]) || 1;
 
-                    if (parentPNo && !['ASS\'Y NO.', 'NAN', 'TBD', 'PART NO.'].includes(parentPNo.toUpperCase())) {
-                        currentParentPartNumber = parentPNo;
-                        currentParentId = await getOrCreatePart(
-                            currentParentPartNumber, 
-                            componentName || currentParentPartNumber, 
-                            'PT', 
-                            'PZA', 
-                            currentCarModel, 
-                            currentClient, 
-                            cycleTime, 
-                            cavities, 
-                            netWeightGr, 
-                            gateWeightGr, 
-                            materialGrade
-                        );
-                    }
+                    if (!parentPNo || !compPNo) continue;
 
-                    if (!componentPNo || !currentParentId || ['TBD', 'COMPONENT PART NO.'].includes(componentPNo.toUpperCase())) continue;
+                    // Registrar o Actualizar Padre (PT)
+                    const parentId = await getOrCreatePart(parentPNo, parentName, 'PT', 'PZA', project, clientName, cycleTime, cavities, weightGr, runnerGr, '');
 
-                    const childProductType = unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE';
-                    const childId = await getOrCreatePart(
-                        componentPNo, 
-                        componentName, 
-                        childProductType, 
-                        unit, 
-                        currentCarModel, 
-                        currentClient, 
-                        cycleTime, 
-                        cavities, 
-                        netWeightGr, 
-                        gateWeightGr, 
-                        materialGrade
-                    );
+                    // Registrar o Actualizar Componente/Resina
+                    const childId = await getOrCreatePart(compPNo, compName, productType, unit, project, clientName, cycleTime, cavities, weightGr, runnerGr, '');
 
-                    if (!childId) continue;
+                    if (!parentId || !childId) continue;
 
                     bomBatch.push({
-                        parent_id: currentParentId,
+                        parent_id: parentId,
                         child_id: childId,
                         quantity: usageQty,
                         usage_qty: usageQty,
-                        bom_level: enSub.toUpperCase() === 'EN' ? 1 : 2,
-                        client: currentClient,
-                        car_model: currentCarModel,
+                        bom_level: productType === 'RESINA' ? 2 : 1,
+                        client: clientName,
+                        car_model: project,
                         unit: unit,
-                        material_grade: materialGrade,
-                        supplier_name: supplier
+                        supplier_name: clientName
                     });
 
                     if (bomBatch.length >= 50) {
                         const { error } = await client.from('bom_structures').insert(bomBatch);
-                        if (error) {
-                            console.error("Error de inserción en Supabase:", error);
-                            alert("Error al guardar en Supabase: " + error.message);
-                            modal.style.display = 'none';
-                            return;
-                        } else {
-                            totalInsertedCount += bomBatch.length;
-                        }
+                        if (!error) totalInsertedCount += bomBatch.length;
                         bomBatch = [];
                     }
                 }
 
                 if (bomBatch.length > 0) {
                     const { error } = await client.from('bom_structures').insert(bomBatch);
-                    if (error) {
-                        console.error("Error al insertar el lote final:", error);
-                        alert("Error en el lote final de Supabase: " + error.message);
-                    } else {
-                        totalInsertedCount += bomBatch.length;
-                    }
+                    if (!error) totalInsertedCount += bomBatch.length;
                 }
 
                 modal.style.display = 'none';
-                if (totalInsertedCount > 0) {
-                    alert(`¡Importación completada! Se procesaron e insertaron ${totalInsertedCount} registros en el BOM.`);
-                } else {
-                    alert("Aviso: El archivo fue procesado pero no se insertó ninguna fila.");
-                }
-                
+                alert(`¡Proceso completado! Se cargaron ${totalInsertedCount} elementos al BOM.`);
                 await preloadPartsCache();
                 fetchPTs();
 
             } catch (err) {
-                console.error("Error crítico de procesamiento:", err);
+                console.error("Error al procesar la plantilla:", err);
                 modal.style.display = 'none';
                 alert('Ocurrió un error al procesar el archivo: ' + err.message);
             }
@@ -488,7 +467,6 @@
                 await client.from('parts').update(payload).eq('id', existing.id);
                 return existing.id;
             }
-            console.error("Error creando parte:", error.message);
             return null;
         }
 
