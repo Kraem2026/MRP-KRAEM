@@ -172,7 +172,7 @@
         }
     }
 
-    // LISTA LATERAL: Muestra PTs y Sub-ensambles inyectados
+    // Muestra solo Productos Terminados y Sub-ensambles en la lista lateral
     async function fetchPTs() {
         const q = document.getElementById('inputSearchPT').value.trim();
         let query = client.from('parts')
@@ -243,7 +243,7 @@
             let rawPartWeight = parseFloat(child.part_weight_gr ?? 0);
             let rawRunnerWeight = parseFloat(child.runner_weight_gr ?? 0);
 
-            // Normalizar a gramos si venía como decimal pequeño (<10)
+            // Normalización a Gramos reales (en la interfaz) si vienen guardados como decimales en KG (<10)
             const partWeightGrams = (rawPartWeight > 0 && rawPartWeight < 10) ? rawPartWeight * 1000 : rawPartWeight;
             const runnerWeightGrams = (rawRunnerWeight > 0 && rawRunnerWeight < 10) ? rawRunnerWeight * 1000 : rawRunnerWeight;
 
@@ -253,7 +253,7 @@
 
             let reqWmsText = '';
 
-            // CÁLCULO DE REQUERIDO WMS EN KG
+            // CÁLCULO DE REQUERIDO WMS EN KG EXACTO
             if (child.product_type === 'RESINA' || unitUpper === 'KG') {
                 let weightInKgPerPiece = 0;
 
@@ -263,6 +263,7 @@
                     weightInKgPerPiece = rawPartWeight < 10 ? rawPartWeight : rawPartWeight / 1000;
                 }
 
+                // Multiplicación exacta: (Ejemplo: 0.5 KG * 1000 Pcs = 500.00 KG)
                 let totalKgNeeded = weightInKgPerPiece * batchQty * usage;
                 reqWmsText = `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`;
             } else {
@@ -294,7 +295,7 @@
         }).join('');
     }
 
-    // BOTÓN: GENERAR Y DESCARGAR PLANTILLA ESTÁNDAR
+    // DESCARGAR PLANTILLA EXCEL
     function downloadTemplate() {
         const headers = [
             "PADRE_NUMERO_PARTE", "PADRE_NOMBRE", "SUB_NUMERO_PARTE", 
@@ -305,27 +306,38 @@
 
         const sampleRows = [
             [
-                "85860-BC000GYT", "TRIM-RR PLR, RH", "85861-BC000", 
-                "ST920A-B-WK", "RESINA PP-TD20 BLACK", "RESINA", 
-                "BL7m", "Seoyon", 0, 1, 
-                0.46, 0.04, "KG", 1
+                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "", "", "PT", "BL7m", "Seoyon", 0, 1, 0, 0, "PZA", 1
             ],
             [
-                "85860-BC000GYT", "TRIM-RR PLR, RH", "85861-BC000", 
-                "82315-2W000", "FASTENER CLIP", "COMPONENTE", 
-                "BL7m", "Seoyon", 0, 1, 
-                0, 0, "EA", 2
+                "85860-BC000GYT", "TRIM-RR PLR, RH", "85861-BC000GYT", "", "CTR PLR GYT", "SUB-ENSAMBLE", "BL7m", "Seoyon", 27.0, 1, 0.46, 0.04, "PZA", 1
+            ],
+            [
+                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "85853-BC010", "RESINA PP-TD20", "RESINA", "BL7m", "Seoyon", 0, 1, 0.46, 0.04, "KG", 1
+            ],
+            [
+                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "85859-3S500", "FASTENER", "COMPONENTE", "BL7m", "Seoyon", 0, 1, 0, 0, "EA", 1
+            ],
+            [
+                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "82315-2P000", "TETHER CLIP", "COMPONENTE", "BL7m", "Seoyon", 0, 1, 0, 0, "EA", 2
             ]
         ];
 
         const wsData = [headers, ...sampleRows];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
+        
+        ws['!cols'] = [
+            { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 25 }, 
+            { wch: 22 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, 
+            { wch: 18 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, 
+            { wch: 16 }, { wch: 16 }
+        ];
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "PLANTILLA_BOM");
         XLSX.writeFile(wb, "Plantilla_Estandar_BOM_KRAEM.xlsx");
     }
 
-    // PROCESADOR DE LA PLANTILLA ESTÁNDAR
+    // CARGAR Y PROCESAR LA PLANTILLA
     async function handleExcelUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -351,6 +363,10 @@
                 let totalRows = rows.length;
                 let totalInsertedCount = 0;
 
+                let currentParentPN = '';
+                let currentParentName = '';
+                let currentParentId = null;
+
                 for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
 
@@ -360,44 +376,89 @@
                         statusText.innerText = `Procesando fila ${i + 1} de ${totalRows} (${pct}%)...`;
                     }
 
-                    const parentPNo = row["PADRE_NUMERO_PARTE"] ? row["PADRE_NUMERO_PARTE"].toString().trim() : '';
-                    const parentName = row["PADRE_NOMBRE"] ? row["PADRE_NOMBRE"].toString().trim() : parentPNo;
+                    const parentPNo = row["PADRE_NUMERO_PARTE"] ? row["PADRE_NUMERO_PARTE"].toString().trim() : currentParentPN;
+                    const parentName = row["PADRE_NOMBRE"] ? row["PADRE_NOMBRE"].toString().trim() : currentParentName;
                     
+                    const subPNo = row["SUB_NUMERO_PARTE"] ? row["SUB_NUMERO_PARTE"].toString().trim() : '';
                     const compPNo = row["COMPONENTE_NUMERO_PARTE"] ? row["COMPONENTE_NUMERO_PARTE"].toString().trim() : '';
-                    const compName = row["COMPONENTE_NOMBRE"] ? row["COMPONENTE_NOMBRE"].toString().trim() : compPNo;
+                    const compName = row["COMPONENTE_NOMBRE"] ? row["COMPONENTE_NOMBRE"].toString().trim() : '';
                     
-                    const productType = row["TIPO_PRODUCTO"] ? row["TIPO_PRODUCTO"].toString().trim().toUpperCase() : 'COMPONENTE';
+                    const rawProductType = row["TIPO_PRODUCTO"] ? row["TIPO_PRODUCTO"].toString().trim().toUpperCase() : '';
                     const project = row["PROYECTO"] ? row["PROYECTO"].toString().trim() : '';
                     const clientName = row["CLIENTE"] ? row["CLIENTE"].toString().trim() : '';
                     
                     const cycleTime = parseFloat(row["TIEMPO_CICLO_SEG"]) || 0;
                     const cavities = parseInt(row["CAVIDADES"]) || 1;
                     
-                    // Convertir KG a Gramos en Supabase (* 1000)
                     const weightKg = parseFloat(row["PESO_PIEZA_KG"]) || 0;
                     const runnerKg = parseFloat(row["PESO_COLADA_KG"]) || 0;
-                    const weightGr = weightKg * 1000;
-                    const runnerGr = runnerKg * 1000;
+                    const weightGr = weightKg < 10 ? weightKg * 1000 : weightKg;
+                    const runnerGr = runnerKg < 10 ? runnerKg * 1000 : runnerKg;
 
                     const unit = row["UNIDAD_MEDIDA"] ? row["UNIDAD_MEDIDA"].toString().trim() : 'EA';
                     const usageQty = parseFloat(row["USO_POR_PIEZA"]) || 1;
 
-                    if (!parentPNo || !compPNo) continue;
+                    if (parentPNo && parentPNo !== currentParentPN) {
+                        currentParentPN = parentPNo;
+                        currentParentName = parentName;
+                        currentParentId = await getOrCreatePart(
+                            currentParentPN, 
+                            currentParentName, 
+                            'PT', 
+                            'PZA', 
+                            project, 
+                            clientName, 
+                            cycleTime, 
+                            cavities, 
+                            weightGr, 
+                            runnerGr, 
+                            ''
+                        );
+                    }
 
-                    // Registrar o Actualizar Padre (PT)
-                    const parentId = await getOrCreatePart(parentPNo, parentName, 'PT', 'PZA', project, clientName, cycleTime, cavities, weightGr, runnerGr, '');
+                    let activeChildPN = '';
+                    let activeChildName = '';
+                    let activeType = '';
+                    let bomLevel = 1;
 
-                    // Registrar o Actualizar Componente/Resina
-                    const childId = await getOrCreatePart(compPNo, compName, productType, unit, project, clientName, cycleTime, cavities, weightGr, runnerGr, '');
+                    if (subPNo) {
+                        activeChildPN = subPNo;
+                        activeChildName = compName || subPNo;
+                        activeType = 'SUB-ENSAMBLE';
+                        bomLevel = 1;
+                    } else if (compPNo) {
+                        activeChildPN = compPNo;
+                        activeChildName = compName || compPNo;
+                        activeType = rawProductType || (unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE');
+                        bomLevel = activeType === 'RESINA' ? 2 : 1;
+                    } else {
+                        continue;
+                    }
 
-                    if (!parentId || !childId) continue;
+                    if (!currentParentId || !activeChildPN) continue;
+
+                    const childId = await getOrCreatePart(
+                        activeChildPN, 
+                        activeChildName, 
+                        activeType, 
+                        unit, 
+                        project, 
+                        clientName, 
+                        cycleTime, 
+                        cavities, 
+                        weightGr, 
+                        runnerGr, 
+                        ''
+                    );
+
+                    if (!childId) continue;
 
                     bomBatch.push({
-                        parent_id: parentId,
+                        parent_id: currentParentId,
                         child_id: childId,
                         quantity: usageQty,
                         usage_qty: usageQty,
-                        bom_level: productType === 'RESINA' ? 2 : 1,
+                        bom_level: bomLevel,
                         client: clientName,
                         car_model: project,
                         unit: unit,
