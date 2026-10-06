@@ -527,7 +527,7 @@ async function generatePDF() {
     doc.setTextColor(0, 0, 0);
 
     lastFetchedData.forEach((audit) => {
-        if (yPos > 740) { doc.addPage(); yPos = 50; }
+        if (yPos > 720) { doc.addPage(); yPos = 50; }
 
         const res = audit.respuestas_json || {};
         const s = [0,0,0,0,0], c = [0,0,0,0,0];
@@ -539,7 +539,6 @@ async function generatePDF() {
         });
         const avgs = s.map((v, i) => Math.round((v / (c[i] || 1)) * 100));
         
-        // Pone guión si es tipo máquina para mantener el diseño intacto
         let jigText = (audit.tipo_auditoria === 'maquina') ? '-' : (jCount > 0 ? `${Math.round((jSum/jCount)*100)}%` : '-');
 
         doc.setFont(undefined, 'normal');
@@ -575,7 +574,7 @@ async function generatePDF() {
         doc.setFontSize(7.5);
     });
 
-    if (yPos > 700) { doc.addPage(); yPos = 100; } else { yPos += 40; }
+    if (yPos > 680) { doc.addPage(); yPos = 100; } else { yPos += 40; }
     doc.setDrawColor(0);
     doc.line(margin + 50, yPos + 40, margin + 200, yPos + 40);
     doc.line(margin + 320, yPos + 40, margin + 470, yPos + 40);
@@ -583,6 +582,35 @@ async function generatePDF() {
     doc.setFont(undefined, 'bold');
     doc.text("SUPERVISOR DE ÁREA", margin + 70, yPos + 55);
     doc.text("GERENTE DE PRODUCCIÓN", margin + 335, yPos + 55);
+
+    // =======================================================
+    // PIE DE PÁGINA: CONTROL DE DOCUMENTOS Y PAGINACIÓN
+    // =======================================================
+    const totalPages = doc.getNumberOfPages();
+    const fechaImpresion = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        
+        // Línea divisoria gris clara
+        doc.setDrawColor(200);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 810, 595 - margin, 810);
+
+        doc.setFontSize(7);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(100);
+
+        // Izquierda: Código de documento + Revisión
+        doc.text("DOCUMENTO CONTROLADO | CÓDIGO: KRMX-5S-0001 | REV 00", margin, 822);
+
+        // Centro: Fecha de generación
+        doc.text(`Fecha de Emisión: ${fechaImpresion}`, 265, 822);
+
+        // Derecha: Paginación dinámica
+        doc.text(`Página ${i} de ${totalPages}`, 595 - margin - 50, 822);
+    }
+
     doc.save(`BI_Reporte_5S_KRAEM_${new Date().getTime()}.pdf`);
 }
 
