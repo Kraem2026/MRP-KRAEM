@@ -107,13 +107,14 @@
 
 <div class="comparison-section">
     <div class="comp-header">
-        <h3 style="margin:0;"><i class="fas fa-medal"></i> Ranking Comparativo</h3>
-        <div class="filter-group" style="width: 250px;">
-            <select id="comp-type" onchange="updateComparisonChart()" style="border: 1px solid var(--primary); font-weight: bold;">
-                <option value="operador">Comparar por Operador</option>
-                <option value="area">Comparar por Área</option>
-                <option value="maquina">Comparar por Máquina</option>
-                <option value="turno">Comparar por Turno</option>
+        <h3 style="margin:0;"><i class="fas fa-chart-pie"></i> Desempeño y Ranking por Nivel</h3>
+        <div class="filter-group" style="width: 280px;">
+            <label style="font-size: 11px; font-weight: 800; color: var(--primary);">EVALUAR POR:</label>
+            <select id="comp-type" onchange="updateComparisonChart()" style="border: 2px solid var(--primary); font-weight: bold; background: #eff6ff;">
+                <option value="area" selected>Área Completa</option>
+                <option value="operador">Por Operador / Supervisor</option>
+                <option value="maquina">Por Máquina de Inyección</option>
+                <option value="turno">Por Turno</option>
             </select>
         </div>
     </div>
@@ -367,25 +368,63 @@ function updateComparisonChart() {
     let grouped = {};
     
     lastFetchedData.forEach(audit => {
-        let key = (type === 'area') ? (audit.areas_generales?.nombre || "Sin Área") : 
-                  (type === 'maquina') ? (audit.mes_machines?.machine_code || "Sin Código") : 
-                  (type === 'turno') ? (audit.rh_turnos?.nombre || "Sin Turno") :
-                  (audit.rh_empleados?.nombre_completo || "N/A");
+        let key = "";
+
+        if (type === 'area') {
+            key = audit.areas_generales?.nombre || "Sin Área Asignada";
+        } else if (type === 'maquina') {
+            key = audit.mes_machines?.machine_code || "Sin Código Máquina";
+        } else if (type === 'turno') {
+            key = audit.rh_turnos?.nombre || "Sin Turno";
+        } else {
+            key = audit.rh_empleados?.nombre_completo || "Sin Operador/Supervisor";
+        }
                   
-        if(!grouped[key]) grouped[key] = { total: 0, count: 0 };
-        grouped[key].total += audit.puntuacion;
+        if(!grouped[key]) {
+            grouped[key] = { total: 0, count: 0 };
+        }
+        
+        grouped[key].total += (audit.puntuacion || 0);
         grouped[key].count++;
     });
     
-    let sortedLabels = Object.keys(grouped).map(k => ({ label: k, avg: Math.round(grouped[k].total / grouped[k].count) })).sort((a, b) => b.avg - a.avg);
+    let sortedLabels = Object.keys(grouped).map(k => ({
+        label: k, 
+        avg: grouped[k].count > 0 ? Math.round(grouped[k].total / grouped[k].count) : 0,
+        totalAuditorias: grouped[k].count
+    })).sort((a, b) => b.avg - a.avg);
+
     if(barChart) barChart.destroy();
+    
     barChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sortedLabels.map(i => i.label),
-            datasets: [{ label: 'Promedio %', data: sortedLabels.map(i => i.avg), backgroundColor: sortedLabels.map(i => i.avg < 70 ? '#ef4444' : (i.avg < 90 ? '#f59e0b' : '#22c55e')), borderRadius: 5 }]
+            labels: sortedLabels.map(i => `${i.label} (${i.totalAuditorias} aud.)`),
+            datasets: [{
+                label: 'Cumplimiento Promedio %',
+                data: sortedLabels.map(i => i.avg),
+                backgroundColor: sortedLabels.map(i => i.avg < 70 ? '#ef4444' : (i.avg < 90 ? '#f59e0b' : '#22c55e')),
+                borderRadius: 6
+            }]
         },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 105 } }, plugins: { legend: { display: false } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { 
+                y: { min: 0, max: 100, title: { display: true, text: 'Porcentaje de Cumplimiento (%)' } },
+                x: { title: { display: true, text: type === 'area' ? 'Áreas Evaluadas' : 'Criterio Seleccionado' } }
+            },
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` Promedio: ${context.raw}%`;
+                        }
+                    }
+                }
+            }
+        }
     });
 }
 
@@ -468,7 +507,6 @@ async function generatePDF() {
 
     try { doc.addImage('logo-kraem.jpg', 'JPEG', margin, 30, 100, 40); } catch (e) { doc.setFontSize(18); doc.text("KRAEM", margin, 55); }
 
-    // IDENTIFICACIÓN DINÁMICA DEL TIPO DE AUDITORÍA PARA EL TÍTULO
     const filtroTipo = document.getElementById('f-tipo').value;
     let extensionTitulo = "GENERAL";
     if (filtroTipo === 'estacion') extensionTitulo = "ESTACIONES DE TRABAJO";
@@ -496,7 +534,6 @@ async function generatePDF() {
         doc.text(`${s_names[i-1]}: ${val}`, 250, yPos + 30 + (i * 18));
     }
 
-    // SI ES MÁQUINA DE INYECCIÓN, NO IMPRIMIR LA LÍNEA GLOBAL DE JIGS EN EL PDF
     if (filtroTipo !== 'maquina') {
         let jigGlobalText = document.getElementById('val-jigs').innerText;
         doc.setFont(undefined, 'bold');
@@ -583,16 +620,11 @@ async function generatePDF() {
     doc.text("SUPERVISOR DE ÁREA", margin + 70, yPos + 55);
     doc.text("GERENTE DE PRODUCCIÓN", margin + 335, yPos + 55);
 
-    // =======================================================
-    // PIE DE PÁGINA: CONTROL DE DOCUMENTOS Y PAGINACIÓN
-    // =======================================================
     const totalPages = doc.getNumberOfPages();
     const fechaImpresion = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
-        
-        // Línea divisoria gris clara
         doc.setDrawColor(200);
         doc.setLineWidth(0.5);
         doc.line(margin, 810, 595 - margin, 810);
@@ -601,13 +633,8 @@ async function generatePDF() {
         doc.setFont(undefined, 'normal');
         doc.setTextColor(100);
 
-        // Izquierda: Código de documento + Revisión
         doc.text("DOCUMENTO CONTROLADO | CÓDIGO: KRMX-5S-0001 | REV 00", margin, 822);
-
-        // Centro: Fecha de generación
         doc.text(`Fecha de Emisión: ${fechaImpresion}`, 265, 822);
-
-        // Derecha: Paginación dinámica
         doc.text(`Página ${i} de ${totalPages}`, 595 - margin - 50, 822);
     }
 
