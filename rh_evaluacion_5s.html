@@ -83,6 +83,23 @@
         select:focus, textarea:focus{
             border-color:var(--primary);
         }
+        .freq-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .freq-diario {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+        .freq-semanal {
+            background-color: #fef3c7;
+            color: #b45309;
+        }
         .checkbox-container {
             display: flex;
             align-items: center;
@@ -194,9 +211,14 @@
         <div class="setup-group">
             <label>Tipo de Auditoría</label>
             <select id="tipo_auditoria" onchange="cambioTipoAuditoria()">
-                <option value="estacion">Estación de Trabajo / Operador</option>
-                <option value="maquina">Máquina de Inyección (Mtto / Planta)</option>
+                <option value="estacion">Estación de Trabajo / Operador (Diaria)</option>
+                <option value="maquina">Máquina de Inyección (Diaria)</option>
+                <option value="supervisor">Supervisores / Liderazgo (Semanal)</option>
             </select>
+
+            <div id="freq_indicator" class="freq-badge freq-diario">
+                <i class="fas fa-calendar-day"></i> Frecuencia: Registro Diario
+            </div>
 
             <label>Área General</label>
             <select id="area_select" onchange="cambioFiltros()">
@@ -208,17 +230,19 @@
                 <option value="">Cargando...</option>
             </select>
 
-            <label>Máquina</label>
-            <select id="maquina_select">
-                <option value="">Seleccione área...</option>
-            </select>
+            <div id="cont_maquina">
+                <label>Máquina</label>
+                <select id="maquina_select">
+                    <option value="">Seleccione área...</option>
+                </select>
+            </div>
 
-            <label id="label_operador">Operador</label>
+            <label id="label_operador">Operador Evaluado</label>
             <select id="operador_select">
                 <option value="">Seleccione área y turno...</option>
             </select>
 
-            <label>Auditor (Lista Completa por Turno)</label>
+            <label>Auditor / Evaluador</label>
             <select id="auditor_select">
                 <option value="">Cargando...</option>
             </select>
@@ -279,7 +303,7 @@ const nombres5S = [
     "5. SHITSUKE (Disciplina)"
 ];
 
-// 1. MATRIZ: Estación de Trabajo tradicional
+// 1. MATRIZ: Estación de Trabajo (Diaria)
 const preguntasEstacion = [
     ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
     ["¿Herramientas en su lugar?", "¿Material en su lugar?", "¿Área libre de obstáculos?", "¿Contenedores correctamente identificados?", "¿Instrucciones visibles?"],
@@ -288,7 +312,6 @@ const preguntasEstacion = [
     ["¿Hábito de limpieza?", "¿Sigue instrucciones?", "¿Respeta ubicación?", "¿Reporta anomalías?", "¿Conoce 5S?"]
 ];
 
-// PREGUNTAS EXTRA DE JIGS
 const preguntasJigs = [
     "¿Solo Jigs de producción actual en uso? (Sin Jigs obsoletos/ajenos)",
     "¿Jigs guardados en su ubicación asignada o soporte correcto?",
@@ -297,13 +320,22 @@ const preguntasJigs = [
     "¿El operador reporta fallas en sensores de Jigs y los maneja con cuidado?"
 ];
 
-// 2. MATRIZ: Máquinas de Inyección (Enfoque Técnico y de Mantenimiento)
+// 2. MATRIZ: Máquinas de Inyección (Diaria)
 const preguntasMaquina = [
     ["¿Área de máquina libre de refacciones viejas, moldes o mangueras sin usar?", "¿Purga de plástico retirada del área de goteo?", "¿Herramientas de cambio de molde ausentes si no está en Setup?", "¿Herramientas del operador guardadas?", "¿Sin documentos obsoletos en tablero?"],
     ["¿Mangueras de agua/aceite ordenadas y sin riesgo de tropiezo?", "¿Contenedores de materia prima (Tolva/Alimentador) bien ubicados?", "¿Hieleras, racks de producto y tarimas alineados en su delimitación?", "¿Pistolas de aire y herramientas colgadas en su sitio?", "¿Paros de emergencia accesibles y sin obstrucción?"],
     ["¿Piso e interior de la máquina libres de fugas de aceite o agua?", "¿Estructura, tolva y guardas libres de polvo o residuos de resina?", "¿Unidad de inyección, pistón y husillo limpios de purgas quemadas?", "¿Bandejas de goteo limpias y sin desborde?", "¿Tablero eléctrico y pantallas limpios y cerrados?"],
     ["¿Hojas de parámetros y ayudas visuales legibles y vigentes en la máquina?", "¿Puntos de lubricación identificados y con niveles correctos?", "¿Código de colores visible en mangueras de enfriamiento?", "¿Delimitación de seguridad del perímetro de la máquina en buen estado?", "¿Checklist diario de máquina liberado por operador/mtto?"],
     ["¿El personal limpia la máquina al terminar el turno?", "¿Se respetan los accesos de mantenimiento sin dejar obstrucciones?", "¿Se reportan y atienden fugas críticas de inmediato?", "¿Se usan los botes de basura correctos para purgas/residuos?", "¿El equipo de mtto/producción sigue el estándar de orden de la máquina?"]
+];
+
+// 3. MATRIZ: Auditoría de Supervisores (Semanal)
+const preguntasSupervisor = [
+    ["¿Aplica correctamente el proceso de Tarjetas Rojas en su área asignada?", "¿Gestiona el retiro de sobrantes de material al cierre de lote/turno?", "¿Mantiene tableros técnicos y de KPI sin hojas viejas o no vigentes?", "¿Asegura que no haya equipo descompuesto/obsoleto acumulado en pasillos?", "¿Coordina el retorno de contenedores y tarimas vacías a su almacén?"],
+    ["¿Verifica que las líneas/estaciones tengan demarcación de piso completa?", "¿Asegura que el herramental y Jigs tengan un lugar asignado y etiquetado?", "¿Garantiza que el material en proceso (WIP) esté en áreas autorizadas?", "¿Valida el orden y fácil acceso a los equipos de seguridad (EPP/Extintores)?", "¿Mantiene el escritorio/mesa de supervisión ordenada y sin exceso de papel?"],
+    ["¿Programa y supervisa rutinas de limpieza profunda en sus líneas?", "¿Asegura que el personal cuente con insumos de limpieza adecuados?", "¿Da seguimiento al reporte y reparación de fugas de aire, agua o aceite?", "¿Verifica la limpieza de contenedores y racks antes de enviar a empaque?", "¿Promueve el hábito de 'limpiar durante y al final del turno' con su equipo?"],
+    ["¿Realiza y registra sus auditorías capas (LPA/5S) en tiempo y forma?", "¿Asegura que las ayudas visuales y hojas de instrucción estén publicadas?", "¿Verifica el uso correcto y completo de EPP del personal a su cargo?", "¿Mantiene al día la matriz de habilidades y estandarización del área?", "¿Asegura que las desviaciones detectadas tengan responsable y fecha límite?"],
+    ["¿Retroalimenta a su personal cuando detecta incumplimientos de 5S?", "¿Participa activamente en recorridos de seguimiento y juntas de hallazgos?", "¿Aplica disciplina operativa de forma justa y constante en su turno?", "¿Reconoce y motiva a las estaciones o equipos con mejor desempeño 5S?", "¿Demuestra compromiso personal manteniendo el ejemplo en su área y conducta?"]
 ];
 
 async function init(){
@@ -332,16 +364,30 @@ async function init(){
 function cambioTipoAuditoria() {
     const tipo = document.getElementById('tipo_auditoria').value;
     const jigToggle = document.getElementById('jig_toggle_container');
-    const opSel = document.getElementById('operador_select');
     const opLabel = document.getElementById('label_operador');
+    const contMaquina = document.getElementById('cont_maquina');
+    const freqIndicator = document.getElementById('freq_indicator');
 
     if (tipo === 'maquina') {
+        freqIndicator.className = "freq-badge freq-diario";
+        freqIndicator.innerHTML = '<i class="fas fa-calendar-day"></i> Frecuencia: Registro Diario';
         jigToggle.classList.add('hidden');
+        contMaquina.classList.remove('hidden');
         document.getElementById('aplica_jigs').checked = false;
-        opLabel.innerText = "Operador de Máquina / Líder responsable";
+        opLabel.innerText = "Operador de Máquina / Responsable";
+    } else if (tipo === 'supervisor') {
+        freqIndicator.className = "freq-badge freq-semanal";
+        freqIndicator.innerHTML = '<i class="fas fa-calendar-week"></i> Frecuencia: Registro Semanal';
+        jigToggle.classList.add('hidden');
+        contMaquina.classList.add('hidden');
+        document.getElementById('aplica_jigs').checked = false;
+        opLabel.innerText = "Supervisor / Líder Auditado";
     } else {
+        freqIndicator.className = "freq-badge freq-diario";
+        freqIndicator.innerHTML = '<i class="fas fa-calendar-day"></i> Frecuencia: Registro Diario';
         jigToggle.classList.remove('hidden');
-        opLabel.innerText = "Operador";
+        contMaquina.classList.remove('hidden');
+        opLabel.innerText = "Operador Evaluado";
     }
 }
 
@@ -387,7 +433,6 @@ function filtrarOperadores(){
     const nombreTurno = turnoObj ? turnoObj.nombre : '';
     const turnoNumerico = nombreTurno.includes('2') ? '2' : (nombreTurno.includes('1') ? '1' : '');
 
-    // Permite relacionar por ID exacto de la tabla rh_turnos o por el número identificador
     const filtrados = listaEmpleados.filter(e => 
         String(e.area_general_id || '') === String(areaId) && 
         (String(e.turno_id || '') === String(turnoUuid) || String(e.turno_id || '') === String(turnoNumerico))
@@ -417,36 +462,33 @@ function cargarAuditorCompleto(){
         }
     });
 
-    const sinTurno = listaEmpleados.filter(e => !e.turno_id || (e.turno_id !== '1' && e.turno_id !== '2'));
-    if(sinTurno.length > 0 && listaTurnos.length === 0){
-        html += `<optgroup label="Todos los Empleados">`;
-        html += sinTurno.map(e => `<option value="${e.id}">${e.nombre_completo}</option>`).join('');
-        html += `</optgroup>`;
-    }
-
     audSel.innerHTML = html;
 }
 
 function nextStep(){
-    // Validar datos de inicio
-    if(currentStep === 0 && (
-        !document.getElementById('area_select').value || 
-        !document.getElementById('turno_select').value || 
-        !document.getElementById('maquina_select').value || 
-        !document.getElementById('operador_select').value || 
-        !document.getElementById('auditor_select').value
-    )){
-        return alert("Faltan datos obligatorios para iniciar.");
+    const tipo = document.getElementById('tipo_auditoria').value;
+
+    // Validar datos según frecuencia/rol
+    if(currentStep === 0){
+        const faltaArea = !document.getElementById('area_select').value;
+        const faltaTurno = !document.getElementById('turno_select').value;
+        const faltaMaquina = (tipo !== 'supervisor') && !document.getElementById('maquina_select').value;
+        const faltaOperador = !document.getElementById('operador_select').value;
+        const faltaAuditor = !document.getElementById('auditor_select').value;
+
+        if (faltaArea || faltaTurno || faltaMaquina || faltaOperador || faltaAuditor) {
+            return alert("Faltan datos obligatorios para iniciar.");
+        }
     }
 
-    // Validar que todas las preguntas de la S actual estén contestadas
     if(currentStep > 0 && currentStep <= 5){
         const idx = currentStep - 1;
-        const tipo = document.getElementById('tipo_auditoria').value;
         const aplicaJigs = document.getElementById('aplica_jigs').checked;
-        const preguntasActuales = (tipo === 'maquina') ? preguntasMaquina[idx] : preguntasEstacion[idx];
+        
+        let preguntasActuales = preguntasEstacion[idx];
+        if (tipo === 'maquina') preguntasActuales = preguntasMaquina[idx];
+        if (tipo === 'supervisor') preguntasActuales = preguntasSupervisor[idx];
 
-        // Verificar preguntas estándar
         for (let j = 0; j < preguntasActuales.length; j++) {
             const clave = `${idx}_${j}`;
             if (auditData.respuestas[clave] === undefined) {
@@ -454,7 +496,6 @@ function nextStep(){
             }
         }
 
-        // Verificar pregunta de Jigs si aplica
         if (tipo === 'estacion' && aplicaJigs) {
             const claveJig = `${idx}_jig`;
             if (auditData.respuestas[claveJig] === undefined) {
@@ -462,7 +503,6 @@ function nextStep(){
             }
         }
 
-        // Guardar observaciones
         auditData.observaciones[`s${currentStep}`] = document.getElementById('obs_input').value;
     }
 
@@ -490,7 +530,9 @@ function render(){
     const tipo = document.getElementById('tipo_auditoria').value;
     const aplicaJigs = document.getElementById('aplica_jigs').checked;
     
-    const matrizPreguntas = (tipo === 'maquina') ? preguntasMaquina : preguntasEstacion;
+    let matrizPreguntas = preguntasEstacion;
+    if (tipo === 'maquina') matrizPreguntas = preguntasMaquina;
+    if (tipo === 'supervisor') matrizPreguntas = preguntasSupervisor;
 
     if(currentStep === 0){
         document.getElementById("step-setup").classList.remove("hidden");
@@ -542,7 +584,7 @@ function render(){
         backIcon.className = "fas fa-arrow-left";
 
         const vals = Object.values(auditData.respuestas);
-        const totalPreguntas = aplicaJigs ? 30 : 25; 
+        const totalPreguntas = (tipo === 'estacion' && aplicaJigs) ? 30 : 25; 
         
         auditData.score = Math.round((vals.reduce((a,b)=>a+b,0) / totalPreguntas) * 100);
 
@@ -560,16 +602,17 @@ function setAns(id, v, btn){
 
 async function guardar(){
     try{
+        const tipo = document.getElementById('tipo_auditoria').value;
         const { error } = await client.from('rh_evaluaciones_5s').insert([{
             empleado_id: document.getElementById('operador_select').value,
             auditor_id: document.getElementById('auditor_select').value,
             area_general_id: document.getElementById('area_select').value,
             turno_id: document.getElementById('turno_select').value,
-            machine_id: document.getElementById('maquina_select').value,
+            machine_id: (tipo === 'supervisor') ? null : document.getElementById('maquina_select').value,
             puntuacion: auditData.score,
             respuestas_json: auditData.respuestas,
             observaciones: auditData.observaciones,
-            tipo_auditoria: document.getElementById('tipo_auditoria').value,
+            tipo_auditoria: tipo,
             created_at: new Date().toISOString()
         }]);
 
