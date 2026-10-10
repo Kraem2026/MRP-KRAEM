@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRAEM - Matriz de Habilidades</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body { background-color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+        .modal-content { background-color: #fff; margin: 3% auto; padding: 24px; border-radius: 16px; width: 92%; max-width: 760px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .matrix-wrap { overflow: auto; max-height: calc(100vh - 280px); border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+        .matrix-table { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+        .matrix-table th, .matrix-table td { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+        .matrix-table thead th { position: sticky; top: 0; z-index: 3; background: #f8fafc; }
+        .matrix-table thead th.corner, .matrix-table tbody th { position: sticky; left: 0; z-index: 2; background: #fff; min-width: 220px; max-width: 260px; text-align: left; }
+        .matrix-table thead th.corner { z-index: 5; background: #f1f5f9; }
+        .proc-head { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; min-width: 44px; height: 150px; padding: 8px 4px; font-size: 11px; font-weight: 600; color: #334155; }
+        .cell-skill { width: 44px; height: 44px; text-align: center; cursor: pointer; padding: 0; }
+        .cell-skill:hover { outline: 2px solid #2563eb; outline-offset: -2px; }
+        .lvl-1 { background: #fef3c7; color: #92400e; }
+        .lvl-2 { background: #dbeafe; color: #1e40af; }
+        .lvl-3 { background: #d1fae5; color: #065f46; }
+        .lvl-4 { background: #166534; color: #fff; }
+        .lvl-0 { background: #f8fafc; color: #cbd5e1; }
+        .tab-btn.active { background: #1e293b; color: #fff; }
+        .timeline-item { border-left: 3px solid #2563eb; padding-left: 12px; margin-left: 6px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+    <div class="p-6 max-w-[1600px] mx-auto">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-5">
+            <div class="flex items-center gap-3">
+                <a href="rh_empleados.html" class="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 shadow-2xs" title="Regresar a Personal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Matriz de Habilidades</h1>
+                    <p class="text-sm text-slate-500">Personal × ensambles / procesos. Define la versatilidad operativa.</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="abrirProceso()" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg text-sm">Nuevo ensamble</button>
+                <button onclick="abrirCapacitacion()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm">Nueva capacitación</button>
+                <button onclick="exportarMatriz()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm">Exportar matriz</button>
+            </div>
+        </div>
+
+        <div id="alerta_sql" class="hidden mb-4 bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-xl p-4">
+            Faltan tablas en Supabase. Abre el SQL Editor y ejecuta el archivo <b>rh_matriz_habilidades.sql</b>.
+        </div>
+
+        <div class="flex gap-2 mb-4">
+            <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200" data-tab="matriz" onclick="cambiarTab('matriz')">Matriz</button>
+            <button class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200" data-tab="reportes" onclick="cambiarTab('reportes')">Reportes de auditoría</button>
+        </div>
+
+        <div id="vista_matriz">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                <div class="bg-white border border-slate-200 rounded-xl p-3">
+                    <span class="text-[11px] uppercase text-slate-400 font-semibold">Personal</span>
+                    <div id="kpi_emp" class="text-xl font-bold text-slate-800">0</div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-3">
+                    <span class="text-[11px] uppercase text-slate-400 font-semibold">Ensamble / procesos</span>
+                    <div id="kpi_proc" class="text-xl font-bold text-slate-800">0</div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-3">
+                    <span class="text-[11px] uppercase text-slate-400 font-semibold">Celdas cubiertas</span>
+                    <div id="kpi_celdas" class="text-xl font-bold text-slate-800">0</div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-3">
+                    <span class="text-[11px] uppercase text-slate-400 font-semibold">Polivalencia promedio</span>
+                    <div id="kpi_poli" class="text-xl font-bold text-blue-700">0%</div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-xl p-3">
+                    <span class="text-[11px] uppercase text-slate-400 font-semibold">Nivel 4 (dominio)</span>
+                    <div id="kpi_dom" class="text-xl font-bold text-emerald-700">0</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 mb-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="f_nombre">Buscar personal</label>
+                        <input id="f_nombre" type="text" oninput="renderMatriz()" placeholder="Nombre..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="f_area">Área</label>
+                        <select id="f_area" onchange="renderMatriz()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="f_estatus">Estatus</label>
+                        <select id="f_estatus" onchange="renderMatriz()" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="BAJA">BAJA</option>
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-3 text-[11px] font-semibold">
+                    <span class="px-2 py-1 rounded lvl-1">1 Principiante · supervisión 100%</span>
+                    <span class="px-2 py-1 rounded lvl-2">2 Básico · supervisión intermitente</span>
+                    <span class="px-2 py-1 rounded lvl-3">3 Regular · sin supervisión</span>
+                    <span class="px-2 py-1 rounded lvl-4">4 Dominio · experto</span>
+                    <span class="px-2 py-1 rounded border border-slate-200 text-slate-400">Vacío · sin capacitación</span>
+                </div>
+            </div>
+
+            <div class="matrix-wrap">
+                <table class="matrix-table" id="tabla_matriz">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="vista_reportes" class="hidden">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="rep_tipo">Tipo de reporte</label>
+                        <select id="rep_tipo" onchange="cambiarTipoReporte()" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                            <option value="operador">Por operador</option>
+                            <option value="ensamble">Por ensamble</option>
+                            <option value="fechas">Por fechas (avances)</option>
+                        </select>
+                    </div>
+                    <div id="box_rep_emp">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="rep_emp">Operador</label>
+                        <select id="rep_emp" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
+                    </div>
+                    <div id="box_rep_proc" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="rep_proc">Ensamble / proceso</label>
+                        <select id="rep_proc" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
+                    </div>
+                    <div id="box_rep_desde" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="rep_desde">Desde</label>
+                        <input type="date" id="rep_desde" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                    </div>
+                    <div id="box_rep_hasta" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1" for="rep_hasta">Hasta</label>
+                        <input type="date" id="rep_hasta" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="generarReporte()" class="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm">Generar</button>
+                        <button onclick="exportarReporte()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm">Excel</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-xl overflow-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                        <tr id="rep_head"></tr>
+                    </thead>
+                    <tbody id="rep_body">
+                        <tr><td class="p-6 text-center text-slate-400">Selecciona el tipo de reporte y pulsa Generar.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalProceso" class="modal">
+        <div class="modal-content max-w-md">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Nuevo ensamble / proceso</h3>
+                <button onclick="cerrarModales()" class="text-slate-400 text-xl font-bold">&times;</button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="p_codigo">Código</label>
+                    <input id="p_codigo" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm" placeholder="Ej. ENS-01">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="p_nombre">Nombre *</label>
+                    <input id="p_nombre" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm" placeholder="Nombre del ensamble o proceso">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="p_desc">Descripción</label>
+                    <textarea id="p_desc" rows="2" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button onclick="cerrarModales()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm">Cancelar</button>
+                <button onclick="guardarProceso()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalCap" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Nueva capacitación</h3>
+                <button onclick="cerrarModales()" class="text-slate-400 text-xl font-bold">&times;</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="c_emp">Personal *</label>
+                    <select id="c_emp" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="c_proc">Ensamble / proceso *</label>
+                    <select id="c_proc" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="c_nivel">Nivel inicial *</label>
+                    <select id="c_nivel" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="c_inicio">Fecha de inicio *</label>
+                    <input type="date" id="c_inicio" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="c_inst">Instructor / evaluador</label>
+                    <input id="c_inst" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="c_obs">Observaciones</label>
+                    <textarea id="c_obs" rows="2" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm" placeholder="Turno, estación, motivo de la capacitación..."></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-5">
+                <button onclick="cerrarModales()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm">Cancelar</button>
+                <button onclick="guardarCapacitacion()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Asignar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalDetalle" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800" id="d_titulo">Capacitación</h3>
+                    <p class="text-xs text-slate-500" id="d_sub"></p>
+                </div>
+                <button onclick="cerrarModales()" class="text-slate-400 text-xl font-bold">&times;</button>
+            </div>
+            <div id="d_nivel_actual" class="mb-4"></div>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Historial de niveles</h4>
+            <div id="d_timeline" class="mb-5"></div>
+            <div class="border-t border-slate-100 pt-4">
+                <h4 class="text-sm font-bold text-slate-800 mb-3">Registrar avance de nivel</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input type="hidden" id="a_emp">
+                    <input type="hidden" id="a_proc">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="a_nivel">Nuevo nivel</label>
+                        <select id="a_nivel" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="a_fecha">Fecha de cambio</label>
+                        <input type="date" id="a_fecha" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="a_inst">Evaluador</label>
+                        <input id="a_inst" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-0.5" for="a_obs">Comentario</label>
+                        <input id="a_obs" class="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button onclick="guardarAvance()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Guardar avance</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const NIVELES = {
+    1: { short: '1', nombre: 'Principiante', desc: 'Requiere supervisión 100%' },
+    2: { short: '2', nombre: 'Básico', desc: 'Requiere supervisión intermitente' },
+    3: { short: '3', nombre: 'Regular', desc: 'Conoce el proceso y trabaja sin supervisión' },
+    4: { short: '4', nombre: 'Dominio', desc: 'Pocos defectos, buen tiempo de ejecución y experto en el proceso' }
+};
+
+let empleados = [];
+let procesos = [];
+let habilidades = [];
+let historial = [];
+let ultimoReporte = [];
+
+function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function hoyISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function key(empId, procId) { return `${empId}::${procId}`; }
+
+function fillSelect(id, items, labelFn, valueFn, placeholder) {
+    const s = document.getElementById(id);
+    if (!s) return;
+    const opts = (items || []).map(it => `<option value="${esc(valueFn(it))}">${esc(labelFn(it))}</option>`).join('');
+    s.innerHTML = `<option value="">${esc(placeholder || 'Seleccione...')}</option>` + opts;
+}
+
+function fillNiveles(id, selected) {
+    const s = document.getElementById(id);
+    s.innerHTML = Object.entries(NIVELES).map(([k, v]) =>
+        `<option value="${k}" ${String(selected) === String(k) ? 'selected' : ''}>${k} · ${v.nombre} — ${v.desc}</option>`
+    ).join('');
+}
+
+async function init() {
+    try {
+        if (typeof client === 'undefined') throw new Error('No se encontró client de config.js');
+
+        const { data: areas } = await client.from('areas_generales').select('id, nombre').order('nombre');
+        fillSelect('f_area', areas || [], a => a.nombre, a => a.id, 'Todas');
+
+        const { data: emps, error: e1 } = await client.from('rh_empleados').select('id, nombre_completo, area_general_id, puesto_id, estatus').order('nombre_completo');
+        if (e1) throw e1;
+        empleados = emps || [];
+
+        const p = await client.from('rh_procesos').select('*').eq('activo', true).order('nombre');
+        if (p.error) {
+            document.getElementById('alerta_sql').classList.remove('hidden');
+            console.error(p.error);
+            procesos = [];
+        } else {
+            procesos = p.data || [];
+        }
+
+        const h = await client.from('rh_matriz_habilidades').select('*');
+        habilidades = h.error ? [] : (h.data || []);
+        const hist = await client.from('rh_matriz_historial').select('*').order('fecha_inicio');
+        historial = hist.error ? [] : (hist.data || []);
+
+        fillSelect('c_emp', empleados.filter(e => e.estatus === 'ACTIVO'), e => e.nombre_completo, e => e.id);
+        fillSelect('c_proc', procesos, pr => (pr.codigo ? pr.codigo + ' · ' : '') + pr.nombre, pr => pr.id);
+        fillSelect('rep_emp', empleados, e => e.nombre_completo, e => e.id, 'Todos');
+        fillSelect('rep_proc', procesos, pr => (pr.codigo ? pr.codigo + ' · ' : '') + pr.nombre, pr => pr.id, 'Todos');
+        fillNiveles('c_nivel', 1);
+        fillNiveles('a_nivel', 2);
+        document.getElementById('c_inicio').value = hoyISO();
+        document.getElementById('a_fecha').value = hoyISO();
+        document.getElementById('rep_desde').value = hoyISO().slice(0, 8) + '01';
+        document.getElementById('rep_hasta').value = hoyISO();
+
+        renderMatriz();
+    } catch (err) {
+        console.error(err);
+        alert('Error al iniciar la matriz: ' + err.message);
+    }
+}
+
+function mapaHabilidades() {
+    const m = {};
+    habilidades.forEach(h => { m[key(h.empleado_id, h.proceso_id)] = h; });
+    return m;
+}
+
+function versatilidad(empId, map) {
+    if (!procesos.length) return 0;
+    const sum = procesos.reduce((acc, p) => acc + (map[key(empId, p.id)]?.nivel || 0), 0);
+    return Math.round((sum / (procesos.length * 4)) * 100);
+}
+
+function empleadosFiltrados() {
+    const n = document.getElementById('f_nombre').value.toLowerCase().trim();
+    const a = document.getElementById('f_area').value;
+    const s = document.getElementById('f_estatus').value;
+    return empleados.filter(e =>
+        (!n || (e.nombre_completo || '').toLowerCase().includes(n)) &&
+        (!a || String(e.area_general_id) === String(a)) &&
+        (!s || e.estatus === s)
+    );
+}
+
+function renderMatriz() {
+    const map = mapaHabilidades();
+    const filas = empleadosFiltrados();
+    const thead = document.querySelector('#tabla_matriz thead');
+    const tbody = document.querySelector('#tabla_matriz tbody');
+
+    thead.innerHTML = `<tr>
+        <th class="corner px-3 py-2 text-xs uppercase text-slate-500">Personal / Versatilidad</th>
+        ${procesos.map(p => `<th class="proc-head" title="${esc(p.descripcion || p.nombre)}">${esc((p.codigo ? p.codigo + ' · ' : '') + p.nombre)}</th>`).join('')}
+    </tr>`;
+
+    if (!filas.length) {
+        tbody.innerHTML = `<tr><td class="p-8 text-center text-slate-400" colspan="${procesos.length + 1}">No hay personal con esos filtros.</td></tr>`;
+    } else if (!procesos.length) {
+        tbody.innerHTML = `<tr><td class="p-8 text-center text-slate-400">Aún no hay ensambles. Usa “Nuevo ensamble”.</td></tr>`;
+    } else {
+        tbody.innerHTML = filas.map(e => {
+            const v = versatilidad(e.id, map);
+            const celdas = procesos.map(p => {
+                const h = map[key(e.id, p.id)];
+                const n = h ? h.nivel : 0;
+                const title = n ? `${NIVELES[n].nombre}: ${NIVELES[n].desc}` : 'Sin capacitación — clic para asignar';
+                return `<td class="cell-skill lvl-${n}" data-emp="${esc(e.id)}" data-proc="${esc(p.id)}" title="${esc(title)}">${n || '·'}</td>`;
+            }).join('');
+            return `<tr>
+                <th class="px-3 py-2">
+                    <div class="text-sm font-semibold text-slate-800 truncate">${esc(e.nombre_completo)}</div>
+                    <div class="text-[11px] text-blue-600 font-bold">${v}% versátil</div>
+                </th>
+                ${celdas}
+            </tr>`;
+        }).join('');
+    }
+
+    tbody.onclick = (ev) => {
+        const cell = ev.target.closest('[data-emp][data-proc]');
+        if (!cell) return;
+        const h = map[key(cell.dataset.emp, cell.dataset.proc)];
+        if (h) abrirDetalle(cell.dataset.emp, cell.dataset.proc);
+        else abrirCapacitacion(cell.dataset.emp, cell.dataset.proc);
+    };
+
+    const cubiertas = habilidades.length;
+    const totalPos = empleados.filter(e => e.estatus === 'ACTIVO').length * procesos.length;
+    const poli = empleados.filter(e => e.estatus === 'ACTIVO');
+    const avg = poli.length ? Math.round(poli.reduce((a, e) => a + versatilidad(e.id, map), 0) / poli.length) : 0;
+    document.getElementById('kpi_emp').textContent = filas.length;
+    document.getElementById('kpi_proc').textContent = procesos.length;
+    document.getElementById('kpi_celdas').textContent = `${cubiertas}${totalPos ? ' / ' + totalPos : ''}`;
+    document.getElementById('kpi_poli').textContent = avg + '%';
+    document.getElementById('kpi_dom').textContent = habilidades.filter(h => h.nivel === 4).length;
+}
+
+function cambiarTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.getElementById('vista_matriz').classList.toggle('hidden', tab !== 'matriz');
+    document.getElementById('vista_reportes').classList.toggle('hidden', tab !== 'reportes');
+}
+
+function cambiarTipoReporte() {
+    const t = document.getElementById('rep_tipo').value;
+    document.getElementById('box_rep_emp').classList.toggle('hidden', t !== 'operador');
+    document.getElementById('box_rep_proc').classList.toggle('hidden', t !== 'ensamble');
+    document.getElementById('box_rep_desde').classList.toggle('hidden', t !== 'fechas');
+    document.getElementById('box_rep_hasta').classList.toggle('hidden', t !== 'fechas');
+}
+
+function cerrarModales() {
+    document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+}
+
+function abrirProceso() {
+    document.getElementById('p_codigo').value = '';
+    document.getElementById('p_nombre').value = '';
+    document.getElementById('p_desc').value = '';
+    document.getElementById('modalProceso').style.display = 'block';
+}
+
+function abrirCapacitacion(empId, procId) {
+    fillSelect('c_emp', empleados.filter(e => e.estatus !== 'BAJA' || String(e.id) === String(empId)), e => e.nombre_completo, e => e.id);
+    fillSelect('c_proc', procesos, pr => (pr.codigo ? pr.codigo + ' · ' : '') + pr.nombre, pr => pr.id);
+    fillNiveles('c_nivel', 1);
+    document.getElementById('c_inicio').value = hoyISO();
+    document.getElementById('c_inst').value = '';
+    document.getElementById('c_obs').value = '';
+    if (empId) document.getElementById('c_emp').value = empId;
+    if (procId) document.getElementById('c_proc').value = procId;
+    document.getElementById('modalCap').style.display = 'block';
+}
+
+function empNombre(id) { return empleados.find(e => String(e.id) === String(id))?.nombre_completo || id; }
+function procNombre(id) {
+    const p = procesos.find(x => String(x.id) === String(id));
+    return p ? ((p.codigo ? p.codigo + ' · ' : '') + p.nombre) : id;
+}
+
+async function abrirDetalle(empId, procId) {
+    const h = habilidades.find(x => String(x.empleado_id) === String(empId) && String(x.proceso_id) === String(procId));
+    const hist = historial
+        .filter(x => String(x.empleado_id) === String(empId) && String(x.proceso_id) === String(procId))
+        .sort((a, b) => String(a.fecha_inicio || '').localeCompare(String(b.fecha_inicio || '')));
+
+    document.getElementById('d_titulo').textContent = empNombre(empId);
+    document.getElementById('d_sub').textContent = procNombre(procId);
+    const n = h?.nivel || 0;
+    document.getElementById('d_nivel_actual').innerHTML = n
+        ? `<span class="inline-block px-3 py-1 rounded-lg text-sm font-bold lvl-${n}">Nivel ${n} · ${esc(NIVELES[n].nombre)}</span>
+           <p class="text-xs text-slate-500 mt-2">${esc(NIVELES[n].desc)}</p>
+           <p class="text-xs text-slate-500 mt-1">Inicio en proceso: <b>${esc(h.fecha_inicio || '—')}</b> · Nivel actual desde: <b>${esc(h.fecha_nivel || '—')}</b></p>`
+        : '<p class="text-sm text-slate-500">Sin registro.</p>';
+
+    document.getElementById('d_timeline').innerHTML = hist.length
+        ? hist.map(item => {
+            const nv = NIVELES[item.nivel] || { nombre: item.nivel, desc: '' };
+            const hasta = item.fecha_fin || 'vigente';
+            return `<div class="timeline-item">
+                <div class="text-sm font-semibold text-slate-800">Nivel ${item.nivel} · ${esc(nv.nombre)}</div>
+                <div class="text-xs text-slate-500">${esc(item.fecha_inicio || '—')} → ${esc(hasta)}</div>
+                ${item.instructor ? `<div class="text-xs text-slate-500">Evaluador: ${esc(item.instructor)}</div>` : ''}
+                ${item.observaciones ? `<div class="text-xs text-slate-600 mt-1">${esc(item.observaciones)}</div>` : ''}
+            </div>`;
+        }).join('')
+        : '<p class="text-sm text-slate-400">Aún no hay historial de cambios de nivel.</p>';
+
+    document.getElementById('a_emp').value = empId;
+    document.getElementById('a_proc').value = procId;
+    fillNiveles('a_nivel', Math.min(4, (n || 0) + 1) || 1);
+    document.getElementById('a_fecha').value = hoyISO();
+    document.getElementById('a_inst').value = '';
+    document.getElementById('a_obs').value = '';
+    document.getElementById('modalDetalle').style.display = 'block';
+}
+
+async function guardarProceso() {
+    const nombre = document.getElementById('p_nombre').value.trim();
+    if (!nombre) { alert('El nombre es obligatorio.'); return; }
+    const { error } = await client.from('rh_procesos').insert([{
+        codigo: document.getElementById('p_codigo').value.trim() || null,
+        nombre,
+        descripcion: document.getElementById('p_desc').value.trim() || null,
+        activo: true
+    }]);
+    if (error) { mostrarErrorTabla(error); return; }
+    cerrarModales();
+    await init();
+}
+
+async function guardarCapacitacion() {
+    const empleado_id = document.getElementById('c_emp').value;
+    const proceso_id = document.getElementById('c_proc').value;
+    const nivel = parseInt(document.getElementById('c_nivel').value, 10);
+    const fecha_inicio = document.getElementById('c_inicio').value;
+    if (!empleado_id || !proceso_id || !fecha_inicio) {
+        alert('Personal, ensamble y fecha de inicio son obligatorios.');
+        return;
+    }
+    const existente = habilidades.find(h => String(h.empleado_id) === String(empleado_id) && String(h.proceso_id) === String(proceso_id));
+    if (existente) {
+        if (!confirm('Esta persona ya tiene este ensamble. ¿Registrar el cambio como avance de nivel?')) return;
+        document.getElementById('a_emp').value = empleado_id;
+        document.getElementById('a_proc').value = proceso_id;
+        document.getElementById('a_nivel').value = String(nivel);
+        document.getElementById('a_fecha').value = fecha_inicio;
+        document.getElementById('a_inst').value = document.getElementById('c_inst').value.trim();
+        document.getElementById('a_obs').value = document.getElementById('c_obs').value.trim();
+        await guardarAvance();
+        return;
+    }
+    const payload = {
+        empleado_id, proceso_id, nivel, fecha_inicio,
+        fecha_nivel: fecha_inicio,
+        instructor: document.getElementById('c_inst').value.trim() || null,
+        observaciones: document.getElementById('c_obs').value.trim() || null
+    };
+    const { error } = await client.from('rh_matriz_habilidades').insert([payload]);
+    if (error) { mostrarErrorTabla(error); return; }
+    const { error: e2 } = await client.from('rh_matriz_historial').insert([{
+        empleado_id, proceso_id, nivel,
+        fecha_inicio,
+        fecha_fin: null,
+        instructor: payload.instructor,
+        observaciones: payload.observaciones
+    }]);
+    if (e2) { mostrarErrorTabla(e2); return; }
+    alert('Capacitación asignada.');
+    cerrarModales();
+    await init();
+}
+
+async function guardarAvance() {
+    const empleado_id = document.getElementById('a_emp').value;
+    const proceso_id = document.getElementById('a_proc').value;
+    const nivel = parseInt(document.getElementById('a_nivel').value, 10);
+    const fecha = document.getElementById('a_fecha').value;
+    const instructor = document.getElementById('a_inst').value.trim() || null;
+    const observaciones = document.getElementById('a_obs').value.trim() || null;
+    if (!empleado_id || !proceso_id || !fecha) { alert('Faltan datos del avance.'); return; }
+
+    const abierto = historial.find(h =>
+        String(h.empleado_id) === String(empleado_id) &&
+        String(h.proceso_id) === String(proceso_id) &&
+        !h.fecha_fin
+    );
+    if (abierto) {
+        const { error } = await client.from('rh_matriz_historial').update({ fecha_fin: fecha }).eq('id', abierto.id);
+        if (error) { mostrarErrorTabla(error); return; }
+    }
+    const { error: e2 } = await client.from('rh_matriz_historial').insert([{
+        empleado_id, proceso_id, nivel, fecha_inicio: fecha, fecha_fin: null, instructor, observaciones
+    }]);
+    if (e2) { mostrarErrorTabla(e2); return; }
+
+    const { error: e3 } = await client.from('rh_matriz_habilidades').update({
+        nivel, fecha_nivel: fecha, instructor, observaciones, updated_at: new Date().toISOString()
+    }).eq('empleado_id', empleado_id).eq('proceso_id', proceso_id);
+    if (e3) { mostrarErrorTabla(e3); return; }
+
+    alert('Avance de nivel registrado.');
+    cerrarModales();
+    await init();
+}
+
+function mostrarErrorTabla(error) {
+    console.error(error);
+    if ((error.message || '').toLowerCase().includes('could not find') || error.code === '42P01' || error.code === 'PGRST205') {
+        document.getElementById('alerta_sql').classList.remove('hidden');
+    }
+    alert('Error: ' + error.message);
+}
+
+function exportarMatriz() {
+    const map = mapaHabilidades();
+    const filas = empleadosFiltrados().map(e => {
+        const row = {
+            Personal: e.nombre_completo,
+            Estatus: e.estatus,
+            'Versatilidad %': versatilidad(e.id, map)
+        };
+        procesos.forEach(p => {
+            const h = map[key(e.id, p.id)];
+            const label = (p.codigo ? p.codigo + ' · ' : '') + p.nombre;
+            row[label] = h ? `${h.nivel} ${NIVELES[h.nivel].nombre}` : '';
+        });
+        return row;
+    });
+    const ws = XLSX.utils.json_to_sheet(filas);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Matriz');
+    XLSX.writeFile(wb, 'Matriz_Habilidades_KRAEM.xlsx');
+}
+
+function generarReporte() {
+    const tipo = document.getElementById('rep_tipo').value;
+    const map = mapaHabilidades();
+    let cols = [];
+    let rows = [];
+
+    if (tipo === 'operador') {
+        const empId = document.getElementById('rep_emp').value;
+        const lista = empId ? empleados.filter(e => String(e.id) === String(empId)) : empleadosFiltrados();
+        cols = ['Operador', 'Ensamble', 'Nivel', 'Descripción nivel', 'Inicio', 'Nivel desde', 'Evaluador'];
+        lista.forEach(e => {
+            procesos.forEach(p => {
+                const h = map[key(e.id, p.id)];
+                if (!h) return;
+                rows.push([e.nombre_completo, procNombre(p.id), h.nivel, NIVELES[h.nivel].nombre, h.fecha_inicio || '', h.fecha_nivel || '', h.instructor || '']);
+            });
+        });
+    } else if (tipo === 'ensamble') {
+        const procId = document.getElementById('rep_proc').value;
+        const lista = procId ? procesos.filter(p => String(p.id) === String(procId)) : procesos;
+        cols = ['Ensamble', 'Operador', 'Nivel', 'Descripción nivel', 'Inicio', 'Nivel desde', 'Evaluador'];
+        lista.forEach(p => {
+            empleados.forEach(e => {
+                const h = map[key(e.id, p.id)];
+                if (!h) return;
+                rows.push([procNombre(p.id), e.nombre_completo, h.nivel, NIVELES[h.nivel].nombre, h.fecha_inicio || '', h.fecha_nivel || '', h.instructor || '']);
+            });
+        });
+    } else {
+        const d1 = document.getElementById('rep_desde').value;
+        const d2 = document.getElementById('rep_hasta').value;
+        cols = ['Operador', 'Ensamble', 'Nivel', 'Fecha inicio nivel', 'Fecha fin nivel', 'Evaluador', 'Observaciones'];
+        historial.forEach(h => {
+            const fi = h.fecha_inicio || '';
+            if (d1 && fi && fi < d1) return;
+            if (d2 && fi && fi > d2) return;
+            rows.push([empNombre(h.empleado_id), procNombre(h.proceso_id), h.nivel, h.fecha_inicio || '', h.fecha_fin || 'vigente', h.instructor || '', h.observaciones || '']);
+        });
+    }
+
+    document.getElementById('rep_head').innerHTML = cols.map(c => `<th class="px-3 py-2 text-left">${esc(c)}</th>`).join('');
+    document.getElementById('rep_body').innerHTML = rows.length
+        ? rows.map(r => `<tr class="border-t border-slate-100">${r.map(c => `<td class="px-3 py-2">${esc(c)}</td>`).join('')}</tr>`).join('')
+        : `<tr><td class="p-6 text-center text-slate-400" colspan="${cols.length}">Sin registros para el criterio elegido.</td></tr>`;
+    ultimoReporte = [cols, ...rows];
+}
+
+function exportarReporte() {
+    if (!ultimoReporte.length) generarReporte();
+    if (!ultimoReporte.length) return;
+    const ws = XLSX.utils.aoa_to_sheet(ultimoReporte);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Auditoria');
+    XLSX.writeFile(wb, 'Auditoria_Matriz_Habilidades.xlsx');
+}
+
+window.onclick = (e) => { if (e.target.classList.contains('modal')) cerrarModales(); };
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
