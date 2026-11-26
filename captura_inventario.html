@@ -1,10 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Captura Inventario - Sistema Pro KRAEM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
@@ -201,13 +203,16 @@ async function cargarCatalogos() {
         });
     }
     
-    const {data:p} = await _client.from('parts').select('id, part_number').limit(2000);
+    const pParts = window.fetchAllRows 
+        ? await window.fetchAllRows('parts', { client: _client, select: 'id, part_number', orderBy: 'part_number' })
+        : ((await _client.from('parts').select('id, part_number')).data || []);
+    const {data:p} = { data: pParts };
     if(p) parts = p;
     
-    const {data:l} = await _client.from('locations').select('id, location_code, area_id, type, qr_code');
+    const {data:l} = await _client.from('locations').select('id, location_code, area_id, type, qr_code, status_operativo, motivo_estado');
     if(l) {
         locations = l.filter(item => item.type !== 'Móvil' && item.type !== 'Contenedor');
-        containers = l.filter(item => item.type === 'Móvil' || item.type === 'Contenedor');
+        containers = l.filter(item => (item.type === 'Móvil' || item.type === 'Contenedor') && item.status_operativo !== 'BAJA');
     }
     aplicarReglaLoteEntrada();
 }
@@ -295,6 +300,7 @@ function toggleTheme() {
 }
 
 function setLang(lang) {
+  if (window.KraemI18n) { window.KraemI18n.setLang(lang); } else { localStorage.setItem('lang', lang); localStorage.setItem('kraem_lang', lang); }
     const t = i18n[lang];
     document.getElementById('txtBack').innerText = t.back;
     document.getElementById('txtTitle').innerText = t.title;
@@ -500,7 +506,7 @@ async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo)
             part_id: item.part_id,
             comment: tipoMasivo === 'CARRITO' ? `[MASIVO CARRITO] ${comm}` : `[MASIVO UBICACIÓN] ${comm}`,
             user_id: userId,
-            lot_number: item.lot_number || ''
+            lot_number: item.lot_number || '', created_at: new Date().toISOString()
         };
         
         rows.push({
@@ -545,7 +551,7 @@ async function guardarMovimiento(userId, q, comm, loteEspecifico) {
         area: areaText, 
         comment: comm, 
         user_id: userId, 
-        lot_number: loteEspecifico
+        lot_number: loteEspecifico, created_at: new Date().toISOString()
     };
     
     let rows = [];
@@ -586,7 +592,7 @@ contOriginInput.oninput = () => {
     m.forEach(c => { 
         const d = document.createElement('div'); 
         d.innerHTML = `🛒 ${c.location_code}`; 
-        d.onclick = () => { contOriginInput.value = c.location_code; selOrigContId = c.id; contOrigBox.style.display='none'; }; 
+        d.onclick = () => { if (c.status_operativo === 'EN_REPARACION') { alert(`⚠️ El carro ${c.location_code} está en REPARACIÓN / TALLER (${c.motivo_estado || 'Daño reportado'}).`); return; } contOriginInput.value = c.location_code; selOrigContId = c.id; contOrigBox.style.display='none'; }; 
         contOrigBox.appendChild(d); 
     });
     contOrigBox.style.display = 'block';
@@ -621,7 +627,7 @@ destContInput.oninput = () => {
     m.forEach(c => { 
         const d = document.createElement('div'); 
         d.innerHTML = `🛒 ${c.location_code}`; 
-        d.onclick = () => { destContInput.value = c.location_code; selDestContId = c.id; destContBox.style.display='none'; }; 
+        d.onclick = () => { if (c.status_operativo === 'EN_REPARACION') { alert(`⚠️ El carro ${c.location_code} está en REPARACIÓN / TALLER (${c.motivo_estado || 'Daño reportado'}).`); return; } destContInput.value = c.location_code; selDestContId = c.id; destContBox.style.display='none'; }; 
         destContBox.appendChild(d); 
     });
     destContBox.style.display = 'block';
@@ -675,5 +681,13 @@ async function abrirModalStock() {
 }
 function cerrarModal(){ modalStock.style.display='none'; }
 </script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
+</script>
 </body>
 </html>
+

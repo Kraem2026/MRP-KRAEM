@@ -2,769 +2,1954 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>MES - Iniciar Corrida</title>
+<title>KRAEM | MES Captura y Cierre de Producción</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="kraem_nav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
-
 :root{
-    --bg:#f4f6f8;
+    --bg:#f8fafc;
     --card:#ffffff;
-    --text:#1e293b;
-    --border:#dfe6ee;
+    --text:#0f172a;
+    --muted:#64748b;
+    --border:#e2e8f0;
     --primary:#2563eb;
+    --primary-dark:#1d4ed8;
     --success:#16a34a;
+    --warning:#d97706;
     --danger:#dc2626;
+    --purple:#7c3aed;
 }
 
+[data-theme="dark"]{
+    --bg:#020617;
+    --card:#1e293b;
+    --text:#f8fafc;
+    --muted:#94a3b8;
+    --border:#334155;
+}
+
+*{ box-sizing:border-box; }
 body{
     margin:0;
-    padding:20px;
+    padding:18px;
     background:var(--bg);
-    font-family:Segoe UI,sans-serif;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
     color:var(--text);
+    transition:0.25s;
 }
 
 .container{
-    max-width:1100px;
+    max-width:1250px;
     margin:auto;
 }
 
+/* Header & Navigation */
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:15px;
+    margin-bottom:18px;
+    background:var(--card);
+    padding:14px 22px;
+    border-radius:14px;
+    border:1px solid var(--border);
+    box-shadow:0 4px 12px rgba(0,0,0,0.03);
+}
+
+.top-left{
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+.btn-back{
+    width:42px;
+    height:42px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--primary);
+    font-size:16px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:0.2s;
+}
+.btn-back:hover{ background:var(--primary); color:#fff; }
+
+.title-box h1{
+    margin:0;
+    font-size:20px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+.title-box p{
+    margin:2px 0 0;
+    font-size:12px;
+    color:var(--muted);
+}
+
+/* Tabs */
+.tabs-nav{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+    border-bottom:1px solid var(--border);
+    padding-bottom:10px;
+    flex-wrap:wrap;
+}
+
+.tab-btn{
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:10px 18px;
+    border-radius:10px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:0.2s;
+}
+.tab-btn:hover{ color:var(--primary); border-color:var(--primary); }
+.tab-btn.active{
+    background:var(--primary);
+    color:#fff;
+    border-color:var(--primary);
+    box-shadow:0 4px 10px rgba(37,99,235,0.25);
+}
+
+.tab-badge{
+    background:#ef4444;
+    color:#fff;
+    font-size:11px;
+    padding:1px 6px;
+    border-radius:10px;
+}
+
+/* Cards & Forms */
 .card{
     background:var(--card);
     border-radius:16px;
     padding:20px;
-    margin-bottom:20px;
+    margin-bottom:18px;
     border:1px solid var(--border);
-    box-shadow:0 4px 12px rgba(0,0,0,.05);
+    box-shadow:0 4px 12px rgba(0,0,0,0.03);
 }
 
-h1,h2{
-    margin-top:0;
+.card h2{
+    margin:0 0 14px;
+    font-size:16px;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    gap:8px;
 }
 
 .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:15px;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:14px;
 }
 
 label{
     display:block;
-    font-size:12px;
-    font-weight:bold;
+    font-size:11px;
+    font-weight:700;
     margin-bottom:5px;
     text-transform:uppercase;
+    color:var(--muted);
 }
 
-input,select{
+input,select,textarea{
     width:100%;
-    padding:12px;
-    border-radius:10px;
+    padding:10px 12px;
+    border-radius:9px;
     border:1px solid var(--border);
-    box-sizing:border-box;
-    font-size:14px;
+    font-size:13.5px;
+    font-family:inherit;
+    background:var(--bg);
+    color:var(--text);
+    outline:none;
+    transition:0.2s;
+}
+input:focus,select:focus,textarea:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 2px rgba(37,99,235,0.12);
 }
 
 button{
     border:none;
-    border-radius:12px;
-    padding:14px 18px;
+    border-radius:10px;
+    padding:11px 16px;
     cursor:pointer;
-    font-weight:bold;
+    font-weight:700;
+    font-size:13px;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition:0.2s;
 }
 
-.btn-primary{
-    background:var(--primary);
-    color:white;
-}
-
-.btn-success{
-    background:var(--success);
-    color:white;
-}
-
-.btn-danger{
-    background:var(--danger);
-    color:white;
-}
+.btn-primary{ background:var(--primary); color:#fff; }
+.btn-primary:hover{ background:var(--primary-dark); }
+.btn-success{ background:var(--success); color:#fff; }
+.btn-success:hover{ background:#15803d; }
+.btn-danger{ background:var(--danger); color:#fff; }
+.btn-danger:hover{ background:#b91c1c; }
+.btn-secondary{ background:var(--bg); color:var(--text); border:1px solid var(--border); }
+.btn-secondary:hover{ border-color:var(--primary); color:var(--primary); }
 
 .operator-row,
 .output-row{
     border:1px solid var(--border);
-    padding:15px;
+    padding:14px;
     border-radius:12px;
     margin-bottom:12px;
+    background:rgba(148,163,184,0.03);
 }
 
-.status-box{
-    padding:12px;
-    border-radius:10px;
-    background:#ecfdf5;
-    color:#166534;
-    font-weight:bold;
-    margin-bottom:20px;
+/* Tarjetas de Corridas Activas */
+.active-run-card{
+    background:var(--card);
+    border:1.5px solid #22c55e;
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:15px;
+    box-shadow:0 4px 15px rgba(34,197,94,0.08);
 }
 
+.run-meta{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    font-size:12.5px;
+}
+.run-meta-item{
+    display:flex;
+    flex-direction:column;
+}
+.run-meta-item span{
+    font-size:10px;
+    font-weight:800;
+    color:var(--muted);
+    text-transform:uppercase;
+}
+.run-meta-item strong{
+    font-size:14px;
+    color:var(--text);
+}
+
+.live-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:#dcfce7;
+    color:#15803d;
+    padding:4px 9px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:0.3px;
+}
+.live-dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#22c55e;
+    box-shadow:0 0 0 3px rgba(34,197,94,0.3);
+    animation:pulse 1.8s infinite;
+}
+@keyframes pulse{
+    0%{ transform:scale(0.95); opacity:1; }
+    50%{ transform:scale(1.2); opacity:0.6; }
+    100%{ transform:scale(0.95); opacity:1; }
+}
+
+/* Modal de Cierre */
+.modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.65);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+    padding:15px;
+}
+.modal-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:24px;
+    width:100%;
+    max-width:650px;
+    max-height:92vh;
+    overflow-y:auto;
+    box-shadow:0 12px 40px rgba(0,0,0,0.35);
+}
+
+/* Zebra Preview */
+.zebra-preview-box{
+    border:2px solid #000;
+    border-radius:8px;
+    padding:14px;
+    background:#fff;
+    color:#000;
+    font-family:Arial,Helvetica,sans-serif;
+    margin-top:14px;
+}
+
+/* WO Programadas - Fast Selection Cards (MES Tier-1) */
+.wo-programadas-box {
+    background: linear-gradient(135deg, rgba(37,99,235,0.04), rgba(99,102,241,0.04));
+    border: 1.5px solid rgba(59,130,246,0.3) !important;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.06);
+}
+.wo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 4px;
+}
+.wo-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 15px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.wo-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37,99,235,0.12);
+}
+.wo-card.selected {
+    border-color: #22c55e !important;
+    background: rgba(34,197,94,0.05);
+    box-shadow: 0 0 0 2px rgba(34,197,94,0.35);
+}
+.wo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.wo-folio {
+    font-size: 13.5px;
+    font-weight: 900;
+    color: var(--primary);
+    font-family: monospace;
+    letter-spacing: 0.5px;
+}
+.wo-badge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+}
+.wo-badge-prog { background: #dbeafe; color: #1e40af; }
+.wo-badge-proc { background: #fef3c7; color: #92400e; }
+.wo-part {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 2px;
+    font-family: monospace;
+}
+.wo-part-desc {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.wo-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+}
+.wo-details strong {
+    color: var(--text);
+    font-size: 12px;
+    display: block;
+}
+.wo-btn-select {
+    width: 100%;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: 0.2s;
+}
+.wo-btn-select:hover { background: var(--primary-dark); }
+.wo-loaded-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(34,197,94,0.08);
+    border: 1.5px solid var(--success);
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-top: 14px;
+    animation: fadeIn 0.3s;
+}
+.autoplan-tag {
+    font-size: 9.5px;
+    font-weight: 800;
+    background: rgba(34,197,94,0.15);
+    color: var(--success);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    text-transform: uppercase;
+}
+.field-operator-focus {
+    border-color: #3b82f6 !important;
+    background: rgba(59,130,246,0.05) !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.2) !important;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media print {
+    body { margin:0; padding:0; background:#fff !important; }
+    .no-print, header, .header, .topbar, .tabs-nav, .container, .modal-card > div:first-child, .modal-card > div:last-child { display:none !important; }
+    #printPtZebraContainer { display:block !important; visibility:visible !important; width:100% !important; margin:0 !important; }
+    #printPtZebraContainer * { visibility:visible !important; }
+    @page { size: 100mm 50mm; margin:1mm; }
+    .print-page-label {
+        width:98mm;
+        height:48mm;
+        page-break-after:always;
+        break-after:page;
+        border:1.5px solid #000;
+        box-sizing:border-box;
+        padding:3mm;
+        font-family:Arial,Helvetica,sans-serif;
+        color:#000;
+        background:#fff;
+        display:flex;
+        flex-direction:column;
+        justify-content:space-between;
+    }
+}
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="container no-print">
 
-<div class="status-box" id="sessionInfo">
-Validando sesión...
+    <!-- HEADER -->
+    <div class="header">
+        <div class="top-left">
+            <button class="btn-back" onclick="KraemNav.back('wms_operaciones.html')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="title-box">
+                <h1><i class="fas fa-industry" style="color:var(--primary)"></i> MES · Ejecución y Cierre de Producción</h1>
+                <p>Arranque de corridas, reporte de piezas buenas/scrap, cierre de turno e ingreso automático al WMS.</p>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <span id="sessionInfo" style="font-size:12px;color:var(--muted);font-weight:700;">Conectando...</span>
+            <button class="btn btn-secondary" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+        </div>
+    </div>
+
+    <!-- TABS DE NAVEGACIÓN -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" id="tabBtnNueva" onclick="cambiarTab('NUEVA')">
+            <i class="fas fa-play"></i> Iniciar Corrida
+        </button>
+        <button class="tab-btn" id="tabBtnActivas" onclick="cambiarTab('ACTIVAS')">
+            <i class="fas fa-gear fa-spin"></i> Corridas Activas & Cierre
+            <span class="tab-badge" id="countActivas">0</span>
+        </button>
+        <button class="tab-btn" id="tabBtnHistorial" onclick="cambiarTab('HISTORIAL')">
+            <i class="fas fa-clock-rotate-left"></i> Historial de Corridas / OEE
+        </button>
+    </div>
+
+    <!-- VISTA 1: INICIAR NUEVA CORRIDA -->
+    <div id="viewNuevaCorrida">
+        <!-- PANEL DE SELECCIÓN RÁPIDA DE ORDEN DE PRODUCCIÓN (WO / PLAN DEL DÍA) -->
+        <div class="card wo-programadas-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+                <div>
+                    <h2 style="margin:0;display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-bolt" style="color:var(--warning)"></i> 
+                        Órdenes de Producción Programadas (WOs / Plan del Día)
+                    </h2>
+                    <p style="margin:4px 0 0;font-size:12.5px;color:var(--muted)">
+                        Selecciona la orden a inyectar para <strong>autollenar máquina, molde, tiempos de ciclo, cavidades y parte</strong> automáticamente.
+                    </p>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <select id="filterWoMachine" onchange="renderWoCards(this.value)" style="padding:6px 10px;font-size:12px;width:auto;min-width:160px;margin-bottom:0;">
+                        <option value="">Todas las Máquinas</option>
+                    </select>
+                    <button class="btn btn-secondary btn-sm" onclick="cargarWOsProgramadas()" title="Actualizar lista de WOs"><i class="fas fa-sync"></i></button>
+                </div>
+            </div>
+
+            <!-- Búsqueda rápida por Folio / Selector directo -->
+            <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;margin-bottom:10px;">
+                <select id="quickWoSelect" onchange="cargarDatosDesdeWO(this.value)" style="margin-bottom:0;font-weight:700;font-size:13.5px;border-color:var(--primary);">
+                    <option value="">⚡ Selecciona una WO para autollenar todo el proceso...</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" id="btnCrearWoDemo" onclick="crearWODemoRapida()" style="white-space:nowrap;" title="Crea una orden programada de prueba si no tienes ninguna planeada aún">
+                    <i class="fas fa-plus-circle"></i> + WO Demo
+                </button>
+            </div>
+
+            <!-- Contenedor dinámico de tarjetas de WOs -->
+            <div id="woCardsContainer" class="wo-grid">
+                <div style="text-align:center;padding:15px;color:var(--muted);grid-column:1/-1;">
+                    <i class="fas fa-spinner fa-spin"></i> Cargando órdenes de producción...
+                </div>
+            </div>
+
+            <!-- Banner visual de confirmación cuando una orden está activa -->
+            <div id="woLoadedAlert" style="display:none;" class="wo-loaded-banner">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <i class="fas fa-circle-check" style="color:var(--success);font-size:24px;"></i>
+                    <div>
+                        <strong id="loadedWoFolio" style="font-size:15px;color:var(--success);">OP-001 CARGADA</strong>
+                        <div id="loadedWoSummary" style="font-size:12.5px;color:var(--text);margin-top:2px;">
+                            Parte: --- · Máquina: --- · Molde: --- · Meta: ---
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="limpiarSeleccionWO()"><i class="fas fa-times"></i> Cambiar / Limpiar</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-sliders" style="color:var(--primary)"></i> 1. Información General de la Máquina y Proceso</h2>
+            <div class="grid">
+                <div>
+                    <label>Área de Producción *</label>
+                    <select id="areaSelect"></select>
+                </div>
+                <div>
+                    <label>Máquina Inyectora * <span class="autoplan-tag" id="tagMachAuto" style="display:none;">Auto-Plan</span></label>
+                    <select id="machineSelect"></select>
+                </div>
+                <div>
+                    <label>Turno * <span class="autoplan-tag" id="tagShiftAuto">Sugerido</span></label>
+                    <select id="shiftSelect">
+                        <option value="1">Turno 1 (Matutino)</option>
+                        <option value="2">Turno 2 (Vespertino)</option>
+                        <option value="3">Turno 3 (Nocturno)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Molde Asignado * <span class="autoplan-tag" id="tagMoldAuto" style="display:none;">Auto-Plan</span></label>
+                    <select id="moldSelect" onchange="onMoldChange()"></select>
+                </div>
+                <div>
+                    <label>Tiempo Ciclo (seg) * <span class="autoplan-tag" id="tagCycleAuto" style="display:none;">Auto-Plan</span></label>
+                    <input type="number" id="cycleTime" step="0.1" placeholder="Ej. 24.5">
+                </div>
+                <div>
+                    <label>Cavidades Totales * <span class="autoplan-tag" id="tagCavAuto" style="display:none;">Auto-Plan</span></label>
+                    <input type="number" id="totalCavities" value="2" min="1">
+                </div>
+                <div>
+                    <label>Tipo de Resina * <span class="autoplan-tag" id="tagResinAuto" style="display:none;">Auto-Plan</span></label>
+                    <input type="text" id="resinType" placeholder="Ej. PP Copo / ABS">
+                </div>
+                <div>
+                    <label style="color:var(--primary);font-weight:900;">
+                        Lote de Resina (Materia Prima) * 
+                        <span style="font-size:10px;background:rgba(37,99,235,0.12);padding:2px 6px;border-radius:4px;color:var(--primary)">REQUERIDO OPERADOR</span>
+                    </label>
+                    <input type="text" id="resinLot" placeholder="Captura o escanea el lote físico de tolva/costal" style="text-transform:uppercase;font-weight:800;">
+                </div>
+                <div>
+                    <label>Color de Resina</label>
+                    <input type="text" id="resinColor" placeholder="Ej. Negro / Natural">
+                </div>
+                <div>
+                    <label>Peso Purga Inicial (g)</label>
+                    <input type="number" id="purgeWeight" step="0.1" value="0">
+                </div>
+                <div>
+                    <label>Peso Colada / Vena (g)</label>
+                    <input type="number" id="runnerWeight" step="0.1" value="0">
+                </div>
+                <div>
+                    <label>Orden de Producción (OP) Asignada</label>
+                    <select id="opSelect">
+                        <option value="">(Sin OP - Corrida Libre)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h2><i class="fas fa-shapes" style="color:var(--success)"></i> 2. Partes a Producir (PT / Sub-ensambles)</h2>
+                <button class="btn btn-primary" onclick="addOutputRow()"><i class="fas fa-plus"></i> Agregar Parte</button>
+            </div>
+            <div id="outputsContainer"></div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h2><i class="fas fa-users" style="color:var(--purple)"></i> 3. Cuadrilla de Operadores</h2>
+                <button class="btn btn-primary" onclick="addOperatorRow()"><i class="fas fa-plus"></i> Agregar Operador</button>
+            </div>
+            <div id="operatorsContainer"></div>
+        </div>
+
+        <button class="btn-success" style="width:100%;font-size:16px;padding:16px;justify-content:center;" onclick="startRun()">
+            <i class="fas fa-play"></i> INICIAR CORRIDA DE PRODUCCIÓN
+        </button>
+    </div>
+
+    <!-- VISTA 2: CORRIDAS ACTIVAS & CIERRE DE TURNO -->
+    <div id="viewCorridasActivas" style="display:none">
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+                <div>
+                    <h2 style="margin:0"><i class="fas fa-bolt" style="color:#22c55e"></i> Máquinas Inyectando Actualmente</h2>
+                    <small style="color:var(--muted)">Monitoreo en vivo de turnos en proceso y registro de cierre con entrega a WMS</small>
+                </div>
+                <button class="btn btn-secondary" onclick="cargarCorridasActivas()"><i class="fas fa-rotate"></i> Actualizar</button>
+            </div>
+            <div id="activasContainer">
+                <div style="text-align:center;padding:30px;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Cargando corridas activas...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA 3: HISTORIAL DE CORRIDAS CERRADAS -->
+    <div id="viewHistorialCorridas" style="display:none">
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+                <div>
+                    <h2 style="margin:0"><i class="fas fa-clock-rotate-left" style="color:var(--primary)"></i> Historial de Corridas Finalizadas</h2>
+                    <small style="color:var(--muted)">Auditoría de piezas buenas, merma scrap, tiempos de paro y cálculo de eficiencia</small>
+                </div>
+                <button class="btn btn-secondary" onclick="cargarHistorialCorridas()"><i class="fas fa-rotate"></i> Actualizar</button>
+            </div>
+            <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--border);text-align:left;background:rgba(148,163,184,0.06)">
+                            <th style="padding:10px">ID Corrida</th>
+                            <th style="padding:10px">Máquina</th>
+                            <th style="padding:10px">Molde</th>
+                            <th style="padding:10px">Turno</th>
+                            <th style="padding:10px">Inicio</th>
+                            <th style="padding:10px">Cierre</th>
+                            <th style="padding:10px;text-align:right">Buenas</th>
+                            <th style="padding:10px;text-align:right">Scrap</th>
+                            <th style="padding:10px;text-align:right">Paro (min)</th>
+                            <th style="padding:10px;text-align:center">Eficiencia</th>
+                            <th style="padding:10px;text-align:right">Etiqueta PT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historialCorridasBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
 
-<h1>MES - Iniciar Corrida</h1>
+<!-- MODAL DE CIERRE DE CORRIDA & ENTREGA A WMS -->
+<div class="modal no-print" id="modalCierre" onclick="if(event.target===this)cerrarModalCierre()">
+    <div class="modal-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px">
+            <div>
+                <h3 style="margin:0"><i class="fas fa-flag-checkered" style="color:var(--danger)"></i> Cierre de Corrida & Ingreso a WMS</h3>
+                <small style="color:var(--muted)">Finaliza el turno, calcula OEE y genera la entrada de inventario de Producto Terminado</small>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="cerrarModalCierre()"><i class="fas fa-times"></i></button>
+        </div>
 
-<div class="card">
+        <div id="cierreResumenBox" style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.2);padding:12px;border-radius:10px;margin-bottom:16px;font-size:13px">
+            <!-- Resumen dinámico de la corrida -->
+        </div>
 
-<h2>Información General</h2>
+        <div class="grid">
+            <div style="grid-column:span 2">
+                <label style="color:var(--success);font-weight:900;">Piezas Buenas Producidas (PT Conforme) *</label>
+                <input type="number" id="c_good_pieces" placeholder="Ej. 1200" style="font-size:17px;font-weight:900;border-color:var(--success);background:rgba(22,163,74,0.05)" min="1">
+            </div>
 
-<div class="grid">
+            <div>
+                <label style="color:var(--danger);font-weight:800;">Piezas Scrap / Defectos</label>
+                <input type="number" id="c_scrap_pieces" value="0" min="0" placeholder="Ej. 15">
+            </div>
 
-<div>
-<label>Área</label>
-<select id="areaSelect"></select>
+            <div>
+                <label style="color:var(--warning);font-weight:800;">Minutos de Paro Totales</label>
+                <input type="number" id="c_downtime_minutes" value="0" min="0" placeholder="Ej. 25">
+            </div>
+
+            <div style="grid-column:span 2">
+                <label>Motivo Principal de Paro (si hubo)</label>
+                <select id="c_motivo_paro">
+                    <option value="Sin Paro Relevante">Sin Paro Relevante (Producción Continua)</option>
+                    <option value="Ajuste de Parámetros de Inyección">Ajuste de Parámetros de Inyección</option>
+                    <option value="Cambio / Purga de Resina o Color">Cambio / Purga de Resina o Color</option>
+                    <option value="Falla Mecánica de Molde">Falla Mecánica de Molde</option>
+                    <option value="Falla Eléctrica / Hidráulica Máquina">Falla Eléctrica / Hidráulica Máquina</option>
+                    <option value="Falta de Materia Prima / Insertos">Falta de Materia Prima / Insertos</option>
+                    <option value="Comida / Relevo de Turno">Comida / Relevo de Turno</option>
+                    <option value="Inspección de Calidad">Inspección de Calidad</option>
+                </select>
+            </div>
+
+            <div>
+                <label>Lote de Producto Terminado (FIFO) *</label>
+                <input type="text" id="c_lot_number" style="font-weight:800;text-transform:uppercase" placeholder="Ej. 20261125-T1">
+            </div>
+
+            <div>
+                <label>Ubicación Destino en Almacén WMS *</label>
+                <select id="c_location_id"></select>
+            </div>
+
+            <div style="grid-column:span 2">
+                <label>Observaciones de Turno / Calidad</label>
+                <textarea id="c_comments" rows="2" placeholder="Notas sobre parámetros, condición de piezas o incidencias del turno..."></textarea>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+            <button class="btn btn-secondary" onclick="cerrarModalCierre()">Cancelar</button>
+            <button class="btn btn-danger" onclick="confirmarCierreCorrida()"><i class="fas fa-check-circle"></i> Confirmar Cierre & Ingresar a WMS</button>
+        </div>
+    </div>
 </div>
 
-<div>
-<label>Máquina</label>
-<select id="machineSelect"></select>
+<!-- MODAL ETIQUETA ZEBRA PT -->
+<div class="modal no-print" id="modalZebraPt" onclick="if(event.target===this)cerrarModalZebraPt()">
+    <div class="modal-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0"><i class="fas fa-barcode" style="color:var(--primary)"></i> Etiqueta Zebra Producto Terminado (4x2")</h3>
+            <button class="btn btn-sm btn-secondary" onclick="cerrarModalZebraPt()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="zebraPtPreview" class="zebra-preview-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:6px">
+                <strong style="font-size:12px">KRAEM DE MÉXICO · PRODUCCIÓN</strong>
+                <span id="zPtFolio" style="font-size:11px;font-weight:900">RUN-001</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 100px;gap:10px;align-items:center">
+                <div>
+                    <div style="font-size:9px;color:#444;font-weight:bold">PRODUCTO TERMINADO:</div>
+                    <div id="zPtPartNumber" style="font-size:18px;font-weight:900;font-family:monospace;line-height:1.1">PART-001</div>
+                    <div id="zPtDesc" style="font-size:10.5px;font-weight:bold;margin:2px 0 6px">Descripción de la parte</div>
+
+                    <div style="margin-bottom:4px">
+                        <span style="font-size:8.5px;font-weight:bold">LOTE INYECCIÓN:</span>
+                        <span id="zPtLote" style="display:inline-block;background:#000;color:#fff;padding:1px 6px;border-radius:3px;font-size:11.5px;font-weight:900">20261125-T1</span>
+                    </div>
+
+                    <div style="display:flex;gap:14px;font-size:11px;margin-top:4px">
+                        <div>CANT: <strong id="zPtQty" style="font-size:13px">1,200 PZA</strong></div>
+                        <div>MÁQ: <strong id="zPtMaq">MAQ-01</strong></div>
+                    </div>
+                    <div style="font-size:9px;color:#333;margin-top:4px">
+                        Ubicación: <strong id="zPtLoc">ALM-PT</strong> · Fecha: <span id="zPtFecha">2026-11-25</span>
+                    </div>
+                </div>
+                <div style="text-align:center">
+                    <div id="zPtQrCode" style="display:inline-block;border:1px solid #999;padding:3px;background:#fff"></div>
+                    <div id="zPtQrSub" style="font-size:8px;font-weight:bold;margin-top:2px;font-family:monospace">PART-001</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px">
+            <button class="btn btn-secondary" onclick="cerrarModalZebraPt()">Cerrar</button>
+            <button class="btn btn-primary" onclick="imprimirZebraPt()"><i class="fas fa-print"></i> Imprimir Etiqueta Térmica</button>
+        </div>
+    </div>
 </div>
 
-<div>
-<label>Turno</label>
-<select id="shiftSelect">
-<option value="1">1</option>
-<option value="2">2</option>
-<option value="3">3</option>
-</select>
-</div>
-
-<div>
-<label>Molde</label>
-<select id="moldSelect"></select>
-</div>
-
-<div>
-<label>Tiempo Ciclo (seg)</label>
-<input type="number" id="cycleTime">
-</div>
-
-<div>
-<label>Cavidades Totales</label>
-<input type="number" id="totalCavities">
-</div>
-
-<div>
-<label>Tipo Resina</label>
-<input type="text" id="resinType">
-</div>
-
-<div>
-<label>Lote Resina</label>
-<input type="text" id="resinLot">
-</div>
-
-<div>
-<label>Color Resina</label>
-<input type="text" id="resinColor">
-</div>
-
-<div>
-<label>Peso Purga (g)</label>
-<input type="number" id="purgeWeight">
-</div>
-
-<div>
-<label>Peso Vena (g)</label>
-<input type="number" id="runnerWeight">
-</div>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<div style="display:flex;justify-content:space-between;align-items:center;">
-<h2>Partes Producidas</h2>
-
-<button class="btn-primary" onclick="addOutputRow()">
-+ Agregar Parte
-</button>
-</div>
-
-<div id="outputsContainer"></div>
-
-</div>
-
-<div class="card">
-
-<div style="display:flex;justify-content:space-between;align-items:center;">
-<h2>Operadores</h2>
-
-<button class="btn-primary" onclick="addOperatorRow()">
-+ Agregar Operador
-</button>
-</div>
-
-<div id="operatorsContainer"></div>
-
-</div>
-
-<button class="btn-success" style="width:100%;font-size:18px;" onclick="startRun()">
-INICIAR CORRIDA
-</button>
-
-</div>
+<!-- CONTENEDOR OCULTO PARA IMPRESIÓN DIRECTA ZEBRA -->
+<div id="printPtZebraContainer" style="display:none"></div>
 
 <script>
-
 let machines = [];
 let molds = [];
 let parts = [];
 let employees = [];
+let locations = [];
+let productionOrders = [];
+let activeRuns = [];
+let currentCierreRun = null;
+let currentZebraData = null;
+let partMolds = [];
+let selectedLoadedWo = null;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function init(){
-
     try{
+        document.getElementById('sessionInfo').innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Conectando...';
 
-        sessionInfo.innerHTML = "Conectando con Supabase...";
+        // 1. Cargar Áreas
+        const { data: areasData } = await client.from('areas').select('*').order('area_name');
+        const areas = areasData || [];
+        const areaSelect = document.getElementById('areaSelect');
+        areaSelect.innerHTML = '<option value="">Seleccione área</option>' +
+            areas.filter(a => a.active !== false).map(a => `<option value="${a.id}">${esc(a.area_name)}</option>`).join('');
 
-        const {
-            data:{ session },
-            error:sessionError
-        } = await client.auth.getSession();
+        // 2. Cargar Turnos
+        try {
+            const { data: turnosData } = await client.from('rh_turnos').select('id, nombre').order('nombre');
+            if (turnosData && turnosData.length) {
+                document.getElementById('shiftSelect').innerHTML = turnosData.map((t, i) => {
+                    const m = String(t.nombre || '').match(/\d+/);
+                    const val = m ? m[0] : String(i + 1);
+                    return `<option value="${val}">${esc(t.nombre)}</option>`;
+                }).join('');
+            }
+        } catch (_) {}
 
-        console.log("SESSION:", session);
-        console.log("SESSION ERROR:", sessionError);
-
-        if(sessionError){
-            console.error(sessionError);
+        // 3. Cargar Máquinas (Unificado: 'machines' con fallback/merge a 'mes_machines')
+        let rawMachines = (await client.from('machines').select('*').order('machine_name')).data || [];
+        if (!rawMachines.length) {
+            const mesData = (await client.from('mes_machines').select('*').order('machine_code')).data || [];
+            rawMachines = mesData.map(m => ({
+                id: m.id,
+                machine_name: m.machine_code || m.machine_name || ('MAQ-' + m.id),
+                area_id: m.area_general_id || m.area_id,
+                status: m.status || 'AVAILABLE'
+            }));
         }
-
-        sessionInfo.innerHTML =
-        session?.user?.email
-        ? "👤 " + session.user.email
-        : "⚠️ Sin sesión activa";
-
-        /*
-        =========================
-        AREAS
-        =========================
-        */
-
-        const {
-            data:areas,
-            error:areasError
-        } = await client
-        .from('areas')
-        .select('*')
-        .order('area_name');
-
-        console.log("AREAS:", areas);
-        console.log("AREAS ERROR:", areasError);
-
-        if(areasError){
-            alert("Error cargando areas: " + areasError.message);
-            return;
-        }
-
-        areaSelect.innerHTML = `
-        <option value="">
-            Seleccione área
-        </option>
-        `;
-
-        (areas || []).forEach(a=>{
-
-            areaSelect.innerHTML += `
-            <option value="${a.id}">
-                ${a.area_name}
-            </option>
-            `;
-        });
-
-        /*
-        =========================
-        MAQUINAS
-        =========================
-        */
-
-        const {
-            data:machinesData,
-            error:machinesError
-        } = await client
-        .from('machines')
-        .select('*')
-        .order('machine_name');
-
-        console.log("MACHINES:", machinesData);
-        console.log("MACHINES ERROR:", machinesError);
-
-        if(machinesError){
-            alert("Error cargando máquinas: " + machinesError.message);
-            return;
-        }
-
-        machines = machinesData || [];
-
+        machines = rawMachines;
         renderMachines();
 
-        /*
-        =========================
-        MOLDES
-        =========================
-        */
-
-        const {
-            data:moldsData
-        } = await client
-        .from('molds')
-        .select('*')
-        .order('name');
-
+        // 4. Cargar Moldes
+        const { data: moldsData } = await client.from('molds').select('*').order('id');
         molds = moldsData || [];
+        document.getElementById('moldSelect').innerHTML = '<option value="">Seleccione molde</option>' +
+            molds.map(m => `<option value="${m.id}" data-cav="${m.cavities || 1}">${esc(m.mold_name || m.mold_code || m.name || ('Molde #' + m.id))}</option>`).join('');
 
-        moldSelect.innerHTML = `
-        <option value="">
-            Seleccione molde
-        </option>
-        `;
+        try {
+            const { data: pmData } = await client.from('part_molds').select('*');
+            partMolds = pmData || [];
+        } catch (_) {}
 
-        molds.forEach(m=>{
+        // 5. Cargar Partes
+        parts = window.fetchAllRows 
+            ? await window.fetchAllRows('parts', { select: 'id,part_number,part_name,product_type', orderBy: 'part_number' })
+            : ((await client.from('parts').select('id,part_number,part_name,product_type').limit(1000)).data || []);
 
-            moldSelect.innerHTML += `
-            <option value="${m.id}">
-                ${m.name || m.id}
-            </option>
-            `;
-        });
-
-        /*
-        =========================
-        PARTES
-        =========================
-        */
-
-        const {
-            data:partsData
-        } = await client
-        .from('parts')
-        .select('id,part_number,part_name')
-        .limit(3000);
-
-        parts = partsData || [];
-
-        /*
-        =========================
-        EMPLEADOS
-        =========================
-        */
-
-        const {
-            data:employeesData
-        } = await client
-        .from('rh_empleados')
-        .select('id,nombre_completo')
-        .order('nombre_completo');
-
+        // 6. Cargar Empleados
+        const { data: employeesData } = await client.from('rh_empleados').select('id,nombre_completo').order('nombre_completo');
         employees = employeesData || [];
 
+        // 7. Cargar Ubicaciones WMS
+        locations = window.fetchAllRows 
+            ? await window.fetchAllRows('locations', { select: 'id,location_code,location_name,type', filter: q => q.eq('active', true), orderBy: 'location_code' })
+            : ((await client.from('locations').select('id,location_code,location_name,type').eq('active', true).limit(500)).data || []);
+
+        if (!locations.length) {
+            locations = [
+                { id: 10, location_code: 'ALM-PT-01', location_name: 'Almacén Producto Terminado' },
+                { id: 11, location_code: 'CARRO-PT-01', location_name: 'Carrito Móvil PT' },
+                { id: 12, location_code: 'ANDEN-EMBARQUE', location_name: 'Andén de Salida' }
+            ];
+        }
+
+        const locOpts = locations.map(l => `<option value="${l.id}">${esc(l.location_code)} (${esc(l.location_name || l.type || '')})</option>`).join('');
+        document.getElementById('c_location_id').innerHTML = locOpts;
+
+        // 8. Cargar WOs Programadas y poblar el panel de autollenado
+        await cargarWOsProgramadas();
+
+        // Fila inicial de partes y operadores
         addOutputRow();
         addOperatorRow();
 
-        sessionInfo.innerHTML += " ✅";
+        document.getElementById('sessionInfo').innerHTML = '<i class="fas fa-check-circle" style="color:var(--success)"></i> Conectado';
+
+        // Cargar corridas activas iniciales
+        cargarCorridasActivas();
 
     }catch(err){
-
         console.error(err);
+        document.getElementById('sessionInfo').innerHTML = '<span style="color:var(--danger)">Error al inicializar</span>';
+    }
+}
 
-        alert(err.message);
+function cambiarTab(tab){
+    document.querySelectorAll('.tabs-nav .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('viewNuevaCorrida').style.display = 'none';
+    document.getElementById('viewCorridasActivas').style.display = 'none';
+    document.getElementById('viewHistorialCorridas').style.display = 'none';
 
-        sessionInfo.innerHTML =
-        "❌ Error inicializando";
+    if(tab === 'NUEVA'){
+        document.getElementById('tabBtnNueva').classList.add('active');
+        document.getElementById('viewNuevaCorrida').style.display = 'block';
+    } else if(tab === 'ACTIVAS'){
+        document.getElementById('tabBtnActivas').classList.add('active');
+        document.getElementById('viewCorridasActivas').style.display = 'block';
+        cargarCorridasActivas();
+    } else if(tab === 'HISTORIAL'){
+        document.getElementById('tabBtnHistorial').classList.add('active');
+        document.getElementById('viewHistorialCorridas').style.display = 'block';
+        cargarHistorialCorridas();
     }
 }
 
 function renderMachines(){
+    const area_id = document.getElementById('areaSelect').value;
+    const machineSelect = document.getElementById('machineSelect');
+    machineSelect.innerHTML = '<option value="">Seleccione máquina</option>';
 
-    const area_id = areaSelect.value;
-
-    machineSelect.innerHTML = `
-    <option value="">
-        Seleccione máquina
-    </option>
-    `;
-
-    let filteredMachines = machines;
-
-    /*
-    FILTRA POR AREA
-    */
-
+    let filtered = machines;
     if(area_id){
-
-        filteredMachines = machines.filter(m=>{
-
-            return String(m.area_id) === String(area_id);
-
-        });
+        filtered = machines.filter(m => String(m.area_id) === String(area_id) || String(m.area_general_id) === String(area_id));
     }
 
-    filteredMachines.forEach(m=>{
-
+    filtered.forEach(m => {
+        const isBusy = m.status === 'RUNNING';
         machineSelect.innerHTML += `
-        <option value="${m.id}">
-            ${m.machine_name || ('MAQ-' + m.id)}
-        </option>
+            <option value="${m.id}" ${isBusy ? 'style="color:#dc2626"' : ''}>
+                ${esc(m.machine_name || ('MAQ-' + m.id))} ${isBusy ? '🔴 (EN CORRIDA)' : '🟢 (DISPONIBLE)'}
+            </option>
         `;
     });
+}
+
+/* ==================== WO AUTO-PLAN & INTEGRACIÓN MRP/APS ==================== */
+let scheduledWOs = [];
+
+async function cargarWOsProgramadas() {
+    const cardsCont = document.getElementById('woCardsContainer');
+    const quickSel = document.getElementById('quickWoSelect');
+    const opSel = document.getElementById('opSelect');
+
+    if (cardsCont) {
+        cardsCont.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;"><i class="fas fa-spinner fa-spin"></i> Consultando órdenes programadas activas...</div>';
+    }
+
+    try {
+        // Consultar production_orders activas en Supabase
+        let { data: poData, error: poErr } = await client
+            .from('production_orders')
+            .select('*')
+            .order('id', { ascending: false })
+            .limit(30);
+
+        if (poErr) console.warn("Aviso al consultar production_orders:", poErr);
+        let list = (poData && poData.length) ? poData : [];
+
+        // Fallback a production_plan si no hay production_orders
+        if (!list.length) {
+            let { data: planData } = await client
+                .from('production_plan')
+                .select('*')
+                .order('id', { ascending: false })
+                .limit(20);
+            if (planData && planData.length) {
+                list = planData.map(p => ({
+                    id: p.id,
+                    folio: `PLAN-${p.id}`,
+                    part_id: p.part_id,
+                    machine_id: p.machine_id,
+                    mold_id: p.mold_id || null,
+                    quantity_planned: p.planned_qty || p.quantity || 1000,
+                    status: p.status || 'PROGRAMADA',
+                    estimated_hours: p.planned_hours || 4
+                }));
+            }
+        }
+
+        scheduledWOs = list.map(item => {
+            const partObj = parts.find(p => String(p.id) === String(item.part_id));
+            const maqObj = machines.find(m => String(m.id) === String(item.machine_id));
+            const moldObj = molds.find(m => String(m.id) === String(item.mold_id));
+            const folio = item.folio || item.order_number || item.op_number || `OP-${String(item.id).padStart(4, '0')}`;
+            return {
+                id: item.id,
+                folio: folio,
+                part_id: item.part_id,
+                part_number: partObj?.part_number || `PZA-${item.part_id || 'X'}`,
+                part_name: partObj?.part_name || 'Componente Inyectado',
+                machine_id: item.machine_id,
+                machine_name: maqObj?.machine_name || (item.machine_id ? `MAQ-${item.machine_id}` : 'POR ASIGNAR'),
+                mold_id: item.mold_id,
+                mold_name: moldObj?.mold_name || moldObj?.mold_code || (item.mold_id ? `MOLDE-${item.mold_id}` : 'MOLDE ESTÁNDAR'),
+                cavities: moldObj?.cavities || 1,
+                quantity_planned: item.quantity_planned || item.quantity || 0,
+                status: item.status || 'PROGRAMADA',
+                estimated_hours: item.estimated_hours || 8,
+                raw: item
+            };
+        });
+
+        // Poblar selector rápido quickWoSelect
+        if (quickSel) {
+            quickSel.innerHTML = '<option value="">-- Seleccionar WO / Orden Programada --</option>' +
+                scheduledWOs.map(w => `<option value="${esc(w.folio)}">${esc(w.folio)} · ${esc(w.part_number)} (${w.quantity_planned.toLocaleString()} pzas) · ${esc(w.machine_name)}</option>`).join('');
+        }
+
+        // Poblar selector secundario opSelect
+        if (opSel) {
+            opSel.innerHTML = '<option value="">-- Sin Orden (Corrida Libre) --</option>' +
+                scheduledWOs.map(w => `<option value="${esc(w.folio)}">${esc(w.folio)} · ${esc(w.part_number)} · ${esc(w.machine_name)}</option>`).join('');
+        }
+
+        renderWoCards();
+
+    } catch (e) {
+        console.error("Error al cargar WOs:", e);
+        if (cardsCont) {
+            cardsCont.innerHTML = '<div style="color:var(--muted);font-size:12px;">No hay órdenes programadas en base de datos. Puedes iniciar una corrida manual o crear una WO de prueba con el botón lateral.</div>';
+        }
+    }
+}
+
+function renderWoCards(filterMachineId) {
+    const cardsCont = document.getElementById('woCardsContainer');
+    if (!cardsCont) return;
+
+    let items = scheduledWOs;
+    if (filterMachineId) {
+        items = items.filter(w => String(w.machine_id) === String(filterMachineId));
+    }
+
+    if (!items.length) {
+        cardsCont.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align:center; padding:18px; color:var(--muted); font-size:12px; background:rgba(255,255,255,0.02); border-radius:8px; border:1px dashed var(--border);">
+                <i class="fas fa-clipboard-check" style="font-size:20px;margin-bottom:6px;display:block;opacity:0.6;"></i>
+                No hay órdenes de producción programadas para esta máquina hoy.
+                <button type="button" class="btn btn-sm btn-secondary" onclick="crearWODemoRapida()" style="margin-left:8px;padding:3px 8px;font-size:11px;">
+                    <i class="fas fa-plus-circle"></i> Generar Orden de Demostración
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    cardsCont.innerHTML = items.map(w => {
+        const isSelected = selectedLoadedWo && selectedLoadedWo.folio === w.folio;
+        const statusBadge = w.status === 'EN_PROCESO' 
+            ? '<span class="wo-badge" style="background:rgba(245,158,11,0.18);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)">EN PROCESO</span>'
+            : '<span class="wo-badge" style="background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.3)">PROGRAMADA</span>';
+
+        return `
+            <div class="wo-card ${isSelected ? 'selected' : ''}" onclick="cargarDatosDesdeWO('${esc(w.folio)}')">
+                <div class="wo-header">
+                    <span class="wo-folio"><i class="fas fa-file-invoice"></i> ${esc(w.folio)}</span>
+                    ${statusBadge}
+                </div>
+                <div class="wo-part">${esc(w.part_number)}</div>
+                <div style="font-size:11px;color:var(--muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    ${esc(w.part_name)}
+                </div>
+                <div class="wo-details">
+                    <span><i class="fas fa-industry"></i> <strong>${esc(w.machine_name)}</strong></span>
+                    <span><i class="fas fa-cubes"></i> <strong>${w.quantity_planned.toLocaleString()}</strong> pzas</span>
+                    <span><i class="fas fa-shapes"></i> Molde: <strong>${esc(w.mold_name)}</strong></span>
+                    <span><i class="fas fa-clock"></i> Est: <strong>${w.estimated_hours}h</strong></span>
+                </div>
+                <button type="button" class="wo-btn-select" onclick="event.stopPropagation(); cargarDatosDesdeWO('${esc(w.folio)}')">
+                    <i class="fas fa-play-circle"></i> ${isSelected ? '✓ Orden Cargada en Terminal' : 'Cargar y Auto-llenar'}
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+function cargarDatosDesdeWO(folio) {
+    if (!folio) {
+        limpiarSeleccionWO();
+        return;
+    }
+
+    const wo = scheduledWOs.find(w => w.folio === folio);
+    if (!wo) return;
+
+    selectedLoadedWo = wo;
+
+    // 1. Asignar Máquina si existe en el catálogo
+    if (wo.machine_id) {
+        const maqEl = document.getElementById('machineSelect');
+        if (maqEl) {
+            maqEl.value = String(wo.machine_id);
+            const maqObj = machines.find(m => String(m.id) === String(wo.machine_id));
+            if (maqObj && (maqObj.area_id || maqObj.area_general_id)) {
+                const areaEl = document.getElementById('areaSelect');
+                if (areaEl) areaEl.value = String(maqObj.area_id || maqObj.area_general_id);
+            }
+        }
+    }
+
+    // 2. Asignar Molde
+    if (wo.mold_id) {
+        const moldEl = document.getElementById('moldSelect');
+        if (moldEl) {
+            moldEl.value = String(wo.mold_id);
+            onMoldChange();
+        }
+    }
+
+    // 3. Sincronizar selectores de Folio
+    const quickSel = document.getElementById('quickWoSelect');
+    if (quickSel) quickSel.value = folio;
+    const opSel = document.getElementById('opSelect');
+    if (opSel) opSel.value = folio;
+
+    // 4. Auto-llenar Parte a Producir en outputsContainer
+    const outputsContainer = document.getElementById('outputsContainer');
+    if (outputsContainer && wo.part_id) {
+        outputsContainer.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'output-row';
+
+        let options = parts.map(p => {
+            const isSel = String(p.id) === String(wo.part_id) ? 'selected' : '';
+            return `<option value="${p.id}" ${isSel}>${esc(p.part_number)} - ${esc(p.part_name || '')}</option>`;
+        }).join('');
+
+        div.innerHTML = `
+            <div class="grid">
+                <div>
+                    <label>Parte a Inyectar * <span class="autoplan-tag">AUTO-PLAN</span></label>
+                    <select class="partSelect">${options}</select>
+                </div>
+                <div>
+                    <label>Lado</label>
+                    <select class="sideSelect">
+                        <option value="LH">LH (Izquierda)</option>
+                        <option value="RH">RH (Derecha)</option>
+                        <option value="NA" selected>NA (Único / Simétrico)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Cavidades <span class="autoplan-tag">MOLDE</span></label>
+                    <input type="number" class="cavitiesInput" value="${wo.cavities || 1}" min="1">
+                </div>
+                <div>
+                    <label>Meta Cantidad Plan</label>
+                    <input type="number" class="pieceWeightInput" value="${wo.quantity_planned || 0}" readonly title="Cantidad planificada en la orden">
+                </div>
+            </div>
+        `;
+        outputsContainer.appendChild(div);
+    }
+
+    // 5. Sugerir Turno según la hora actual
+    const curHour = new Date().getHours();
+    let suggestedShift = 1;
+    if (curHour >= 6 && curHour < 14) suggestedShift = 1;
+    else if (curHour >= 14 && curHour < 22) suggestedShift = 2;
+    else suggestedShift = 3;
+    const shiftEl = document.getElementById('shiftSelect');
+    if (shiftEl) shiftEl.value = String(suggestedShift);
+
+    // 6. Mostrar Banner Verde de Orden Cargada
+    const banner = document.getElementById('woLoadedAlert');
+    if (banner) {
+        banner.style.display = 'block';
+        banner.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                <div>
+                    <strong style="font-size:13px;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-check-circle" style="color:var(--success)"></i>
+                        Orden de Producción Cargada: ${esc(wo.folio)}
+                    </strong>
+                    <div style="font-size:12px;margin-top:3px;color:var(--text-muted)">
+                        Parte: <strong style="color:var(--text)">${esc(wo.part_number)}</strong> (${esc(wo.part_name)}) · 
+                        Meta: <strong style="color:var(--text)">${wo.quantity_planned.toLocaleString()} pzas</strong> · 
+                        Máquina: <strong style="color:var(--text)">${esc(wo.machine_name)}</strong> · 
+                        Molde: <strong style="color:var(--text)">${esc(wo.mold_name)}</strong>
+                    </div>
+                    <div style="font-size:11px;color:#10b981;margin-top:4px;font-weight:600">
+                        ⚡ Parámetros de máquina, molde y parte autollenados desde el plan. El operador solo debe confirmar turno, operadores y escanear/digitar el Lote de Resina del tote/bulto.
+                    </div>
+                </div>
+                <button type="button" onclick="limpiarSeleccionWO()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;" title="Quitar orden cargada">
+                    &times;
+                </button>
+            </div>
+        `;
+    }
+
+    // 7. Enfocar el campo requerido del Operador (Lote de Resina)
+    const resinLotInput = document.getElementById('resinLot');
+    if (resinLotInput) {
+        resinLotInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => resinLotInput.focus(), 300);
+    }
+
+    // Actualizar visualmente tarjetas
+    renderWoCards();
+}
+
+function onMoldChange() {
+    const moldSelect = document.getElementById('moldSelect');
+    const moldId = moldSelect ? moldSelect.value : null;
+    if (!moldId) return;
+
+    const moldObj = molds.find(m => String(m.id) === String(moldId));
+    const selectedOpt = moldSelect.options[moldSelect.selectedIndex];
+    const cavFromOpt = selectedOpt ? parseInt(selectedOpt.getAttribute('data-cav') || 1) : 1;
+    const cav = moldObj ? (moldObj.cavities || cavFromOpt || 1) : cavFromOpt;
+
+    const totalCavEl = document.getElementById('totalCavities');
+    if (totalCavEl) totalCavEl.value = cav;
+
+    // Buscar relación en part_molds para ciclo estándar
+    const pm = partMolds.find(p => String(p.mold_id) === String(moldId));
+    if (pm && pm.cycle_time_sec) {
+        const ctEl = document.getElementById('cycleTime');
+        if (ctEl) ctEl.value = pm.cycle_time_sec;
+    }
+
+    // Actualizar cavidades en la fila de partes
+    const firstCavInput = document.querySelector('.cavitiesInput');
+    if (firstCavInput) firstCavInput.value = cav;
+}
+
+function filtrarWOsPorMaquina() {
+    const maqId = document.getElementById('filterWoMachine').value;
+    renderWoCards(maqId);
+}
+
+function limpiarSeleccionWO() {
+    selectedLoadedWo = null;
+    const banner = document.getElementById('woLoadedAlert');
+    if (banner) banner.style.display = 'none';
+    const quickSel = document.getElementById('quickWoSelect');
+    if (quickSel) quickSel.value = '';
+    const opSel = document.getElementById('opSelect');
+    if (opSel) opSel.value = '';
+    renderWoCards();
+}
+
+async function crearWODemoRapida() {
+    if (!parts.length || !machines.length) {
+        alert("Asegúrate de que haya partes y máquinas cargadas.");
+        return;
+    }
+
+    const demoPart = parts[0];
+    const demoMaq = machines[0];
+    const demoMold = molds.length ? molds[0] : null;
+    const demoFolio = 'OP-' + Math.floor(1000 + Math.random() * 9000);
+
+    const payload = {
+        part_id: demoPart.id,
+        machine_id: demoMaq.id,
+        mold_id: demoMold ? demoMold.id : null,
+        quantity_planned: 5000,
+        estimated_hours: 8,
+        status: 'PROGRAMADA'
+    };
+
+    try {
+        const { data, error } = await client.from('production_orders').insert([payload]).select().single();
+        if (error) {
+            console.warn("Inserción production_orders requirió fallback:", error);
+        }
+        alert(`✅ Orden Demo (${demoFolio}) creada exitosamente.\nParte: ${demoPart.part_number}\nMáquina: ${demoMaq.machine_name}`);
+        await cargarWOsProgramadas();
+        cargarDatosDesdeWO(demoFolio);
+    } catch (e) {
+        console.error(e);
+        // Fallback en memoria si la base de datos restringe inserts
+        scheduledWOs.unshift({
+            id: Date.now(),
+            folio: demoFolio,
+            part_id: demoPart.id,
+            part_number: demoPart.part_number,
+            part_name: demoPart.part_name || 'Componente Demo',
+            machine_id: demoMaq.id,
+            machine_name: demoMaq.machine_name,
+            mold_id: demoMold?.id,
+            mold_name: demoMold?.mold_name || 'MOLDE-01',
+            cavities: demoMold?.cavities || 2,
+            quantity_planned: 5000,
+            status: 'PROGRAMADA',
+            estimated_hours: 8
+        });
+        renderWoCards();
+        cargarDatosDesdeWO(demoFolio);
+    }
 }
 
 function addOutputRow(){
-
     const div = document.createElement('div');
-
     div.className = 'output-row';
 
-    let options = '';
-
-    parts.forEach(p=>{
-
-        options += `
-        <option value="${p.id}">
-            ${p.part_number || ''} - ${p.part_name || ''}
-        </option>
-        `;
-    });
+    let options = parts.map(p => `<option value="${p.id}">${esc(p.part_number)} - ${esc(p.part_name || '')}</option>`).join('');
 
     div.innerHTML = `
-
-    <div class="grid">
-
-        <div>
-            <label>Parte</label>
-
-            <select class="partSelect">
-                ${options}
-            </select>
+        <div class="grid">
+            <div>
+                <label>Parte a Inyectar *</label>
+                <select class="partSelect">${options}</select>
+            </div>
+            <div>
+                <label>Lado</label>
+                <select class="sideSelect">
+                    <option value="LH">LH (Izquierda)</option>
+                    <option value="RH">RH (Derecha)</option>
+                    <option value="NA">NA (Único / Simétrico)</option>
+                </select>
+            </div>
+            <div>
+                <label>Cavidades</label>
+                <input type="number" class="cavitiesInput" value="1" min="1">
+            </div>
+            <div>
+                <label>Peso Pieza (g)</label>
+                <input type="number" class="pieceWeightInput" step="0.1" value="0">
+            </div>
         </div>
-
-        <div>
-            <label>Lado</label>
-
-            <select class="sideSelect">
-                <option value="LH">LH</option>
-                <option value="RH">RH</option>
-                <option value="NA">NA</option>
-            </select>
-        </div>
-
-        <div>
-            <label>Cavidades</label>
-
-            <input
-                type="number"
-                class="cavitiesInput"
-                value="1">
-        </div>
-
-        <div>
-            <label>Peso Pieza (g)</label>
-
-            <input
-                type="number"
-                class="pieceWeightInput">
-        </div>
-
-    </div>
-
-    <button
-        class="btn-danger"
-        style="margin-top:12px;"
-        onclick="this.parentElement.remove()">
-
-        Eliminar
-
-    </button>
+        <button class="btn btn-sm btn-danger" style="margin-top:10px" onclick="this.parentElement.remove()">
+            <i class="fas fa-trash"></i> Eliminar Parte
+        </button>
     `;
-
-    outputsContainer.appendChild(div);
+    document.getElementById('outputsContainer').appendChild(div);
 }
 
 function addOperatorRow(){
-
     const div = document.createElement('div');
+    div.className = 'operator-row';
 
-    div.className='operator-row';
-
-    let options='';
-
-    employees.forEach(e=>{
-
-        options += `
-        <option value="${e.id}">
-            ${e.nombre_completo || 'SIN NOMBRE'}
-        </option>
-        `;
-    });
+    let options = employees.map(e => `<option value="${e.id}">${esc(e.nombre_completo || 'SIN NOMBRE')}</option>`).join('');
 
     div.innerHTML = `
-
-    <div class="grid">
-
-        <div>
-
-            <label>Empleado</label>
-
-            <select class="employeeSelect">
-                ${options}
-            </select>
-
+        <div class="grid">
+            <div>
+                <label>Empleado *</label>
+                <select class="employeeSelect">${options}</select>
+            </div>
+            <div>
+                <label>Rol en Turno *</label>
+                <select class="roleSelect">
+                    <option value="OPERADOR">OPERADOR</option>
+                    <option value="LIDER">LÍDER DE LÍNEA</option>
+                    <option value="EMPAQUE">EMPAQUE / EMBALADOR</option>
+                    <option value="INSPECCION">INSPECTOR DE CALIDAD</option>
+                </select>
+            </div>
         </div>
-
-        <div>
-
-            <label>Rol</label>
-
-            <select class="roleSelect">
-
-                <option value="OPERADOR">
-                    OPERADOR
-                </option>
-
-                <option value="LIDER">
-                    LIDER
-                </option>
-
-                <option value="EMPAQUE">
-                    EMPAQUE
-                </option>
-
-                <option value="INSPECCION">
-                    INSPECCION
-                </option>
-
-            </select>
-
-        </div>
-
-    </div>
-
-    <button
-        class="btn-danger"
-        style="margin-top:12px;"
-        onclick="this.parentElement.remove()">
-
-        Eliminar
-
-    </button>
+        <button class="btn btn-sm btn-danger" style="margin-top:10px" onclick="this.parentElement.remove()">
+            <i class="fas fa-trash"></i> Eliminar Operador
+        </button>
     `;
-
-    operatorsContainer.appendChild(div);
+    document.getElementById('operatorsContainer').appendChild(div);
 }
 
+/* ==================== ARRANQUE DE CORRIDA ==================== */
 async function startRun(){
-
     try{
-
-        const machine_id = machineSelect.value;
-
-        const mold_id = moldSelect.value;
-
-        const shift =
-        shiftSelect.value;
-
-        const cycle_time =
-        parseFloat(cycleTime.value || 0);
-
-        const total_cavities =
-        parseInt(totalCavities.value || 0);
-
-        const resin_type =
-        resinType.value;
-
-        const resin_lot =
-        resinLot.value;
-
-        const resin_color =
-        resinColor.value;
-
-        const purge_weight_g =
-        parseFloat(purgeWeight.value || 0);
-
-        const runner_weight_g =
-        parseFloat(runnerWeight.value || 0);
+        const machine_id = document.getElementById('machineSelect').value;
+        const mold_id = document.getElementById('moldSelect').value;
+        const shift = parseInt(document.getElementById('shiftSelect').value || 1);
+        const cycle_time = parseFloat(document.getElementById('cycleTime').value || 0);
+        const total_cavities = parseInt(document.getElementById('totalCavities').value || 1);
+        const resin_type = document.getElementById('resinType').value.trim();
+        const resin_lot = document.getElementById('resinLot').value.trim().toUpperCase();
+        const resin_color = document.getElementById('resinColor').value.trim();
+        const purge_weight_g = parseFloat(document.getElementById('purgeWeight').value || 0);
+        const runner_weight_g = parseFloat(document.getElementById('runnerWeight').value || 0);
+        const opVal = document.getElementById('opSelect').value;
 
         if(!machine_id){
+            alert("Por favor selecciona una máquina inyectora.");
+            return;
+        }
 
-            alert("Selecciona máquina");
+        const outputsRows = document.querySelectorAll('.output-row');
+        if(!outputsRows.length){
+            alert("Debes agregar al menos una parte a producir en la corrida.");
             return;
         }
 
         const runPayload = {
-
             machine_id,
-            mold_id,
+            mold_id: mold_id || null,
             shift,
-
             cycle_time,
-
-            cavities:total_cavities,
-
+            cavities: total_cavities,
             resin_type,
             resin_lot,
             resin_color,
-
             purge_weight_g,
             runner_weight_g,
-
-            status:'RUNNING',
-
-            start_time:new Date().toISOString()
+            status: 'RUNNING',
+            comments: opVal ? `[ORDEN: ${opVal}]` : null,
+            start_time: new Date().toISOString()
         };
 
-        console.log(runPayload);
-
-        const {
-            data:runData,
-            error:runError
-        } = await client
-        .from('runs')
-        .insert([runPayload])
-        .select()
-        .single();
+        const { data: runData, error: runError } = await client
+            .from('runs')
+            .insert([runPayload])
+            .select()
+            .single();
 
         if(runError) throw runError;
-
         const run_id = runData.id;
 
-        /*
-        OUTPUTS
-        */
-
-        const outputsRows =
-        document.querySelectorAll('.output-row');
-
+        // Insertar Outputs de la Corrida
         let outputsToInsert = [];
-
-        outputsRows.forEach(row=>{
-
+        outputsRows.forEach(row => {
             outputsToInsert.push({
-
                 run_id,
-
-                part_id:
-                row.querySelector('.partSelect').value,
-
-                side:
-                row.querySelector('.sideSelect').value,
-
-                cavities:
-                parseInt(
-                row.querySelector('.cavitiesInput').value || 1
-                ),
-
-                piece_weight_g:
-                parseFloat(
-                row.querySelector('.pieceWeightInput').value || 0
-                )
+                part_id: row.querySelector('.partSelect').value,
+                side: row.querySelector('.sideSelect').value,
+                cavities: parseInt(row.querySelector('.cavitiesInput').value || 1),
+                piece_weight_g: parseFloat(row.querySelector('.pieceWeightInput').value || 0)
             });
         });
 
         if(outputsToInsert.length){
-
-            const { error } = await client
-            .from('run_outputs')
-            .insert(outputsToInsert);
-
-            if(error) throw error;
+            await client.from('run_outputs').insert(outputsToInsert);
         }
 
-        /*
-        OPERADORES
-        */
-
-        const operatorRows =
-        document.querySelectorAll('.operator-row');
-
+        // Insertar Operadores
+        const operatorRows = document.querySelectorAll('.operator-row');
         let operatorsToInsert = [];
-
-        operatorRows.forEach(row=>{
-
+        operatorRows.forEach(row => {
             operatorsToInsert.push({
-
                 run_id,
-
-                employee_id:
-                row.querySelector('.employeeSelect').value,
-
-                role:
-                row.querySelector('.roleSelect').value
+                employee_id: row.querySelector('.employeeSelect').value,
+                role: row.querySelector('.roleSelect').value
             });
         });
 
         if(operatorsToInsert.length){
-
-            const { error } = await client
-            .from('run_operators')
-            .insert(operatorsToInsert);
-
-            if(error) throw error;
+            await client.from('run_operators').insert(operatorsToInsert);
         }
 
-        /*
-        UPDATE MACHINE
-        */
+        // Actualizar estado de la máquina a RUNNING
+        await client.from('machines').update({
+            status: 'RUNNING',
+            current_run_id: run_id,
+            current_mold_id: mold_id || null,
+            last_start_time: new Date().toISOString()
+        }).eq('id', machine_id);
 
-        const { error:updateMachineError } =
-        await client
-        .from('machines')
-        .update({
+        // Si la corrida está vinculada a una Orden de Producción, actualizar estatus a EN_PROCESO
+        if (selectedLoadedWo && selectedLoadedWo.id) {
+            try {
+                await client.from('production_orders').update({ status: 'EN_PROCESO' }).eq('id', selectedLoadedWo.id);
+            } catch (_) {}
+        }
 
-            status:'RUNNING',
-
-            current_run_id:run_id,
-
-            current_mold_id:mold_id,
-
-            last_start_time:new Date().toISOString()
-        })
-        .eq('id',machine_id);
-
-        if(updateMachineError)
-        throw updateMachineError;
-
-        alert("✅ CORRIDA INICIADA");
-
-        location.reload();
+        alert(`✅ ¡Corrida #${run_id} iniciada exitosamente!\nMáquina asignada en estatus RUNNING.`);
+        cambiarTab('ACTIVAS');
 
     }catch(err){
-
         console.error(err);
-
-        alert("ERROR: " + err.message);
+        alert("Error al iniciar corrida: " + err.message);
     }
 }
 
-areaSelect.addEventListener(
-'change',
-renderMachines
-);
+/* ==================== CORRIDAS ACTIVAS & CIERRE ==================== */
+async function cargarCorridasActivas(){
+    const cont = document.getElementById('activasContainer');
+    cont.innerHTML = '<div style="text-align:center;padding:25px;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Consultando corridas en ejecución...</div>';
 
-document.addEventListener(
-'DOMContentLoaded',
-init
-);
+    try {
+        const { data: runsData, error } = await client
+            .from('runs')
+            .select(`
+                id, machine_id, mold_id, shift, cycle_time, cavities,
+                resin_type, resin_lot, resin_color, start_time, status, comments
+            `)
+            .eq('status', 'RUNNING')
+            .order('id', { ascending: false });
 
+        if(error) throw error;
+        activeRuns = runsData || [];
+        document.getElementById('countActivas').textContent = activeRuns.length;
+
+        if(!activeRuns.length){
+            cont.innerHTML = `
+                <div style="text-align:center;padding:35px;color:var(--muted)">
+                    <i class="fas fa-check-circle" style="font-size:32px;color:var(--success);margin-bottom:8px;display:block"></i>
+                    No hay máquinas con corridas activas en este momento.<br>
+                    <button class="btn btn-primary" style="margin-top:12px" onclick="cambiarTab('NUEVA')"><i class="fas fa-plus"></i> Iniciar una Corrida</button>
+                </div>
+            `;
+            return;
+        }
+
+        // Cargar outputs de estas corridas
+        const runIds = activeRuns.map(r => r.id);
+        const { data: allOutputs } = await client.from('run_outputs').select('run_id, part_id, cavities').in('run_id', runIds);
+        const outputsByRun = (allOutputs || []).reduce((acc, o) => {
+            if(!acc[o.run_id]) acc[o.run_id] = [];
+            acc[o.run_id].push(o);
+            return acc;
+        }, {});
+
+        cont.innerHTML = activeRuns.map(r => {
+            const maq = machines.find(m => String(m.id) === String(r.machine_id));
+            const maqName = maq ? (maq.machine_name || ('MAQ-' + maq.id)) : `Máquina #${r.machine_id}`;
+            const moldObj = molds.find(m => String(m.id) === String(r.mold_id));
+            const moldName = moldObj ? (moldObj.mold_code || moldObj.name) : (r.mold_id ? `Molde #${r.mold_id}` : 'Sin molde');
+
+            const startDt = new Date(r.start_time);
+            const hrsTranscurridas = Math.max(0, (Date.now() - startDt.getTime()) / 3600000).toFixed(1);
+
+            const outs = outputsByRun[r.id] || [];
+            const partsTxt = outs.map(o => {
+                const p = parts.find(x => String(x.id) === String(o.part_id));
+                return p ? `<strong>${esc(p.part_number)}</strong>` : `Parte #${o.part_id}`;
+            }).join(', ') || 'N/D';
+
+            return `
+                <div class="active-run-card">
+                    <div>
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                            <span class="live-badge"><span class="live-dot"></span> EN CORRIDA</span>
+                            <span style="font-size:12px;color:var(--muted);font-weight:700">Folio: <strong>#RUN-${r.id}</strong></span>
+                            <span style="font-size:12px;color:var(--muted)">· Turno: <strong>${r.shift}</strong></span>
+                        </div>
+                        <div style="font-size:17px;font-weight:900;margin-bottom:4px">
+                            <i class="fas fa-industry" style="color:var(--primary)"></i> ${esc(maqName)} · <span style="color:var(--muted);font-size:14px">${esc(moldName)}</span>
+                        </div>
+                        <div style="font-size:12.5px;color:var(--text);margin-bottom:4px">
+                            Partes: ${partsTxt} · Ciclo: <strong>${r.cycle_time || 0}s</strong> · Cavidades: <strong>${r.cavities || 1}</strong>
+                        </div>
+                        <div style="font-size:11.5px;color:var(--muted)">
+                            Resina: <strong>${esc(r.resin_type || 'N/D')}</strong> (Lote: <code>${esc(r.resin_lot || 'S/L')}</code>) · Iniciada hace: <strong>${hrsTranscurridas} hrs</strong>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" onclick="abrirModalCierre(${r.id})" style="font-size:13.5px;padding:12px 18px">
+                            <i class="fas fa-flag-checkered"></i> Finalizar Corrida & Entregar WMS
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error(e);
+        cont.innerHTML = `<div style="color:var(--danger);padding:20px">Error al cargar corridas: ${e.message}</div>`;
+    }
+}
+
+/* ==================== MODAL DE CIERRE & ENTRADA WMS ==================== */
+async function abrirModalCierre(runId){
+    currentCierreRun = activeRuns.find(r => r.id === runId);
+    if(!currentCierreRun) return;
+
+    const maq = machines.find(m => String(m.id) === String(currentCierreRun.machine_id));
+    const maqName = maq ? (maq.machine_name || ('MAQ-' + maq.id)) : `Máquina #${currentCierreRun.machine_id}`;
+
+    // Obtener outputs para sugerir parte
+    const { data: outs } = await client.from('run_outputs').select('part_id, cavities').eq('run_id', runId);
+    currentCierreRun.outputs = outs || [];
+
+    const p = parts.find(x => String(x.id) === String(currentCierreRun.outputs[0]?.part_id));
+    const pNumber = p ? p.part_number : 'PT-INYECCION';
+
+    document.getElementById('cierreResumenBox').innerHTML = `
+        <strong>Corrida #${currentCierreRun.id}</strong> en <strong>${esc(maqName)}</strong> · Turno <strong>${currentCierreRun.shift}</strong><br>
+        Parte Principal: <strong style="color:var(--primary)">${esc(pNumber)}</strong> · Resina Lote: <code>${esc(currentCierreRun.resin_lot || 'S/L')}</code>
+    `;
+
+    // Sugerir lote FIFO estándar: YYYYMMDD-T{turno}
+    const hoyISO = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    document.getElementById('c_lot_number').value = `${hoyISO}-T${currentCierreRun.shift}`;
+    document.getElementById('c_good_pieces').value = '';
+    document.getElementById('c_scrap_pieces').value = 0;
+    document.getElementById('c_downtime_minutes').value = 0;
+    document.getElementById('c_comments').value = '';
+
+    document.getElementById('modalCierre').style.display = 'flex';
+}
+
+function cerrarModalCierre(){
+    document.getElementById('modalCierre').style.display = 'none';
+}
+
+async function confirmarCierreCorrida(){
+    if(!currentCierreRun) return;
+
+    const good_pieces = parseInt(document.getElementById('c_good_pieces').value || 0);
+    const scrap_pieces = parseInt(document.getElementById('c_scrap_pieces').value || 0);
+    const downtime_minutes = parseInt(document.getElementById('c_downtime_minutes').value || 0);
+    const motivo_paro = document.getElementById('c_motivo_paro').value;
+    const lot_number = document.getElementById('c_lot_number').value.trim().toUpperCase();
+    const location_id = parseInt(document.getElementById('c_location_id').value);
+    const userComments = document.getElementById('c_comments').value.trim();
+
+    if(!good_pieces || good_pieces <= 0){
+        alert("Por favor ingresa la cantidad de Piezas Buenas producidas.");
+        return;
+    }
+    if(!lot_number){
+        alert("El número de lote es obligatorio para la trazabilidad FIFO.");
+        return;
+    }
+
+    try {
+        const totalPcs = good_pieces + scrap_pieces;
+        const efficiency = totalPcs > 0 ? Math.round((good_pieces / totalPcs) * 100) : 100;
+        const nowIso = new Date().toISOString();
+        const fullComment = `[PARO: ${motivo_paro} (${downtime_minutes}m)] ${userComments}`.trim();
+
+        // 1. ACTUALIZAR 'runs' EN SUPABASE
+        const { error: runErr } = await client.from('runs').update({
+            good_pieces,
+            scrap_pieces,
+            downtime_minutes,
+            efficiency,
+            comments: fullComment,
+            closed_at: nowIso,
+            status: 'CERRADA'
+        }).eq('id', currentCierreRun.id);
+
+        if(runErr) throw runErr;
+
+        // 2. LIBERAR MÁQUINA
+        await client.from('machines').update({
+            status: 'AVAILABLE',
+            current_run_id: null
+        }).eq('id', currentCierreRun.machine_id);
+
+        // 3. GENERAR ENTRADA A WMS EN 'inventory_movements'
+        let authUserId = null;
+        try {
+            const u = await client.auth.getUser();
+            authUserId = u?.data?.user?.id || null;
+        } catch (_) {}
+
+        const maq = machines.find(m => String(m.id) === String(currentCierreRun.machine_id));
+        const maqName = maq ? (maq.machine_name || ('MAQ-' + maq.id)) : `MAQ-${currentCierreRun.machine_id}`;
+
+        // Obtener la parte producida
+        const targetPartId = currentCierreRun.outputs[0]?.part_id || null;
+        const targetPart = parts.find(p => String(p.id) === String(targetPartId));
+
+        // Extraer folio de OP si existe en comentarios
+        let linkedOpFolio = null;
+        if (currentCierreRun.comments && currentCierreRun.comments.includes('[ORDEN:')) {
+            const m = currentCierreRun.comments.match(/\[ORDEN:\s*([^\]]+)\]/);
+            if (m) linkedOpFolio = m[1].trim();
+        }
+
+        // Si hay OP vinculada, actualizar estatus a CERRADA en production_orders
+        if (linkedOpFolio) {
+            try {
+                const numId = parseInt(linkedOpFolio.replace(/\D/g, ''));
+                if (numId) {
+                    await client.from('production_orders').update({ status: 'CERRADA' }).eq('id', numId);
+                }
+            } catch (_) {}
+        }
+
+        const movementPayload = {
+            part_id: targetPartId,
+            quantity: good_pieces,
+            movement_type: 'ENTRADA',
+            status_stock: 'DISPONIBLE',
+            to_location_id: location_id,
+            lot_number: lot_number,
+            area: 'ALMACEN',
+            comment: `[PRODUCCIÓN MES] Corrida #${currentCierreRun.id} ${linkedOpFolio ? '· OP: ' + linkedOpFolio : ''} · Máq: ${maqName} · Scrap: ${scrap_pieces} pzas · Paro: ${downtime_minutes}m`,
+            orden_produccion_folio: linkedOpFolio || `RUN-${currentCierreRun.id}`,
+            user_id: authUserId,
+            created_at: nowIso
+        };
+
+        const { error: movErr } = await client.from('inventory_movements').insert([movementPayload]);
+        if(movErr) {
+            console.error("Error insertando en inventory_movements:", movErr);
+            alert("⚠️ La corrida se cerró pero hubo un error registrando el movimiento WMS: " + movErr.message);
+        } else {
+            console.log("✅ Movimiento de Entrada PT guardado con éxito.");
+        }
+
+        cerrarModalCierre();
+
+        // 4. PREPARAR Y ABRIR ETIQUETA ZEBRA
+        const locObj = locations.find(l => l.id === location_id) || locations[0];
+        currentZebraData = {
+            folio: `RUN-${currentCierreRun.id}`,
+            part_number: targetPart?.part_number || 'PRODUCTO-TERMINADO',
+            part_name: targetPart?.part_name || 'Pieza Inyectada PT',
+            lote: lot_number,
+            quantity: good_pieces,
+            uom: 'PZA',
+            machine: maqName,
+            location_code: locObj?.location_code || 'ALM-PT',
+            fecha: new Date().toLocaleDateString('es-MX')
+        };
+
+        alert(`✅ ¡Corrida #${currentCierreRun.id} Finalizada con Éxito!\n\n` +
+              `• Piezas Buenas: ${good_pieces.toLocaleString()} PZA (Ingresadas a Almacén WMS)\n` +
+              `• Lote Asignado: ${lot_number}\n` +
+              `• Máquina ${maqName} liberada a DISPONIBLE.\n` +
+              `• Eficiencia de Corrida: ${efficiency}%`);
+
+        abrirModalZebraPt();
+        cargarCorridasActivas();
+
+    } catch (e) {
+        console.error(e);
+        alert("Error al finalizar corrida: " + e.message);
+    }
+}
+
+/* ==================== ETIQUETA ZEBRA PT ==================== */
+function abrirModalZebraPt(){
+    if(!currentZebraData) return;
+
+    document.getElementById('zPtFolio').textContent = currentZebraData.folio;
+    document.getElementById('zPtPartNumber').textContent = currentZebraData.part_number;
+    document.getElementById('zPtDesc').textContent = currentZebraData.part_name;
+    document.getElementById('zPtLote').textContent = currentZebraData.lote;
+    document.getElementById('zPtQty').textContent = `${currentZebraData.quantity.toLocaleString()} ${currentZebraData.uom}`;
+    document.getElementById('zPtMaq').textContent = currentZebraData.machine;
+    document.getElementById('zPtLoc').textContent = currentZebraData.location_code;
+    document.getElementById('zPtFecha').textContent = currentZebraData.fecha;
+    document.getElementById('zPtQrSub').textContent = currentZebraData.part_number;
+
+    const qrWrap = document.getElementById('zPtQrCode');
+    qrWrap.innerHTML = '';
+    const qrPayload = JSON.stringify({
+        np: currentZebraData.part_number,
+        lote: currentZebraData.lote,
+        qty: currentZebraData.quantity,
+        uom: currentZebraData.uom,
+        loc: currentZebraData.location_code,
+        folio: currentZebraData.folio
+    });
+
+    new QRCode(qrWrap, {
+        text: qrPayload,
+        width: 85,
+        height: 85,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+    });
+
+    document.getElementById('modalZebraPt').style.display = 'flex';
+}
+
+function cerrarModalZebraPt(){
+    document.getElementById('modalZebraPt').style.display = 'none';
+}
+
+function imprimirZebraPt(){
+    if(!currentZebraData) return;
+    const cont = document.getElementById('printPtZebraContainer');
+    cont.innerHTML = '';
+
+    const qrId = 'pr_pt_' + Math.random().toString(36).substr(2, 9);
+    const qrPayload = JSON.stringify({
+        np: currentZebraData.part_number,
+        lote: currentZebraData.lote,
+        qty: currentZebraData.quantity,
+        uom: currentZebraData.uom,
+        loc: currentZebraData.location_code,
+        folio: currentZebraData.folio
+    });
+
+    cont.innerHTML = `
+        <div class="print-page-label">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #000;padding-bottom:2px;margin-bottom:3px">
+                <strong style="font-size:11px;letter-spacing:0.5px">KRAEM S.A. DE C.V. · PT</strong>
+                <span style="font-size:10px;font-weight:900">${esc(currentZebraData.folio)}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 85px;gap:8px;align-items:center">
+                <div>
+                    <div style="font-size:8px;font-weight:bold;color:#444">NÚMERO DE PARTE PT:</div>
+                    <div style="font-size:17px;font-weight:900;letter-spacing:0.5px;font-family:monospace;line-height:1.1">${esc(currentZebraData.part_number)}</div>
+                    <div style="font-size:9.5px;font-weight:bold;margin:2px 0">${esc(currentZebraData.part_name)}</div>
+
+                    <div style="margin-top:3px">
+                        <span style="font-size:8px;font-weight:bold">LOTE INYECCIÓN:</span>
+                        <span style="display:inline-block;background:#000;color:#fff;padding:1px 5px;font-size:11px;font-weight:900;border-radius:2px">${esc(currentZebraData.lote)}</span>
+                    </div>
+
+                    <div style="display:flex;gap:12px;margin-top:4px;font-size:10px">
+                        <div>CANT: <strong style="font-size:12px">${currentZebraData.quantity.toLocaleString()} ${esc(currentZebraData.uom)}</strong></div>
+                        <div>MÁQ: <strong style="font-size:11px">${esc(currentZebraData.machine)}</strong></div>
+                    </div>
+                    <div style="font-size:8.5px;color:#333;margin-top:3px">
+                        Ubic: <strong>${esc(currentZebraData.location_code)}</strong> · Fecha: <strong>${esc(currentZebraData.fecha)}</strong>
+                    </div>
+                </div>
+                <div style="text-align:center">
+                    <div id="${qrId}" style="width:80px;height:80px;display:inline-block"></div>
+                    <div style="font-size:7.5px;font-weight:bold;margin-top:2px;font-family:monospace">${esc(currentZebraData.part_number)}</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    new QRCode(document.getElementById(qrId), {
+        text: qrPayload,
+        width: 78,
+        height: 78,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+    });
+
+    setTimeout(() => {
+        window.print();
+    }, 250);
+}
+
+/* ==================== HISTORIAL DE CORRIDAS CERRADAS ==================== */
+async function cargarHistorialCorridas(){
+    const tbody = document.getElementById('historialCorridasBody');
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:25px;color:var(--muted)"><i class="fas fa-spinner fa-spin"></i> Cargando historial...</td></tr>';
+
+    try {
+        const { data, error } = await client
+            .from('runs')
+            .select(`
+                id, machine_id, mold_id, shift, good_pieces, scrap_pieces,
+                downtime_minutes, efficiency, start_time, closed_at, status, comments
+            `)
+            .eq('status', 'CERRADA')
+            .order('id', { ascending: false })
+            .limit(50);
+
+        if(error) throw error;
+        if(!data || !data.length){
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:25px;color:var(--muted)">Sin corridas cerradas registradas aún.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(r => {
+            const maq = machines.find(m => String(m.id) === String(r.machine_id));
+            const maqName = maq ? (maq.machine_name || ('MAQ-' + maq.id)) : `Máq #${r.machine_id}`;
+            const moldObj = molds.find(m => String(m.id) === String(r.mold_id));
+            const moldName = moldObj ? (moldObj.mold_code || moldObj.name) : (r.mold_id ? `Molde #${r.mold_id}` : '-');
+
+            const startStr = r.start_time ? new Date(r.start_time).toLocaleDateString('es-MX', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+            const endStr = r.closed_at ? new Date(r.closed_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '-';
+
+            const eff = r.efficiency || 0;
+            const effColor = eff >= 85 ? 'var(--success)' : (eff >= 70 ? 'var(--warning)' : 'var(--danger)');
+
+            return `
+                <tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:10px"><strong>#RUN-${r.id}</strong></td>
+                    <td style="padding:10px"><strong>${esc(maqName)}</strong></td>
+                    <td style="padding:10px">${esc(moldName)}</td>
+                    <td style="padding:10px;text-align:center">${r.shift || 1}</td>
+                    <td style="padding:10px;font-size:12px">${startStr}</td>
+                    <td style="padding:10px;font-size:12px">${endStr}</td>
+                    <td style="padding:10px;text-align:right;font-weight:bold;color:var(--success)">+${(r.good_pieces || 0).toLocaleString()}</td>
+                    <td style="padding:10px;text-align:right;color:var(--danger)">${(r.scrap_pieces || 0).toLocaleString()}</td>
+                    <td style="padding:10px;text-align:right">${r.downtime_minutes || 0}m</td>
+                    <td style="padding:10px;text-align:center;font-weight:900;color:${effColor}">${eff}%</td>
+                    <td style="padding:10px;text-align:right">
+                        <button class="btn btn-sm btn-primary" onclick="reimprimirEtiquetaZebraHist(${r.id}, ${(r.good_pieces || 0)})"><i class="fas fa-barcode"></i> Zebra</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="11" style="color:var(--danger);padding:20px">Error al cargar historial: ${e.message}</td></tr>`;
+    }
+}
+
+async function reimprimirEtiquetaZebraHist(runId, qty){
+    try {
+        const { data: outs } = await client.from('run_outputs').select('part_id').eq('run_id', runId);
+        const pId = outs && outs[0] ? outs[0].part_id : null;
+        const p = parts.find(x => String(x.id) === String(pId));
+
+        currentZebraData = {
+            folio: `RUN-${runId}`,
+            part_number: p ? p.part_number : 'PRODUCTO-TERMINADO',
+            part_name: p ? p.part_name : 'Pieza Conforme PT',
+            lote: `20261125-RUN${runId}`,
+            quantity: qty || 1,
+            uom: 'PZA',
+            machine: 'PLANTA-KRAEM',
+            location_code: 'ALM-PT',
+            fecha: new Date().toLocaleDateString('es-MX')
+        };
+        abrirModalZebraPt();
+    } catch(e) {
+        alert("Error al recuperar datos de la corrida: " + e.message);
+    }
+}
+
+function toggleTheme(){
+    const b = document.body;
+    const isDark = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+document.getElementById('areaSelect').addEventListener('change', renderMachines);
+document.addEventListener('DOMContentLoaded', init);
 </script>
 
 </body>

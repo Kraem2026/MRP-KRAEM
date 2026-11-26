@@ -7,6 +7,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="kraem_plantas.js"></script>
+<script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -285,7 +288,8 @@ async function cargarAreasGenerales(){
             <option value="">Seleccione...</option>
         `;
 
-        data.forEach(a => {
+        const areasFiltradas = window.KraemPlant ? window.KraemPlant.filterAreasGenerales(data) : data;
+        areasFiltradas.forEach(a => {
 
             sel.innerHTML += `
                 <option value="${a.id}">
@@ -512,6 +516,7 @@ async function init(){
 }
 
 document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('kraem:plantchange', init);
 
 </script>
 

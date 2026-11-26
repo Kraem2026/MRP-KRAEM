@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -6,6 +6,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -389,25 +390,54 @@ function obtenerDiasPorAntiguedad(antiguedad) {
     return 32;
 }
 
+let turnosCat = [];
+
 async function init(){
     const hoy = new Date().toISOString().split('T')[0];
     document.getElementById('sol_inicio').value = hoy;
     document.getElementById('sol_fin').value = hoy;
     document.getElementById('sol_fecha_local').value = hoy;
 
-    const [resEmp, resAr] = await Promise.all([
-        client.from('rh_empleados').select('id, nombre_completo, area_id, turno_id, fecha_ingreso, estatus').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
-        client.from('rh_areas').select('*').eq('activo', true)
+    const [resEmp, resAr, resTurnos] = await Promise.all([
+        client.from('rh_empleados').select('id, nombre_completo, area_id, area_general_id, turno_id, fecha_ingreso, estatus').eq('estatus','ACTIVO').order('nombre_completo', { ascending: true }),
+        client.from('areas_generales').select('*').eq('active', true).order('nombre'),
+        client.from('rh_turnos').select('id, nombre').order('nombre')
     ]);
 
     empleados = resEmp.data || [];
     areas = resAr.data || [];
+    turnosCat = resTurnos.data || [];
 
     cargarAreas();
+    cargarTurnos();
     filtrarEmpleados();
     filtrarAutorizadores();
     await cargarSolicitudesBase();
     calcularDiasSolicitadosDinamico();
+}
+
+function cargarTurnos() {
+    const opts = '<option value="">Turno</option>' + turnosCat.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
+    const t1 = document.getElementById('f_turno');
+    const t2 = document.getElementById('f_turno_aut');
+    if (t1) t1.innerHTML = opts;
+    if (t2) t2.innerHTML = opts;
+}
+
+function matchEmpArea(e, areaVal) {
+    if (!areaVal) return true;
+    return String(e.area_general_id ?? '') === String(areaVal) || String(e.area_id ?? '') === String(areaVal);
+}
+
+function matchEmpTurno(e, turnoVal) {
+    if (!turnoVal) return true;
+    if (String(e.turno_id ?? '') === String(turnoVal)) return true;
+    const tObj = turnosCat.find(t => String(t.id) === String(turnoVal));
+    if (tObj) {
+        const m = String(tObj.nombre || '').match(/\d+/);
+        if (m && String(e.turno_id ?? '') === m[0]) return true;
+    }
+    return false;
 }
 
 function switchTab(id) {
@@ -466,9 +496,9 @@ function filtrarEmpleados(){
     const area = document.getElementById('f_area').value;
     const turno = document.getElementById('f_turno').value;
 
-    const lista = empleados.filter(e=>
-        (!area || e.area_id == area) &&
-        (!turno || e.turno_id == turno)
+    const lista = empleados.filter(e =>
+        matchEmpArea(e, area) &&
+        matchEmpTurno(e, turno)
     );
 
     const sel = document.getElementById('sel_empleado');
@@ -484,9 +514,9 @@ function filtrarAutorizadores(){
     const area = document.getElementById('f_area_aut').value;
     const turno = document.getElementById('f_turno_aut').value;
 
-    const lista = empleados.filter(e=>
-        (!area || e.area_id == area) &&
-        (!turno || e.turno_id == turno)
+    const lista = empleados.filter(e =>
+        matchEmpArea(e, area) &&
+        matchEmpTurno(e, turno)
     );
 
     const sel = document.getElementById('sel_autoriza');
@@ -619,12 +649,17 @@ function renderizarSolicitudes() {
         }
         
         let botones = '';
+        const puedeAutorizar = !window.KraemAuth || KraemAuth.canApproveRequests();
         if(s.estatus === 'PENDIENTE') {
-            botones = `
-                <div style="display:flex; gap:6px; margin-top: 10px;">
-                    <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--success);" onclick="resolverSolicitud('${s.id}', 'APROBADO')"><i class="fas fa-check"></i> Autorizar</button>
-                    <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--danger);" onclick="resolverSolicitud('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i> Denegar</button>
-                </div>`;
+            if (puedeAutorizar) {
+                botones = `
+                    <div style="display:flex; gap:6px; margin-top: 10px;">
+                        <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--success);" onclick="resolverSolicitud('${s.id}', 'APROBADO')"><i class="fas fa-check"></i> Autorizar</button>
+                        <button class="btn" style="padding:6px 12px; font-size:11px; background:var(--danger);" onclick="resolverSolicitud('${s.id}', 'RECHAZADO')"><i class="fas fa-times"></i> Denegar</button>
+                    </div>`;
+            } else {
+                botones = `<span style="font-size:11px; color:#64748b; margin-top:8px;"><i class="fas fa-lock"></i> Autorización: Alto Rango / RH</span>`;
+            }
         } else if(s.estatus === 'APROBADO') {
             botones = `
                 <button class="btn" style="padding:6px 12px; font-size:11px; background:#0284c7; margin-top:10px;" onclick="imprimirPaseCaseta('${s.id}')">
@@ -735,6 +770,10 @@ async function guardar(){
 }
 
 async function resolverSolicitud(id, nuevoEstatus) {
+    if (window.KraemAuth && !KraemAuth.canApproveRequests()) {
+        alert("Acceso denegado: solo personal de Alto Rango (Gerencia/Admin) o RH puede autorizar o denegar permisos.");
+        return;
+    }
     const supervisorFirma = prompt("Ingresa tu Nombre Completo para firmar la validación:", "");
     if (nuevoEstatus === 'APROBADO' && !supervisorFirma) {
         alert("Operación cancelada. Es obligatorio dejar rastro de auditoría.");
@@ -773,7 +812,7 @@ function aplicarFiltrosSaldos() {
     const body = document.getElementById('body-saldos');
 
     const empleadosFiltrados = empleados.filter(emp => {
-        const cumpleArea = !areaFiltro || emp.area_id == areaFiltro;
+        const cumpleArea = matchEmpArea(emp, areaFiltro);
         const cumpleNombre = !nombreFiltro || emp.nombre_completo.toLowerCase().includes(nombreFiltro);
         return cumpleArea && cumpleNombre;
     });
@@ -890,3 +929,4 @@ init();
 
 </body>
 </html>
+

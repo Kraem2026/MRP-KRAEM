@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -8,6 +8,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="kraem_plantas.js"></script>
+<script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -204,7 +207,7 @@ input, select{
 
         <div class="title-box">
 
-            <button class="btn btn-back" onclick="location.href='ingenieria_catalogos.html'">
+            <button class="btn btn-back" onclick="KraemNav.back('ingenieria_catalogos.html')">
                 <i class="fas fa-arrow-left"></i>
                 Regresar
             </button>
@@ -213,11 +216,18 @@ input, select{
 
         </div>
 
-        <button class="btn btn-primary" onclick="abrirModalNuevo()">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="display:inline-flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:4px 10px;" title="Filtrar áreas por sede activa">
+            <i class="fas fa-industry" style="color:var(--primary); font-size:12px;"></i>
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Planta:</span>
+            <select id="selFilterPlanta" class="plant-select plant-select-compact" onchange="cambiarFiltroPlanta(this.value)" style="border:none; background:transparent; color:var(--text); font-size:12px; font-weight:700; outline:none; cursor:pointer; padding:2px 4px; max-width:140px;">
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="abrirModalNuevo()">
             <i class="fas fa-plus"></i>
             Nueva Área General
-        </button>
-
+          </button>
+        </div>
     </div>
 
     <div class="card">
@@ -227,6 +237,7 @@ input, select{
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Planta</th>
                     <th>Código</th>
                     <th>Nombre</th>
                     <th>Estatus</th>
@@ -237,7 +248,7 @@ input, select{
             <tbody id="tabla_areas">
 
                 <tr>
-                    <td colspan="5" class="empty">
+                    <td colspan="6" class="empty">
                         Cargando...
                     </td>
                 </tr>
@@ -257,6 +268,13 @@ input, select{
         <h2 id="modal_title">Nueva Área General</h2>
 
         <input type="hidden" id="edit_id">
+
+        <div class="form-group">
+            <label>Planta / Sede *</label>
+            <select id="area_planta_id" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--card); color:var(--text); font-weight:600;">
+                <!-- Opciones dinámicas -->
+            </select>
+        </div>
 
         <div class="form-group">
             <label>Código</label>
@@ -294,174 +312,193 @@ input, select{
 </div>
 
 <script>
+let areasCache = [];
 
-async function cargarAreas(){
+function initPlantControls() {
+  if (window.KraemPlant) {
+    const selFilter = document.getElementById('selFilterPlanta');
+    if (selFilter) window.KraemPlant.populateSelect(selFilter);
 
-    const tbody = document.getElementById('tabla_areas');
+    const selModal = document.getElementById('area_planta_id');
+    if (selModal) window.KraemPlant.populateSelect(selModal);
+  }
+}
 
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="5" class="empty">
-                Cargando...
-            </td>
-        </tr>
-    `;
+function cambiarFiltroPlanta(plantId) {
+  if (window.KraemPlant) {
+    window.KraemPlant.setActivePlant(plantId);
+  }
+  renderTablaAreas();
+}
 
-    try{
+async function cargarAreas() {
+  initPlantControls();
+  const tbody = document.getElementById('tabla_areas');
 
-        const { data, error } = await client
-            .from('areas_generales')
-            .select('*')
-            .order('nombre');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty">Cargando áreas...</td></tr>';
 
-        if(error) throw error;
+  try {
+    const { data, error } = await client
+      .from('areas_generales')
+      .select('*')
+      .order('nombre');
 
-        if(!data || data.length === 0){
+    if (error) throw error;
 
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="empty">
-                        No hay registros
-                    </td>
-                </tr>
-            `;
+    areasCache = data || [];
+    renderTablaAreas();
 
-            return;
-        }
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="6" class="empty" style="color:red;">Error cargando áreas</td></tr>';
+  }
+}
 
-        tbody.innerHTML = data.map(a => `
+function renderTablaAreas() {
+  const tbody = document.getElementById('tabla_areas');
+  const selFilter = document.getElementById('selFilterPlanta');
+  const plantId = selFilter ? parseInt(selFilter.value, 10) : (window.KraemPlant ? window.KraemPlant.getActivePlant().id : 1);
+  const plantObj = window.KraemPlant ? window.KraemPlant.getPlantById(plantId) : { code: 'PL-MTY', nombre: 'Planta Monterrey' };
+  const areaMap = window.KraemPlant ? window.KraemPlant.getAreaGeneralPlantMap() : {};
 
-            <tr>
-
-                <td>${a.id}</td>
-
-                <td>${a.code || ''}</td>
-
-                <td>${a.nombre || ''}</td>
-
-                <td>
-                    <span class="status ${a.active ? 'active' : 'inactive'}">
-                        ${a.active ? 'ACTIVO' : 'INACTIVO'}
-                    </span>
-                </td>
-
-                <td>
-
-                    <button class="action-btn edit-btn"
-                        onclick='editarArea(${JSON.stringify(a)})'>
-
-                        <i class="fas fa-edit"></i>
-
-                    </button>
-
-                </td>
-
-            </tr>
-
-        `).join('');
-
-    }catch(err){
-
-        console.error(err);
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="empty" style="color:red;">
-                    Error cargando áreas
-                </td>
-            </tr>
-        `;
+  // Filtrar estrictamente por la planta seleccionada
+  const areasFiltradas = areasCache.filter(function (a) {
+    if (a.planta_id !== undefined && a.planta_id !== null) {
+      return parseInt(a.planta_id, 10) === plantId;
     }
+    const mapped = areaMap[a.id];
+    if (mapped !== undefined) return mapped === plantId;
+    return plantId === 1; // Por defecto asignadas a Planta 1 (Monterrey)
+  });
+
+  if (!areasFiltradas || areasFiltradas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty" style="padding:26px; text-align:center; color:var(--text-muted);">' +
+      '<i class="fas fa-layer-group" style="font-size:24px; margin-bottom:8px; display:block; opacity:0.5;"></i>' +
+      'No hay áreas generales registradas para <strong>' + (plantObj ? plantObj.nombre : 'esta planta') + '</strong>.<br>' +
+      '<small>Usa el botón "+ Nueva Área General" para crear macro-áreas exclusivas de esta planta.</small>' +
+      '</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = areasFiltradas.map(function (a) {
+    return '<tr>' +
+      '<td style="font-weight:700; color:var(--text-muted);">' + a.id + '</td>' +
+      '<td><span style="background:rgba(37,99,235,0.15); color:#60a5fa; font-weight:800; font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid rgba(37,99,235,0.3);">' +
+        (plantObj ? plantObj.code : 'PL-MTY') +
+      '</span></td>' +
+      '<td style="font-weight:800; color:#38bdf8;">' + (a.code || '-') + '</td>' +
+      '<td><strong>' + (a.nombre || '') + '</strong></td>' +
+      '<td><span class="status ' + (a.active ? 'active' : 'inactive') + '">' +
+        (a.active ? 'ACTIVO' : 'INACTIVO') +
+      '</span></td>' +
+      '<td>' +
+        '<button class="action-btn edit-btn" onclick="editarAreaById(' + a.id + ')" title="Editar Área">' +
+          '<i class="fas fa-edit"></i>' +
+        '</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
 }
 
-function abrirModalNuevo(){
+function abrirModalNuevo() {
+  initPlantControls();
+  const selFilter = document.getElementById('selFilterPlanta');
+  const plantId = selFilter ? selFilter.value : '1';
 
-    document.getElementById('modal_title').innerText = 'Nueva Área General';
-
-    document.getElementById('edit_id').value = '';
-
-    document.getElementById('codigo').value = '';
-
-    document.getElementById('nombre').value = '';
-
-    document.getElementById('activo').value = 'true';
-
-    document.getElementById('modal').style.display = 'flex';
+  document.getElementById('modal_title').innerText = 'Nueva Área General';
+  document.getElementById('edit_id').value = '';
+  document.getElementById('area_planta_id').value = plantId;
+  document.getElementById('codigo').value = '';
+  document.getElementById('nombre').value = '';
+  document.getElementById('activo').value = 'true';
+  document.getElementById('modal').style.display = 'flex';
 }
 
-function editarArea(area){
-
-    document.getElementById('modal_title').innerText = 'Editar Área General';
-
-    document.getElementById('edit_id').value = area.id;
-
-    document.getElementById('codigo').value = area.code || '';
-
-    document.getElementById('nombre').value = area.nombre || '';
-
-    document.getElementById('activo').value = area.active.toString();
-
-    document.getElementById('modal').style.display = 'flex';
+function editarAreaById(id) {
+  const area = areasCache.find(function (x) { return String(x.id) === String(id); });
+  if (area) editarArea(area);
 }
 
-function cerrarModal(){
+function editarArea(area) {
+  initPlantControls();
+  const areaMap = window.KraemPlant ? window.KraemPlant.getAreaGeneralPlantMap() : {};
+  const plantId = area.planta_id || areaMap[area.id] || 1;
 
-    document.getElementById('modal').style.display = 'none';
+  document.getElementById('modal_title').innerText = 'Editar Área General';
+  document.getElementById('edit_id').value = area.id;
+  document.getElementById('area_planta_id').value = String(plantId);
+  document.getElementById('codigo').value = area.code || '';
+  document.getElementById('nombre').value = area.nombre || '';
+  document.getElementById('activo').value = area.active.toString();
+  document.getElementById('modal').style.display = 'flex';
 }
 
-async function guardarArea(){
+function cerrarModal() {
+  document.getElementById('modal').style.display = 'none';
+}
 
-    const id = document.getElementById('edit_id').value;
+async function guardarArea() {
+  const id = document.getElementById('edit_id').value;
+  const plantId = parseInt(document.getElementById('area_planta_id').value, 10);
+  const obj = {
+    code: document.getElementById('codigo').value.trim().toUpperCase(),
+    nombre: document.getElementById('nombre').value.trim(),
+    active: document.getElementById('activo').value === 'true'
+  };
 
-    const obj = {
+  if (!obj.code || !obj.nombre) {
+    alert('Por favor especifica Código y Nombre del área.');
+    return;
+  }
 
-        code: document.getElementById('codigo').value,
+  try {
+    let error = null;
+    let savedId = id;
 
-        nombre: document.getElementById('nombre').value,
-
-        active: document.getElementById('activo').value === 'true'
-    };
-
-    try{
-
-        let error = null;
-
-        if(id){
-
-            const res = await client
-                .from('areas_generales')
-                .update(obj)
-                .eq('id', id);
-
-            error = res.error;
-
-        }else{
-
-            const res = await client
-                .from('areas_generales')
-                .insert([obj]);
-
-            error = res.error;
-        }
-
-        if(error) throw error;
-
-        alert('Guardado correctamente');
-
-        cerrarModal();
-
-        cargarAreas();
-
-    }catch(err){
-
-        console.error(err);
-
-        alert(err.message);
+    if (id) {
+      const res = await client
+        .from('areas_generales')
+        .update(obj)
+        .eq('id', id);
+      error = res.error;
+    } else {
+      const res = await client
+        .from('areas_generales')
+        .insert([obj])
+        .select();
+      error = res.error;
+      if (res.data && res.data[0]) savedId = res.data[0].id;
     }
+
+    if (error) throw error;
+
+    // Guardar mapeo de planta en KraemPlant
+    if (savedId && window.KraemPlant) {
+      window.KraemPlant.assignAreaGeneralToPlant(savedId, plantId);
+    }
+
+    alert('Área guardada correctamente y asignada a su Planta.');
+    cerrarModal();
+    cargarAreas();
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
 }
 
-document.addEventListener('DOMContentLoaded', cargarAreas);
-
+document.addEventListener('DOMContentLoaded', function () {
+  cargarAreas();
+  document.addEventListener('kraem:plantchange', function (e) {
+    const selFilter = document.getElementById('selFilterPlanta');
+    if (selFilter) selFilter.value = String(e.detail.id);
+    renderTablaAreas();
+  });
+  document.addEventListener('kraem:plantsupdated', function () {
+    initPlantControls();
+    renderTablaAreas();
+  });
+});
 </script>
 
 </body>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <title>KRAEM | Auditoría 5S</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root{
@@ -304,7 +305,7 @@ const nombres5S = [
 ];
 
 // 1. MATRIZ: Estación de Trabajo (Diaria)
-const preguntasEstacion = [
+let preguntasEstacion = [
     ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
     ["¿Herramientas en su lugar?", "¿Material en su lugar?", "¿Área libre de obstáculos?", "¿Contenedores correctamente identificados?", "¿Instrucciones visibles?"],
     ["¿Área libre de polvo?", "¿Piso limpio?", "¿Contenedores limpios?", "¿Máquina limpia?", "¿Mesa limpia?"],
@@ -312,7 +313,7 @@ const preguntasEstacion = [
     ["¿Hábito de limpieza?", "¿Sigue instrucciones?", "¿Respeta ubicación?", "¿Reporta anomalías?", "¿Conoce 5S?"]
 ];
 
-const preguntasJigs = [
+let preguntasJigs = [
     "¿Solo Jigs de producción actual en uso? (Sin Jigs obsoletos/ajenos)",
     "¿Jigs guardados en su ubicación asignada o soporte correcto?",
     "¿Jigs limpios de residuos, y conectores/sensores libres de grasa/polvo?",
@@ -321,7 +322,7 @@ const preguntasJigs = [
 ];
 
 // 2. MATRIZ: Máquinas de Inyección (Diaria)
-const preguntasMaquina = [
+let preguntasMaquina = [
     ["¿Área de máquina libre de refacciones viejas, moldes o mangueras sin usar?", "¿Purga de plástico retirada del área de goteo?", "¿Herramientas de cambio de molde ausentes si no está en Setup?", "¿Herramientas del operador guardadas?", "¿Sin documentos obsoletos en tablero?"],
     ["¿Mangueras de agua/aceite ordenadas y sin riesgo de tropiezo?", "¿Contenedores de materia prima (Tolva/Alimentador) bien ubicados?", "¿Hieleras, racks de producto y tarimas alineados en su delimitación?", "¿Pistolas de aire y herramientas colgadas en su sitio?", "¿Paros de emergencia accesibles y sin obstrucción?"],
     ["¿Piso e interior de la máquina libres de fugas de aceite o agua?", "¿Estructura, tolva y guardas libres de polvo o residuos de resina?", "¿Unidad de inyección, pistón y husillo limpios de purgas quemadas?", "¿Bandejas de goteo limpias y sin desborde?", "¿Tablero eléctrico y pantallas limpios y cerrados?"],
@@ -330,7 +331,7 @@ const preguntasMaquina = [
 ];
 
 // 3. MATRIZ: Auditoría de Supervisores (Semanal)
-const preguntasSupervisor = [
+let preguntasSupervisor = [
     ["¿Aplica correctamente el proceso de Tarjetas Rojas en su área asignada?", "¿Gestiona el retiro de sobrantes de material al cierre de lote/turno?", "¿Mantiene tableros técnicos y de KPI sin hojas viejas o no vigentes?", "¿Asegura que no haya equipo descompuesto/obsoleto acumulado en pasillos?", "¿Coordina el retorno de contenedores y tarimas vacías a su almacén?"],
     ["¿Verifica que las líneas/estaciones tengan demarcación de piso completa?", "¿Asegura que el herramental y Jigs tengan un lugar asignado y etiquetado?", "¿Garantiza que el material en proceso (WIP) esté en áreas autorizadas?", "¿Valida el orden y fácil acceso a los equipos de seguridad (EPP/Extintores)?", "¿Mantiene el escritorio/mesa de supervisión ordenada y sin exceso de papel?"],
     ["¿Programa y supervisa rutinas de limpieza profunda en sus líneas?", "¿Asegura que el personal cuente con insumos de limpieza adecuados?", "¿Da seguimiento al reporte y reparación de fugas de aire, agua o aceite?", "¿Verifica la limpieza de contenedores y racks antes de enviar a empaque?", "¿Promueve el hábito de 'limpiar durante y al final del turno' con su equipo?"],
@@ -339,6 +340,15 @@ const preguntasSupervisor = [
 ];
 
 async function init(){
+    if (window.KraemSettings) {
+        const q5s = KraemSettings.get('rh_5s', 'preguntas_5s');
+        if (q5s) {
+            if (Array.isArray(q5s.estacion) && q5s.estacion.length) preguntasEstacion = q5s.estacion;
+            if (Array.isArray(q5s.jigs) && q5s.jigs.length) preguntasJigs = q5s.jigs;
+            if (Array.isArray(q5s.maquina) && q5s.maquina.length) preguntasMaquina = q5s.maquina;
+            if (Array.isArray(q5s.supervisor) && q5s.supervisor.length) preguntasSupervisor = q5s.supervisor;
+        }
+    }
     try{
         const { data: areas, error: errAreas } = await client.from('areas_generales').select('*').eq('active', true).order('nombre');
         if(errAreas) throw errAreas;
@@ -629,3 +639,4 @@ window.onload = init;
 </script>
 </body>
 </html>
+

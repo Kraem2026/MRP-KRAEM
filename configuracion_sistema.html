@@ -1,0 +1,1499 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRAEM MRP | Configuración del Sistema</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="kraem_plantas.js"></script>
+  <script src="kraem_nav.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b;
+      --border: #cbd5e1; --primary: #2563eb; --success: #16a34a;
+      --warning: #d97706; --danger: #dc2626; --purple: #7c3aed;
+      --input-bg: #f8fafc;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --muted: #94a3b8;
+      --border: #334155; --input-bg: #0f172a;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding: 20px; }
+    .wrap { max-width: 1380px; margin: 0 auto; }
+
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 22px; margin-bottom: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      background: rgba(37,99,235,0.12); color: var(--primary); font-size: 1.3rem;
+    }
+    .brand h1 { margin: 0; font-size: 1.25rem; font-weight: 800; }
+    .brand p { margin: 2px 0 0; font-size: 0.84rem; color: var(--muted); }
+    .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.84rem;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 7px; text-decoration: none;
+    }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { color: #fff; filter: brightness(1.06); }
+    .btn-success { background: var(--success); border-color: var(--success); color: #fff; }
+    .btn-success:hover { color: #fff; filter: brightness(1.06); }
+    .btn-danger { background: rgba(220,38,38,0.12); border-color: rgba(220,38,38,0.35); color: var(--danger); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+    .pill {
+      padding: 6px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+      display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border);
+    }
+    .pill-ok { background: rgba(22,163,74,0.12); color: var(--success); border-color: rgba(22,163,74,0.35); }
+    .pill-warn { background: rgba(217,119,6,0.12); color: var(--warning); border-color: rgba(217,119,6,0.35); }
+    .pill-lock { background: rgba(220,38,38,0.12); color: var(--danger); border-color: rgba(220,38,38,0.35); }
+
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab-btn {
+      padding: 10px 15px; border-radius: 11px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700; font-size: 0.85rem;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .tab-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .card-head {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .card-head h2 { margin: 0; font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .card-desc { margin: 0 0 14px; font-size: 0.84rem; color: var(--muted); }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 0.78rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .field small { font-size: 0.75rem; color: var(--muted); }
+    .field input, .field select, .field textarea {
+      padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--input-bg); color: var(--text); font-size: 0.92rem; font-weight: 600;
+    }
+
+    .list-editor {
+      border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--input-bg);
+    }
+    .list-editor h4 { margin: 0 0 10px; font-size: 0.88rem; font-weight: 800; }
+    .chip-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; max-height: 260px; overflow-y: auto; }
+    .chip-row {
+      display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border);
+      padding: 6px 10px; border-radius: 8px; font-size: 0.85rem;
+    }
+    .chip-row input {
+      flex: 1; border: none; background: transparent; color: var(--text); font-weight: 600; font-size: 0.85rem; outline: none;
+    }
+    .chip-row button {
+      border: none; background: transparent; color: var(--danger); cursor: pointer; font-size: 0.9rem; padding: 3px 6px;
+    }
+    .add-row { display: flex; gap: 6px; }
+    .add-row input {
+      flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-size: 0.85rem;
+    }
+
+    .lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { font-size: 0.74rem; text-transform: uppercase; color: var(--muted); }
+    .table-wrap { overflow-x: auto; }
+
+    .cat-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .cat-link {
+      display: flex; align-items: center; gap: 12px; padding: 13px 15px; border-radius: 12px;
+      background: var(--input-bg); border: 1px solid var(--border); color: var(--text); text-decoration: none;
+      transition: transform 0.12s, border-color 0.12s;
+    }
+    .cat-link:hover { transform: translateY(-2px); border-color: var(--primary); }
+    .cat-link i { font-size: 1.2rem; color: var(--primary); width: 24px; text-align: center; }
+
+    .banner {
+      padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 0.86rem;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .banner-warn { background: rgba(217,119,6,0.12); border: 1px solid rgba(217,119,6,0.35); color: var(--text); }
+    .banner-danger { background: rgba(220,38,38,0.12); border: 1px solid rgba(220,38,38,0.35); color: var(--danger); font-weight: 700; }
+
+    .toast {
+      position: fixed; bottom: 22px; right: 22px; z-index: 4000;
+      padding: 12px 18px; border-radius: 12px; background: #0f172a; color: #fff;
+      font-weight: 700; font-size: 0.88rem; box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      display: none; align-items: center; gap: 9px;
+    }
+
+    .modal-back {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.68); display: none;
+      align-items: center; justify-content: center; z-index: 3500; padding: 16px;
+    }
+    .modal-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px; max-width: 780px; width: 100%; max-height: 88vh; overflow-y: auto;
+    }
+    pre {
+      background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 10px;
+      font-size: 0.78rem; overflow-x: auto; white-space: pre-wrap;
+    }
+    .s5-pillar { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: var(--input-bg); }
+    .s5-pillar h4 { margin: 0 0 8px; font-size: 0.86rem; color: var(--primary); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon"><i class="fas fa-sliders-h"></i></div>
+      <div>
+        <h1 data-i18n="title">Configuración Central del Sistema</h1>
+        <p data-i18n="subtitle">Metas, parámetros operativos, listas editables y control de perfiles/roles</p>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="syncPill" class="pill pill-warn"><i class="fas fa-database"></i> <span id="syncTxt">Verificando BD...</span></span>
+      <span id="rankPill" class="pill pill-ok"><i class="fas fa-user-shield"></i> <span id="rankTxt">ADMIN</span></span>
+      <button type="button" class="btn" onclick="openSqlModal()"><i class="fas fa-code"></i> <span data-i18n="btn_sql">SQL Supabase</span></button>
+      <button type="button" class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+      <button type="button" class="btn btn-back" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> <span data-i18n="back">Dashboard</span></button>
+    </div>
+  </div>
+
+  <div id="readonlyBanner" class="banner banner-danger" style="display:none;">
+    <span><i class="fas fa-lock"></i> <span data-i18n="lock_msg">Acceso de solo lectura: únicamente usuarios de alto rango (ADMIN / GERENCIA) pueden guardar cambios en Configuración.</span></span>
+  </div>
+
+  <div id="sqlBanner" class="banner banner-warn" style="display:none;">
+    <span><i class="fas fa-info-circle"></i> <span data-i18n="sql_hint">La tabla <code>system_settings</code> aún no existe en Supabase. Tus cambios se guardan localmente en este navegador; ejecuta <b>configuracion_sistema.sql</b> en Supabase para sincronizarlos en toda la planta.</span></span>
+    <button type="button" class="btn btn-primary" onclick="openSqlModal()"><i class="fas fa-copy"></i> <span data-i18n="view_sql">Ver / Copiar SQL</span></button>
+  </div>
+
+  <div class="tabs">
+    <button type="button" class="tab-btn active" id="tab-kpi" onclick="setTab('kpi')"><i class="fas fa-chart-line"></i> <span data-i18n="t_kpi">1. KPIs y Metas</span></button>
+    <button type="button" class="tab-btn" id="tab-wms" onclick="setTab('wms')"><i class="fas fa-warehouse"></i> <span data-i18n="t_wms">2. WMS y Conteos ABC</span></button>
+    <button type="button" class="tab-btn" id="tab-planeacion" onclick="setTab('planeacion')"><i class="fas fa-calendar-alt"></i> <span data-i18n="t_plan">3. Planeación MRP / APS</span></button>
+    <button type="button" class="tab-btn" id="tab-prod" onclick="setTab('prod')"><i class="fas fa-industry"></i> <span data-i18n="t_prod">4. Producción y Calidad</span></button>
+    <button type="button" class="tab-btn" id="tab-rh" onclick="setTab('rh')"><i class="fas fa-users-cog"></i> <span data-i18n="t_rh">5. RH, Permisos y 5S</span></button>
+    <button type="button" class="tab-btn" id="tab-seguridad" onclick="setTab('seguridad')"><i class="fas fa-user-lock"></i> <span data-i18n="t_sec">6. Roles y Usuarios</span></button>
+    <button type="button" class="tab-btn" id="tab-general" onclick="setTab('general')"><i class="fas fa-cogs"></i> <span data-i18n="t_gen">7. General y Catálogos</span></button>
+  </div>
+
+  <!-- TAB 1: KPIs -->
+  <section class="tab-pane active" id="pane-kpi">
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-bullseye" style="color:var(--primary)"></i> <span data-i18n="h_kpi">Metas Gerenciales y Factores KPI</span></h2>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="resetCat('kpi')" data-guard><i class="fas fa-undo"></i> <span data-i18n="btn_reset">Restaurar</span></button>
+          <button type="button" class="btn btn-success" onclick="saveKpi()" data-guard><i class="fas fa-save"></i> <span data-i18n="btn_save">Guardar Cambios</span></button>
+        </div>
+      </div>
+      <p class="card-desc" data-i18n="d_kpi">Estos valores controlan las metas mostradas en el Dashboard Principal, el Dashboard Ejecutivo de KPIs y los cortes de Pareto.</p>
+      <div class="form-grid">
+        <div class="field">
+          <label>Meta OEE Global Planta (%)</label>
+          <input type="number" step="0.5" min="1" max="100" id="kpi_oee_target">
+          <small>Se usa como meta global y fallback si una máquina no tiene meta propia.</small>
+        </div>
+        <div class="field">
+          <label>Meta Cumplimiento Plan vs Real (%)</label>
+          <input type="number" step="0.5" min="1" max="100" id="kpi_plan_target">
+          <small>Porcentaje objetivo de órdenes/piezas producidas vs planificadas.</small>
+        </div>
+        <div class="field">
+          <label>Meta Veracidad de Inventario IRA (%)</label>
+          <input type="number" step="0.1" min="1" max="100" id="kpi_ira_target">
+          <small>Umbral para semáforo OK en Dashboard y Conteos Cíclicos.</small>
+        </div>
+        <div class="field">
+          <label>Factor Rendimiento OEE Fallback (%)</label>
+          <input type="number" step="0.5" min="1" max="100" id="kpi_perf_default">
+          <small>Usado cuando aún no existen tiempos ciclo cerrados en corridas.</small>
+        </div>
+        <div class="field">
+          <label>Disponibilidad OEE Fallback (%)</label>
+          <input type="number" step="0.5" min="1" max="100" id="kpi_avail_fallback">
+          <small>Usado en cálculo estimado cuando no hay máquinas en estatus Producción.</small>
+        </div>
+        <div class="field">
+          <label>Corte Acumulado Pareto Calidad (%)</label>
+          <input type="number" step="1" min="50" max="100" id="kpi_pareto_cutoff">
+          <small>Referencia 80/20 en Análisis y Paretos de Defectos.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: WMS -->
+  <section class="tab-pane" id="pane-wms">
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-boxes" style="color:var(--warning)"></i> <span data-i18n="h_wms">Frecuencias Conteo Cíclico ABC y Tolerancias</span></h2>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="resetCat('wms')" data-guard><i class="fas fa-undo"></i> <span data-i18n="btn_reset">Restaurar</span></button>
+          <button type="button" class="btn btn-success" onclick="saveWms()" data-guard><i class="fas fa-save"></i> <span data-i18n="btn_save">Guardar Cambios</span></button>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:18px;">
+        <div class="field">
+          <label>Frecuencia Clase A (días)</label>
+          <input type="number" min="1" id="wms_abc_a">
+          <small>Materiales críticos / alta rotación (default 30 días).</small>
+        </div>
+        <div class="field">
+          <label>Frecuencia Clase B (días)</label>
+          <input type="number" min="1" id="wms_abc_b">
+          <small>Materiales rotación media (default 90 días).</small>
+        </div>
+        <div class="field">
+          <label>Frecuencia Clase C (días)</label>
+          <input type="number" min="1" id="wms_abc_c">
+          <small>Materiales baja rotación (default 180 días).</small>
+        </div>
+        <div class="field">
+          <label>Tolerancia Conteo Exacto (piezas)</label>
+          <input type="number" min="0" id="wms_tol_qty">
+          <small>Diferencia máxima permitida para contar lote como exacto en IRA.</small>
+        </div>
+      </div>
+
+      <div class="lists-grid">
+        <div class="list-editor" id="box_motivos_ajuste"></div>
+        <div class="list-editor" id="box_motivos_reversa"></div>
+        <div class="list-editor" id="box_estatus_fifo"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: PLANEACION -->
+  <section class="tab-pane" id="pane-planeacion">
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-project-diagram" style="color:var(--primary)"></i> <span data-i18n="h_plan">Parámetros de Motor MRP, Tablero APS y Moldes (SMED)</span></h2>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="resetCat('planeacion')" data-guard><i class="fas fa-undo"></i> <span data-i18n="btn_reset">Restaurar</span></button>
+          <button type="button" class="btn btn-success" onclick="savePlaneacion()" data-guard><i class="fas fa-save"></i> <span data-i18n="btn_save">Guardar Cambios</span></button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Horas Disponibles por Prensa / Día</label>
+          <input type="number" step="0.5" min="1" max="24" id="plan_hrs_day">
+          <small>Capacidad diaria base para máquinas sin horario propio (default 22.5h).</small>
+        </div>
+        <div class="field">
+          <label>OEE Estándar de Cálculo APS (%)</label>
+          <input type="number" step="0.5" min="10" max="100" id="plan_oee_def">
+          <small>Usado al calcular tiempo estimado de órdenes en tablero APS.</small>
+        </div>
+        <div class="field">
+          <label>Horizonte de Carga APS (días)</label>
+          <input type="number" min="1" max="60" id="plan_horizon_days">
+          <small>Ventana de programación de prensas (default 7 días).</small>
+        </div>
+        <div class="field">
+          <label>Tiempo Meta SMED Estándar (min)</label>
+          <input type="number" min="1" id="plan_smed_min">
+          <small>Duración estándar de cambio de molde cuando no se especifica otra.</small>
+        </div>
+        <div class="field">
+          <label>Umbral Alerta PM de Molde (% tiros)</label>
+          <input type="number" min="50" max="100" id="plan_pm_pct">
+          <small>Porcentaje de tiros acumulados para alertar mantenimiento preventivo.</small>
+        </div>
+        <div class="field">
+          <label>Filas por Defecto Tabla MRP</label>
+          <input type="number" min="25" step="25" id="plan_mrp_limit">
+          <small>Cantidad inicial de filas visibles en Explosión MRP.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: PRODUCCION Y CALIDAD -->
+  <section class="tab-pane" id="pane-prod">
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-check-double" style="color:var(--success)"></i> <span data-i18n="h_prod">Listas de Producción, Inspección y Control ISO</span></h2>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="resetCat('produccion_calidad')" data-guard><i class="fas fa-undo"></i> <span data-i18n="btn_reset">Restaurar</span></button>
+          <button type="button" class="btn btn-success" onclick="saveProd()" data-guard><i class="fas fa-save"></i> <span data-i18n="btn_save">Guardar Cambios</span></button>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:18px;">
+        <div class="field">
+          <label>Prefijo Documental ISO / SGC</label>
+          <input type="text" id="prod_iso_prefix">
+          <small>Nomenclatura oficial de documentos controlados (ej. KR-SGC-).</small>
+        </div>
+      </div>
+      <div class="lists-grid">
+        <div class="list-editor" id="box_destinos_insp"></div>
+        <div class="list-editor">
+          <h4>Catálogos Maestros Conectados (BD)</h4>
+          <p class="card-desc" style="margin-bottom:10px;">Las áreas, turnos, máquinas, defectos y ubicaciones de Calidad y RH se leen directamente de sus catálogos en Supabase (sin duplicar listas):</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <a href="admin_areas.html" class="cat-link" style="padding:10px;"><i class="fas fa-map-signs"></i><div><b>Áreas (<code>areas</code>)</b></div></a>
+            <a href="catalogo_areas_generales.html" class="cat-link" style="padding:10px;"><i class="fas fa-building"></i><div><b>Áreas Generales</b></div></a>
+            <a href="admin_ubicaciones.html" class="cat-link" style="padding:10px;"><i class="fas fa-th-large"></i><div><b>Ubicaciones</b></div></a>
+            <a href="admin_maquinas.html" class="cat-link" style="padding:10px;"><i class="fas fa-industry"></i><div><b>Máquinas</b></div></a>
+            <a href="admin_defectos.html" class="cat-link" style="padding:10px;"><i class="fas fa-bug"></i><div><b>Defectos</b></div></a>
+            <a href="rh_turnos.html" class="cat-link" style="padding:10px;"><i class="fas fa-clock"></i><div><b>Turnos (<code>rh_turnos</code>)</b></div></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 5: RH Y 5S -->
+  <section class="tab-pane" id="pane-rh">
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-clipboard-check" style="color:var(--purple)"></i> <span data-i18n="h_rh">Parámetros de RH, Habilidades y Auditorías 5S</span></h2>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="resetCat('rh_5s')" data-guard><i class="fas fa-undo"></i> <span data-i18n="btn_reset">Restaurar</span></button>
+          <button type="button" class="btn btn-success" onclick="saveRh()" data-guard><i class="fas fa-save"></i> <span data-i18n="btn_save">Guardar Cambios</span></button>
+        </div>
+      </div>
+      <div class="form-grid" style="margin-bottom:18px;">
+        <div class="field">
+          <label>Meta Aprobatoria Auditoría 5S (%)</label>
+          <input type="number" min="1" max="100" id="rh_meta_5s">
+          <small>Porcentaje objetivo en Dashboard 5S y Evaluaciones.</small>
+        </div>
+        <div class="field">
+          <label>Meta Versatilidad Matriz Habilidades (%)</label>
+          <input type="number" min="1" max="100" id="rh_meta_vers">
+          <small>Umbral objetivo de polivalencia por empleado/estación.</small>
+        </div>
+      </div>
+      <div class="lists-grid" style="margin-bottom:18px;">
+        <div class="list-editor" id="box_tallas"></div>
+        <div class="list-editor" id="box_sol_tipos"></div>
+        <div class="list-editor" id="box_habilidades"></div>
+      </div>
+
+      <div class="card-head" style="margin-top:10px;">
+        <h2><i class="fas fa-list-ol" style="color:var(--warning)"></i> Cuestionario Editable de Auditoría 5S</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="s5MatrixType" onchange="render5sEditor()" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);font-weight:700;">
+            <option value="estacion">Estación de Trabajo (S1–S5)</option>
+            <option value="jigs">Preguntas Especiales Jigs</option>
+            <option value="maquina">Máquinas de Inyección (S1–S5)</option>
+            <option value="supervisor">Supervisores / Liderazgo (S1–S5)</option>
+          </select>
+        </div>
+      </div>
+      <div id="s5EditorWrap"></div>
+    </div>
+  </section>
+
+  <!-- TAB 6: SEGURIDAD Y ROLES -->
+  <section class="tab-pane" id="pane-seguridad">
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-shield-alt" style="color:var(--danger)"></i> <span data-i18n="h_sec">Matriz de Acceso por Rol y Módulos</span></h2>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="resetCat('seguridad')" data-guard><i class="fas fa-undo"></i> <span data-i18n="btn_reset">Restaurar</span></button>
+          <button type="button" class="btn btn-success" onclick="saveSeguridad()" data-guard><i class="fas fa-save"></i> <span data-i18n="btn_save">Guardar Cambios</span></button>
+        </div>
+      </div>
+      <p class="card-desc">Define qué roles tienen rango alto (pueden editar este panel) y qué módulos puede <b>Ver</b> o <b>Editar</b> cada perfil.</p>
+
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="field">
+          <label>Roles de Alto Rango (separados por coma)</label>
+          <input type="text" id="sec_high_roles" placeholder="ADMIN, SUPERADMIN, GERENCIA">
+          <small>Estos roles tienen acceso completo sin bloqueo a todos los módulos y a Settings.</small>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="roleMatrixTbl"></table>
+      </div>
+    </div>
+
+    <div class="card" id="boxNewUser" style="display:none;">
+      <div class="card-head">
+        <h2><i class="fas fa-user-plus" style="color:var(--success)"></i> Alta de Nuevo Usuario (Solo ADMIN)</h2>
+      </div>
+      <p class="card-desc">Selecciona personal del registro de RH para vincular su nombre y área automáticamente, o crea una cuenta manual sin depender de correo real (ej. <code>usuario@kraem.com</code>).</p>
+      <div class="form-grid">
+        <div class="field">
+          <label>Personal de RH (Automático)</label>
+          <select id="new_empleado_id" onchange="onSelectNewEmployee()">
+            <option value="">-- Sin vincular (manual) --</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nombre del Personal *</label>
+          <input type="text" id="new_full_name" placeholder="Ej. Juan Pérez">
+        </div>
+        <div class="field">
+          <label>Nombre de Usuario *</label>
+          <input type="text" id="new_username" placeholder="Ej. juan.perez" oninput="syncNewEmail()">
+        </div>
+        <div class="field">
+          <label>Email de Acceso *</label>
+          <input type="email" id="new_email" placeholder="juan.perez@kraem.com">
+        </div>
+        <div class="field">
+          <label>Área</label>
+          <select id="new_area"></select>
+        </div>
+        <div class="field">
+          <label>Tipo de Permiso (Rol)</label>
+          <select id="new_role"></select>
+        </div>
+        <div class="field">
+          <label>Contraseña *</label>
+          <div style="display:flex;gap:6px;">
+            <input type="password" id="new_pass" placeholder="Mínimo 6 caracteres" style="flex:1;">
+            <button type="button" class="btn" onclick="toggleInputEye('new_pass', this)"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:flex-end;">
+        <button type="button" class="btn btn-success" onclick="crearNuevoUsuario()"><i class="fas fa-user-check"></i> Crear Usuario en Supabase</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-users" style="color:var(--primary)"></i> Usuarios Registrados (<code>user_profiles</code>)</h2>
+        <button type="button" class="btn" onclick="cargarUsuarios()"><i class="fas fa-sync-alt"></i> Actualizar Lista</button>
+      </div>
+      <p class="card-desc" id="usersHelp">Asigna área, rol y estado activo. La columna de contraseñas y su cambio es visible <b>exclusivamente para el rol ADMIN</b> (ni Gerencia puede verla).</p>
+      <div class="form-grid" style="margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-soft, rgba(148,163,184,0.06));">
+        <div class="field">
+          <label>Buscar (Nombre / Usuario / Email)</label>
+          <input type="text" id="f_user_search" placeholder="Buscar..." oninput="renderUsersTable()">
+        </div>
+        <div class="field">
+          <label>Filtrar por Área</label>
+          <select id="f_user_area" onchange="renderUsersTable()">
+            <option value="">Todas las áreas</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Filtrar por Puesto</label>
+          <select id="f_user_puesto" onchange="renderUsersTable()">
+            <option value="">Todos los puestos</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Filtrar por Permiso (Rol)</label>
+          <select id="f_user_role" onchange="renderUsersTable()">
+            <option value="">Todos los permisos</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;">
+          <button type="button" class="btn" onclick="clearUserFilters()"><i class="fas fa-eraser"></i> Limpiar</button>
+          <small id="f_user_count" style="color:var(--muted);white-space:nowrap;"></small>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead id="usersThead"><tr><th>Personal</th><th>Usuario</th><th>Email</th><th>Área</th><th>Rol</th><th>Activo</th><th>Acción</th></tr></thead>
+          <tbody id="tbodyUsers"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 7: GENERAL Y CATALOGOS -->
+  <section class="tab-pane" id="pane-general">
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-building" style="color:var(--primary)"></i> <span data-i18n="h_gen">Identidad de Planta y Respaldo de Configuración</span></h2>
+        <div style="display:flex;gap:8px;">
+          <button type="button" class="btn" onclick="exportBackup()"><i class="fas fa-download"></i> Exportar JSON</button>
+          <label class="btn" style="cursor:pointer;"><i class="fas fa-upload"></i> Importar JSON <input type="file" accept=".json" style="display:none;" onchange="importBackup(event)"></label>
+          <button type="button" class="btn btn-success" onclick="saveGeneral()" data-guard><i class="fas fa-save"></i> <span data-i18n="btn_save">Guardar Cambios</span></button>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nombre de Empresa / Planta</label>
+          <input type="text" id="gen_empresa">
+        </div>
+        <div class="field">
+          <label>Idioma Predeterminado</label>
+          <select id="gen_lang" onchange="if (window.KraemI18n) KraemI18n.setLang(this.value)">
+            <option value="es">Español (MX)</option>
+            <option value="ko">한국어 (KO)</option>
+            <option value="en">English (EN)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Formato de Fecha</label>
+          <select id="gen_datefmt">
+            <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
+            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2><i class="fas fa-database" style="color:var(--success)"></i> Catálogos Maestros Editables en Base de Datos</h2>
+      </div>
+      <p class="card-desc">Además de los parámetros anteriores, estos catálogos ya cuentan con su pantalla CRUD para agregar, editar y dar de baja registros directamente en Supabase:</p>
+      <div class="cat-links">
+        <a href="admin_areas.html" class="cat-link"><i class="fas fa-map-signs"></i><div><b>Áreas WMS</b><br><small>Administrar áreas</small></div></a>
+        <a href="catalogo_areas_generales.html" class="cat-link"><i class="fas fa-building"></i><div><b>Áreas Generales</b><br><small>Departamentos / 5S</small></div></a>
+        <a href="admin_ubicaciones.html" class="cat-link"><i class="fas fa-th-large"></i><div><b>Ubicaciones y Racks</b><br><small>Posiciones almacén</small></div></a>
+        <a href="admin_maquinas.html" class="cat-link"><i class="fas fa-industry"></i><div><b>Prensas y Máquinas</b><br><small>Tonelaje y meta OEE</small></div></a>
+        <a href="admin_defectos.html" class="cat-link"><i class="fas fa-bug"></i><div><b>Catálogo de Defectos</b><br><small>Códigos calidad</small></div></a>
+        <a href="catalogo_moldes.html" class="cat-link"><i class="fas fa-tools"></i><div><b>Matriz de Moldes</b><br><small>Cavidades y tiros PM</small></div></a>
+        <a href="catalogo_procesos.html" class="cat-link"><i class="fas fa-route"></i><div><b>Procesos y Rutas</b><br><small>Secuencias producción</small></div></a>
+        <a href="catalogo_checklists.html" class="cat-link"><i class="fas fa-tasks"></i><div><b>Checklists SMED / Arranque</b><br><small>Puntos críticos</small></div></a>
+        <a href="admin_empaques.html" class="cat-link"><i class="fas fa-dolly"></i><div><b>Empaques y Carros</b><br><small>Flota 107 / Totes</small></div></a>
+        <a href="rh_turnos.html" class="cat-link"><i class="fas fa-clock"></i><div><b>Turnos RH</b><br><small>Horarios por día</small></div></a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA (SOLO ADMIN) -->
+<div class="modal-back" id="passModal" onclick="if(event.target===this)closePassModal()">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="card-head">
+      <h2><i class="fas fa-key" style="color:var(--warning)"></i> Cambiar Contraseña</h2>
+      <button type="button" class="btn" onclick="closePassModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <p class="card-desc" id="passModalUser">Usuario: -</p>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Nueva Contraseña (mínimo 6 caracteres)</label>
+      <div style="display:flex;gap:6px;">
+        <input type="password" id="resetPassInput" placeholder="Nueva contraseña..." style="flex:1;">
+        <button type="button" class="btn" onclick="toggleInputEye('resetPassInput', this)"><i class="fas fa-eye"></i></button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button type="button" class="btn" onclick="closePassModal()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="confirmResetPassword()"><i class="fas fa-save"></i> Actualizar Contraseña</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SQL -->
+<div class="modal-back" id="sqlModal" onclick="if(event.target===this)closeSqlModal()">
+  <div class="modal-box">
+    <div class="card-head">
+      <h2><i class="fas fa-database" style="color:var(--primary)"></i> Script SQL: <code>configuracion_sistema.sql</code></h2>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-primary" onclick="copySql()"><i class="fas fa-copy"></i> Copiar SQL</button>
+        <button type="button" class="btn" onclick="closeSqlModal()"><i class="fas fa-times"></i> Cerrar</button>
+      </div>
+    </div>
+    <p class="card-desc">Copia y pega este script una vez en <b>Supabase → SQL Editor</b> para habilitar guardado en la nube de todas las configuraciones y perfiles de usuario.</p>
+    <pre id="sqlPreview"></pre>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle" style="color:#4ade80"></i> <span id="toastTxt">Guardado</span></div>
+
+<script>
+const SET_I18N = {
+  es: {
+    title: 'Configuración Central del Sistema',
+    subtitle: 'Metas, parámetros operativos, listas editables y control de perfiles/roles',
+    btn_sql: 'SQL Supabase', back: 'Dashboard',
+    t_kpi: '1. KPIs y Metas', t_wms: '2. WMS y Conteos ABC', t_plan: '3. Planeación MRP / APS',
+    t_prod: '4. Producción y Calidad', t_rh: '5. RH, Permisos y 5S', t_sec: '6. Roles y Usuarios',
+    t_gen: '7. General y Catálogos',
+    btn_save: 'Guardar Cambios', btn_reset: 'Restaurar',
+    lock_msg: 'Acceso de solo lectura: únicamente usuarios de alto rango (ADMIN / GERENCIA) pueden guardar cambios en Configuración.'
+  },
+  ko: {
+    title: '시스템 중앙 환경설정',
+    subtitle: '목표치, 운영 기준값, 선택 목록 및 권한/역할 관리',
+    btn_sql: 'Supabase SQL', back: '대시보드',
+    t_kpi: '1. KPI 목표', t_wms: '2. WMS 및 ABC 실사', t_plan: '3. MRP / APS 계획',
+    t_prod: '4. 생산 및 품질', t_rh: '5. 인사 및 5S 평가', t_sec: '6. 역할 및 사용자',
+    t_gen: '7. 일반 및 기준정보',
+    btn_save: '저장', btn_reset: '초기화',
+    lock_msg: '읽기 전용: 관리자/경영진(ADMIN / GERENCIA) 등급만 설정을 변경할 수 있습니다.'
+  },
+  en: {
+    title: 'System Settings Center',
+    subtitle: 'KPI targets, operational thresholds, editable lists & role access control',
+    btn_sql: 'Supabase SQL', back: 'Dashboard',
+    t_kpi: '1. KPI Targets', t_wms: '2. WMS & ABC Counts', t_plan: '3. MRP / APS Planning',
+    t_prod: '4. Production & Quality', t_rh: '5. HR, Leaves & 5S', t_sec: '6. Roles & Users',
+    t_gen: '7. General & Catalogs',
+    btn_save: 'Save Changes', btn_reset: 'Reset Defaults',
+    lock_msg: 'Read-only access: only high-rank roles (ADMIN / GERENCIA) can modify System Settings.'
+  }
+};
+
+const MODULES_LIST = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'ingenieria', label: 'Ingeniería' },
+  { id: 'planeacion', label: 'Planeación' },
+  { id: 'calidad', label: 'Calidad' },
+  { id: 'wms', label: 'WMS' },
+  { id: 'produccion', label: 'Producción' },
+  { id: 'rh_5s', label: 'RH: 5\'s' },
+  { id: 'rh_asistencia', label: 'RH: Pase Lista' },
+  { id: 'rh_solicitudes', label: 'RH: Permisos' },
+  { id: 'rh_capacitacion', label: 'RH: Capacit.' },
+  { id: 'rh_prenomina', label: 'RH: Prenómina*' },
+  { id: 'rh_personal', label: 'RH: Personal*' },
+  { id: 'configuracion', label: 'Settings*' }
+];
+const PILLARS_5S = ['S1 Clasificar (Seiri)', 'S2 Ordenar (Seiton)', 'S3 Limpiar (Seiso)', 'S4 Estandarizar (Seiketsu)', 'S5 Disciplina (Shitsuke)'];
+
+let working = {};
+let isEditable = true;
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastTxt').textContent = msg;
+  el.style.display = 'flex';
+  clearTimeout(window._tTimer);
+  window._tTimer = setTimeout(() => { el.style.display = 'none'; }, 3200);
+}
+
+function setTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.getElementById('pane-' + id).classList.add('active');
+}
+
+function loadWorkingFromSettings() {
+  working = {
+    kpi: KraemSettings.getCategory('kpi'),
+    wms: KraemSettings.getCategory('wms'),
+    planeacion: KraemSettings.getCategory('planeacion'),
+    produccion_calidad: KraemSettings.getCategory('produccion_calidad'),
+    rh_5s: KraemSettings.getCategory('rh_5s'),
+    seguridad: KraemSettings.getCategory('seguridad'),
+    general: KraemSettings.getCategory('general')
+  };
+}
+
+function renderListEditor(containerId, title, arrRef, placeholder) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  const rowsHtml = arrRef.map((val, idx) => `
+    <div class="chip-row">
+      <input type="text" value="${String(val).replace(/"/g, '&quot;')}" data-idx="${idx}" oninput="_updateListItem('${containerId}', ${idx}, this.value)" ${isEditable ? '' : 'disabled'}>
+      ${isEditable ? `<button type="button" onclick="_delListItem('${containerId}', ${idx})" title="Eliminar"><i class="fas fa-trash"></i></button>` : ''}
+    </div>
+  `).join('');
+  wrap.innerHTML = `
+    <h4>${title} (${arrRef.length})</h4>
+    <div class="chip-list">${rowsHtml || '<small style="color:var(--muted);">Sin elementos</small>'}</div>
+    ${isEditable ? `<div class="add-row">
+      <input type="text" id="add_${containerId}" placeholder="${placeholder || 'Nuevo elemento...'}">
+      <button type="button" class="btn btn-primary" onclick="_addListItem('${containerId}')"><i class="fas fa-plus"></i></button>
+    </div>` : ''}
+  `;
+}
+
+function _getListRef(containerId) {
+  const map = {
+    box_motivos_ajuste: ['wms', 'motivos_ajuste', 'Motivos de Ajuste WMS'],
+    box_motivos_reversa: ['wms', 'motivos_reversa', 'Motivos de Reversa WMS'],
+    box_estatus_fifo: ['wms', 'estatus_fifo', 'Estatus de Stock FIFO'],
+    box_destinos_insp: ['produccion_calidad', 'destinos_inspeccion', 'Destinos de Inspección'],
+    box_tallas: ['rh_5s', 'tallas_uniforme', 'Tallas de Uniforme'],
+    box_sol_tipos: ['rh_5s', 'tipos_solicitud', 'Tipos de Solicitud / Permiso'],
+    box_habilidades: ['rh_5s', 'habilidades_base', 'Habilidades Base Capacitación']
+  };
+  const info = map[containerId];
+  if (!info) return null;
+  return { cat: info[0], key: info[1], title: info[2], arr: working[info[0]][info[1]] };
+}
+
+function _updateListItem(cid, idx, val) {
+  const r = _getListRef(cid);
+  if (r) r.arr[idx] = val;
+}
+function _delListItem(cid, idx) {
+  const r = _getListRef(cid);
+  if (!r) return;
+  r.arr.splice(idx, 1);
+  renderListEditor(cid, r.title, r.arr);
+}
+function _addListItem(cid) {
+  const r = _getListRef(cid);
+  const inp = document.getElementById('add_' + cid);
+  const val = (inp && inp.value || '').trim();
+  if (!r || !val) return;
+  r.arr.push(val);
+  renderListEditor(cid, r.title, r.arr);
+}
+
+function render5sEditor() {
+  const type = document.getElementById('s5MatrixType').value;
+  const wrap = document.getElementById('s5EditorWrap');
+  const qObj = working.rh_5s.preguntas_5s || KraemSettings.DEFAULTS.rh_5s.preguntas_5s;
+
+  if (type === 'jigs') {
+    const arr = qObj.jigs || [];
+    wrap.innerHTML = `<div class="s5-pillar"><h4>Preguntas Especiales Jigs (${arr.length})</h4>` +
+      arr.map((q, i) => `
+        <div class="chip-row" style="margin-bottom:6px;">
+          <input type="text" value="${String(q).replace(/"/g, '&quot;')}" oninput="working.rh_5s.preguntas_5s.jigs[${i}]=this.value" ${isEditable ? '' : 'disabled'}>
+          ${isEditable ? `<button type="button" onclick="working.rh_5s.preguntas_5s.jigs.splice(${i},1);render5sEditor()"><i class="fas fa-trash"></i></button>` : ''}
+        </div>`).join('') +
+      (isEditable ? `<button type="button" class="btn" onclick="working.rh_5s.preguntas_5s.jigs.push('Nueva pregunta Jig');render5sEditor()"><i class="fas fa-plus"></i> Agregar pregunta</button>` : '') +
+      `</div>`;
+    return;
+  }
+
+  const matrix = qObj[type] || [];
+  wrap.innerHTML = PILLARS_5S.map((pTitle, pIdx) => {
+    const items = matrix[pIdx] || [];
+    return `<div class="s5-pillar">
+      <h4>${pTitle}</h4>
+      ${items.map((q, qIdx) => `
+        <div class="chip-row" style="margin-bottom:5px;">
+          <span style="font-weight:800;color:var(--muted);width:24px;">#${qIdx + 1}</span>
+          <input type="text" value="${String(q).replace(/"/g, '&quot;')}" oninput="working.rh_5s.preguntas_5s['${type}'][${pIdx}][${qIdx}]=this.value" ${isEditable ? '' : 'disabled'}>
+          ${isEditable ? `<button type="button" onclick="working.rh_5s.preguntas_5s['${type}'][${pIdx}].splice(${qIdx},1);render5sEditor()"><i class="fas fa-trash"></i></button>` : ''}
+        </div>
+      `).join('')}
+      ${isEditable ? `<button type="button" class="btn" style="padding:5px 10px;font-size:0.78rem;margin-top:4px;" onclick="working.rh_5s.preguntas_5s['${type}'][${pIdx}].push('Nueva pregunta');render5sEditor()"><i class="fas fa-plus"></i> Agregar punto</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function renderRoleMatrix() {
+  const matrix = working.seguridad.role_matrix || {};
+  const roles = Object.keys(matrix);
+  const head = `<thead><tr><th>Rol</th>${MODULES_LIST.map(m => `<th style="text-align:center;font-size:0.7rem;">${m.label}</th>`).join('')}</tr></thead>`;
+  const body = `<tbody>${roles.map(role => `
+    <tr>
+      <td><b>${role}</b></td>
+      ${MODULES_LIST.map(m => {
+        const perm = (matrix[role] && matrix[role][m.id]) || { view: false, edit: false };
+        return `<td style="text-align:center;white-space:nowrap;">
+          <label title="Ver"><input type="checkbox" ${perm.view ? 'checked' : ''} onchange="setRolePerm('${role}','${m.id}','view',this.checked)" ${isEditable ? '' : 'disabled'}> V</label>
+          &nbsp;
+          <label title="Editar"><input type="checkbox" ${perm.edit ? 'checked' : ''} onchange="setRolePerm('${role}','${m.id}','edit',this.checked)" ${isEditable ? '' : 'disabled'}> E</label>
+        </td>`;
+      }).join('')}
+    </tr>
+  `).join('')}</tbody>`;
+  document.getElementById('roleMatrixTbl').innerHTML = head + body;
+}
+
+function setRolePerm(role, mod, prop, checked) {
+  if (!working.seguridad.role_matrix[role]) working.seguridad.role_matrix[role] = {};
+  if (!working.seguridad.role_matrix[role][mod]) working.seguridad.role_matrix[role][mod] = { view: false, edit: false };
+  working.seguridad.role_matrix[role][mod][prop] = checked;
+  if (prop === 'edit' && checked) working.seguridad.role_matrix[role][mod].view = true;
+}
+
+function populateForm() {
+  // KPI
+  document.getElementById('kpi_oee_target').value = working.kpi.oee_target_pct;
+  document.getElementById('kpi_plan_target').value = working.kpi.plan_target_pct;
+  document.getElementById('kpi_ira_target').value = working.kpi.ira_target_pct;
+  document.getElementById('kpi_perf_default').value = working.kpi.oee_perf_default_pct;
+  document.getElementById('kpi_avail_fallback').value = working.kpi.oee_avail_fallback_pct;
+  document.getElementById('kpi_pareto_cutoff').value = working.kpi.pareto_cutoff_pct;
+
+  // WMS
+  document.getElementById('wms_abc_a').value = working.wms.abc_days_a;
+  document.getElementById('wms_abc_b').value = working.wms.abc_days_b;
+  document.getElementById('wms_abc_c').value = working.wms.abc_days_c;
+  document.getElementById('wms_tol_qty').value = working.wms.ira_tolerance_qty;
+  renderListEditor('box_motivos_ajuste', 'Motivos de Ajuste WMS', working.wms.motivos_ajuste);
+  renderListEditor('box_motivos_reversa', 'Motivos de Reversa WMS', working.wms.motivos_reversa);
+  renderListEditor('box_estatus_fifo', 'Estatus de Stock FIFO', working.wms.estatus_fifo);
+
+  // Planeación
+  document.getElementById('plan_hrs_day').value = working.planeacion.aps_hours_per_day;
+  document.getElementById('plan_oee_def').value = working.planeacion.aps_oee_default_pct;
+  document.getElementById('plan_horizon_days').value = working.planeacion.aps_horizon_days;
+  document.getElementById('plan_smed_min').value = working.planeacion.smed_default_min;
+  document.getElementById('plan_pm_pct').value = working.planeacion.pm_alert_pct;
+  document.getElementById('plan_mrp_limit').value = working.planeacion.mrp_table_limit;
+
+  // Prod / Calidad
+  document.getElementById('prod_iso_prefix').value = working.produccion_calidad.iso_doc_prefix;
+  renderListEditor('box_destinos_insp', 'Destinos de Inspección', working.produccion_calidad.destinos_inspeccion);
+
+  // RH y 5S
+  document.getElementById('rh_meta_5s').value = working.rh_5s.meta_5s_pct;
+  document.getElementById('rh_meta_vers').value = working.rh_5s.meta_versatilidad_pct;
+  renderListEditor('box_tallas', 'Tallas de Uniforme', working.rh_5s.tallas_uniforme);
+  renderListEditor('box_sol_tipos', 'Tipos de Solicitud / Permiso', working.rh_5s.tipos_solicitud);
+  renderListEditor('box_habilidades', 'Habilidades Base Capacitación', working.rh_5s.habilidades_base);
+  render5sEditor();
+
+  // Seguridad
+  document.getElementById('sec_high_roles').value = (working.seguridad.high_rank_roles || []).join(', ');
+  renderRoleMatrix();
+
+  // General
+  document.getElementById('gen_empresa').value = working.general.empresa_nombre;
+  document.getElementById('gen_lang').value = working.general.default_lang;
+  document.getElementById('gen_datefmt').value = working.general.formato_fecha;
+}
+
+async function persistCategory(cat, data) {
+  if (!isEditable) return alert('Sin permisos para editar configuración.');
+  const res = await KraemSettings.saveCategory(cat, data);
+  updateSyncStatus();
+  if (res.cloudSaved) {
+    toast(`Guardado en Supabase + local (${cat})`);
+  } else {
+    toast(`Guardado localmente (${cat}). Ejecuta SQL para sincronizar nube.`);
+  }
+}
+
+function saveKpi() {
+  return persistCategory('kpi', {
+    oee_target_pct: Number(document.getElementById('kpi_oee_target').value) || 85,
+    plan_target_pct: Number(document.getElementById('kpi_plan_target').value) || 95,
+    ira_target_pct: Number(document.getElementById('kpi_ira_target').value) || 98,
+    oee_perf_default_pct: Number(document.getElementById('kpi_perf_default').value) || 92,
+    oee_avail_fallback_pct: Number(document.getElementById('kpi_avail_fallback').value) || 88,
+    pareto_cutoff_pct: Number(document.getElementById('kpi_pareto_cutoff').value) || 80
+  });
+}
+
+function saveWms() {
+  return persistCategory('wms', {
+    abc_days_a: Number(document.getElementById('wms_abc_a').value) || 30,
+    abc_days_b: Number(document.getElementById('wms_abc_b').value) || 90,
+    abc_days_c: Number(document.getElementById('wms_abc_c').value) || 180,
+    ira_tolerance_qty: Number(document.getElementById('wms_tol_qty').value) || 0,
+    motivos_ajuste: working.wms.motivos_ajuste.filter(x => x.trim()),
+    motivos_reversa: working.wms.motivos_reversa.filter(x => x.trim()),
+    estatus_fifo: working.wms.estatus_fifo.filter(x => x.trim())
+  });
+}
+
+function savePlaneacion() {
+  return persistCategory('planeacion', {
+    aps_hours_per_day: Number(document.getElementById('plan_hrs_day').value) || 22.5,
+    aps_oee_default_pct: Number(document.getElementById('plan_oee_def').value) || 85,
+    aps_horizon_days: Number(document.getElementById('plan_horizon_days').value) || 7,
+    smed_default_min: Number(document.getElementById('plan_smed_min').value) || 45,
+    pm_alert_pct: Number(document.getElementById('plan_pm_pct').value) || 90,
+    mrp_table_limit: Number(document.getElementById('plan_mrp_limit').value) || 100
+  });
+}
+
+function saveProd() {
+  return persistCategory('produccion_calidad', {
+    iso_doc_prefix: document.getElementById('prod_iso_prefix').value.trim() || 'KR-SGC-',
+    destinos_inspeccion: working.produccion_calidad.destinos_inspeccion.filter(x => x.trim())
+  });
+}
+
+function saveRh() {
+  return persistCategory('rh_5s', {
+    meta_5s_pct: Number(document.getElementById('rh_meta_5s').value) || 90,
+    meta_versatilidad_pct: Number(document.getElementById('rh_meta_vers').value) || 80,
+    tallas_uniforme: working.rh_5s.tallas_uniforme.filter(x => x.trim()),
+    tipos_solicitud: working.rh_5s.tipos_solicitud.filter(x => x.trim()),
+    habilidades_base: working.rh_5s.habilidades_base.filter(x => x.trim()),
+    preguntas_5s: working.rh_5s.preguntas_5s
+  });
+}
+
+function saveSeguridad() {
+  const highRoles = document.getElementById('sec_high_roles').value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+  return persistCategory('seguridad', {
+    high_rank_roles: highRoles.length ? highRoles : ['ADMIN', 'SUPERADMIN', 'GERENCIA'],
+    role_matrix: working.seguridad.role_matrix
+  });
+}
+
+function saveGeneral() {
+  const nextLang = document.getElementById('gen_lang').value || 'es';
+  if (window.KraemI18n) KraemI18n.setLang(nextLang);
+  return persistCategory('general', {
+    empresa_nombre: document.getElementById('gen_empresa').value.trim() || 'KRAEM DE MÉXICO',
+    default_lang: nextLang,
+    formato_fecha: document.getElementById('gen_datefmt').value || 'YYYY-MM-DD'
+  });
+}
+
+async function resetCat(cat) {
+  if (!isEditable) return;
+  if (!confirm(`¿Restaurar valores por defecto para "${cat}"?`)) return;
+  await KraemSettings.resetCategory(cat);
+  loadWorkingFromSettings();
+  populateForm();
+  toast(`Valores restaurados (${cat})`);
+}
+
+let catalogAreas = [];
+let catalogPuestos = [];
+let catalogEmpleados = [];
+let cachedUsers = [];
+let cachedCredsMap = {};
+let resetTargetUid = null;
+
+function normalizeUsernameSuggestion(name) {
+  return String(name || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .join('.');
+}
+
+function onSelectNewEmployee() {
+  const empId = document.getElementById('new_empleado_id').value;
+  const nameInp = document.getElementById('new_full_name');
+  const areaSel = document.getElementById('new_area');
+  const userInp = document.getElementById('new_username');
+  if (!empId) {
+    nameInp.readOnly = false;
+    areaSel.disabled = false;
+    return;
+  }
+  const emp = catalogEmpleados.find(e => String(e.id) === String(empId));
+  if (!emp) return;
+  nameInp.value = emp.nombre_completo || '';
+  nameInp.readOnly = true;
+  if (emp.area_nombre) {
+    if (![...areaSel.options].some(o => o.value === emp.area_nombre)) {
+      areaSel.innerHTML += `<option value="${emp.area_nombre}">${emp.area_nombre}</option>`;
+    }
+    areaSel.value = emp.area_nombre;
+  } else {
+    areaSel.value = '';
+  }
+  areaSel.disabled = true;
+  if (!userInp.value.trim() || userInp.dataset.auto === '1') {
+    userInp.value = normalizeUsernameSuggestion(emp.nombre_completo);
+    userInp.dataset.auto = '1';
+    syncNewEmail();
+  }
+}
+
+function syncNewEmail() {
+  const userInp = document.getElementById('new_username');
+  const u = (userInp.value || '').trim().toLowerCase().replace(/\s+/g, '.');
+  const em = document.getElementById('new_email');
+  if (em && !em.dataset.manual) {
+    em.value = u ? (u.includes('@') ? u : `${u}@kraem.com`) : '';
+  }
+}
+
+function toggleInputEye(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  if (btn) btn.innerHTML = show ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+}
+
+async function loadAreasForUsers() {
+  const areaById = {};
+  const puestoById = {};
+  try {
+    const { data: ag } = await client.from('areas_generales').select('id, nombre').eq('active', true).order('nombre');
+    if (ag && ag.length) {
+      catalogAreas = ag.map(a => a.nombre);
+      ag.forEach(a => { areaById[String(a.id)] = a.nombre; });
+    } else {
+      const { data: ar } = await client.from('areas').select('area_name').eq('active', true).order('area_name');
+      catalogAreas = (ar || []).map(a => a.area_name);
+    }
+  } catch (_) { catalogAreas = []; }
+
+  try {
+    const { data: ps } = await client.from('rh_puestos').select('id, nombre').order('nombre');
+    catalogPuestos = (ps || []).map(p => p.nombre).filter(Boolean);
+    (ps || []).forEach(p => { puestoById[String(p.id)] = p.nombre; });
+  } catch (_) { catalogPuestos = []; }
+
+  try {
+    const { data: emps } = await client
+      .from('rh_empleados')
+      .select('id, nombre_completo, area_general_id, puesto_id, estatus')
+      .order('nombre_completo');
+    catalogEmpleados = (emps || []).map(e => ({
+      id: e.id,
+      nombre_completo: e.nombre_completo || '',
+      area_nombre: areaById[String(e.area_general_id)] || '',
+      puesto_nombre: puestoById[String(e.puesto_id)] || '',
+      estatus: e.estatus || 'ACTIVO'
+    }));
+  } catch (_) { catalogEmpleados = []; }
+
+  const selEmp = document.getElementById('new_empleado_id');
+  if (selEmp) {
+    const activos = catalogEmpleados.filter(e => String(e.estatus).toUpperCase() === 'ACTIVO');
+    selEmp.innerHTML = '<option value="">-- Sin vincular (manual) --</option>' +
+      activos.map(e => `<option value="${e.id}">${e.nombre_completo}${e.area_nombre ? ' (' + e.area_nombre + ')' : ''}</option>`).join('');
+  }
+  const selNew = document.getElementById('new_area');
+  if (selNew) {
+    selNew.innerHTML = '<option value="">-- Sin asignar --</option>' + catalogAreas.map(a => `<option value="${a}">${a}</option>`).join('');
+  }
+  const roles = Object.keys(working.seguridad.role_matrix || {});
+  const selRole = document.getElementById('new_role');
+  if (selRole) {
+    selRole.innerHTML = roles.map(r => `<option value="${r}" ${r === 'OPERADOR' ? 'selected' : ''}>${r}</option>`).join('');
+  }
+  const fArea = document.getElementById('f_user_area');
+  if (fArea) {
+    fArea.innerHTML = '<option value="">Todas las áreas</option>' +
+      catalogAreas.map(a => `<option value="${a}">${a}</option>`).join('') +
+      '<option value="__SIN_AREA__">-- Sin área --</option>';
+  }
+  const fPuesto = document.getElementById('f_user_puesto');
+  if (fPuesto) {
+    fPuesto.innerHTML = '<option value="">Todos los puestos</option>' +
+      catalogPuestos.map(p => `<option value="${p}">${p}</option>`).join('') +
+      '<option value="__SIN_PUESTO__">-- Sin puesto / Manual --</option>';
+  }
+  const fRole = document.getElementById('f_user_role');
+  if (fRole) {
+    fRole.innerHTML = '<option value="">Todos los permisos</option>' +
+      roles.map(r => `<option value="${r}">${r}</option>`).join('');
+  }
+}
+
+async function crearNuevoUsuario() {
+  if (!window.KraemAuth || !KraemAuth.isStrictAdmin()) {
+    return alert('Solo el rol ADMIN puede dar de alta nuevos usuarios.');
+  }
+  const empleadoId = document.getElementById('new_empleado_id').value || null;
+  const fullName = document.getElementById('new_full_name').value.trim();
+  const username = document.getElementById('new_username').value.trim();
+  const email = document.getElementById('new_email').value.trim().toLowerCase();
+  const areaNombre = document.getElementById('new_area').value;
+  const role = document.getElementById('new_role').value;
+  const password = document.getElementById('new_pass').value;
+
+  if (!fullName || !username || !email) return alert('Nombre del personal, usuario y email son obligatorios.');
+  if (!password || password.length < 6) return alert('La contraseña debe tener al menos 6 caracteres.');
+
+  const { error } = await client.rpc('admin_create_kraem_user', {
+    p_email: email,
+    p_password: password,
+    p_full_name: fullName,
+    p_username: username,
+    p_area_nombre: areaNombre || null,
+    p_role: role,
+    p_empleado_id: empleadoId
+  });
+  if (error) {
+    if (/function .* does not exist/i.test(error.message)) {
+      alert('Falta ejecutar la actualización de configuracion_sistema.sql en Supabase para habilitar creación de usuarios.');
+      openSqlModal();
+      return;
+    }
+    return alert('Error creando usuario: ' + error.message);
+  }
+
+  document.getElementById('new_empleado_id').value = '';
+  document.getElementById('new_full_name').value = '';
+  document.getElementById('new_full_name').readOnly = false;
+  document.getElementById('new_area').disabled = false;
+  document.getElementById('new_username').value = '';
+  document.getElementById('new_username').dataset.auto = '';
+  document.getElementById('new_email').value = '';
+  document.getElementById('new_pass').value = '';
+  toast('Usuario creado y sincronizado con Supabase Auth');
+  await cargarUsuarios();
+}
+
+function toggleRowPass(uid, btn) {
+  const sp = document.getElementById('pwd_txt_' + uid);
+  if (!sp) return;
+  const hidden = sp.dataset.shown !== '1';
+  sp.dataset.shown = hidden ? '1' : '0';
+  sp.textContent = hidden ? (sp.dataset.real || '(No registrada)') : '••••••••';
+  if (btn) btn.innerHTML = hidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+}
+
+function openPassModal(uid, label) {
+  if (!window.KraemAuth || !KraemAuth.isStrictAdmin()) return alert('Solo ADMIN puede cambiar contraseñas.');
+  resetTargetUid = uid;
+  document.getElementById('passModalUser').textContent = `Usuario: ${label}`;
+  document.getElementById('resetPassInput').value = '';
+  document.getElementById('resetPassInput').type = 'password';
+  document.getElementById('passModal').style.display = 'flex';
+}
+function closePassModal() {
+  document.getElementById('passModal').style.display = 'none';
+  resetTargetUid = null;
+}
+
+async function confirmResetPassword() {
+  if (!resetTargetUid) return;
+  const np = document.getElementById('resetPassInput').value;
+  if (!np || np.length < 6) return alert('La nueva contraseña debe tener al menos 6 caracteres.');
+  const { error } = await client.rpc('admin_reset_kraem_password', {
+    p_user_id: resetTargetUid,
+    p_new_password: np
+  });
+  if (error) return alert('Error actualizando contraseña: ' + error.message);
+  closePassModal();
+  toast('Contraseña actualizada en Supabase Auth');
+  await cargarUsuarios();
+}
+
+function onChangeUserEmp(uid) {
+  const selEmp = document.getElementById('u_emp_' + uid);
+  const nameInp = document.getElementById('u_name_' + uid);
+  const areaSel = document.getElementById('u_area_' + uid);
+  if (!selEmp || !nameInp || !areaSel) return;
+  const empId = selEmp.value;
+  if (!empId) {
+    nameInp.readOnly = false;
+    areaSel.disabled = !isEditable;
+    return;
+  }
+  const emp = catalogEmpleados.find(e => String(e.id) === String(empId));
+  if (!emp) return;
+  nameInp.value = emp.nombre_completo || '';
+  nameInp.readOnly = true;
+  if (emp.area_nombre && ![...areaSel.options].some(o => o.value === emp.area_nombre)) {
+    areaSel.innerHTML += `<option value="${emp.area_nombre}">${emp.area_nombre}</option>`;
+  }
+  areaSel.value = emp.area_nombre || '';
+  areaSel.disabled = true;
+}
+
+async function eliminarUsuario(uid, label) {
+  if (!window.KraemAuth || !KraemAuth.isStrictAdmin()) {
+    return alert('Solo el rol ADMIN puede eliminar cuentas.');
+  }
+  if (KraemAuth.user && KraemAuth.user.id === uid) {
+    return alert('No puedes eliminar tu propia cuenta activa.');
+  }
+  if (!confirm(`¿Eliminar permanentemente la cuenta de "${label}"?\n\nEl usuario perderá acceso inmediato al sistema.`)) return;
+  const { error } = await client.rpc('admin_delete_kraem_user', { p_user_id: uid });
+  if (error) {
+    if (/function .* does not exist/i.test(error.message)) {
+      alert('Falta ejecutar la actualización de configuracion_sistema.sql en Supabase para habilitar eliminación de cuentas.');
+      openSqlModal();
+      return;
+    }
+    return alert('Error eliminando usuario: ' + error.message);
+  }
+  toast('Cuenta eliminada de Supabase Auth');
+  await cargarUsuarios();
+}
+
+function clearUserFilters() {
+  const s = document.getElementById('f_user_search');
+  const a = document.getElementById('f_user_area');
+  const p = document.getElementById('f_user_puesto');
+  const r = document.getElementById('f_user_role');
+  if (s) s.value = '';
+  if (a) a.value = '';
+  if (p) p.value = '';
+  if (r) r.value = '';
+  renderUsersTable();
+}
+
+function renderUsersTable() {
+  const strictAdmin = window.KraemAuth ? KraemAuth.isStrictAdmin() : false;
+  const myUid = (window.KraemAuth && KraemAuth.user) ? KraemAuth.user.id : null;
+  const tbody = document.getElementById('tbodyUsers');
+  const countEl = document.getElementById('f_user_count');
+  const roles = Object.keys(working.seguridad.role_matrix || {});
+  const colSpan = strictAdmin ? 9 : 8;
+
+  const q = (document.getElementById('f_user_search')?.value || '').trim().toLowerCase();
+  const fArea = document.getElementById('f_user_area')?.value || '';
+  const fPuesto = document.getElementById('f_user_puesto')?.value || '';
+  const fRole = document.getElementById('f_user_role')?.value || '';
+
+  const enriched = cachedUsers.map(u => {
+    const uname = u.username || (u.email || '').split('@')[0];
+    const linkedEmp = u.empleado_id ? catalogEmpleados.find(e => String(e.id) === String(u.empleado_id)) : null;
+    const effName = linkedEmp ? (linkedEmp.nombre_completo || u.full_name || '') : (u.full_name || '');
+    const uarea = linkedEmp ? (linkedEmp.area_nombre || u.area_nombre || '') : (u.area_nombre || '');
+    const upuesto = linkedEmp ? (linkedEmp.puesto_nombre || '') : '';
+    return { u, uname, linkedEmp, effName, uarea, upuesto };
+  });
+
+  const filtered = enriched.filter(({ u, uname, effName, uarea, upuesto }) => {
+    if (q) {
+      const hay = `${effName} ${uname} ${u.email || ''} ${uarea} ${upuesto}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (fArea) {
+      if (fArea === '__SIN_AREA__' && uarea) return false;
+      if (fArea !== '__SIN_AREA__' && uarea !== fArea) return false;
+    }
+    if (fPuesto) {
+      if (fPuesto === '__SIN_PUESTO__' && upuesto) return false;
+      if (fPuesto !== '__SIN_PUESTO__' && upuesto !== fPuesto) return false;
+    }
+    if (fRole && String(u.role || '').toUpperCase() !== fRole) return false;
+    return true;
+  });
+
+  if (countEl) countEl.textContent = `${filtered.length} de ${cachedUsers.length} usuarios`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;color:var(--muted);">No hay usuarios que coincidan con los filtros seleccionados.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(({ u, uname, linkedEmp, effName, uarea, upuesto }) => {
+    const areaOpts = [''].concat(catalogAreas.includes(uarea) || !uarea ? catalogAreas : [uarea, ...catalogAreas]);
+    const realPwd = cachedCredsMap[u.user_id] || '';
+    const isSelf = myUid && String(myUid) === String(u.user_id);
+    const empOptions = '<option value="">-- Manual --</option>' + catalogEmpleados.map(e =>
+      `<option value="${e.id}" ${String(u.empleado_id || '') === String(e.id) ? 'selected' : ''}>${e.nombre_completo}${e.estatus !== 'ACTIVO' ? ' (' + e.estatus + ')' : ''}</option>`
+    ).join('');
+    return `
+    <tr>
+      <td>
+        <select id="u_emp_${u.user_id}" onchange="onChangeUserEmp('${u.user_id}')" style="padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);max-width:155px;" ${isEditable ? '' : 'disabled'}>
+          ${empOptions}
+        </select>
+      </td>
+      <td>
+        <input type="text" id="u_name_${u.user_id}" value="${String(effName).replace(/"/g, '&quot;')}" style="padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);width:145px;" ${(isEditable && !linkedEmp) ? '' : (linkedEmp ? 'readonly' : 'disabled')}>
+        ${upuesto ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:2px;"><i class="fas fa-id-badge"></i> ${upuesto}</div>` : ''}
+      </td>
+      <td><input type="text" id="u_user_${u.user_id}" value="${String(uname).replace(/"/g, '&quot;')}" style="padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);width:105px;" ${isEditable ? '' : 'disabled'}></td>
+      <td><b>${u.email}</b></td>
+      <td>
+        <select id="u_area_${u.user_id}" style="padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);" ${(isEditable && !linkedEmp) ? '' : 'disabled'}>
+          ${areaOpts.map(a => `<option value="${a}" ${uarea === a ? 'selected' : ''}>${a || '-- Sin área --'}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <select id="u_role_${u.user_id}" style="padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);" ${isEditable ? '' : 'disabled'}>
+          ${roles.map(r => `<option value="${r}" ${String(u.role).toUpperCase() === r ? 'selected' : ''}>${r}</option>`).join('')}
+        </select>
+      </td>
+      ${strictAdmin ? `<td style="white-space:nowrap;">
+        <code id="pwd_txt_${u.user_id}" data-real="${String(realPwd).replace(/"/g, '&quot;')}" data-shown="0">••••••••</code>
+        <button type="button" class="btn" style="padding:3px 7px;font-size:0.75rem;" onclick="toggleRowPass('${u.user_id}', this)" title="Ver / Ocultar"><i class="fas fa-eye"></i></button>
+        <button type="button" class="btn" style="padding:3px 7px;font-size:0.75rem;color:var(--warning);" onclick="openPassModal('${u.user_id}', '${String(u.email).replace(/'/g, '')}')" title="Cambiar Contraseña"><i class="fas fa-key"></i></button>
+      </td>` : ''}
+      <td><input type="checkbox" id="u_act_${u.user_id}" ${u.active !== false ? 'checked' : ''} ${isEditable ? '' : 'disabled'}></td>
+      <td style="white-space:nowrap;">
+        ${isEditable ? `<button type="button" class="btn btn-primary" style="padding:5px 9px;font-size:0.78rem;" onclick="saveUserRole('${u.user_id}')" title="Guardar cambios"><i class="fas fa-save"></i></button>` : '-'}
+        ${(strictAdmin && !isSelf) ? `<button type="button" class="btn" style="padding:5px 9px;font-size:0.78rem;color:var(--danger);border-color:var(--danger);" onclick="eliminarUsuario('${u.user_id}', '${String(effName || u.email).replace(/'/g, '')}')" title="Eliminar Cuenta"><i class="fas fa-trash-alt"></i></button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function cargarUsuarios() {
+  const strictAdmin = window.KraemAuth ? KraemAuth.isStrictAdmin() : false;
+  const thead = document.getElementById('usersThead');
+  const tbody = document.getElementById('tbodyUsers');
+  const colSpan = strictAdmin ? 9 : 8;
+
+  thead.innerHTML = `<tr>
+    <th>Registro RH</th><th>Personal / Puesto</th><th>Usuario</th><th>Email</th><th>Área</th><th>Permiso (Rol)</th>
+    ${strictAdmin ? '<th>Contraseña (ADMIN)</th>' : ''}
+    <th>Activo</th><th>Acción</th>
+  </tr>`;
+
+  try {
+    const { data, error } = await client.from('user_profiles').select('*').order('email');
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="color:var(--warning);text-align:center;">La tabla <code>user_profiles</code> aún no existe en Supabase. Ejecuta <b>configuracion_sistema.sql</b> para administrar usuarios desde aquí.</td></tr>`;
+      return;
+    }
+    cachedUsers = data || [];
+    cachedCredsMap = {};
+    if (strictAdmin) {
+      try {
+        const { data: creds } = await client.from('admin_user_credentials').select('user_id, password_display');
+        (creds || []).forEach(c => { cachedCredsMap[c.user_id] = c.password_display; });
+      } catch (_) {}
+    }
+
+    if (!cachedUsers.length) {
+      tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;color:var(--muted);">No hay perfiles registrados todavía.</td></tr>`;
+      return;
+    }
+    renderUsersTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="${colSpan}" style="color:var(--danger);">${err.message}</td></tr>`;
+  }
+}
+
+async function saveUserRole(uid) {
+  if (!isEditable) return;
+  const empleado_id = document.getElementById('u_emp_' + uid).value || null;
+  const full_name = document.getElementById('u_name_' + uid).value.trim();
+  const username = document.getElementById('u_user_' + uid).value.trim();
+  const area_nombre = document.getElementById('u_area_' + uid).value || null;
+  const role = document.getElementById('u_role_' + uid).value;
+  const active = document.getElementById('u_act_' + uid).checked;
+  const { error } = await client.from('user_profiles').update({
+    empleado_id, full_name, username, area_nombre, role, active, updated_at: new Date().toISOString()
+  }).eq('user_id', uid);
+  if (error) return alert('Error actualizando usuario: ' + error.message);
+  toast('Perfil de usuario actualizado');
+}
+
+function updateSyncStatus() {
+  const cloud = KraemSettings.isCloudAvailable();
+  const pill = document.getElementById('syncPill');
+  const txt = document.getElementById('syncTxt');
+  const banner = document.getElementById('sqlBanner');
+  if (cloud === true) {
+    pill.className = 'pill pill-ok';
+    txt.textContent = 'Supabase Sync OK';
+    banner.style.display = 'none';
+  } else {
+    pill.className = 'pill pill-warn';
+    txt.textContent = 'Cache Local (Falta SQL)';
+    banner.style.display = 'flex';
+  }
+}
+
+function exportBackup() {
+  const blob = new Blob([JSON.stringify(KraemSettings.exportAll(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `kraem_settings_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+
+function importBackup(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const obj = JSON.parse(e.target.result);
+      await KraemSettings.importAll(obj);
+      loadWorkingFromSettings();
+      populateForm();
+      toast('Respaldo importado correctamente');
+    } catch (err) {
+      alert('Archivo JSON inválido: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+const SQL_TEXT = `-- Ejecuta el archivo completo configuracion_sistema.sql en Supabase -> SQL Editor
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS public.system_settings (
+  key TEXT PRIMARY KEY,
+  category TEXT NOT NULL DEFAULT 'general',
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_by TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "system_settings_read_auth" ON public.system_settings;
+CREATE POLICY "system_settings_read_auth" ON public.system_settings FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "system_settings_write_auth" ON public.system_settings;
+CREATE POLICY "system_settings_write_auth" ON public.system_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  username TEXT,
+  area_nombre TEXT,
+  empleado_id UUID DEFAULT NULL,
+  role TEXT NOT NULL DEFAULT 'OPERADOR',
+  permissions JSONB DEFAULT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS area_nombre TEXT;
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "user_profiles_read_auth" ON public.user_profiles;
+CREATE POLICY "user_profiles_read_auth" ON public.user_profiles FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "user_profiles_write_auth" ON public.user_profiles;
+CREATE POLICY "user_profiles_write_auth" ON public.user_profiles FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.admin_user_credentials (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  password_display TEXT NOT NULL,
+  updated_by TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.admin_user_credentials ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "admin_creds_strict_admin" ON public.admin_user_credentials;
+CREATE POLICY "admin_creds_strict_admin" ON public.admin_user_credentials FOR ALL TO authenticated
+USING (EXISTS (SELECT 1 FROM public.user_profiles up WHERE up.user_id = auth.uid() AND upper(up.role) = 'ADMIN'))
+WITH CHECK (EXISTS (SELECT 1 FROM public.user_profiles up WHERE up.user_id = auth.uid() AND upper(up.role) = 'ADMIN'));
+
+INSERT INTO public.user_profiles (user_id, email, full_name, username, role, active)
+SELECT id, email, COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1)), split_part(email, '@', 1), 'ADMIN', true
+FROM auth.users ON CONFLICT (user_id) DO NOTHING;
+
+-- Además incluye las funciones RPC admin_create_kraem_user y admin_reset_kraem_password incluidas en configuracion_sistema.sql`;
+
+function openSqlModal() {
+  document.getElementById('sqlPreview').textContent = SQL_TEXT;
+  document.getElementById('sqlModal').style.display = 'flex';
+}
+function closeSqlModal() {
+  document.getElementById('sqlModal').style.display = 'none';
+}
+function copySql() {
+  navigator.clipboard.writeText(SQL_TEXT);
+  toast('SQL copiado al portapapeles');
+}
+
+function initPage() {
+  KraemI18n.applyElements(SET_I18N);
+  isEditable = window.KraemAuth ? window.KraemAuth.isHighRank() : true;
+  const roleName = window.KraemAuth ? window.KraemAuth.role : 'ADMIN';
+  document.getElementById('rankTxt').textContent = roleName;
+  if (!isEditable) {
+    document.getElementById('rankPill').className = 'pill pill-lock';
+    document.getElementById('readonlyBanner').style.display = 'flex';
+    document.querySelectorAll('[data-guard]').forEach(b => { b.disabled = true; });
+  }
+
+  loadWorkingFromSettings();
+  populateForm();
+  updateSyncStatus();
+  if (window.KraemAuth && KraemAuth.isStrictAdmin()) {
+    const boxNew = document.getElementById('boxNewUser');
+    if (boxNew) boxNew.style.display = 'block';
+  }
+  loadAreasForUsers().then(cargarUsuarios);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.KraemAuth && window.KraemAuth.ready) {
+    initPage();
+  } else {
+    document.addEventListener('kraem:authready', initPage, { once: true });
+  }
+});
+</script>
+</body>
+</html>

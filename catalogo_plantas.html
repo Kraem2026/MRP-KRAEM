@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM | Catálogo de Plantas & Sedes Industriales</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="kraem_plantas.js"></script>
+<script src="kraem_nav.js"></script>
+<script src="ingenieria_i18n.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg: #090d16;
+  --card: #0f1629;
+  --card-hover: #15203b;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --card-hover: #f1f5f9;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text-muted: #64748b;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--bg);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.title-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.title-box h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-sub {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 3px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.btn:hover { background: var(--card-hover); }
+.btn-primary { background: var(--primary); color: white; border: none; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-success { background: var(--success); color: white; border: none; }
+.btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
+
+/* KPI Strip */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.kpi-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-sub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Control Bar */
+.control-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  min-width: 300px;
+}
+
+.search-wrap input {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+/* Data Table */
+.table-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 16px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
+
+tr:hover td {
+  background: var(--card-hover);
+}
+
+.plant-code-badge {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 0.8rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.status-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+.status-active { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.status-inactive { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+.active-plant-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-weight: 800;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+  display: inline-block;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: 90%;
+  max-width: 520px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-header h3 { margin: 0; font-size: 1.15rem; font-weight: 800; }
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.88rem;
+  outline: none;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="title-box">
+      <button class="btn btn-back" onclick="KraemNav.back('ingenieria_catalogos.html')">
+        <i class="fas fa-arrow-left"></i> Volver a Catálogos
+      </button>
+      <div>
+        <h1>
+          <i class="fas fa-industry text-primary"></i>
+          <span>Catálogo de Plantas & Sedes Industriales</span>
+        </h1>
+        <div class="title-sub">
+          Control maestro de sedes multi-planta, centros de manufactura y aislamiento de áreas y ubicaciones KRAEM.
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="btn btn-primary" onclick="abrirModalNuevaPlanta()">
+        <i class="fas fa-plus"></i> Nueva Planta
+      </button>
+      <button class="btn" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Exportar</button>
+      <button class="btn" onclick="toggleTheme()" title="Tema"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <span class="kpi-label">Plantas Registradas</span>
+      <span class="kpi-val text-primary" id="kpiTotalPlantas">4</span>
+      <span class="kpi-sub">Sedes en el sistema</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Plantas Operativas</span>
+      <span class="kpi-val text-emerald" id="kpiPlantasActivas">4</span>
+      <span class="kpi-sub">100% disponibles</span>
+    </div>
+    <div class="kpi-card" style="border-left: 3px solid var(--success);">
+      <span class="kpi-label">Planta de Trabajo Actual</span>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+        <span class="live-dot"></span>
+        <strong id="kpiPlantaActivaTxt" style="font-size:1.1rem; color:var(--text);">Planta Monterrey</strong>
+      </div>
+      <span class="kpi-sub">Contexto activo en este momento</span>
+    </div>
+  </div>
+
+  <!-- Control Bar -->
+  <div class="control-bar">
+    <div class="search-wrap">
+      <i class="fas fa-search" style="color:var(--text-muted); font-size:0.8rem;"></i>
+      <input type="text" id="filtroPlantas" placeholder="Buscar por código, nombre o ciudad..." onkeyup="filtrarTablaPlantas(this.value)">
+    </div>
+    <div style="font-size:0.82rem; color:var(--text-muted);">
+      <i class="fas fa-shield-halved" style="color:#60a5fa; margin-right:4px;"></i>
+      <span>Aislamiento multi-planta estricto: Las áreas y ubicaciones no se mezclan entre plantas.</span>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:70px;">ID</th>
+          <th style="width:110px;">Código</th>
+          <th>Nombre de la Planta</th>
+          <th>Ciudad / Estado</th>
+          <th>Dirección</th>
+          <th style="width:110px;">Estatus</th>
+          <th style="width:160px; text-align:center;">Planta Activa</th>
+          <th style="width:140px; text-align:center;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaPlantasBody">
+        <!-- Render dinámico -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Nueva / Editar Planta -->
+<div class="modal-backdrop" id="modalPlantaBackdrop" onclick="if(event.target===this) cerrarModalPlanta()">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modalPlantaTitle">Nueva Planta Industrial</h3>
+      <button class="btn btn-sm" onclick="cerrarModalPlanta()">✕</button>
+    </div>
+    <input type="hidden" id="editPlantId" value="">
+    
+    <div class="form-group">
+      <label>Código de Planta (Nemónico) *</label>
+      <input type="text" id="inPlantCode" placeholder="Ej. PL-MTY, PL-RAM, PL-SLP" style="text-transform:uppercase;">
+    </div>
+
+    <div class="form-group">
+      <label>Nombre Oficial de la Planta *</label>
+      <input type="text" id="inPlantName" placeholder="Ej. Planta Monterrey - Matriz">
+    </div>
+
+    <div class="form-group">
+      <label>Ciudad / Estado *</label>
+      <input type="text" id="inPlantCity" placeholder="Ej. Monterrey, N.L.">
+    </div>
+
+    <div class="form-group">
+      <label>Dirección / Parque Industrial</label>
+      <input type="text" id="inPlantAddress" placeholder="Ej. Parque Industrial Apodaca, Nave 4">
+    </div>
+
+    <div class="form-group">
+      <label>Estatus</label>
+      <select id="inPlantActive">
+        <option value="true">ACTIVO</option>
+        <option value="false">INACTIVO</option>
+      </select>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button class="btn" onclick="cerrarModalPlanta()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarPlanta()"><i class="fas fa-save"></i> Guardar Planta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let plantasData = [];
+
+function cargarTablaPlantas() {
+  plantasData = KraemPlant.getPlants();
+  const activePlant = KraemPlant.getActivePlant();
+  const tbody = document.getElementById('tablaPlantasBody');
+  
+  // Actualizar KPIs
+  document.getElementById('kpiTotalPlantas').textContent = plantasData.length;
+  document.getElementById('kpiPlantasActivas').textContent = plantasData.filter(p => p.active).length;
+  document.getElementById('kpiPlantaActivaTxt').textContent = activePlant.nombre;
+
+  if (!plantasData || plantasData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">No hay plantas registradas.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = plantasData.map(p => {
+    const isCurrent = p.id === activePlant.id;
+    return `
+      <tr>
+        <td style="font-weight:700; color:var(--text-muted);">${p.id}</td>
+        <td><span class="plant-code-badge">${p.code || 'PL-0' + p.id}</span></td>
+        <td>
+          <strong style="color:var(--text); font-size:0.92rem;">${p.nombre}</strong>
+          ${isCurrent ? '<span class="active-plant-tag" style="margin-left:8px;"><span class="live-dot"></span> EN USO</span>' : ''}
+        </td>
+        <td><i class="fas fa-location-dot" style="color:#60a5fa; margin-right:5px; font-size:0.8rem;"></i> ${p.ciudad || 'No especificada'}</td>
+        <td style="color:var(--text-muted); font-size:0.82rem;">${p.direccion || '-'}</td>
+        <td>
+          <span class="status-badge ${p.active ? 'status-active' : 'status-inactive'}">
+            ${p.active ? 'ACTIVO' : 'INACTIVO'}
+          </span>
+        </td>
+        <td style="text-align:center;">
+          ${isCurrent ? `
+            <span style="color:#10b981; font-weight:700; font-size:0.8rem;"><i class="fas fa-check-circle"></i> Seleccionada</span>
+          ` : `
+            <button class="btn btn-sm btn-primary" onclick="seleccionarPlanta(${p.id})">
+              <i class="fas fa-building-circle-check"></i> Activar
+            </button>
+          `}
+        </td>
+        <td style="text-align:center;">
+          <div style="display:inline-flex; gap:6px;">
+            <button class="btn btn-sm" onclick="editarPlanta(${p.id})" title="Editar Planta"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm" onclick="toggleEstatusPlanta(${p.id})" title="Alternar Activo/Inactivo" style="color:${p.active ? '#ef4444' : '#10b981'};">
+              <i class="fas fa-power-off"></i>
+            </button>
+            <button class="btn btn-sm" onclick="confirmarEliminarPlanta(${p.id})" title="Eliminar Planta Definitivamente" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filtrarTablaPlantas(query) {
+  query = (query || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('#tablaPlantasBody tr');
+  rows.forEach(tr => {
+    const text = tr.textContent.toLowerCase();
+    tr.style.display = text.includes(query) ? '' : 'none';
+  });
+}
+
+function seleccionarPlanta(id) {
+  const success = KraemPlant.setActivePlant(id);
+  if (success) {
+    cargarTablaPlantas();
+    // Mensaje visual suave
+    const active = KraemPlant.getActivePlant();
+    alert('Has cambiado a: ' + active.nombre + '\n\nLas áreas, prensas y almacenes ahora se filtran automáticamente bajo esta sede.');
+  }
+}
+
+function abrirModalNuevaPlanta() {
+  document.getElementById('editPlantId').value = '';
+  document.getElementById('modalPlantaTitle').textContent = 'Nueva Planta Industrial';
+  document.getElementById('inPlantCode').value = '';
+  document.getElementById('inPlantName').value = '';
+  document.getElementById('inPlantCity').value = '';
+  document.getElementById('inPlantAddress').value = '';
+  document.getElementById('inPlantActive').value = 'true';
+  document.getElementById('modalPlantaBackdrop').classList.add('open');
+}
+
+function editarPlanta(id) {
+  const plant = plantasData.find(p => p.id === id);
+  if (!plant) return;
+  document.getElementById('editPlantId').value = plant.id;
+  document.getElementById('modalPlantaTitle').textContent = 'Editar Planta Industrial';
+  document.getElementById('inPlantCode').value = plant.code || '';
+  document.getElementById('inPlantName').value = plant.nombre || '';
+  document.getElementById('inPlantCity').value = plant.ciudad || '';
+  document.getElementById('inPlantAddress').value = plant.direccion || '';
+  document.getElementById('inPlantActive').value = plant.active ? 'true' : 'false';
+  document.getElementById('modalPlantaBackdrop').classList.add('open');
+}
+
+function cerrarModalPlanta() {
+  document.getElementById('modalPlantaBackdrop').classList.remove('open');
+}
+
+function guardarPlanta() {
+  const idStr = document.getElementById('editPlantId').value;
+  const code = document.getElementById('inPlantCode').value.trim().toUpperCase();
+  const nombre = document.getElementById('inPlantName').value.trim();
+  const ciudad = document.getElementById('inPlantCity').value.trim();
+  const direccion = document.getElementById('inPlantAddress').value.trim();
+  const active = document.getElementById('inPlantActive').value === 'true';
+
+  if (!code || !nombre) {
+    alert('Por favor especifica el Código y Nombre de la planta.');
+    return;
+  }
+
+  let list = KraemPlant.getPlants();
+  if (idStr) {
+    // Editar
+    const id = parseInt(idStr, 10);
+    list = list.map(p => p.id === id ? { ...p, code, nombre, ciudad, direccion, active } : p);
+  } else {
+    // Nueva
+    const nextId = list.reduce((max, p) => p.id > max ? p.id : max, 0) + 1;
+    list.push({ id: nextId, code, nombre, ciudad, direccion, active });
+  }
+
+  KraemPlant.savePlants(list);
+  cerrarModalPlanta();
+  cargarTablaPlantas();
+}
+
+function toggleEstatusPlanta(id) {
+  let list = KraemPlant.getPlants();
+  const target = list.find(p => p.id === id);
+  if (!target) return;
+  if (target.id === KraemPlant.getActivePlant().id && target.active) {
+    alert('No puedes desactivar la planta que tienes actualmente en uso. Cambia de planta primero.');
+    return;
+  }
+  target.active = !target.active;
+  KraemPlant.savePlants(list);
+  cargarTablaPlantas();
+}
+
+function confirmarEliminarPlanta(id) {
+  const plant = plantasData.find(p => p.id === id);
+  if (!plant) return;
+  if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente la sede "${plant.nombre}" (${plant.code})?\n\nEsta acción actualizará de inmediato todos los selectores y filtros del sistema.`)) {
+    return;
+  }
+  const deleted = KraemPlant.deletePlant(id);
+  if (deleted) {
+    cargarTablaPlantas();
+    alert(`Planta "${plant.nombre}" eliminada correctamente.`);
+  }
+}
+
+function exportarExcel() {
+  const data = KraemPlant.getPlants();
+  let csv = 'ID,Codigo,Nombre,Ciudad,Direccion,Estatus\n';
+  data.forEach(p => {
+    csv += `"${p.id}","${p.code}","${p.nombre}","${p.ciudad}","${p.direccion}","${p.active ? 'ACTIVO' : 'INACTIVO'}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `plantas_kraem_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', current);
+  localStorage.setItem('theme', current);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = current === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = savedTheme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+
+  cargarTablaPlantas();
+});
+</script>
+
+</body>
+</html>

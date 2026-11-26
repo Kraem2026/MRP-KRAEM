@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 
@@ -9,6 +9,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
 
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -427,6 +429,41 @@ tr:hover{
 
             </div>
 
+            <div class="form-group">
+                <label>Entre Barras H (mm)</label>
+                <input id="tie_bar_h_mm" type="number" step="1" min="0" placeholder="Ej. 510">
+            </div>
+
+            <div class="form-group">
+                <label>Entre Barras V (mm)</label>
+                <input id="tie_bar_v_mm" type="number" step="1" min="0" placeholder="Ej. 510">
+            </div>
+
+            <div class="form-group">
+                <label>Peso Máx. Molde (kg)</label>
+                <input id="max_mold_weight_kg" type="number" step="0.1" min="0" placeholder="Ej. 1500">
+            </div>
+
+            <div class="form-group">
+                <label>Capacidad Disparo (gr)</label>
+                <input id="shot_capacity_gr" type="number" step="0.1" min="0" placeholder="Ej. 450">
+            </div>
+
+            <div class="form-group">
+                <label>Turnos / Día (CR01)</label>
+                <input id="shifts_per_day" type="number" step="1" min="1" max="4" value="3">
+            </div>
+
+            <div class="form-group">
+                <label>Horas Prod. / Día</label>
+                <input id="hours_per_day" type="number" step="0.5" min="0" max="24" value="22.5">
+            </div>
+
+            <div class="form-group">
+                <label>Meta OEE (%)</label>
+                <input id="oee_target_pct" type="number" step="0.5" min="0" max="100" value="85">
+            </div>
+
         </div>
 
         <button class="btn btn-primary"
@@ -457,6 +494,8 @@ tr:hover{
                         <th>Tipo</th>
                         <th>Marca</th>
                         <th>Modelo</th>
+                        <th>Capacidad CR01</th>
+                        <th>Turnos / OEE</th>
                         <th>Status Máquina</th>
                         <th>Activo</th>
                         <th>Acciones</th>
@@ -620,6 +659,18 @@ async function load(){
 
                 <td>${m.model || '-'}</td>
 
+                <td style="font-size:12px; line-height:1.4;">
+                    ${(m.tie_bar_h_mm || m.tie_bar_v_mm) ? `<div>Barras: ${m.tie_bar_h_mm || '?'}×${m.tie_bar_v_mm || '?'} mm</div>` : ''}
+                    ${m.shot_capacity_gr ? `<div>Disp: ${m.shot_capacity_gr} g</div>` : ''}
+                    ${m.max_mold_weight_kg ? `<div>Molde máx: ${m.max_mold_weight_kg} kg</div>` : ''}
+                    ${(!m.tie_bar_h_mm && !m.tie_bar_v_mm && !m.shot_capacity_gr && !m.max_mold_weight_kg) ? '<span style="color:#64748b;">Sin definir</span>' : ''}
+                </td>
+
+                <td style="font-size:12px; line-height:1.4;">
+                    <div>${m.shifts_per_day ?? 3}T · ${m.hours_per_day ?? 22.5}h/d</div>
+                    <div style="color:#38bdf8;">OEE ${m.oee_target_pct ?? 85}%</div>
+                </td>
+
                 <td>
 
                     <span class="machine-status ${getStatusClass(m.maintenance_status)}">
@@ -716,6 +767,27 @@ function editar(index){
     document.getElementById('maintenance_status').value =
         m.maintenance_status || 'Disponible';
 
+    document.getElementById('tie_bar_h_mm').value =
+        m.tie_bar_h_mm ?? '';
+
+    document.getElementById('tie_bar_v_mm').value =
+        m.tie_bar_v_mm ?? '';
+
+    document.getElementById('max_mold_weight_kg').value =
+        m.max_mold_weight_kg ?? '';
+
+    document.getElementById('shot_capacity_gr').value =
+        m.shot_capacity_gr ?? '';
+
+    document.getElementById('shifts_per_day').value =
+        m.shifts_per_day ?? 3;
+
+    document.getElementById('hours_per_day').value =
+        m.hours_per_day ?? 22.5;
+
+    document.getElementById('oee_target_pct').value =
+        m.oee_target_pct ?? 85;
+
     window.scrollTo({
         top:0,
         behavior:'smooth'
@@ -775,6 +847,27 @@ async function guardarMaquina(){
         maintenance_status:
             document.getElementById('maintenance_status').value,
 
+        tie_bar_h_mm:
+            parseFloat(document.getElementById('tie_bar_h_mm').value) || null,
+
+        tie_bar_v_mm:
+            parseFloat(document.getElementById('tie_bar_v_mm').value) || null,
+
+        max_mold_weight_kg:
+            parseFloat(document.getElementById('max_mold_weight_kg').value) || null,
+
+        shot_capacity_gr:
+            parseFloat(document.getElementById('shot_capacity_gr').value) || null,
+
+        shifts_per_day:
+            parseInt(document.getElementById('shifts_per_day').value) || 3,
+
+        hours_per_day:
+            parseFloat(document.getElementById('hours_per_day').value) || 22.5,
+
+        oee_target_pct:
+            parseFloat(document.getElementById('oee_target_pct').value) || 85,
+
         last_status_change:
             new Date().toISOString(),
 
@@ -805,7 +898,27 @@ async function guardarMaquina(){
 
         if(error) throw error;
 
-        alert('Máquina guardada correctamente');
+        // Sincronizar simultáneamente con la tabla 'machines' para piso de producción y MES
+        try {
+            const maqName = obj.machine_code || obj.machine_name;
+            const { data: existingMaq } = await client.from('machines').select('id').eq('machine_name', maqName).limit(1);
+            if (existingMaq && existingMaq.length) {
+                await client.from('machines').update({
+                    machine_name: maqName,
+                    area: obj.production_area || 'LS'
+                }).eq('id', existingMaq[0].id);
+            } else {
+                await client.from('machines').insert([{
+                    machine_name: maqName,
+                    area: obj.production_area || 'LS',
+                    status: 'AVAILABLE'
+                }]);
+            }
+        } catch (syncErr) {
+            console.warn("Aviso al sincronizar tabla 'machines':", syncErr);
+        }
+
+        alert('Máquina guardada y sincronizada correctamente');
 
         limpiar();
 
@@ -865,6 +978,14 @@ function limpiar(){
 
     document.getElementById('maintenance_status').value =
         'Disponible';
+
+    document.getElementById('tie_bar_h_mm').value = '';
+    document.getElementById('tie_bar_v_mm').value = '';
+    document.getElementById('max_mold_weight_kg').value = '';
+    document.getElementById('shot_capacity_gr').value = '';
+    document.getElementById('shifts_per_day').value = 3;
+    document.getElementById('hours_per_day').value = 22.5;
+    document.getElementById('oee_target_pct').value = 85;
 }
 
 async function init(){
@@ -883,3 +1004,4 @@ document.addEventListener(
 
 </body>
 </html>
+

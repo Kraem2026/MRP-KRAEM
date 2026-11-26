@@ -1,0 +1,242 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM ERP | Boceto Montaje de Moldes (SMED)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+:root{
+  --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+  --primary:#2563eb; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
+.container{max-width:1480px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff;border:none}
+.btn-success{background:var(--success);color:#fff;border:none}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px}
+.card h3{margin:0 0 12px;font-size:15px}
+.setup-card{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--bg);cursor:pointer;transition:.15s}
+.setup-card.active{border-color:var(--primary);box-shadow:0 0 0 2px rgba(37,99,235,0.2)}
+.badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.b-ok{background:#dcfce7;color:#166534}
+.b-warn{background:#fef3c7;color:#92400e}
+.b-bad{background:#fee2e2;color:#991b1b}
+.b-info{background:#e0f2fe;color:#075985}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg)}
+.check-item input{width:18px;height:18px;margin-top:2px;cursor:pointer}
+.gate-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="planeacion_hub.html" class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html'); return false;"><i class="fas fa-arrow-left"></i> Cockpit</a>
+      <div>
+        <h1 style="margin:0;font-size:22px"><i class="fas fa-wrench" style="color:var(--success)"></i> Montaje de Moldes (SMED) & Liberación a Producción (Boceto)</h1>
+        <small style="color:var(--muted)">Cola de setups desde el Tablero APS, validación PM/WMS y checklists de `catalogo_checklists.html`.</small>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <a href="planeacion_aps_tablero.html" class="btn"><i class="fas fa-calendar-week"></i> Tablero APS</a>
+      <a href="catalogo_checklists.html" class="btn"><i class="fas fa-clipboard-check"></i> Checklists Maestro</a>
+      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- COLA DE CAMBIOS DE MOLDE -->
+    <div class="card">
+      <h3><i class="fas fa-list-ol" style="color:var(--primary)"></i> Cola Programada de Cambios de Molde</h3>
+      <div id="queueList">Cargando cola de montajes...</div>
+    </div>
+
+    <!-- ESTACIÓN SMED + CHECKLIST + LIBERACIÓN -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 style="margin:0"><i class="fas fa-clipboard-check" style="color:var(--success)"></i> Validación Pre-Arranque & Checklist SMED</h3>
+        <span id="selStatusBadge" class="badge b-warn">EN SETUP</span>
+      </div>
+      <div id="selHeader" style="font-size:13px;color:var(--muted);margin-bottom:12px">Selecciona una orden de montaje de la izquierda.</div>
+
+      <div style="margin-bottom:14px">
+        <div class="gate-row"><span>1. Compatibilidad Máquina ↔ Molde (Tonelaje / Barras)</span><span id="gCompat" class="badge b-ok">OK</span></div>
+        <div class="gate-row"><span>2. Salud PM del Molde (Disparos actuales vs Intervalo)</span><span id="gPm" class="badge b-ok">OK</span></div>
+        <div class="gate-row"><span>3. Material Surtido por WMS a pie de máquina</span><span id="gWms" class="badge b-warn">Pendiente Confirmar</span></div>
+      </div>
+
+      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">Checklist SMED / Cambio de Molde</label>
+      <div id="checkContainer"></div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn" onclick="toggleWmsKit()"><i class="fas fa-dolly"></i> Confirmar Surtido WMS</button>
+        <button class="btn btn-success" style="flex:1;justify-content:center" onclick="liberarArranque()">
+          <i class="fas fa-play-circle"></i> Liberar Máquina a Producción (Boceto)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_APS = 'kraem_boceto_aps_v1';
+let setups = [], checklistItems = [], molds = [], machines = [], pts = [];
+let selectedIdx = 0;
+
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function init(){
+  try {
+    const [rMolds, rMach, rParts, rChk, rItems] = await Promise.all([
+      client.from('molds').select('*'),
+      client.from('mes_machines').select('*').eq('active', true),
+      window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name', orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name'),
+      client.from('checklists').select('*').eq('active', true),
+      client.from('checklist_items').select('*').order('step_order')
+    ]);
+    molds = rMolds.data || [];
+    machines = rMach.data || [];
+    pts = Array.isArray(rParts) ? rParts : (rParts.data || []);
+
+    const chks = rChk.data || [];
+    const smedChk = chks.find(c => /SMED|MOLDE|MONTAJE/i.test(c.checklist_type || c.checklist_name || '')) || chks[0];
+    if (smedChk && rItems.data) {
+      checklistItems = rItems.data.filter(i => i.checklist_id === smedChk.id).map(i => ({ text: i.item_text, critical: i.is_critical, done: false }));
+    }
+  } catch (e) { console.warn(e); }
+
+  if (!checklistItems.length) {
+    checklistItems = [
+      { text: 'Desmontar molde anterior y purgar cilindro / boquilla', critical: true, done: false },
+      { text: 'Verificar limpieza de platinas, bridas y cáncamo de izaje', critical: true, done: false },
+      { text: 'Montar molde, dar torque a grapas y conectar agua/aceite/colada caliente', critical: true, done: false },
+      { text: 'Cargar hoja de proceso y validar resina seca en tolva (WMS)', critical: true, done: false },
+      { text: 'Aprobar Primera Pieza con Calidad antes de corrida', critical: true, done: false }
+    ];
+  }
+
+  let aps = [];
+  try { aps = JSON.parse(localStorage.getItem(LS_APS) || '[]'); } catch { aps = []; }
+
+  const defSmed = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'smed_default_min', 45)) : 45;
+  if (aps.length) {
+    setups = aps.map(w => {
+      const m = machines.find(x => String(x.id) === String(w.machine_id)) || { machine_code: 'INJ-01', machine_name: 'Inyectora', tonnage: 150 };
+      const mo = molds.find(x => String(x.id) === String(w.mold_id)) || { mold_code: 'MLD-100', mold_name: 'Molde Asignado', shots_current: 18000, shots_pm_limit: 50000, tonnage_min: 120 };
+      const p = pts.find(x => x.id === w.part_id) || { part_number: 'PT-' + w.part_id };
+      return {
+        wo: w.wo, date: w.date, qty: w.qty, setup_min: w.setup_min || defSmed,
+        machine: m.machine_code || m.machine_name, machTon: Number(m.tonnage || 0),
+        mold: mo.mold_code || mo.mold_name, reqTon: Number(mo.tonnage_min || mo.tonnage_req || 0),
+        shots: Number(mo.shots_current ?? mo.current_shots ?? 0), pmMax: Number(mo.shots_pm_limit ?? mo.pm_interval_shots ?? 50000),
+        part: p.part_number, wmsReady: false, status: 'EN SETUP',
+        checks: checklistItems.map(c => ({ ...c }))
+      };
+    });
+  } else {
+    setups = [
+      {
+        wo: 'WO-1001', date: new Date().toISOString().slice(0,10), qty: 2400, setup_min: 45,
+        machine: 'INJ-01 (150T)', machTon: 150, mold: 'MLD-100', reqTon: 140,
+        shots: 42000, pmMax: 50000, part: 'DEMO-PT-100', wmsReady: true, status: 'EN SETUP',
+        checks: checklistItems.map(c => ({ ...c }))
+      },
+      {
+        wo: 'WO-1002', date: new Date().toISOString().slice(0,10), qty: 1800, setup_min: 60,
+        machine: 'INJ-02 (300T)', machTon: 300, mold: 'MLD-205', reqTon: 260,
+        shots: 49500, pmMax: 50000, part: 'DEMO-PT-200', wmsReady: false, status: 'PENDIENTE',
+        checks: checklistItems.map(c => ({ ...c }))
+      }
+    ];
+  }
+  renderQueue();
+  renderDetail();
+}
+
+function renderQueue(){
+  const q = document.getElementById('queueList');
+  q.innerHTML = setups.map((s, i) => `
+    <div class="setup-card ${i === selectedIdx ? 'active' : ''}" onclick="selectSetup(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong>${esc(s.wo)} · ${esc(s.machine)}</strong>
+        <span class="badge ${s.status === 'LIBERADA' ? 'b-ok' : (s.status === 'EN SETUP' ? 'b-warn' : 'b-info')}">${esc(s.status)}</span>
+      </div>
+      <div style="font-size:13px;margin-top:5px">Molde: <strong>${esc(s.mold)}</strong> → Parte: <strong>${esc(s.part)}</strong> (${s.qty.toLocaleString()} pzs)</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:4px">
+        Tiempo SMED meta: ${s.setup_min} min · PM: ${s.shots.toLocaleString()} / ${s.pmMax.toLocaleString()} disp.
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectSetup(i){ selectedIdx = i; renderQueue(); renderDetail(); }
+
+function renderDetail(){
+  const s = setups[selectedIdx];
+  if (!s) return;
+  document.getElementById('selHeader').innerHTML =
+    `Orden <strong>${esc(s.wo)}</strong> · Máquina <strong>${esc(s.machine)}</strong> · Molde <strong>${esc(s.mold)}</strong> (${esc(s.part)})`;
+
+  const st = document.getElementById('selStatusBadge');
+  st.textContent = s.status;
+  st.className = 'badge ' + (s.status === 'LIBERADA' ? 'b-ok' : 'b-warn');
+
+  const tonBad = s.reqTon > 0 && s.machTon > 0 && s.machTon < s.reqTon;
+  const gCompat = document.getElementById('gCompat');
+  gCompat.textContent = tonBad ? `Falta tonelaje (${s.machTon}T < ${s.reqTon}T)` : 'Compatible';
+  gCompat.className = 'badge ' + (tonBad ? 'b-bad' : 'b-ok');
+
+  const pmRatio = s.pmMax > 0 ? s.shots / s.pmMax : 0;
+  const pmWarnPct = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'pm_alert_pct', 90)) : 90;
+  const pmWarnRatio = Math.max(0.1, Math.min(1, pmWarnPct / 100));
+  const gPm = document.getElementById('gPm');
+  gPm.textContent = pmRatio >= 1 ? 'PM Vencido' : (pmRatio >= pmWarnRatio ? `Próximo a PM (>${pmWarnPct}%)` : 'PM Al día');
+  gPm.className = 'badge ' + (pmRatio >= 1 ? 'b-bad' : (pmRatio >= pmWarnRatio ? 'b-warn' : 'b-ok'));
+
+  const gWms = document.getElementById('gWms');
+  gWms.textContent = s.wmsReady ? 'Kit Surtido OK' : 'Pendiente Confirmar';
+  gWms.className = 'badge ' + (s.wmsReady ? 'b-ok' : 'b-warn');
+
+  document.getElementById('checkContainer').innerHTML = s.checks.map((c, idx) => `
+    <label class="check-item">
+      <input type="checkbox" ${c.done ? 'checked' : ''} onchange="toggleCheck(${idx})">
+      <div>
+        <div style="font-size:13px;font-weight:600">${esc(c.text)}</div>
+        ${c.critical ? '<span style="font-size:10.5px;color:var(--danger);font-weight:700">Paso crítico obligatorio</span>' : ''}
+      </div>
+    </label>
+  `).join('');
+}
+
+function toggleCheck(idx){ setups[selectedIdx].checks[idx].done = !setups[selectedIdx].checks[idx].done; }
+function toggleWmsKit(){ setups[selectedIdx].wmsReady = !setups[selectedIdx].wmsReady; renderDetail(); }
+
+function liberarArranque(){
+  const s = setups[selectedIdx];
+  const pendingCrit = s.checks.some(c => c.critical && !c.done);
+  if (pendingCrit) return alert('Completa todos los pasos críticos del checklist SMED antes de liberar.');
+  if (!s.wmsReady) return alert('Confirma que WMS ya surtió el kit de material a máquina.');
+  s.status = 'LIBERADA';
+  renderQueue();
+  renderDetail();
+  alert(`Boceto: ${s.wo} en ${s.machine} liberada a Producción (en Fase 3 actualizará mes_machines y producción en vivo).`);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
+

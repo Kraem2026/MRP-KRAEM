@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <title>Captura de Inspección Interna - KRAEM</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; }
@@ -184,8 +185,42 @@
         }
     }
 
+    async function syncInspeccionCatalogosFromSettings() {
+        if (window.KraemSettings) {
+            const destCfg = KraemSettings.get('produccion_calidad', 'destinos_inspeccion');
+            const selDest = document.getElementById('destino');
+            if (selDest && Array.isArray(destCfg) && destCfg.length) {
+                selDest.innerHTML = destCfg.map(d => `<option value="${d}">${d}</option>`).join('');
+            }
+        }
+        try {
+            const { data: areas } = await client.from('areas').select('area_name').eq('active', true).order('area_name');
+            const selArea = document.getElementById('area');
+            if (selArea && areas && areas.length) {
+                selArea.innerHTML = areas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('');
+            } else {
+                const { data: ag } = await client.from('areas_generales').select('nombre').eq('active', true).order('nombre');
+                if (selArea && ag && ag.length) {
+                    selArea.innerHTML = ag.map(a => `<option value="${a.nombre}">${a.nombre}</option>`).join('');
+                }
+            }
+        } catch (_) {}
+        try {
+            const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
+            const selT = document.getElementById('turno');
+            if (selT && turnos && turnos.length) {
+                selT.innerHTML = turnos.map(t => `<option value="${t.nombre}">${t.nombre}</option>`).join('');
+            }
+        } catch (_) {}
+    }
+
     // Iniciar
-    document.addEventListener('DOMContentLoaded', cargarDefectos);
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarDefectos();
+        syncInspeccionCatalogosFromSettings();
+    });
+    document.addEventListener('kraem:settingsready', syncInspeccionCatalogosFromSettings);
 </script>
 </body>
 </html>
+

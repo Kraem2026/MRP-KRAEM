@@ -1,10 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario General - Control Total</title>
+<title>Inventario General WMS - KRAEM ERP</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="kraem_nav.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
     :root { 
@@ -17,7 +19,7 @@
         --dark: #020617;
     }
 
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin:0; padding:15px; padding-bottom: 70px; color: var(--text); transition: 0.3s; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); margin:0; padding:15px; padding-bottom: 70px; color: var(--text); transition: 0.3s; }
     
     header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
     .back-btn { background:#6c757d; color:white; border:none; padding:10px 15px; border-radius:5px; cursor:pointer; font-weight:bold; }
@@ -28,35 +30,46 @@
     .theme-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 5px; cursor: pointer; }
 
     .filter-panel { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid var(--border); }
-    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
     .filter-group { display: flex; flex-direction: column; }
     .filter-group label { font-size: 11px; font-weight: bold; color: var(--label); margin-bottom: 4px; text-transform: uppercase; }
-    input { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; background: var(--bg); color: var(--text); }
+    input, select { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13.5px; background: var(--bg); color: var(--text); }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
     .exclude-input { border-left: 4px solid #dc3545; }
 
     .table-container { background: var(--card); border-radius: 8px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid var(--border); }
-    table { width: 100%; border-collapse: collapse; min-width: 800px; }
-    th { background: var(--dark); color: white; padding: 12px; text-align: left; font-size: 13px; position: sticky; top: 0; }
-    td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; min-width: 950px; }
+    th { background: var(--dark); color: white; padding: 11px 12px; text-align: left; font-size: 12.5px; position: sticky; top: 0; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
     
-    .qty-cell { font-weight: bold; color: var(--primary); text-align: right; }
-    .area-badge { background: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .qty-cell { font-weight: bold; color: var(--primary); text-align: right; font-size: 14.5px; }
+    .area-badge { background: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 4px; font-size: 11.5px; font-weight: 600; }
     [data-theme="dark"] .area-badge { background: #334155; color: #f8fafc; }
     .tag-project { background: #e0f2f1; color: #00796b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
 
+    .badge-tipo { padding: 3px 7px; border-radius: 4px; font-size: 10.5px; font-weight: 800; display: inline-block; }
+    .badge-pt { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .badge-resina { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-comp { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-empaque { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+
+    .badge-ref { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; }
+    .badge-ref-oc { background: rgba(37,99,235,0.08); color: #2563eb; border: 1px solid rgba(37,99,235,0.25); }
+    .badge-ref-op { background: rgba(22,163,74,0.08); color: #16a34a; border: 1px solid rgba(22,163,74,0.25); }
+
     .footer-total {
         position: fixed; bottom: 0; left: 0; width: 100%; background: var(--dark);
-        color: white; padding: 15px 25px; display: flex; justify-content: space-between;
+        color: white; padding: 12px 25px; display: flex; justify-content: space-between;
         align-items: center; box-sizing: border-box; z-index: 1000;
     }
-    .total-num { font-size: 20px; color: #ffc107; font-weight: bold; }
+    .total-num { font-size: 18px; color: #ffc107; font-weight: bold; }
 </style>
 </head>
 <body data-theme="light">
 
 <header>
-    <button class="back-btn" onclick="location.href='dashboard.html'">⬅ <span id="txtMenu">Menú</span></button>
-    <h2 id="txtTitle" style="margin:0;">📦 Inventario por Áreas</h2>
+    <button class="back-btn" onclick="KraemNav.back('wms_operaciones.html')">⬅ <span id="txtMenu">Volver</span></button>
+    <h2 id="txtTitle" style="margin:0;">📦 Inventario General WMS (PT, Resinas y Componentes)</h2>
     <div class="controls">
         <button onclick="exportCSV()" style="background:var(--success); color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; font-weight:bold;">📥 Excel</button>
         <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
@@ -68,8 +81,26 @@
 <div class="filter-panel">
     <div class="filter-grid">
         <div class="filter-group"><label id="lSearch">🔍 Buscar Parte / Desc.</label><input type="text" id="fSearch" placeholder="..."></div>
+        <div class="filter-group">
+            <label id="lTipo">🏷️ Tipo Material</label>
+            <select id="fTipo">
+                <option value="">TODOS (PT, Resinas, Comp.)</option>
+                <option value="PT">PT (Producto Terminado)</option>
+                <option value="RESINA">RESINA (Materia Prima)</option>
+                <option value="COMPONENTE">COMPONENTE / Inserto</option>
+                <option value="EMPAQUE">EMPAQUE</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label id="lOrigen">📄 Origen / Referencia</label>
+            <select id="fOrigen">
+                <option value="">TODOS LOS ORÍGENES</option>
+                <option value="COMPRADO">COMPRADO (OC / Factura)</option>
+                <option value="PRODUCIDO">PRODUCIDO (OP / Planta)</option>
+            </select>
+        </div>
         <div class="filter-group"><label id="lProj">📁 Proyecto</label><input type="text" id="fProj" placeholder="..."></div>
-        <div class="filter-group"><label id="lArea">📍 Filtrar Área</label><input type="text" id="fArea" placeholder="..."></div>
+        <div class="filter-group"><label id="lArea">📍 Filtrar Área / Ubic.</label><input type="text" id="fArea" placeholder="..."></div>
         <div class="filter-group"><label id="lExclude">🚫 EXCLUIR</label><input type="text" id="fExclude" class="exclude-input" placeholder="..."></div>
     </div>
 </div>
@@ -80,40 +111,70 @@
             <tr>
                 <th id="thParte">N° Parte</th>
                 <th id="thDesc">Descripción</th>
+                <th id="thTipoMat">Tipo</th>
+                <th id="thRef">Origen / Ref.</th>
                 <th id="thProj">Proyecto</th>
-                <th id="thArea">Área</th>
-                <th id="thCant" style="text-align:right">Cantidad</th>
+                <th id="thArea">Área / Ubicación</th>
+                <th id="thLote">Lote (FIFO)</th>
+                <th id="thCant" style="text-align:right">Stock Actual</th>
             </tr>
         </thead>
         <tbody id="inventoryBody">
-            <tr><td colspan="5" style="text-align:center; padding:30px;">Cargando...</td></tr>
+            <tr><td colspan="8" style="text-align:center; padding:30px;">Cargando inventario general...</td></tr>
         </tbody>
     </table>
 </div>
 
 <div class="footer-total">
-    <div id="txtFooterTotal" style="font-size: 13px; text-transform: uppercase;">Total Piezas:</div>
-    <div class="total-num" id="totalValue">0</div>
+    <div id="txtFooterTotal" style="font-size: 13px; text-transform: uppercase;">Resumen de Existencias:</div>
+    <div class="total-num" id="totalValue">0 PZS</div>
 </div>
 
 <script>
-const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+// client provisto por config.js
 
 let allData = [];
+let partsMap = {};
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const i18n = {
-    es: { menu: "Menú", title: "Inventario por Áreas", search: "🔍 Buscar Parte / Desc.", proj: "📁 Proyecto", area: "📍 Filtrar Área", exclude: "🚫 EXCLUIR", thParte: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thArea: "Área", thCant: "Cantidad", footer: "Total Piezas:" },
-    ko: { menu: "메뉴", title: "구역별 재고", search: "🔍 부품/설명 검색", proj: "📁 프로젝트", area: "📍 구역 필터", exclude: "🚫 제외", thParte: "부품 번호", thDesc: "설명", thProj: "프로젝트", thArea: "구역", thCant: "수량", footer: "총 수량:" }
+    es: { menu: "Menú", title: "Inventario General WMS", search: "🔍 Buscar Parte / Desc.", tipo: "🏷️ Tipo Material", origen: "📄 Origen / Referencia", proj: "📁 Proyecto", area: "📍 Área / Ubicación", exclude: "🚫 EXCLUIR", thParte: "N° Parte", thDesc: "Descripción", thTipoMat: "Tipo", thRef: "Origen / Ref.", thProj: "Proyecto", thArea: "Área / Ubicación", thLote: "Lote (FIFO)", thCant: "Stock Actual", footer: "Resumen de Existencias:" },
+    ko: { menu: "메뉴", title: "통합 재고 관리", search: "🔍 부품/설명 검색", tipo: "🏷️ 자재 유형", origen: "📄 원천 / 구분", proj: "📁 프로젝트", area: "📍 구역 / 위치", exclude: "🚫 제외", thParte: "부품 번호", thDesc: "설명", thTipoMat: "유형", thRef: "원천 구분", thProj: "프로젝트", thArea: "구역 / 위치", thLote: "로트 (FIFO)", thCant: "현재고", footer: "총 재고 현황:" }
 };
 
 async function load() {
-    const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
-    if(error) return alert("Error");
+    try {
+        // Cargar catálogo de partes para enriquecer tipos y UOM
+        if (window.fetchAllRows) {
+            const partsList = await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, uom, project', orderBy: 'part_number' });
+            (partsList || []).forEach(p => {
+                partsMap[p.part_number.toUpperCase()] = p;
+                if (p.id) partsMap[String(p.id)] = p;
+            });
+        }
+    } catch(e) {
+        console.warn("No se pudo pre-cargar partes:", e);
+    }
 
-    const consolidated = data.reduce((acc, curr) => {
-        const key = `${curr.part_number}-${curr.area}-${curr.project}`;
+    const { data, error } = await client.from('v_inventory_by_location_proyectos').select('*');
+    if(error) return alert("Error al cargar inventario: " + error.message);
+
+    // Consolidar por N/P, lote y ubicación
+    const consolidated = (data || []).reduce((acc, curr) => {
+        const npKey = (curr.part_number || '').trim().toUpperCase();
+        const pInfo = partsMap[npKey] || partsMap[String(curr.part_id)] || {};
+        const pType = (pInfo.product_type || curr.product_type || (npKey.includes('RES') ? 'RESINA' : (npKey.includes('CMP') || npKey.includes('INS') ? 'COMPONENTE' : 'PT'))).toUpperCase();
+        const uom = pInfo.uom || (pType === 'RESINA' ? 'KG' : 'PZA');
+
+        const key = `${curr.part_number}-${curr.area}-${curr.location || ''}-${curr.lot_number || ''}`;
         if (!acc[key]) {
-            acc[key] = { ...curr };
+            acc[key] = { 
+                ...curr, 
+                product_type: pType,
+                uom: uom,
+                part_name: pInfo.part_name || curr.part_name || curr.descripcion || ''
+            };
         } else {
             acc[key].quantity += curr.quantity;
         }
@@ -128,45 +189,95 @@ function render(list) {
     const body = document.getElementById('inventoryBody');
     const totalDisp = document.getElementById('totalValue');
     body.innerHTML = '';
-    let suma = 0;
+    let sumaPzs = 0;
+    let sumaKg = 0;
+
+    if (!list.length) {
+        body.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--label)">No se encontraron registros con los filtros seleccionados.</td></tr>';
+        totalDisp.textContent = "0 PZS";
+        return;
+    }
 
     list.forEach(r => {
-        suma += r.quantity;
+        const q = Number(r.quantity) || 0;
+        const uom = r.uom || 'PZA';
+        if (uom.toUpperCase() === 'KG') sumaKg += q;
+        else sumaPzs += q;
+
+        // Tipo badge
+        const t = (r.product_type || 'PT').toUpperCase();
+        let tipoBadge = `<span class="badge-tipo badge-pt">PT</span>`;
+        if (t === 'RESINA') tipoBadge = `<span class="badge-tipo badge-resina">RESINA</span>`;
+        else if (t === 'COMPONENTE' || t === 'SUB-ENSAMBLE') tipoBadge = `<span class="badge-tipo badge-comp">COMP</span>`;
+        else if (t === 'EMPAQUE') tipoBadge = `<span class="badge-tipo badge-empaque">EMPAQUE</span>`;
+
+        // Origen / Referencia
+        const loteStr = String(r.lot_number || '').toUpperCase();
+        const isComprado = t === 'RESINA' || t === 'COMPONENTE' || t === 'EMPAQUE' || loteStr.includes('LOT-') || loteStr.includes('REC-') || loteStr.includes('OC-');
+        const refBadge = isComprado
+            ? `<span class="badge-ref badge-ref-oc"><i class="fas fa-truck"></i> Comprado</span>`
+            : `<span class="badge-ref badge-ref-op"><i class="fas fa-industry"></i> Producido</span>`;
+
+        const ubicDisplay = r.location 
+            ? `${esc(r.area || 'Almacén')} · <strong style="color:var(--primary)">${esc(r.location)}</strong>` 
+            : `${esc(r.area || 'Piso')}`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><b>${r.part_number}</b></td>
-            <td style="color:var(--label); font-size:12px;">${r.part_name || r.descripcion || ''}</td>
-            <td><span class="tag-project">${r.project || r.proyecto || '-'}</span></td>
-            <td><span class="area-badge">${r.area || 'N/A'}</span></td>
-            <td class="qty-cell">${r.quantity.toLocaleString()}</td>
+            <td><b>${esc(r.part_number)}</b></td>
+            <td style="color:var(--label); font-size:12px;">${esc(r.part_name || '')}</td>
+            <td>${tipoBadge}</td>
+            <td>${refBadge}</td>
+            <td><span class="tag-project">${esc(r.project || r.proyecto || 'General')}</span></td>
+            <td><span class="area-badge">${ubicDisplay}</span></td>
+            <td><code style="font-size:11.5px; font-weight:bold;">${esc(r.lot_number || 'S/L')}</code></td>
+            <td class="qty-cell">${q.toLocaleString()} <span style="font-size:11px; color:var(--label)">${esc(uom)}</span></td>
         `;
         body.appendChild(tr);
     });
-    totalDisp.textContent = suma.toLocaleString() + " PZS";
+
+    const totalesArr = [];
+    if (sumaPzs > 0) totalesArr.push(`${sumaPzs.toLocaleString()} PZS`);
+    if (sumaKg > 0) totalesArr.push(`${sumaKg.toLocaleString()} KG`);
+    totalDisp.textContent = totalesArr.join(' | ') || '0 PZS';
 }
 
 function applyFilters() {
-    const s = document.getElementById('fSearch').value.toLowerCase();
-    const p = document.getElementById('fProj').value.toLowerCase();
-    const a = document.getElementById('fArea').value.toLowerCase();
-    const e = document.getElementById('fExclude').value.toLowerCase();
+    const s = document.getElementById('fSearch').value.toLowerCase().trim();
+    const t = document.getElementById('fTipo').value.toUpperCase();
+    const orig = document.getElementById('fOrigen').value.toUpperCase();
+    const p = document.getElementById('fProj').value.toLowerCase().trim();
+    const a = document.getElementById('fArea').value.toLowerCase().trim();
+    const e = document.getElementById('fExclude').value.toLowerCase().trim();
 
     const filtered = allData.filter(r => {
-        const name = (r.part_name || r.descripcion || '').toLowerCase();
+        const np = (r.part_number || '').toLowerCase();
+        const name = (r.part_name || '').toLowerCase();
         const proj = (r.project || r.proyecto || '').toLowerCase();
         const area = (r.area || '').toLowerCase();
-        
-        const mS = r.part_number.toLowerCase().includes(s) || name.includes(s);
+        const loc = (r.location || '').toLowerCase();
+        const lote = (r.lot_number || '').toLowerCase();
+        const rTipo = (r.product_type || 'PT').toUpperCase();
+
+        const mS = !s || np.includes(s) || name.includes(s) || lote.includes(s);
+        const mT = !t || rTipo === t;
+
+        const isComprado = rTipo === 'RESINA' || rTipo === 'COMPONENTE' || rTipo === 'EMPAQUE' || lote.includes('lot-') || lote.includes('rec-') || lote.includes('oc-');
+        const mO = !orig || (orig === 'COMPRADO' ? isComprado : !isComprado);
+
         const mP = !p || proj.includes(p);
-        const mA = !a || area.includes(a);
-        const isE = e && (r.part_number.toLowerCase().includes(e) || area.includes(e) || proj.includes(e));
+        const mA = !a || area.includes(a) || loc.includes(a);
+        const isE = e && (np.includes(e) || area.includes(e) || proj.includes(e) || loc.includes(e));
         
-        return mS && mP && mA && !isE;
+        return mS && mT && mO && mP && mA && !isE;
     });
     render(filtered);
 }
 
-document.querySelectorAll('input').forEach(i => i.addEventListener('input', applyFilters));
+document.querySelectorAll('.filter-panel input, .filter-panel select').forEach(el => {
+    el.addEventListener('input', applyFilters);
+    el.addEventListener('change', applyFilters);
+});
 
 function toggleTheme() {
     const b = document.body;
@@ -176,34 +287,51 @@ function toggleTheme() {
 }
 
 function setLang(lang) {
-    const t = i18n[lang];
+  if (window.KraemI18n) { window.KraemI18n.setLang(lang); } else { localStorage.setItem('lang', lang); localStorage.setItem('kraem_lang', lang); }
+    const t = i18n[lang] || i18n.es;
     document.getElementById('txtMenu').innerText = t.menu;
     document.getElementById('txtTitle').innerText = t.title;
     document.getElementById('lSearch').innerText = t.search;
+    document.getElementById('lTipo').innerText = t.tipo;
+    document.getElementById('lOrigen').innerText = t.origen;
     document.getElementById('lProj').innerText = t.proj;
     document.getElementById('lArea').innerText = t.area;
     document.getElementById('lExclude').innerText = t.exclude;
     document.getElementById('thParte').innerText = t.thParte;
     document.getElementById('thDesc').innerText = t.thDesc;
+    document.getElementById('thTipoMat').innerText = t.thTipoMat;
+    document.getElementById('thRef').innerText = t.thRef;
     document.getElementById('thProj').innerText = t.thProj;
     document.getElementById('thArea').innerText = t.thArea;
+    document.getElementById('thLote').innerText = t.thLote;
     document.getElementById('thCant').innerText = t.thCant;
     document.getElementById('txtFooterTotal').innerText = t.footer;
 }
 
 function exportCSV() {
-    let csv = '\uFEFFN° Parte,Descripción,Proyecto,Area,Cantidad\n';
+    let csv = '\uFEFFN° Parte,Descripción,Tipo,Origen,Proyecto,Area,Lote,Cantidad,UOM\n';
     allData.forEach(r => {
-        csv += `"${r.part_number}","${r.part_name || ''}","${r.project || ''}","${r.area}",${r.quantity}\n`;
+        const t = (r.product_type || 'PT').toUpperCase();
+        const loteStr = String(r.lot_number || '').toUpperCase();
+        const isComprado = t === 'RESINA' || t === 'COMPONENTE' || t === 'EMPAQUE' || loteStr.includes('LOT-') || loteStr.includes('REC-') || loteStr.includes('OC-');
+        const origStr = isComprado ? 'COMPRADO' : 'PRODUCIDO';
+        csv += `"${r.part_number}","${(r.part_name || '').replace(/"/g, '""')}","${t}","${origStr}","${r.project || ''}","${r.area || ''} ${r.location || ''}","${r.lot_number || ''}",${r.quantity},"${r.uom || 'PZA'}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "Inventario_General.csv";
+    link.download = `Inventario_General_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
 }
 
 load();
+</script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
 </script>
 </body>
 </html>

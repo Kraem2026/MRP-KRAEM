@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
 
     <style>
         :root { 
@@ -94,6 +96,17 @@
                     <div class="form-group hidden" id="group_sup"><label id="l_sup">Proveedor</label><input type="text" id="supplier" placeholder="Nombre del proveedor"></div>
                 </div>
 
+                <div class="form-grid" style="gap:10px;">
+                    <div class="form-group">
+                        <label id="l_cust_np">NP Cliente</label>
+                        <input type="text" id="customer_part_number" placeholder="Opcional / OEM">
+                    </div>
+                    <div class="form-group">
+                        <label id="l_rev">Revisión (ECN)</label>
+                        <input type="text" id="drawing_revision" value="REV-01" placeholder="REV-01">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label id="l_uom">Unidad de Medida</label>
                     <select id="unit_of_measure">
@@ -136,14 +149,25 @@
             </div>
 
             <div class="card">
-                <div class="card-title" id="t4">4. Estatus y Logística</div>
-                <div class="form-group">
-                    <label id="l_proj">Proyecto</label>
-                    <input type="text" id="project">
+                <div class="card-title" id="t4">4. Estatus, Logística y MRP (SAP MM)</div>
+                <div class="form-grid" style="gap:10px;">
+                    <div class="form-group">
+                        <label id="l_proj">Proyecto</label>
+                        <input type="text" id="project">
+                    </div>
+                    <div class="form-group">
+                        <label id="l_eng_sta">Estatus Ingeniería</label>
+                        <select id="engineering_status">
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="PROTOTIPO">PROTOTIPO</option>
+                            <option value="ECN">ECN (En Cambio)</option>
+                            <option value="OBSOLETO">OBSOLETO</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group">
-                        <label id="l_sta">Estatus</label>
+                        <label id="l_sta">Estatus Catálogo</label>
                         <select id="obsolete">
                             <option value="false">ACTIVO</option>
                             <option value="true">OBSOLETO</option>
@@ -152,6 +176,42 @@
                     <div class="form-group">
                         <label id="l_sp">Standard Pack</label>
                         <input type="number" id="std_pack">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="l_def_loc">Ubicación Default WMS</label>
+                    <select id="default_location_id">
+                        <option value="">-- Sin ubicación fija --</option>
+                    </select>
+                </div>
+                <div class="form-grid" style="gap:10px;">
+                    <div class="form-group">
+                        <label>Stock Seguridad</label>
+                        <input type="number" step="0.01" min="0" id="safety_stock" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Lote Mínimo</label>
+                        <input type="number" step="0.01" min="0" id="min_lot_size" value="0">
+                    </div>
+                </div>
+                <div class="form-grid" style="gap:10px;">
+                    <div class="form-group">
+                        <label>Múltiplo Redondeo</label>
+                        <input type="number" step="0.01" min="1" id="lot_rounding" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Lead Time (días)</label>
+                        <input type="number" min="0" id="lead_time_days" value="0">
+                    </div>
+                </div>
+                <div class="form-grid" style="gap:10px;">
+                    <div class="form-group">
+                        <label>% Merma / Scrap</label>
+                        <input type="number" step="0.1" min="0" id="scrap_pct" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>% Remolido Permitido</label>
+                        <input type="number" step="0.1" min="0" max="100" id="regrind_pct" value="0">
                     </div>
                 </div>
             </div>
@@ -195,7 +255,8 @@
 
     const translations = {
         es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS Y BOM", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *", grade: "Grado de Resina", tol: "Tolerancia (+/- g)", uom: "Unidad Medida", type: "Tipo Producto", sup: "Proveedor", cli: "Cliente" },
-        ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진 클릭", name: "부품 이름 *", grade: "레진 등급", tol: "허용 오차", uom: "측정 단위", type: "제품 유형", sup: "공급업체", cli: "고객사" }
+        ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진 클릭", name: "부품 이름 *", grade: "레진 등급", tol: "허용 오차", uom: "측정 단위", type: "제품 유형", sup: "공급업체", cli: "고객사" },
+        en: { title: "Engineering Registration", edit: "Edit Part Number", t1: "1. Identification", t2: "2. Photo", t3: "3. Specifications", t4: "4. Status", save: "SAVE DATA & BOM", loading: "Saving...", upload: "Click to upload photo", name: "Part Name *", grade: "Resin Grade", tol: "Tolerance (+/- g)", uom: "Unit of Measure", type: "Product Type", sup: "Supplier", cli: "Customer" }
     };
 
     function adjustFormByProductType() {
@@ -231,8 +292,18 @@
     }
 
     async function preloadAvailableParts() {
-        const { data } = await client.from('parts').select('id, part_number, part_name, product_type').order('part_number');
-        availablePartsList = data || [];
+        const [rParts, rLocs] = await Promise.all([
+            window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, unit_of_measure', orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name, product_type, unit_of_measure').order('part_number'),
+            client.from('locations').select('id, location_code, location_name, type, active').eq('active', true).order('location_code')
+        ]);
+        availablePartsList = Array.isArray(rParts) ? rParts : (rParts.data || []);
+
+        const locSelect = document.getElementById('default_location_id');
+        if (locSelect) {
+            const fixedLocs = (rLocs.data || []).filter(l => l.type !== 'Móvil' && l.type !== 'Contenedor');
+            locSelect.innerHTML = '<option value="">-- Sin ubicación fija --</option>' +
+                fixedLocs.map(l => `<option value="${l.id}">${l.location_code}${l.location_name ? ' (' + l.location_name + ')' : ''}</option>`).join('');
+        }
     }
 
     async function init() {
@@ -259,6 +330,16 @@
                 document.getElementById('runner_weight_gr').value = p.runner_weight_gr || 0;
                 document.getElementById('std_pack').value = p.std_pack || 0;
                 document.getElementById('obsolete').value = (p.obsolete || false).toString();
+                document.getElementById('customer_part_number').value = p.customer_part_number || '';
+                document.getElementById('drawing_revision').value = p.drawing_revision || 'REV-01';
+                document.getElementById('engineering_status').value = p.engineering_status || 'ACTIVO';
+                document.getElementById('default_location_id').value = p.default_location_id || '';
+                document.getElementById('safety_stock').value = p.safety_stock ?? 0;
+                document.getElementById('min_lot_size').value = p.min_lot_size ?? 0;
+                document.getElementById('lot_rounding').value = p.lot_rounding ?? 1;
+                document.getElementById('lead_time_days').value = p.lead_time_days ?? 0;
+                document.getElementById('scrap_pct').value = p.scrap_pct ?? 0;
+                document.getElementById('regrind_pct').value = p.regrind_pct ?? 0;
                 
                 if(p.image_url) {
                     const prev = document.getElementById('imgPreview');
@@ -390,6 +471,16 @@
             runner_weight_gr: parseFloat(document.getElementById('runner_weight_gr').value) || 0,
             std_pack: parseInt(document.getElementById('std_pack').value) || 0,
             obsolete: document.getElementById('obsolete').value === 'true',
+            customer_part_number: document.getElementById('customer_part_number').value.trim() || null,
+            drawing_revision: document.getElementById('drawing_revision').value.trim() || 'REV-01',
+            engineering_status: document.getElementById('engineering_status').value || 'ACTIVO',
+            default_location_id: document.getElementById('default_location_id').value ? parseInt(document.getElementById('default_location_id').value) : null,
+            safety_stock: parseFloat(document.getElementById('safety_stock').value) || 0,
+            min_lot_size: parseFloat(document.getElementById('min_lot_size').value) || 0,
+            lot_rounding: parseFloat(document.getElementById('lot_rounding').value) || 1,
+            lead_time_days: parseInt(document.getElementById('lead_time_days').value) || 0,
+            scrap_pct: parseFloat(document.getElementById('scrap_pct').value) || 0,
+            regrind_pct: parseFloat(document.getElementById('regrind_pct').value) || 0,
             image_url: imageUrl
         };
 
@@ -429,13 +520,16 @@
             const usageQty = parseFloat(tr.querySelector('.bom-usage-input').value) || 1;
 
             if (selectedPartId) {
+                const selectedPart = availablePartsList.find(p => String(p.id) === String(selectedPartId));
                 if (isParent) {
+                    const childType = (selectedPart?.product_type || '').toUpperCase();
                     bomBatch.push({
                         parent_id: partId,
                         child_id: selectedPartId,
                         quantity: usageQty,
                         usage_qty: usageQty,
-                        bom_level: 1
+                        bom_level: childType === 'RESINA' ? 2 : 1,
+                        unit: selectedPart?.unit_of_measure || (childType === 'RESINA' ? 'KG' : 'PZA')
                     });
                 } else {
                     bomBatch.push({
@@ -443,7 +537,8 @@
                         child_id: partId,
                         quantity: usageQty,
                         usage_qty: usageQty,
-                        bom_level: 1
+                        bom_level: productType === 'RESINA' ? 2 : 1,
+                        unit: document.getElementById('unit_of_measure').value || (productType === 'RESINA' ? 'KG' : 'PZA')
                     });
                 }
             }
@@ -455,8 +550,9 @@
     }
 
     function setLang(lang) {
-        localStorage.setItem('lang', lang);
-        const l = translations[lang];
+        const safeLang = translations[lang] ? lang : 'es';
+        localStorage.setItem('lang', safeLang);
+        const l = translations[safeLang];
         document.getElementById('main_title').innerText = editId ? l.edit : l.title;
         document.getElementById('t1').innerText = l.t1;
         document.getElementById('t2').innerText = l.t2;
@@ -491,3 +587,4 @@
 </script>
 </body>
 </html>
+

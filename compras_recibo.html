@@ -1,0 +1,1056 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM by APEX SYSTEM | Recepción de Materiales WMS</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+:root{
+  --primary:#2563eb; --primary-dark:#1d4ed8; --bg:#f8fafc; --card:#ffffff; --text:#0f172a;
+  --muted:#64748b; --border:#e2e8f0; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);transition:.2s}
+.container{max-width:1440px;margin:auto}
+
+/* HEADER & BRANDING */
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
+.title-box{display:flex;align-items:center;gap:14px}
+.brand-badge{display:flex;align-items:baseline;gap:6px}
+.kraem-brand{font-size:22px;font-weight:900;letter-spacing:.5px;color:var(--text)}
+.apex-tag{font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.6px}
+.title-box h1{margin:2px 0 0;font-size:24px;font-weight:800}
+.title-box p{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+.btn{border:none;border-radius:9px;padding:9px 15px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:7px;font-size:13px;transition:.15s;text-decoration:none}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-success{background:var(--success);color:#fff}
+.btn-warn{background:var(--warning);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 10px;font-size:11.5px;border-radius:7px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+.card h3{margin:0 0 12px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.group{display:flex;flex-direction:column}
+label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+input,select,textarea{padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1050px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
+th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(148,163,184,0.08)}
+tr:hover td{background:rgba(148,163,184,0.04)}
+
+.badge{padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.b-ok{background:#dcfce7;color:#166534}
+.b-warn{background:#fef3c7;color:#92400e}
+.b-bad{background:#fee2e2;color:#991b1b}
+.b-info{background:#e0f2fe;color:#075985}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;border-left:4px solid var(--primary)}
+.kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.kpi .v{font-size:22px;font-weight:800;margin-top:4px}
+
+/* MODAL DE ETIQUETA QR & ZEBRA */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.65);display:none;justify-content:center;align-items:center;z-index:1000;padding:15px}
+.modal-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:620px;box-shadow:0 10px 35px rgba(0,0,0,0.35);max-height:90vh;overflow-y:auto}
+
+/* ESTILO ETIQUETA ZEBRA TÉRMICA 4x2 PULG (100x50 mm) */
+.zebra-label-preview{
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  border: 2px solid #000;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #000000;
+  padding: 12px 14px;
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+}
+.zebra-hdr{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+}
+.zebra-body{
+  display: grid;
+  grid-template-columns: 1fr 130px;
+  gap: 12px;
+  align-items: center;
+}
+.zebra-np{
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  font-family: 'Courier New', Courier, monospace;
+}
+.zebra-desc{
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+.zebra-badge-lote{
+  display: inline-block;
+  background: #000;
+  color: #fff;
+  padding: 2px 7px;
+  font-weight: 900;
+  font-size: 13px;
+  border-radius: 3px;
+}
+.zebra-row-sub{
+  display: flex;
+  gap: 15px;
+  margin-top: 8px;
+  font-size: 11px;
+}
+.zebra-qr-box{
+  text-align: center;
+  border: 1px solid #999;
+  padding: 4px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+@media print {
+  body { margin: 0; padding: 0; background: #fff !important; }
+  .no-print, header, .header, .topbar, .filter-panel, .controls, .container, .modal-card > div:first-child, .modal-card > div:last-child { display: none !important; }
+  #printZebraContainer { display: block !important; visibility: visible !important; width: 100% !important; margin: 0 !important; }
+  #printZebraContainer * { visibility: visible !important; }
+  @page { size: 100mm 50mm; margin: 1mm; }
+  .print-page-label {
+    width: 98mm;
+    height: 48mm;
+    page-break-after: always;
+    break-after: page;
+    border: 1.5px solid #000;
+    box-sizing: border-box;
+    padding: 3mm;
+    margin: 0 auto;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container no-print">
+  <!-- CABECERA -->
+  <div class="header">
+    <div class="title-box">
+      <button class="btn btn-secondary btn-back" onclick="KraemNav.back('compras_ordenes.html')"><i class="fas fa-arrow-left"></i> Volver</button>
+      <div>
+        <div class="brand-badge">
+          <span class="kraem-brand">KRAEM</span>
+          <span class="apex-tag">by APEX SYSTEM</span>
+        </div>
+        <h1><i class="fas fa-dolly" style="color:var(--success)"></i> Recibo de Materiales WMS contra OC</h1>
+        <p>Entrada física a almacén, registro de lote proveedor para trazabilidad FIFO y generación de etiqueta QR de tarima.</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="compras_ordenes.html" class="btn btn-secondary"><i class="fas fa-file-invoice-dollar"></i> Ir a Compras (OC)</a>
+      <a href="consulta_fifo.html" class="btn btn-primary"><i class="fas fa-boxes-stacked"></i> Ver Stock & FIFO WMS →</a>
+      <button class="btn btn-secondary" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- KPIS -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="t">Órdenes por Recibir</div><div class="v" id="kPendientes">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t">Entradas Realizadas Hoy</div><div class="v" id="kRecibidasHoy">0</div></div>
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t">Último Folio Recibo</div><div class="v" id="kUltimoFolio">-</div></div>
+  </div>
+
+  <!-- PASO 1: SELECCIONAR ORDEN DE COMPRA -->
+  <div class="card">
+    <h3><i class="fas fa-magnifying-glass" style="color:var(--primary)"></i> 1. Seleccionar Orden de Compra Pendiente</h3>
+    <div class="form-grid">
+      <div class="group" style="grid-column:span 2">
+        <label>Orden de Compra / Proveedor *</label>
+        <select id="selOC" onchange="cargarDetalleOC()">
+          <option value="">Selecciona una Orden de Compra...</option>
+        </select>
+      </div>
+      <div class="group">
+        <label>Factura o Remisión del Proveedor *</label>
+        <input id="r_factura" placeholder="Ej. REM-98212 / FACT-5541">
+      </div>
+      <div class="group">
+        <label>Recibido por (Almacenista) *</label>
+        <input id="r_recibido_por" placeholder="Nombre de quien recibe">
+      </div>
+    </div>
+
+    <!-- TARJETA INFORMATIVA DE LA OC SELECCIONADA -->
+    <div id="ocInfoBox" style="display:none;margin-top:14px;background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.2);padding:14px;border-radius:10px">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <span style="font-size:11px;font-weight:700;color:var(--muted)">PROVEEDOR:</span>
+          <strong id="infoProv" style="font-size:14px;display:block">---</strong>
+          <span id="infoProvDet" style="font-size:11.5px;color:var(--muted)">---</span>
+        </div>
+        <div>
+          <span style="font-size:11px;font-weight:700;color:var(--muted)">FECHA EMISIÓN / PROMETIDA:</span>
+          <div id="infoFechas" style="font-size:12.5px;font-weight:700">---</div>
+        </div>
+        <div>
+          <span style="font-size:11px;font-weight:700;color:var(--muted)">ESTATUS OC:</span>
+          <div id="infoEstatus"><span class="badge b-info">ENVIADA</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2: CAPTURA DE RECIBO FÍSICO POR PARTIDA -->
+  <div class="card" id="cardRecepcion" style="display:none">
+    <h3><i class="fas fa-boxes-packing" style="color:var(--success)"></i> 2. Partidas a Recibir en WMS</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 14px">
+      Ingresa la cantidad física que está ingresando, el <strong>Lote de Proveedor</strong> para la regla FIFO y selecciona la ubicación en racks o tolva.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>N° Parte</th>
+            <th>Descripción</th>
+            <th>UoM</th>
+            <th>Total Pedido</th>
+            <th>Ya Recibido</th>
+            <th>Pendiente</th>
+            <th style="background:rgba(22,163,74,0.1)">Cant. Recibida Hoy *</th>
+            <th style="background:rgba(22,163,74,0.1)">Lote Proveedor (FIFO) *</th>
+            <th style="background:rgba(22,163,74,0.1)">Ubicación Destino WMS *</th>
+          </tr>
+        </thead>
+        <tbody id="reciboItemsBody"></tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+      <button class="btn btn-secondary" onclick="limpiarRecibo()"><i class="fas fa-eraser"></i> Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarRecepcion()"><i class="fas fa-circle-check"></i> Confirmar Entrada en WMS & Generar QR</button>
+    </div>
+  </div>
+
+  <!-- PASO 3: HISTORIAL DE RECIBOS EN WMS -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <h3 style="margin:0"><i class="fas fa-clock-rotate-left" style="color:var(--primary)"></i> Historial de Recibos Realizados</h3>
+      <input id="qRec" placeholder="🔍 Buscar por recibo, OC, remisión o N.P...." oninput="renderHistorialRecibos()" style="width:280px">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Folio Recibo</th>
+            <th>Orden Compra</th>
+            <th>Proveedor</th>
+            <th>Remisión / Factura</th>
+            <th>Fecha Recibo</th>
+            <th>Partidas / Lotes</th>
+            <th>Recibió</th>
+            <th style="text-align:right">Etiqueta QR</th>
+          </tr>
+        </thead>
+        <tbody id="recibosHistBody"><tr><td colspan="8" style="text-align:center;padding:25px">Cargando historial...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ETIQUETA ZEBRA TÉRMICA POR NÚMERO DE PARTE (4x2 pulg / 100x50 mm) -->
+<div class="modal no-print" id="zebraModal" onclick="if(event.target===this)cerrarZebraModal()">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <h3 style="margin:0"><i class="fas fa-barcode" style="color:var(--primary)"></i> Etiqueta Zebra por Número de Parte (4x2")</h3>
+        <small style="color:var(--muted)">Formato industrial para rotulación directa de cada material / saco / caja</small>
+      </div>
+      <button class="btn btn-sm" onclick="cerrarZebraModal()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- SELECTOR DE PARTIDAS SI EL RECIBO TRAE VARIAS -->
+    <div id="zebraPartidasTabs" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--border)"></div>
+
+    <!-- VISTA PREVIA ETIQUETA ZEBRA -->
+    <div id="zebraPreviewBox" class="zebra-label-preview">
+      <div class="zebra-hdr">
+        <div>
+          <strong style="font-size:12px;letter-spacing:0.5px">KRAEM S.A. DE C.V.</strong>
+          <span style="font-size:9px;display:block;color:#444">IDENTIFICACIÓN INDUSTRIAL WMS</span>
+        </div>
+        <div style="text-align:right">
+          <span style="font-size:9px;font-weight:bold">FOLIO RECIBO</span>
+          <div id="zLblFolio" style="font-size:11px;font-weight:900">REC-2026-0001</div>
+        </div>
+      </div>
+
+      <div class="zebra-body">
+        <div>
+          <div style="font-size:9px;font-weight:bold;color:#444">NÚMERO DE PARTE (MATERIAL):</div>
+          <div id="zLblPartNumber" class="zebra-np">RES-PP-BLK</div>
+          <div id="zLblPartDesc" class="zebra-desc">Polipropileno Negro Inyección</div>
+
+          <div style="margin-top:6px">
+            <span style="font-size:9px;font-weight:bold;color:#444">LOTE PROVEEDOR (FIFO):</span><br>
+            <span id="zLblLote" class="zebra-badge-lote">LOT-SAB-88219</span>
+          </div>
+
+          <div class="zebra-row-sub">
+            <div>
+              <span style="font-size:9px;font-weight:bold;color:#444">CANTIDAD:</span><br>
+              <strong id="zLblQty" style="font-size:15px">1,500 KG</strong>
+            </div>
+            <div>
+              <span style="font-size:9px;font-weight:bold;color:#444">UBICACIÓN:</span><br>
+              <strong id="zLblLoc" style="font-size:14px;color:#000">RACK-MP-A1</strong>
+            </div>
+          </div>
+
+          <div style="font-size:9.5px;color:#333;margin-top:6px;line-height:1.2">
+            OC: <strong id="zLblOC">OC-2026-0001</strong> | Fact: <strong id="zLblFactura">F-9921</strong><br>
+            Fecha: <span id="zLblFecha">2026-11-24</span>
+          </div>
+        </div>
+
+        <div style="text-align:center">
+          <div id="zQrcodeCanvas" class="zebra-qr-box"></div>
+          <div id="zBarSub" style="font-size:9px;font-weight:bold;margin-top:3px;font-family:monospace">RES-PP-BLK</div>
+          <span style="font-size:8px;color:#666">Escanear WMS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROLES DE IMPRESIÓN -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="margin:0;font-size:12px">Copias:</label>
+        <input type="number" id="zCopias" value="1" min="1" max="100" style="width:65px;padding:5px 8px;font-weight:bold;text-align:center">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="mostrarEtiquetaTarimaActual()"><i class="fas fa-pallet"></i> Ver Tarima</button>
+        <button class="btn btn-success" onclick="imprimirTodasPartidasZebra()"><i class="fas fa-layer-group"></i> Imprimir Todas las Partidas</button>
+        <button class="btn btn-primary" onclick="imprimirZebraPartidaActual()"><i class="fas fa-print"></i> Imprimir Esta Etiqueta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZACIÓN / IMPRESIÓN ETIQUETA QR DE TARIMA / PALLET COMPLETO -->
+<div class="modal no-print" id="qrModal" onclick="if(event.target===this)cerrarQrModal()">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <h3 style="margin:0"><i class="fas fa-pallet" style="color:var(--primary)"></i> Etiqueta de Tarima Completa (WMS Pallet)</h3>
+        <small style="color:var(--muted)">Formato para identificación de tarima consolidada en piso de almacén</small>
+      </div>
+      <button class="btn btn-sm" onclick="cerrarQrModal()"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div id="etiquetaPrintArea" class="zebra-label-preview" style="border:2px solid #000;padding:16px">
+      <div class="zebra-hdr">
+        <div>
+          <strong style="font-size:13px">KRAEM DE MÉXICO</strong>
+          <span style="font-size:9.5px;color:#2563eb;font-weight:800;display:block">TARIMA CONSOLIDADA WMS</span>
+        </div>
+        <div style="text-align:right">
+          <span style="font-size:10px;font-weight:700">ENTRADA WMS</span>
+          <div id="lblFolioRecibo" style="font-size:12px;font-weight:900">REC-2026-0001</div>
+        </div>
+      </div>
+
+      <div class="zebra-body">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#64748b">NÚMERO DE PARTE:</div>
+          <div id="lblPartNumber" style="font-size:19px;font-weight:900;letter-spacing:0.5px">RES-PP-BLK</div>
+          <div id="lblPartDesc" style="font-size:11px;margin-bottom:8px">Polipropileno Negro Inyección</div>
+
+          <div style="font-size:10px;font-weight:700;color:#64748b">LOTE PROVEEDOR (FIFO):</div>
+          <div id="lblLote" style="font-size:14px;font-weight:800;color:#b91c1c">LOT-SAB-88219</div>
+
+          <div style="display:flex;gap:15px;margin-top:6px">
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#64748b">CANTIDAD:</div>
+              <div id="lblQty" style="font-size:15px;font-weight:900">1,500 KG</div>
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:700;color:#64748b">UBICACIÓN:</div>
+              <div id="lblLoc" style="font-size:15px;font-weight:900;color:#2563eb">RACK-MP-A1</div>
+            </div>
+          </div>
+
+          <div style="font-size:10px;color:#64748b;margin-top:8px">
+            Fecha: <strong id="lblFecha">2026-11-24</strong> · OC: <strong id="lblOC">OC-2026-0001</strong>
+          </div>
+        </div>
+        <div style="text-align:center">
+          <div id="qrcodeCanvas" style="padding:4px;background:#fff;border:1px solid #cbd5e1;border-radius:6px"></div>
+          <small style="font-size:9px;color:#64748b;display:block;margin-top:4px">Escanear en WMS</small>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+      <button class="btn btn-secondary" onclick="cerrarQrModal()">Cerrar</button>
+      <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir Tarima</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENEDOR OCULTO PARA IMPRESIÓN DIRECTA ZEBRA -->
+<div id="printZebraContainer" style="display:none"></div>
+
+<script>
+const LS_PO = 'apex_kraem_purchase_orders_v1';
+const LS_REC = 'apex_kraem_compras_recibos_v1';
+
+let ordenes = [];
+let recibos = [];
+let locations = [];
+let partsCatalog = [];
+let selectedOC = null;
+let currentZebraRecibo = null;
+let currentZebraPartIdx = 0;
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function init(){
+  // 1. Cargar ubicaciones de almacén
+  try {
+    if (window.fetchAllRows) {
+      locations = await window.fetchAllRows('locations', { select: 'id, location_code, location_name, type', filter: q => q.eq('active', true), orderBy: 'location_code' });
+    } else if (client) {
+      const res = await client.from('locations').select('id, location_code, location_name, type').eq('active', true).order('location_code');
+      if (res.data) locations = res.data;
+    }
+  } catch (e) {
+    console.warn("Error cargando ubicaciones:", e);
+  }
+
+  if (!locations.length) {
+    locations = [
+      { id: 1, location_code: 'RACK-MP-A1', location_name: 'Rack Materia Prima A1' },
+      { id: 2, location_code: 'RACK-MP-A2', location_name: 'Rack Materia Prima A2' },
+      { id: 3, location_code: 'TOLVA-01', location_name: 'Tolva de Secado Principal' },
+      { id: 4, location_code: 'ALM-COMP-01', location_name: 'Almacén Componentes' },
+      { id: 5, location_code: 'RECEPCION-PISO', location_name: 'Área de Andén / Recibo' }
+    ];
+  }
+
+  // 2. Cargar catálogo de partes para mapeo part_id y tipos
+  try {
+    if (window.fetchAllRows) {
+      partsCatalog = await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, uom', orderBy: 'part_number' });
+    } else if (client) {
+      const res = await client.from('parts').select('id, part_number, part_name, product_type, uom').order('part_number');
+      if (res.data) partsCatalog = res.data;
+    }
+  } catch(e) {
+    console.warn("Catálogo de partes:", e);
+  }
+
+  // 3. Cargar Órdenes de Compra y Recibos (Supabase con fallback a localStorage)
+  try {
+    if (client && client.from) {
+      const { data: dbPo } = await client.from('system_settings').select('value').eq('key', 'compras_ordenes').maybeSingle();
+      if (dbPo && Array.isArray(dbPo.value)) {
+        ordenes = dbPo.value;
+        localStorage.setItem(LS_PO, JSON.stringify(ordenes));
+      }
+      const { data: dbRec } = await client.from('system_settings').select('value').eq('key', 'compras_recibos').maybeSingle();
+      if (dbRec && Array.isArray(dbRec.value)) {
+        recibos = dbRec.value;
+        localStorage.setItem(LS_REC, JSON.stringify(recibos));
+      }
+    }
+  } catch (_) {}
+
+  if (!ordenes.length) {
+    const savedPO = localStorage.getItem(LS_PO);
+    ordenes = savedPO ? JSON.parse(savedPO) : [];
+  }
+
+  if (!recibos.length) {
+    const savedRec = localStorage.getItem(LS_REC);
+    recibos = savedRec ? JSON.parse(savedRec) : [];
+  }
+
+  poblarSelectOC();
+  renderHistorialRecibos();
+
+  // Parámetro URL opcional (ej. ?folio=OC-2026-0001)
+  const params = new URLSearchParams(window.location.search);
+  const fParam = params.get('folio');
+  if (fParam) {
+    document.getElementById('selOC').value = fParam;
+    cargarDetalleOC();
+  }
+}
+
+function poblarSelectOC(){
+  const sel = document.getElementById('selOC');
+  const pendientes = ordenes.filter(o => o.estatus !== 'RECIBIDA_TOTAL' && o.estatus !== 'CANCELADA');
+  document.getElementById('kPendientes').textContent = pendientes.length;
+
+  sel.innerHTML = '<option value="">Selecciona una Orden de Compra...</option>' +
+    pendientes.map(o => `<option value="${o.folio}">${esc(o.folio)} — ${esc(o.proveedor_nombre)} (${o.items.length} partidas) [${esc(o.estatus)}]</option>`).join('');
+}
+
+function cargarDetalleOC(){
+  const folio = document.getElementById('selOC').value;
+  selectedOC = ordenes.find(o => o.folio === folio);
+
+  const infoBox = document.getElementById('ocInfoBox');
+  const cardRec = document.getElementById('cardRecepcion');
+
+  if (!selectedOC) {
+    infoBox.style.display = 'none';
+    cardRec.style.display = 'none';
+    return;
+  }
+
+  infoBox.style.display = 'block';
+  cardRec.style.display = 'block';
+
+  document.getElementById('infoProv').textContent = selectedOC.proveedor_nombre;
+  document.getElementById('infoProvDet').textContent = `${selectedOC.proveedor_razon} · RFC: ${selectedOC.proveedor_rfc} · Contacto: ${selectedOC.proveedor_contacto || 'N/D'}`;
+  document.getElementById('infoFechas').textContent = `Emisión: ${selectedOC.fecha_emision} | Requerida: ${selectedOC.fecha_prometida}`;
+  document.getElementById('infoEstatus').innerHTML = `<span class="badge b-info">${esc(selectedOC.estatus)}</span>`;
+
+  // Poblar tabla de partidas con campos para capturar recibo físico
+  const tbody = document.getElementById('reciboItemsBody');
+  const locOpts = locations.map(l => `<option value="${l.id}">${esc(l.location_code)} (${esc(l.location_name || '')})</option>`).join('');
+
+  tbody.innerHTML = selectedOC.items.map((it, idx) => {
+    const yaRecibido = Number(it.cantidad_recibida || 0);
+    const pendiente = Math.max(0, it.cantidad - yaRecibido);
+    return `
+      <tr>
+        <td><strong>${esc(it.part_number)}</strong></td>
+        <td>${esc(it.part_name)}</td>
+        <td><span class="badge b-info">${esc(it.uom)}</span></td>
+        <td>${it.cantidad.toLocaleString()}</td>
+        <td>${yaRecibido.toLocaleString()}</td>
+        <td><strong style="color:var(--danger)">${pendiente.toLocaleString()}</strong></td>
+        <td style="background:rgba(22,163,74,0.06)">
+          <input type="number" id="rx_qty_${idx}" value="${pendiente}" max="${pendiente}" min="1" style="width:110px;font-weight:700">
+        </td>
+        <td style="background:rgba(22,163,74,0.06)">
+          <input type="text" id="rx_lote_${idx}" placeholder="Ej. LOTE-${new Date().toISOString().slice(2,10).replace(/-/g,'')}" style="width:140px;font-weight:700;text-transform:uppercase">
+        </td>
+        <td style="background:rgba(22,163,74,0.06)">
+          <select id="rx_loc_${idx}" style="width:180px">
+            ${locOpts}
+          </select>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function confirmarRecepcion(){
+  if (!selectedOC) return;
+
+  const factura = document.getElementById('r_factura').value.trim();
+  const recibio = document.getElementById('r_recibido_por').value.trim();
+
+  if (!factura || !recibio) {
+    alert("Por favor captura el número de Factura/Remisión y el nombre de quien recibe en almacén.");
+    return;
+  }
+
+  const partidasRecibidas = [];
+  let totalRecibidoHoy = 0;
+
+  for (let i = 0; i < selectedOC.items.length; i++) {
+    const it = selectedOC.items[i];
+    const qtyInput = parseFloat(document.getElementById(`rx_qty_${i}`)?.value || 0);
+    const loteInput = document.getElementById(`rx_lote_${i}`)?.value.trim().toUpperCase();
+    const locId = document.getElementById(`rx_loc_${i}`)?.value;
+    const locObj = locations.find(l => String(l.id) === String(locId)) || locations[0];
+
+    if (qtyInput > 0) {
+      if (!loteInput) {
+        alert(`Por favor ingresa el número de lote para la partida ${it.part_number} (Requerido para la regla FIFO).`);
+        return;
+      }
+
+      it.cantidad_recibida = Number(it.cantidad_recibida || 0) + qtyInput;
+      totalRecibidoHoy += qtyInput;
+
+      partidasRecibidas.push({
+        part_number: it.part_number,
+        part_name: it.part_name,
+        cantidad: qtyInput,
+        uom: it.uom,
+        lote: loteInput,
+        location_id: locId ? parseInt(locId) : null,
+        location_code: locObj.location_code
+      });
+    }
+  }
+
+  if (!partidasRecibidas.length) {
+    alert("No ingresaste ninguna cantidad válida para recibir.");
+    return;
+  }
+
+  // Evaluar si la OC ya se completó al 100%
+  const todasCompletas = selectedOC.items.every(it => Number(it.cantidad_recibida || 0) >= it.cantidad);
+  selectedOC.estatus = todasCompletas ? 'RECIBIDA_TOTAL' : 'RECIBIDA_PARCIAL';
+
+  // Folio de recibo
+  const folioRec = `REC-${new Date().getFullYear()}-${String(recibos.length + 1).padStart(4, '0')}`;
+  const nuevoRecibo = {
+    id: Date.now(),
+    folio_recibo: folioRec,
+    orden_folio: selectedOC.folio,
+    proveedor_nombre: selectedOC.proveedor_nombre,
+    factura_remision: factura,
+    recibido_por: recibio,
+    fecha: new Date().toLocaleString('es-MX'),
+    partidas: partidasRecibidas
+  };
+
+  // =========================================================================
+  // INSERTAR EN SUPABASE: 'inventory_movements' y 'parts' si es necesario
+  // =========================================================================
+  let dbSuccessCount = 0;
+  if (client) {
+    try {
+      let authUserId = null;
+      try {
+        const userRes = await client.auth.getUser();
+        authUserId = userRes?.data?.user?.id || null;
+      } catch(e) {}
+
+      for (const p of partidasRecibidas) {
+        // 1. Buscar o dar de alta la parte en 'parts'
+        let matchedPart = partsCatalog.find(cp => cp.part_number.toUpperCase() === p.part_number.toUpperCase());
+        if (!matchedPart) {
+          // Intentar consulta directa a Supabase
+          const { data: dbP } = await client.from('parts').select('id, part_number, part_name, product_type').ilike('part_number', p.part_number).limit(1);
+          if (dbP && dbP.length > 0) {
+            matchedPart = dbP[0];
+          } else {
+            // Dar de alta automáticamente como Materia Prima o Componente
+            const isResina = (p.part_name && p.part_name.toLowerCase().includes('resina')) || (p.uom && p.uom.toUpperCase() === 'KG');
+            const newPartData = {
+              part_number: p.part_number,
+              part_name: p.part_name || 'Material Industrial Comprado',
+              product_type: isResina ? 'RESINA' : 'COMPONENTE',
+              uom: p.uom || 'PZA',
+              obsolete: false
+            };
+            const { data: insPart, error: insErr } = await client.from('parts').insert([newPartData]).select().single();
+            if (!insErr && insPart) {
+              matchedPart = insPart;
+              partsCatalog.push(insPart);
+            }
+          }
+        }
+
+        const targetPartId = matchedPart?.id || null;
+
+        // 2. Insertar movimiento de ENTRADA en 'inventory_movements'
+        const movPayload = {
+          part_id: targetPartId,
+          quantity: p.cantidad,
+          movement_type: 'ENTRADA',
+          to_location_id: p.location_id,
+          lot_number: p.lote,
+          area: 'ALMACEN',
+          comment: `[RECIBO_OC: ${selectedOC.folio}] [FACTURA: ${factura}] Proveedor: ${selectedOC.proveedor_nombre} · Recibió: ${recibio}`,
+          status_stock: 'DISPONIBLE',
+          orden_produccion_folio: selectedOC.folio,
+          cliente_destino: selectedOC.proveedor_nombre,
+          user_id: authUserId,
+          created_at: new Date().toISOString()
+        };
+
+        const { error: movError } = await client.from('inventory_movements').insert([movPayload]);
+        if (!movError) {
+          dbSuccessCount++;
+        } else {
+          console.error("Error insertando en inventory_movements:", movError);
+        }
+      }
+    } catch (dbErr) {
+      console.error("Fallo general de inserción en Supabase:", dbErr);
+    }
+  }
+
+  // Guardar en localStorage y Supabase
+  recibos.unshift(nuevoRecibo);
+  localStorage.setItem(LS_REC, JSON.stringify(recibos));
+  localStorage.setItem(LS_PO, JSON.stringify(ordenes));
+
+  try {
+    if (client && client.from) {
+      Promise.all([
+        client.from('system_settings').upsert({
+          key: 'compras_recibos',
+          category: 'compras',
+          value: recibos,
+          updated_at: new Date().toISOString()
+        }),
+        client.from('system_settings').upsert({
+          key: 'compras_ordenes',
+          category: 'compras',
+          value: ordenes,
+          updated_at: new Date().toISOString()
+        })
+      ]).then(() => console.log("✅ Recibo y estatus de OC sincronizados en Supabase"))
+        .catch(e => console.warn(e));
+    }
+  } catch (_) {}
+
+  const msjExtra = dbSuccessCount > 0 
+    ? `\n\n✅ ${dbSuccessCount} partida(s) sincronizadas con WMS, Inventarios y Explosión MRP.`
+    : `\n\n(Guardado localmente. Se sincronizará con WMS al detectar conexión).`;
+
+  alert(`¡Entrada WMS registrada con éxito!\nFolio Recibo: ${folioRec}\nOrden de Compra: ${selectedOC.folio}${msjExtra}`);
+
+  // Abrir inmediatamente modal de etiqueta Zebra por Número de Parte
+  abrirModalZebra(nuevoRecibo, 0);
+
+  limpiarRecibo();
+  poblarSelectOC();
+  renderHistorialRecibos();
+}
+
+function limpiarRecibo(){
+  document.getElementById('selOC').value = '';
+  document.getElementById('r_factura').value = '';
+  document.getElementById('r_recibido_por').value = '';
+  document.getElementById('ocInfoBox').style.display = 'none';
+  document.getElementById('cardRecepcion').style.display = 'none';
+  selectedOC = null;
+}
+
+function renderHistorialRecibos(){
+  const q = document.getElementById('qRec').value.trim().toLowerCase();
+  const filtered = recibos.filter(r => {
+    if (!q) return true;
+    return `${r.folio_recibo} ${r.orden_folio} ${r.proveedor_nombre} ${r.factura_remision}`.toLowerCase().includes(q);
+  });
+
+  document.getElementById('kRecibidasHoy').textContent = recibos.length;
+  document.getElementById('kUltimoFolio').textContent = recibos[0]?.folio_recibo || '-';
+
+  const tbody = document.getElementById('recibosHistBody');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:25px;color:var(--muted)">Sin recibos registrados aún.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((r, rIdx) => {
+    const lotesTxt = r.partidas.map(p => `<strong>${esc(p.part_number)}</strong> (${p.cantidad} ${p.uom} · Lote: <span style="color:var(--danger)">${p.lote}</span>)`).join('<br>');
+    return `<tr>
+      <td><strong>${esc(r.folio_recibo)}</strong></td>
+      <td><span class="badge b-info">${esc(r.orden_folio)}</span></td>
+      <td><strong>${esc(r.proveedor_nombre)}</strong></td>
+      <td>${esc(r.factura_remision)}</td>
+      <td>${esc(r.fecha)}</td>
+      <td style="font-size:11.5px">${lotesTxt}</td>
+      <td>${esc(r.recibido_por)}</td>
+      <td style="text-align:right">
+        <div style="display:flex;gap:4px;justify-content:flex-end">
+          <button class="btn btn-sm btn-primary" onclick="abrirModalZebra(recibos[${rIdx}], 0)" title="Imprimir etiquetas individuales por número de parte para impresora Zebra"><i class="fas fa-barcode"></i> Zebra N/P</button>
+          <button class="btn btn-sm btn-secondary" onclick="mostrarEtiquetaQR(recibos[${rIdx}], 0)" title="Ver etiqueta para tarima consolidada"><i class="fas fa-pallet"></i> Tarima</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ==================== SISTEMA DE ETIQUETAS ZEBRA POR NÚMERO DE PARTE ==================== */
+function abrirModalZebra(recibo, partIdx = 0){
+  currentZebraRecibo = recibo;
+  currentZebraPartIdx = partIdx;
+
+  if (!recibo || !recibo.partidas.length) return;
+
+  // Renderizar pestañas selectoras si hay más de 1 partida
+  const tabsWrap = document.getElementById('zebraPartidasTabs');
+  if (recibo.partidas.length > 1) {
+    tabsWrap.style.display = 'flex';
+    tabsWrap.innerHTML = recibo.partidas.map((p, idx) => `
+      <button class="btn btn-sm ${idx === currentZebraPartIdx ? 'btn-primary' : 'btn-secondary'}" onclick="cambiarPartidaZebra(${idx})">
+        ${esc(p.part_number)} (${p.cantidad} ${p.uom})
+      </button>
+    `).join('');
+  } else {
+    tabsWrap.style.display = 'none';
+  }
+
+  renderZebraPreview();
+  document.getElementById('zebraModal').style.display = 'flex';
+}
+
+function cambiarPartidaZebra(idx){
+  currentZebraPartIdx = idx;
+  const tabs = document.querySelectorAll('#zebraPartidasTabs button');
+  tabs.forEach((b, i) => {
+    b.className = `btn btn-sm ${i === idx ? 'btn-primary' : 'btn-secondary'}`;
+  });
+  renderZebraPreview();
+}
+
+function renderZebraPreview(){
+  if (!currentZebraRecibo) return;
+  const item = currentZebraRecibo.partidas[currentZebraPartIdx] || currentZebraRecibo.partidas[0];
+  if (!item) return;
+
+  document.getElementById('zLblFolio').textContent = currentZebraRecibo.folio_recibo;
+  document.getElementById('zLblPartNumber').textContent = item.part_number;
+  document.getElementById('zLblPartDesc').textContent = item.part_name || 'Material Comprado';
+  document.getElementById('zLblLote').textContent = item.lote;
+  document.getElementById('zLblQty').textContent = `${item.cantidad.toLocaleString()} ${item.uom}`;
+  document.getElementById('zLblLoc').textContent = item.location_code || 'RACK-MP-A1';
+  document.getElementById('zLblOC').textContent = currentZebraRecibo.orden_folio;
+  document.getElementById('zLblFactura').textContent = currentZebraRecibo.factura_remision;
+  document.getElementById('zLblFecha').textContent = currentZebraRecibo.fecha;
+  document.getElementById('zBarSub').textContent = `${item.part_number} · ${item.lote}`;
+
+  // QR con estructura optimizada para escáner WMS
+  const qrWrap = document.getElementById('zQrcodeCanvas');
+  qrWrap.innerHTML = '';
+
+  const qrData = JSON.stringify({
+    np: item.part_number,
+    lote: item.lote,
+    qty: item.cantidad,
+    uom: item.uom,
+    loc: item.location_code,
+    recibo: currentZebraRecibo.folio_recibo,
+    oc: currentZebraRecibo.orden_folio
+  });
+
+  new QRCode(qrWrap, {
+    text: qrData,
+    width: 95,
+    height: 95,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+}
+
+function cerrarZebraModal(){
+  document.getElementById('zebraModal').style.display = 'none';
+}
+
+function mostrarEtiquetaTarimaActual(){
+  cerrarZebraModal();
+  mostrarEtiquetaQR(currentZebraRecibo, currentZebraPartIdx);
+}
+
+function generarHtmlEtiquetaZebraPrint(recibo, item){
+  const qrData = JSON.stringify({
+    np: item.part_number,
+    lote: item.lote,
+    qty: item.cantidad,
+    uom: item.uom,
+    loc: item.location_code,
+    recibo: recibo.folio_recibo,
+    oc: recibo.orden_folio
+  });
+
+  const qrId = 'pr_qr_' + Math.random().toString(36).substr(2, 9);
+
+  return {
+    html: `
+      <div class="print-page-label">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #000;padding-bottom:2px;margin-bottom:3px">
+          <div>
+            <strong style="font-size:11px;letter-spacing:0.5px">KRAEM S.A. DE C.V.</strong>
+            <span style="font-size:8px;display:block">MATERIAL RECIBIDO WMS</span>
+          </div>
+          <div style="text-align:right">
+            <span style="font-size:8px;font-weight:bold">RECIBO:</span>
+            <div style="font-size:10px;font-weight:900">${esc(recibo.folio_recibo)}</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center">
+          <div>
+            <div style="font-size:8px;font-weight:bold;color:#444">NÚMERO DE PARTE:</div>
+            <div style="font-size:17px;font-weight:900;letter-spacing:0.5px;font-family:monospace;line-height:1.1">${esc(item.part_number)}</div>
+            <div style="font-size:9.5px;font-weight:bold;margin:2px 0">${esc(item.part_name || '')}</div>
+
+            <div style="margin-top:3px">
+              <span style="font-size:8px;font-weight:bold">LOTE (FIFO):</span>
+              <span style="display:inline-block;background:#000;color:#fff;padding:1px 5px;font-size:11px;font-weight:900;border-radius:2px">${esc(item.lote)}</span>
+            </div>
+
+            <div style="display:flex;gap:12px;margin-top:4px;font-size:10px">
+              <div>CANT: <strong style="font-size:12px">${item.cantidad.toLocaleString()} ${esc(item.uom)}</strong></div>
+              <div>UBIC: <strong style="font-size:12px">${esc(item.location_code)}</strong></div>
+            </div>
+
+            <div style="font-size:8.5px;color:#333;margin-top:4px">
+              OC: <strong>${esc(recibo.orden_folio)}</strong> · Fact: <strong>${esc(recibo.factura_remision)}</strong>
+            </div>
+          </div>
+
+          <div style="text-align:center">
+            <div id="${qrId}" style="width:85px;height:85px;display:inline-block"></div>
+            <div style="font-size:7.5px;font-weight:bold;margin-top:2px;font-family:monospace">${esc(item.part_number)}</div>
+          </div>
+        </div>
+      </div>
+    `,
+    qrId,
+    qrData
+  };
+}
+
+function imprimirZebraPartidaActual(){
+  if (!currentZebraRecibo) return;
+  const item = currentZebraRecibo.partidas[currentZebraPartIdx] || currentZebraRecibo.partidas[0];
+  const copias = parseInt(document.getElementById('zCopias').value || 1);
+
+  const container = document.getElementById('printZebraContainer');
+  container.innerHTML = '';
+
+  const qrTasks = [];
+  for (let c = 0; c < copias; c++) {
+    const res = generarHtmlEtiquetaZebraPrint(currentZebraRecibo, item);
+    container.insertAdjacentHTML('beforeend', res.html);
+    qrTasks.push(res);
+  }
+
+  // Generar QRs para cada copia
+  qrTasks.forEach(t => {
+    new QRCode(document.getElementById(t.qrId), {
+      text: t.qrData,
+      width: 82,
+      height: 82,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  });
+
+  setTimeout(() => {
+    window.print();
+  }, 250);
+}
+
+function imprimirTodasPartidasZebra(){
+  if (!currentZebraRecibo || !currentZebraRecibo.partidas.length) return;
+  const copias = parseInt(document.getElementById('zCopias').value || 1);
+
+  const container = document.getElementById('printZebraContainer');
+  container.innerHTML = '';
+
+  const qrTasks = [];
+  currentZebraRecibo.partidas.forEach(item => {
+    for (let c = 0; c < copias; c++) {
+      const res = generarHtmlEtiquetaZebraPrint(currentZebraRecibo, item);
+      container.insertAdjacentHTML('beforeend', res.html);
+      qrTasks.push(res);
+    }
+  });
+
+  qrTasks.forEach(t => {
+    new QRCode(document.getElementById(t.qrId), {
+      text: t.qrData,
+      width: 82,
+      height: 82,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  });
+
+  setTimeout(() => {
+    window.print();
+  }, 300);
+}
+
+/* ==================== ETIQUETA QR DE TARIMA / WMS ==================== */
+function mostrarEtiquetaQR(recibo, partIdx){
+  const item = recibo.partidas[partIdx] || recibo.partidas[0];
+  if (!item) return;
+
+  document.getElementById('lblFolioRecibo').textContent = recibo.folio_recibo;
+  document.getElementById('lblPartNumber').textContent = item.part_number;
+  document.getElementById('lblPartDesc').textContent = item.part_name || 'Material Industrial';
+  document.getElementById('lblLote').textContent = item.lote;
+  document.getElementById('lblQty').textContent = `${item.cantidad.toLocaleString()} ${item.uom}`;
+  document.getElementById('lblLoc').textContent = item.location_code;
+  document.getElementById('lblFecha').textContent = recibo.fecha;
+  document.getElementById('lblOC').textContent = recibo.orden_folio;
+
+  // Generar código QR limpio
+  const qrWrap = document.getElementById('qrcodeCanvas');
+  qrWrap.innerHTML = '';
+  const qrData = JSON.stringify({
+    np: item.part_number,
+    lote: item.lote,
+    qty: item.cantidad,
+    uom: item.uom,
+    recibo: recibo.folio_recibo,
+    loc: item.location_code
+  });
+
+  new QRCode(qrWrap, {
+    text: qrData,
+    width: 100,
+    height: 100,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  document.getElementById('qrModal').style.display = 'flex';
+}
+
+function cerrarQrModal(){
+  document.getElementById('qrModal').style.display = 'none';
+}
+
+function toggleTheme(){
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
+

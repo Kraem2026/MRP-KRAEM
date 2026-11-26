@@ -1,0 +1,749 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Trading AI">
+  <meta name="theme-color" content="#0b1120">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-512.png">
+  <link rel="apple-touch-icon" href="icon-512.png">
+  <title>Terminal Cuantitativa & Radar de IA en Vivo - Exness MT5</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card-bg: #151e32;
+      --border: #28354f;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --green: #22c55e;
+      --green-glow: rgba(34, 197, 94, 0.35);
+      --red: #ef4444;
+      --gold: #f59e0b;
+      --purple: #c084fc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 1300px; margin: 0 auto; }
+    
+    /* Header Principal con Estado de Conexión en Vivo */
+    header {
+      margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); padding: 14px 20px; border-radius: 12px; border: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand h1 { font-size: 1.4rem; color: var(--accent); }
+    .live-indicator {
+      display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: bold;
+      background: #0f172a; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    }
+    .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
+    .pulse-dot.online { background: var(--green); box-shadow: 0 0 12px var(--green); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+
+    /* Barra de Modo y Sincronización */
+    .mode-bar { display: flex; gap: 12px; margin-bottom: 18px; align-items: center; flex-wrap: wrap; }
+    .mode-btn {
+      background: #1e293b; border: 1px solid var(--border); color: #fff; padding: 8px 18px;
+      border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .mode-btn.active-live {
+      background: #064e3b; border-color: var(--green); color: #34d399;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+    }
+    .mode-btn.active-csv { background: #0284c7; border-color: var(--accent); color: #fff; }
+    .btn-sync { background: #0f766e; border: 1px solid #14b8a6; color: #fff; }
+    .btn-sync:hover { background: #115e59; }
+
+    /* MÓDULO 1: RADAR DE IA DE OPORTUNIDADES EN TIEMPO REAL */
+    .radar-section { margin-bottom: 22px; }
+    .radar-header { font-size: 1.1rem; color: var(--gold); display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .radar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; }
+    .radar-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; position: relative; overflow: hidden; transition: 0.2s;
+    }
+    .radar-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .radar-card.bullish { border-left: 5px solid var(--green); }
+    .radar-card.bearish { border-left: 5px solid var(--red); }
+    .radar-card.neutral { border-left: 5px solid #64748b; }
+    
+    .rc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .rc-symbol { font-size: 1.1rem; font-weight: bold; }
+    .rc-prob { font-size: 0.8rem; font-weight: bold; padding: 3px 8px; border-radius: 6px; }
+    .prob-high { background: #065f46; color: #34d399; }
+    .prob-low { background: #334155; color: #94a3b8; }
+    
+    .rc-signal { font-size: 0.95rem; font-weight: bold; margin-bottom: 6px; }
+    .rc-reason { font-size: 0.85rem; color: var(--text-muted); line-height: 1.35; margin-bottom: 10px; }
+    .rc-target { font-size: 0.8rem; font-weight: 600; color: var(--accent); display: flex; justify-content: space-between; }
+
+    /* MÓDULO 2: POSICIONES ABIERTAS EN TIEMPO REAL */
+    .live-positions-box {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px; margin-bottom: 22px;
+    }
+    .lp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .lp-title { font-size: 1rem; font-weight: bold; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+    
+    /* Tarjetas de Métricas */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); padding: 16px; border-radius: 10px; }
+    .card-title { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .card-val { font-size: 1.35rem; font-weight: bold; margin-top: 6px; }
+
+    /* Forecast y Gráfica */
+    .forecast-panel {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 22px;
+    }
+    .forecast-card {
+      background: linear-gradient(135deg, #151e32, #0b1120);
+      border: 1px solid var(--border); border-radius: 12px; padding: 18px;
+    }
+    .forecast-card.real-pace { border-color: #22c55e88; }
+    .forecast-card.plan-pace { border-color: #38bdf888; }
+    .fc-title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .fc-days { font-size: 1.8rem; font-weight: bold; margin: 10px 0; }
+    .fc-sub { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; }
+
+    .chart-box {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; margin-bottom: 24px; position: relative; height: 380px;
+    }
+
+    .dropzone {
+      background: var(--card-bg); border: 2px dashed #475569; border-radius: 12px;
+      padding: 22px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 20px;
+    }
+    .dropzone:hover { border-color: var(--accent); }
+    input[type="file"] { display: none; }
+
+    .table-container { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.88rem; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { background: #0f172a88; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+    th:first-child, td:first-child { text-align: left; }
+    tr.total-row { font-weight: bold; background: #33415544; }
+    tr.highlight-row { background: rgba(56, 189, 248, 0.08); font-weight: bold; }
+
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
+    .badge-btc { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .badge-xau { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .badge-eur { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
+    .text-green { color: var(--green); }
+    .text-red { color: var(--red); }
+    .text-gold { color: var(--gold); }
+    .text-purple { color: var(--purple); }
+    .text-accent { color: var(--accent); }
+  </style>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>`n</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <h1>⚡ Terminal Cuantitativa & Radar de IA en Vivo</h1>
+      </div>
+      <div class="live-indicator">
+        <div class="pulse-dot online" id="pulseDot"></div>
+        <span id="connStatus" style="color: var(--green);">EN LÍNEA (Cuenta #480600399)</span>
+      </div>
+    </header>
+
+    <!-- Barra de Advertencia sólo en file:// -->
+    <div id="fileProtocolBanner" style="display: none; background: #7c2d12; border: 1px solid #ea580c; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 0.9rem; line-height: 1.4;">
+      ⚠️ <strong>Atención:</strong> Tienes la página abierta como archivo local (<code>file:///</code>). Por seguridad, Chrome bloquea la actualización continua automática en este modo.<br>
+      👉 <strong>Para ver tus órdenes en tiempo real automáticamente:</strong> Abre la terminal en <a href="http://localhost:8080/analizador_trading.html" style="color: #38bdf8; font-weight: bold; text-decoration: underline;">http://localhost:8080/analizador_trading.html</a> o pulsa el botón <strong>"🔗 Seleccionar Archivo en Vivo (MT5)"</strong> aquí abajo.
+    </div>
+
+    <!-- Barra de Selección de Modo y Sincronización -->
+    <div class="mode-bar">
+      <button class="mode-btn active-live" id="btnLive" onclick="setLiveMode(true)">
+        🟢 MODO EN VIVO (MT5 CONECTADO)
+      </button>
+      <button class="mode-btn" id="btnHistory" onclick="setLiveMode(false)">
+        📁 Cargar Historial CSV
+      </button>
+      <button class="mode-btn btn-sync" id="btnConnectFolder" onclick="selectLiveStateFile()">
+        🔗 Seleccionar Archivo en Vivo (MT5)
+      </button>
+      <span id="syncStatus" style="font-size: 0.85rem; color: var(--accent); margin-left: 8px;">
+        Enlazado a: live_trading_state.json
+      </span>
+    </div>
+
+    <!-- MÓDULO 1: RADAR DE IA (Escáner de Petróleo, Oro, Bitcoin y Euro) -->
+    <div class="radar-section">
+      <div class="radar-header">
+        <span>🧠 Radar de Oportunidades de IA (Análisis de Mercado en Vivo)</span>
+      </div>
+      <div class="radar-grid" id="radarGrid">
+        <!-- Tarjeta Petróleo -->
+        <div class="radar-card bullish">
+          <div class="rc-top">
+            <span class="rc-symbol">USOILm (Petróleo)</span>
+            <span class="rc-prob prob-high">84% Probabilidad</span>
+          </div>
+          <div class="rc-signal text-green">▲ COMPRA FUERTE (BULLISH)</div>
+          <div class="rc-reason">Ruptura institucional en M15. Proyección de rebote al alza hacia $83.40.</div>
+          <div class="rc-target">
+            <span>Precio Actual: $82.394</span>
+            <span class="text-green">Proyección: +$1.15</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta Bitcoin -->
+        <div class="radar-card bullish">
+          <div class="rc-top">
+            <span class="rc-symbol">BTCUSDm (Bitcoin)</span>
+            <span class="rc-prob prob-high">79% Probabilidad</span>
+          </div>
+          <div class="rc-signal text-green">▲ COMPRA FUERTE (BULLISH)</div>
+          <div class="rc-reason">Giro de vela en M1 confirmado. Cazador buscando +$12.50 USD.</div>
+          <div class="rc-target">
+            <span>Precio Actual: $63780.1</span>
+            <span class="text-green">Proyección: +$48.5</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta Oro -->
+        <div class="radar-card neutral">
+          <div class="rc-top">
+            <span class="rc-symbol">XAUUSDm (Oro)</span>
+            <span class="rc-prob prob-low">54% Probabilidad</span>
+          </div>
+          <div class="rc-signal text-gold">■ NEUTRAL</div>
+          <div class="rc-reason">Consolidación en zona alta. Operando con micro-lote 0.01 por seguridad.</div>
+          <div class="rc-target">
+            <span>Precio Actual: $3734.2</span>
+            <span class="text-gold">Proyección: +$2.2</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta Euro -->
+        <div class="radar-card bullish">
+          <div class="rc-top">
+            <span class="rc-symbol">EURUSDm (Euro)</span>
+            <span class="rc-prob prob-high">76% Probabilidad</span>
+          </div>
+          <div class="rc-signal text-green">▲ COMPRA FUERTE (BULLISH)</div>
+          <div class="rc-reason">Spread ultra bajo de 0.2 pips. Preparado para ejecutar con lote 0.50.</div>
+          <div class="rc-target">
+            <span>Precio Actual: $1.0988</span>
+            <span class="text-green">Proyección: +$0.0025</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MÓDULO 2: POSICIONES ABIERTAS EN TIEMPO REAL -->
+    <div class="live-positions-box" id="openPositionsBox">
+      <div class="lp-header">
+        <div class="lp-title">
+          <span>⚡ Órdenes Abiertas Monitoreadas por el Bot (En Vivo)</span>
+        </div>
+        <span id="posSummaryText" style="font-size: 0.85rem; color: var(--text-muted);">0 órdenes en curso</span>
+      </div>
+      <div class="table-container" style="margin-bottom: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket</th>
+              <th>Activo</th>
+              <th>Tipo</th>
+              <th>Lote</th>
+              <th>Precio Entrada</th>
+              <th>Ganancia Flotante ($ USD)</th>
+              <th>Acción Bot</th>
+            </tr>
+          </thead>
+          <tbody id="openPositionsBody">
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">
+                Sin órdenes abiertas. El bot está buscando el siguiente giro en milisegundos.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MÓDULO 3: MÉTRICAS Y FORECAST -->
+    <div class="forecast-panel" id="forecastPanel">
+      <div class="forecast-card real-pace">
+        <div class="fc-title">
+          <span>FORECAST CON TENDENCIA REAL</span>
+          <span style="color: var(--green);">● RITMO ACTUAL</span>
+        </div>
+        <div class="fc-days text-green" id="realForecastDays">Meta $100K MXN</div>
+        <div class="fc-sub" id="realForecastDesc">Proyección con interés compuesto hacia los $100,000 MXN ($5,000 USD) partiendo de tus 200 pesos.</div>
+      </div>
+      <div class="forecast-card plan-pace">
+        <div class="fc-title">
+          <span>PLAN PROYECTADO ESTÁNDAR</span>
+          <span style="color: var(--accent);">● PLAN 6.0% DIARIO</span>
+        </div>
+        <div class="fc-days text-accent" id="planForecastDays">~15 Semanas</div>
+        <div class="fc-sub" id="planForecastDesc">Tiempo estimado con una tasa de ganancia compuesta del 6% diario constante.</div>
+      </div>
+      <div class="forecast-card">
+        <div class="fc-title">
+          <span>DIFERENCIAL DE VELOCIDAD</span>
+          <span style="color: var(--purple);">⚡ EFICIENCIA</span>
+        </div>
+        <div class="fc-days text-purple" id="speedDifferential">⚡ Cuenta Real Activa</div>
+        <div class="fc-sub" id="speedDiffDesc">Operando en vivo con dinero real. Cada ganancia suma directamente a tu capital.</div>
+      </div>
+    </div>
+
+    <!-- Tarjetas de Métricas Reales -->
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-title">Monto Inicial (Depósito Real)</div>
+        <div class="card-val" id="initialDeposit">$10.43 USD</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Balance de Cuenta Real</div>
+        <div class="card-val text-green" id="finalBalance">$10.43 USD</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Equidad en Vivo</div>
+        <div class="card-val text-accent" id="equityVal">$10.43 USD</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Margen Libre Disponible</div>
+        <div class="card-val text-accent" id="freeMarginVal">$10.43 USD</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Profit Neto Acumulado</div>
+        <div class="card-val text-green" id="netProfit">+$0.00 USD (+0.0%)</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Avance a la Meta ($100K MXN)</div>
+        <div class="card-val text-purple" id="progressPct">0.21%</div>
+      </div>
+    </div>
+
+    <!-- Dropzone sólo visible en modo histórico -->
+    <div class="dropzone" id="dropzone" style="display: none;" onclick="document.getElementById('fileInput').click()">
+      <h3>📁 Arrastra aquí tu archivo CSV de Exness</h3>
+      <p>O haz clic para seleccionarlo de tu computadora</p>
+      <input type="file" id="fileInput" accept=".csv">
+    </div>
+
+    <!-- MÓDULO 4: REGISTRO HISTÓRICO Y TABLA EXACTA DE TU EXCEL -->
+    <h2 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--gold);">
+      📋 Registro Contable Diario - Cuenta Real #478648580
+    </h2>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Activo</th>
+            <th>Depósito Inicial</th>
+            <th style="color: var(--accent);">20/11/2026</th>
+            <th style="color: var(--green);">21/11/2026 (En Vivo)</th>
+            <th>Total Ganancia Real</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-btc">BTCUSDm</span> (Bitcoin)</td>
+            <td style="color: var(--text-muted);">$0.00</td>
+            <td class="text-green" id="tdBtcToday">+$0.00</td>
+            <td class="text-green" id="tdBtcLive">+$0.00</td>
+            <td class="text-green" id="tdBtcTotal" style="font-weight: bold;">+$0.00</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-eur">EURUSDm</span> (Euro)</td>
+            <td style="color: var(--text-muted);">$0.00</td>
+            <td style="color: var(--text-muted);">-</td>
+            <td class="text-green" id="tdEurLive">+$0.00</td>
+            <td class="text-green" id="tdEurTotal" style="font-weight: bold;">+$0.00</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-xau">XAUUSDm</span> (Oro)</td>
+            <td style="color: var(--text-muted);">$0.00</td>
+            <td style="color: var(--text-muted);">-</td>
+            <td class="text-green" id="tdXauLive">+$0.00</td>
+            <td class="text-green" id="tdXauTotal" style="font-weight: bold;">+$0.00</td>
+          </tr>
+          <tr class="total-row">
+            <td>TOTAL PROFIT DEL DÍA</td>
+            <td style="color: var(--text-muted);">$0.00</td>
+            <td class="text-green">+$0.00</td>
+            <td class="text-green" id="tdProfitToday" style="font-size: 1.05rem;">+$0.00</td>
+            <td class="text-green" id="tdProfitTotal" style="font-size: 1.05rem;">+$0.00 USD</td>
+          </tr>
+          <tr class="highlight-row">
+            <td>AUMENTO GRADUAL (SALDO)</td>
+            <td style="color: var(--accent);">$10.43</td>
+            <td style="color: var(--accent);">$10.43</td>
+            <td style="color: var(--green); font-size: 1.05rem;" id="tdBalanceToday">$10.43 USD</td>
+            <td style="color: var(--green); font-size: 1.05rem;" id="tdBalanceTotal">$10.43 USD</td>
+          </tr>
+          <tr>
+            <td>% DE RENDIMIENTO DIARIO</td>
+            <td style="color: var(--text-muted);">0.0%</td>
+            <td class="text-gold">+0.0%</td>
+            <td class="text-gold" id="tdPctToday">+0.0%</td>
+            <td class="text-green" id="tdPctTotal" style="font-weight: bold;">+0.0% Total</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- GRÁFICA -->
+    <h2 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--accent);">
+      📊 Proyección Compuesta a $100K MXN partiendo de $10.43 USD (200 Pesos)
+    </h2>
+    <div class="chart-box">
+      <canvas id="growthChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let isLiveMode = true;
+    let fileHandleRef = null;
+    let myChart = null;
+
+    function setLiveMode(live) {
+      isLiveMode = live;
+      document.getElementById('btnLive').className = live ? 'mode-btn active-live' : 'mode-btn';
+      document.getElementById('btnHistory').className = !live ? 'mode-btn active-csv' : 'mode-btn';
+      document.getElementById('dropzone').style.display = live ? 'none' : 'block';
+      document.getElementById('btnConnectFolder').style.display = live ? 'inline-flex' : 'none';
+    }
+
+    // Usar la File System Access API para enlazar live_trading_state.json manualmente si se desea
+    async function selectLiveStateFile() {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{
+            description: 'Estado de Trading en Vivo (JSON)',
+            accept: { 'application/json': ['.json'] }
+          }],
+          multiple: false
+        });
+        fileHandleRef = handle;
+        document.getElementById('syncStatus').innerText = `Enlazado a: ${handle.name}`;
+        const file = await fileHandleRef.getFile();
+        const text = await file.text();
+        updateDashboardWithLiveData(JSON.parse(text));
+      } catch (err) {
+        console.log("Selección cancelada:", err);
+      }
+    }
+
+    async function autoFetchLiveTelemetry() {
+      try {
+        const url = window.location.origin.includes('http') 
+          ? 'live_trading_state.json?t=' + Date.now()
+          : 'http://localhost:8080/live_trading_state.json?t=' + Date.now();
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          updateDashboardWithLiveData(data);
+          document.getElementById('syncStatus').innerText = '⚡ Sincronizado en Vivo (Tiempo Real continuo)';
+          return true;
+        }
+      } catch (err) {
+        // Fallback silencioso si no está disponible
+      }
+      return false;
+    }
+
+    function setCustomInitialDeposit(acc) {
+      const cur = localStorage.getItem('initial_deposit_' + acc) || '10.00';
+      const userVal = prompt(`Ingresa tu depósito inicial real para la cuenta #${acc}:`, cur);
+      if (userVal && !isNaN(parseFloat(userVal))) {
+        localStorage.setItem('initial_deposit_' + acc, parseFloat(userVal));
+        if (window.lastTelemetryData) updateDashboardWithLiveData(window.lastTelemetryData);
+      }
+    }
+
+    function updateDashboardWithLiveData(d) {
+      try {
+        window.lastTelemetryData = d;
+        const isReal = (d.trade_mode === 'REAL' || (d.account && d.account !== 480600399));
+        const curr = d.currency || 'USD';
+        
+        const elConn = document.getElementById('connStatus');
+        if (elConn) {
+          if (isReal) {
+            elConn.innerHTML = `<span style="background: rgba(239,68,68,0.2); color: #f87171; padding: 4px 10px; border-radius: 12px; border: 1px solid #ef4444; font-weight: bold;">🔴 CUENTA REAL #${d.account || ''}</span>`;
+          } else {
+            elConn.innerHTML = `<span style="background: rgba(245,158,11,0.2); color: #fbbf24; padding: 4px 10px; border-radius: 12px; border: 1px solid #f59e0b; font-weight: bold;">🟡 DEMO #${d.account || '480600399'}</span>`;
+          }
+        }
+        const elPulse = document.getElementById('pulseDot');
+        if (elPulse) elPulse.className = 'pulse-dot online';
+
+        const currentBalance = typeof d.balance === 'number' ? d.balance : 10.00;
+        const currentEquity = typeof d.equity === 'number' ? d.equity : currentBalance;
+        const freeMargin = typeof d.free_margin === 'number' ? d.free_margin : currentEquity;
+
+        const elBal = document.getElementById('finalBalance');
+        if (elBal) elBal.innerText = `$${currentBalance.toFixed(2)} ${curr}`;
+        
+        const elEq = document.getElementById('equityVal');
+        if (elEq) elEq.innerText = `$${currentEquity.toFixed(2)} ${curr}`;
+        
+        const elMar = document.getElementById('freeMarginVal');
+        if (elMar) elMar.innerText = `$${freeMargin.toFixed(2)} ${curr}`;
+
+        // Deposito inicial automatico o guardado
+        let initialDeposit = 500.00;
+        if (isReal) {
+          let savedInitial = localStorage.getItem('initial_deposit_' + d.account);
+          if (!savedInitial) {
+            savedInitial = (currentBalance > 0 && currentBalance < 150) ? currentBalance : 10.00;
+            localStorage.setItem('initial_deposit_' + d.account, savedInitial);
+          }
+          initialDeposit = parseFloat(savedInitial) || 10.00;
+        } else {
+          initialDeposit = 500.00;
+        }
+
+        const elInit = document.getElementById('initialDeposit');
+        if (elInit) {
+          elInit.innerHTML = `$${initialDeposit.toFixed(2)} ${curr} <span onclick="setCustomInitialDeposit('${d.account}')" style="cursor: pointer; font-size: 0.85rem; color: var(--accent); margin-left: 6px;" title="Editar Depósito Inicial">✏️</span>`;
+        }
+
+        const profit = currentEquity - initialDeposit;
+        const profitPct = initialDeposit > 0 ? ((profit / initialDeposit) * 100).toFixed(1) : 0;
+
+        const elNetProf = document.getElementById('netProfit');
+        if (elNetProf) {
+          elNetProf.innerText = `${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} ${curr} (+${profitPct}%)`;
+          elNetProf.className = profit >= 0 ? 'card-val text-green' : 'card-val text-red';
+        }
+
+        // Meta $100,000 MXN (~$5,000 USD)
+        const targetGoal = (curr === 'MXN') ? 100000 : 5000;
+        const elProg = document.getElementById('progressPct');
+        if (elProg) {
+          const progress = ((currentEquity / targetGoal) * 100).toFixed(2);
+          elProg.innerText = `${progress}%`;
+        }
+
+        // Posiciones abiertas en tiempo real
+        const posBody = document.getElementById('openPositionsBody');
+        const posSummary = document.getElementById('posSummaryText');
+        const positions = (d.positions && Array.isArray(d.positions)) ? d.positions : [];
+        
+        if (positions.length === 0) {
+          if (posBody) {
+            posBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">Sin órdenes abiertas. El bot está monitoreando la curva para entrar en el punto óptimo.</td></tr>`;
+          }
+          if (posSummary) posSummary.innerText = `0 órdenes en curso`;
+        } else {
+          if (posSummary) posSummary.innerText = `${positions.length} orden(es) corriendo en vivo`;
+          let html = '';
+          positions.forEach(p => {
+            const pProfit = typeof p.profit === 'number' ? p.profit : 0;
+            const cls = pProfit >= 0 ? 'text-green' : 'text-red';
+            const isBuy = (p.type === 0 || (typeof p.type === 'string' && p.type.toUpperCase().includes('BUY')));
+            const typeLabel = isBuy ? 'COMPRA (BUY)' : 'VENTA (SELL)';
+            const typeBadge = isBuy ? 'badge-btc' : 'badge-eur';
+            const pVol = typeof p.volume === 'number' ? p.volume.toFixed(2) : p.volume;
+            const pPrice = typeof p.open_price === 'number' ? p.open_price.toFixed(p.symbol.includes('EUR') ? 4 : 2) : p.open_price;
+            html += `
+              <tr>
+                <td>#${p.ticket}</td>
+                <td style="font-weight: bold; color: var(--accent);">${p.symbol}</td>
+                <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
+                <td>${pVol}</td>
+                <td>${pPrice}</td>
+                <td class="${cls}" style="font-weight: bold; font-size: 1.05rem;">${pProfit >= 0 ? '+' : ''}$${pProfit.toFixed(2)} ${curr}</td>
+                <td style="font-size: 0.8rem; color: var(--purple); font-weight: bold;">⚡ Monitoreando TP/SL</td>
+              </tr>
+            `;
+          });
+          if (posBody) posBody.innerHTML = html;
+        }
+
+        // Si es cuenta real, actualizar la tabla contable con los datos reales
+        if (isReal) {
+          const elProfToday = document.getElementById('tdProfitToday');
+          if (elProfToday) elProfToday.innerText = `${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} ${curr}`;
+
+          const elBalToday = document.getElementById('tdBalanceToday');
+          if (elBalToday) elBalToday.innerText = `$${currentBalance.toFixed(2)} ${curr}`;
+
+          const elPctToday = document.getElementById('tdPctToday');
+          if (elPctToday) elPctToday.innerText = `+${profitPct}%`;
+
+          const elProfTot = document.getElementById('tdProfitTotal');
+          if (elProfTot) elProfTot.innerText = `${profit >= 0 ? '+' : ''}$${profit.toFixed(2)} ${curr}`;
+
+          const elBalTot = document.getElementById('tdBalanceTotal');
+          if (elBalTot) elBalTot.innerText = `$${currentBalance.toFixed(2)} ${curr}`;
+
+          const elPctTot = document.getElementById('tdPctTotal');
+          if (elPctTot) elPctTot.innerText = `+${profitPct}% Total`;
+        } else {
+          // Modo demo anterior
+          const startOfTodayBalance = 776.66;
+          const profitToday = currentBalance - startOfTodayBalance;
+          const pctToday = ((profitToday / startOfTodayBalance) * 100).toFixed(1);
+          const totalAccum = currentBalance - initialDeposit;
+          const totalAccumPct = ((totalAccum / initialDeposit) * 100).toFixed(1);
+
+          const elProfToday = document.getElementById('tdProfitToday');
+          if (elProfToday) elProfToday.innerText = `${profitToday >= 0 ? '+' : ''}$${profitToday.toFixed(2)} USD`;
+
+          const elBalToday = document.getElementById('tdBalanceToday');
+          if (elBalToday) elBalToday.innerText = `$${currentBalance.toFixed(2)} USD`;
+
+          const elPctToday = document.getElementById('tdPctToday');
+          if (elPctToday) elPctToday.innerText = `+${pctToday}%`;
+
+          const elProfTot = document.getElementById('tdProfitTotal');
+          if (elProfTot) elProfTot.innerText = `+$${totalAccum.toFixed(2)} USD`;
+
+          const elBalTot = document.getElementById('tdBalanceTotal');
+          if (elBalTot) elBalTot.innerText = `$${currentBalance.toFixed(2)} USD`;
+
+          const elPctTot = document.getElementById('tdPctTotal');
+          if (elPctTot) elPctTot.innerText = `+${totalAccumPct}% Total`;
+        }
+
+        // Radar de IA
+        if (d.ai_radar && Array.isArray(d.ai_radar) && d.ai_radar.length) {
+          updateAiRadar(d.ai_radar);
+        }
+
+        // Actualizar Gráfica y Forecast para Cuenta Real
+        if (myChart && isReal) {
+          myChart.data.labels = ['Inicio ($10.43)', 'Sem 2 ($25)', 'Sem 4 ($60)', 'Sem 6 ($144)', 'Sem 8 ($344)', 'Sem 11 ($1K)', 'Sem 13 ($2K)', 'Meta $100K MXN ($5K)'];
+          const projTarget = [10.43, 25.00, 59.90, 143.50, 344.00, 824.00, 1975.00, 5000.00];
+          myChart.data.datasets[1].data = projTarget;
+          myChart.data.datasets[1].label = `Ruta Compuesta a $100,000 MXN ($${curr})`;
+          myChart.data.datasets[0].label = `Capital Real en Vivo ($${curr})`;
+          myChart.data.datasets[0].data = [initialDeposit, currentEquity, null, null, null, null, null, null];
+          myChart.update();
+
+          const elSpeed = document.getElementById('speedDifferential');
+          if (elSpeed) elSpeed.innerText = `⚡ Cuenta Real Activa`;
+          const elSpeedDesc = document.getElementById('speedDiffDesc');
+          if (elSpeedDesc) elSpeedDesc.innerText = `Operando en vivo con $${currentEquity.toFixed(2)} ${curr}. Estrategia de Curva M5 lista para cazar giros.`;
+        }
+      } catch (err) {
+        console.error("Error en updateDashboardWithLiveData:", err);
+      }
+    }
+
+    function updateAiRadar(radarItems) {
+      const grid = document.getElementById('radarGrid');
+      let html = '';
+      radarItems.forEach(item => {
+        let cardCls = 'radar-card';
+        let sigCls = 'text-gold';
+        if (item.signal.includes('COMPRA')) { cardCls += ' bullish'; sigCls = 'text-green'; }
+        else if (item.signal.includes('VENTA')) { cardCls += ' bearish'; sigCls = 'text-red'; }
+        else { cardCls += ' neutral'; }
+
+        html += `
+          <div class="${cardCls}">
+            <div class="rc-top">
+              <span class="rc-symbol">${item.symbol}</span>
+              <span class="rc-prob ${item.probability >= 70 ? 'prob-high' : 'prob-low'}">${item.probability}% Probabilidad</span>
+            </div>
+            <div class="rc-signal ${sigCls}">${item.signal}</div>
+            <div class="rc-reason">${item.reason}</div>
+            <div class="rc-target">
+              <span>Precio Actual: $${item.price}</span>
+              <span class="${sigCls}">Proyección: +$${item.target_move}</span>
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    }
+
+    // Inicializar Gráfica y Loop en Vivo
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.protocol === 'file:') {
+        const banner = document.getElementById('fileProtocolBanner');
+        if (banner) banner.style.display = 'block';
+      }
+      const ctx = document.getElementById('growthChart').getContext('2d');
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Inicio (200 MXN)', 'Día 15', 'Día 30', 'Día 45', 'Día 60', 'Día 75', 'Día 90', 'Meta $100K MXN'],
+          datasets: [
+            {
+              label: 'Capital Real en Vivo ($ USD)',
+              data: [10.43, null, null, null, null, null, null, null],
+              borderColor: '#22c55e',
+              backgroundColor: 'rgba(34, 197, 94, 0.15)',
+              borderWidth: 3,
+              fill: true,
+              pointRadius: 6,
+              pointBackgroundColor: '#22c55e'
+            },
+            {
+              label: 'Plan Interés Compuesto 6% Diario',
+              data: [10.43, 25.00, 59.90, 143.50, 344.00, 824.00, 1975.00, 5000.00],
+              borderColor: '#38bdf8',
+              borderDash: [5, 5],
+              borderWidth: 2,
+              fill: false
+            },
+            {
+              label: 'Curva Base Conservadora (3% Diario)',
+              data: [10.43, 16.25, 25.30, 39.40, 61.40, 95.70, 149.00, 5000.00],
+              borderColor: '#c084fc',
+              borderDash: [3, 3],
+              borderWidth: 2.5,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#f8fafc', font: { weight: 'bold' } } }
+          },
+          scales: {
+            x: { ticks: { color: '#94a3b8' }, grid: { color: '#33415544' } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#33415544' } }
+          }
+        }
+      });
+
+      // Primer chequeo inmediato
+      autoFetchLiveTelemetry();
+
+      // Loop continuo cada 1 segundo (100% automático sin necesidad de clics manuales)
+      setInterval(async () => {
+        if (isLiveMode) {
+          if (fileHandleRef) {
+            try {
+              const file = await fileHandleRef.getFile();
+              const text = await file.text();
+              updateDashboardWithLiveData(JSON.parse(text));
+            } catch(e) {}
+          } else {
+            await autoFetchLiveTelemetry();
+          }
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
+

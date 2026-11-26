@@ -1,0 +1,404 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM | Procesos, Hojas de Ruta (CA01) y Versiones (C223)</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+:root{
+  --primary:#2563eb; --bg:#f8fafc; --card:#ffffff; --text:#1e293b;
+  --muted:#64748b; --border:#e2e8f0; --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text)}
+.container{max-width:1550px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
+.title-box{display:flex;align-items:center;gap:15px}
+.title-box h1{margin:0;font-size:26px}
+.title-box p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.tab-btn{padding:11px 18px;border-radius:12px;border:1px solid var(--border);background:white;font-weight:700;cursor:pointer;color:var(--muted)}
+.tab-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.04);margin-bottom:20px}
+.grid-routing{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+@media(max-width:1000px){.grid-routing{grid-template-columns:1fr}}
+.pt-list{max-height:540px;overflow:auto;margin-top:10px}
+.pt-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px}
+.pt-item:hover{background:#f1f5f9}
+.pt-item.active{background:var(--primary);color:white}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.group{display:flex;flex-direction:column}
+label{font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;text-transform:uppercase}
+input,select,textarea{padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;background:white;font-family:inherit;width:100%}
+.btn{border:none;border-radius:10px;padding:10px 15px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13px}
+.btn-primary{background:var(--primary);color:white}
+.btn-secondary{background:#e2e8f0;color:#334155}
+.btn-success{background:var(--success);color:white}
+.btn-danger-soft{background:#fee2e2;color:#991b1b}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse}
+th{background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;text-align:left;padding:10px}
+td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.b-ok{background:#dcfce7;color:#166534}
+.b-warn{background:#fef3c7;color:#92400e}
+.b-info{background:#e0f2fe;color:#0369a1}
+.muted{color:var(--muted);font-size:11px}
+.empty{text-align:center;padding:30px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="title-box">
+      <button class="btn btn-secondary" onclick="location.href='ingenieria_catalogos.html'"><i class="fas fa-arrow-left"></i> Regresar</button>
+      <div>
+        <h1><i class="fas fa-gears" style="color:var(--primary)"></i> Procesos, Hojas de Ruta & Versiones (SAP CA01/C223)</h1>
+        <p>Secuencia de operaciones estándar por Número de Parte conectando Áreas, Moldes, Máquinas, Empaque y Checklists</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnRuta" onclick="switchTab('ruta')"><i class="fas fa-route"></i> 1. Hojas de Ruta y Versiones por N/P</button>
+    <button class="tab-btn" id="tabBtnProc" onclick="switchTab('proc')"><i class="fas fa-sliders"></i> 2. Catálogo Maestro de Procesos</button>
+  </div>
+
+  <!-- TAB 1: HOJAS DE RUTA Y VERSIONES -->
+  <div id="tabRuta" class="grid-routing">
+    <div class="card">
+      <h3 style="margin:0 0 10px">Producto / Sub-ensamble</h3>
+      <input id="qPart" placeholder="Buscar N° parte o nombre..." oninput="renderParts()">
+      <div class="pt-list" id="partsList"><div class="empty">Cargando...</div></div>
+    </div>
+
+    <div>
+      <!-- VERSIONES DE FABRICACIÓN (C223) -->
+      <div class="card">
+        <h3 style="margin:0 0 6px" id="verTitle">Versiones de Fabricación (Parte + Molde + Máquina + Empaque)</h3>
+        <div class="muted" style="margin-bottom:12px" id="verSub">Selecciona un número de parte a la izquierda</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Molde</th><th>Máquina</th><th>Ciclo (s)</th><th>Cav.</th><th>Pzs / Hora</th><th>Setup</th><th>Empaque Oficial</th><th>Ubic. Default WMS</th></tr>
+            </thead>
+            <tbody id="verBody"><tr><td colspan="8" class="empty">Selecciona un número de parte.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HOJA DE RUTA (CA01) -->
+      <div class="card">
+        <h3 style="margin:0 0 12px"><i class="fas fa-list-ol"></i> Hoja de Ruta de Operaciones</h3>
+        <div id="routingForm" style="display:none;background:#f8fafc;padding:14px;border-radius:12px;border:1px solid var(--border);margin-bottom:15px">
+          <div class="form-grid">
+            <div class="group"><label>Secuencia *</label><input id="r_seq" type="number" step="10" value="10"></div>
+            <div class="group"><label>Proceso *</label><select id="r_proc" onchange="onProcesoChange()"></select></div>
+            <div class="group"><label>Área</label><select id="r_area"></select></div>
+            <div class="group"><label>Molde (si aplica)</label><select id="r_mold"></select></div>
+            <div class="group"><label>Máquina (si aplica)</label><select id="r_mach"></select></div>
+            <div class="group"><label>Checklist requerido</label><select id="r_chk"></select></div>
+            <div class="group"><label>Tiempo ciclo / pza (s)</label><input id="r_time" type="number" step="0.1" value="0"></div>
+            <div class="group"><label>Setup SMED (min)</label><input id="r_setup" type="number" step="0.5" value="0"></div>
+            <div class="group"><label>Operadores req.</label><input id="r_ops" type="number" min="1" value="1"></div>
+          </div>
+          <div class="group" style="margin-top:10px"><label>Instrucciones / Notas de Operación</label><input id="r_notas" placeholder="Ej. Colocar 2 clips antes de empacar en carro"></div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end">
+            <button class="btn btn-success" onclick="agregarPasoRuta()"><i class="fas fa-plus"></i> Agregar Operación</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Seq</th><th>Proceso</th><th>Área</th><th>Molde / Máquina</th><th>Tiempo (s)</th><th>Setup (min)</th><th>Ops</th><th>Checklist</th><th></th></tr>
+            </thead>
+            <tbody id="rutaBody"><tr><td colspan="9" class="empty">Selecciona un número de parte.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: CATÁLOGO MAESTRO DE PROCESOS -->
+  <div id="tabProc" style="display:none">
+    <div class="card">
+      <h3 style="margin:0 0 12px"><span id="pFormTitle">Nuevo Proceso Estándar</span></h3>
+      <div class="form-grid">
+        <div class="group"><label>Código *</label><input id="p_cod" placeholder="Ej. PROC-PIN" style="text-transform:uppercase"></div>
+        <div class="group"><label>Nombre *</label><input id="p_nom" placeholder="Ej. Pintura / Primer"></div>
+        <div class="group"><label>Tipo</label>
+          <select id="p_tipo"><option>INYECCION</option><option>ACABADO</option><option>SOLDADURA</option><option>ENSAMBLE</option><option>INSPECCION</option><option>EMPAQUE</option><option>OTRO</option></select>
+        </div>
+        <div class="group"><label>Área Default</label><select id="p_area"></select></div>
+        <div class="group"><label>Setup Estándar (min)</label><input id="p_setup" type="number" value="0"></div>
+        <div class="group"><label>¿Requiere Molde?</label><select id="p_molde"><option value="false">No</option><option value="true">Sí</option></select></div>
+        <div class="group"><label>¿Requiere Checklist?</label><select id="p_chk"><option value="false">No</option><option value="true">Sí</option></select></div>
+      </div>
+      <div class="group" style="margin-top:10px"><label>Descripción</label><input id="p_desc"></div>
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <button class="btn btn-primary" onclick="guardarProceso()"><i class="fas fa-save"></i> Guardar Proceso</button>
+        <button class="btn btn-secondary" onclick="limpiarProceso()">Limpiar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Área</th><th>Setup</th><th>Molde</th><th>Checklist</th><th>Estatus</th><th style="text-align:right">Acciones</th></tr></thead>
+          <tbody id="procBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let parts = [], procesos = [], areas = [], molds = [], machines = [], checklists = [], routings = [], versions = [];
+let selectedPartId = null, editProcId = null;
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const val = id => document.getElementById(id).value.trim();
+
+function switchTab(t){
+  document.getElementById('tabRuta').style.display = t === 'ruta' ? 'grid' : 'none';
+  document.getElementById('tabProc').style.display = t === 'proc' ? 'block' : 'none';
+  document.getElementById('tabBtnRuta').classList.toggle('active', t === 'ruta');
+  document.getElementById('tabBtnProc').classList.toggle('active', t === 'proc');
+}
+
+async function init(){
+  const [rP, rPr, rAr, rMo, rMa, rCh] = await Promise.all([
+    window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, project', filter: q => q.or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%').eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name, product_type, project').or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%').eq('obsolete', false).order('part_number'),
+    client.from('procesos').select('*').order('codigo'),
+    client.from('areas').select('id, area_name').eq('active', true).order('area_name'),
+    client.from('molds').select('id, mold_code, mold_name, name, active').order('mold_code'),
+    client.from('mes_machines').select('id, machine_code, machine_name, active').order('machine_code'),
+    client.from('checklists').select('id, codigo, nombre, activo').order('codigo')
+  ]);
+
+  if (rPr.error) {
+    document.getElementById('partsList').innerHTML = `<div class="empty" style="color:var(--danger)">
+      ⚠️ Ejecuta primero <b>ingenieria_fase2_sap.sql</b> en Supabase.<br>${esc(rPr.error.message)}</div>`;
+    return;
+  }
+
+  parts = Array.isArray(rP) ? rP : (rP.data || []);
+  procesos = rPr.data || [];
+  areas = rAr.data || [];
+  molds = (rMo.data || []).filter(m => m.active !== false);
+  machines = (rMa.data || []).filter(m => m.active !== false);
+  checklists = (rCh.data || []).filter(c => c.activo !== false);
+
+  fillSelects();
+  renderParts();
+  renderProcesos();
+}
+
+function fillSelects(){
+  const procOpts = `<option value="">Seleccione...</option>` + procesos.filter(p => p.activo !== false).map(p => `<option value="${p.id}">${esc(p.codigo)} - ${esc(p.nombre)}</option>`).join('');
+  const areaOpts = `<option value="">-- Ninguna --</option>` + areas.map(a => `<option value="${a.id}">${esc(a.area_name)}</option>`).join('');
+  document.getElementById('r_proc').innerHTML = procOpts;
+  document.getElementById('r_area').innerHTML = areaOpts;
+  document.getElementById('p_area').innerHTML = areaOpts;
+  document.getElementById('r_mold').innerHTML = `<option value="">-- N/A --</option>` + molds.map(m => `<option value="${esc(m.id)}">${esc(m.mold_code || '')} - ${esc(m.mold_name || m.name || '')}</option>`).join('');
+  document.getElementById('r_mach').innerHTML = `<option value="">-- N/A --</option>` + machines.map(m => `<option value="${esc(m.id)}">${esc(m.machine_code)} - ${esc(m.machine_name)}</option>`).join('');
+  document.getElementById('r_chk').innerHTML = `<option value="">-- Sin checklist --</option>` + checklists.map(c => `<option value="${c.id}">${esc(c.codigo)} - ${esc(c.nombre)}</option>`).join('');
+}
+
+function renderParts(){
+  const q = val('qPart').toUpperCase();
+  const list = parts.filter(p => `${p.part_number||''} ${p.part_name||''} ${p.project||''}`.toUpperCase().includes(q));
+  const box = document.getElementById('partsList');
+  if (!list.length) { box.innerHTML = `<div class="empty">Sin partes encontradas.</div>`; return; }
+  box.innerHTML = list.map(p => `
+    <div class="pt-item ${selectedPartId === p.id ? 'active' : ''}" onclick="selectPart(${p.id})">
+      <b>${esc(p.part_number)}</b> <span class="badge b-info">${esc(p.product_type)}</span>
+      <div style="font-size:12px;opacity:.85">${esc(p.part_name || '')} ${p.project ? '| ' + esc(p.project) : ''}</div>
+    </div>`).join('');
+}
+
+async function selectPart(id){
+  selectedPartId = id;
+  renderParts();
+  const p = parts.find(x => x.id === id);
+  document.getElementById('verTitle').textContent = `Versiones de Fabricación: ${p.part_number}`;
+  document.getElementById('verSub').textContent = `${p.part_name || ''} • Combinaciones válidas para Planeación, Montaje de Moldes y WMS`;
+  document.getElementById('routingForm').style.display = 'block';
+
+  const [rR, rV] = await Promise.all([
+    client.from('part_routings').select('*').eq('part_id', id).order('seq_num'),
+    client.from('v_production_versions').select('*').eq('part_id', id)
+  ]);
+  routings = rR.data || [];
+  versions = rV.data || [];
+
+  const maxSeq = routings.length ? Math.max(...routings.map(r => r.seq_num)) : 0;
+  document.getElementById('r_seq').value = maxSeq + 10;
+
+  renderVersions();
+  renderRoutings();
+}
+
+function renderVersions(){
+  const body = document.getElementById('verBody');
+  const valid = versions.filter(v => v.mold_id || v.machine_id);
+  if (!valid.length) {
+    body.innerHTML = `<tr><td colspan="8" class="empty">Aún sin versión Molde + Máquina. Asígnalo en <a href="catalogo_moldes.html">Maestro de Moldes</a>.</td></tr>`;
+    return;
+  }
+  body.innerHTML = valid.map(v => `<tr>
+    <td><b>${esc(v.mold_code || '-')}</b><div class="muted">${esc(v.mold_name || '')}</div></td>
+    <td>${v.machine_code ? `<b>${esc(v.machine_code)}</b>` : '<span class="muted">Sin máquina</span>'}</td>
+    <td>${v.cycle_time_sec || '-'}</td>
+    <td>${v.cavities_for_part || '-'}</td>
+    <td><b>${v.pcs_per_hour || '-'}</b></td>
+    <td>${v.mold_setup_min || 0} min</td>
+    <td>${v.official_std_pack ? `<span class="badge b-ok">${v.official_std_pack} pzs (${esc(v.empaque_codigo)})</span>` : '<span class="badge b-warn">Sin empaque</span>'}</td>
+    <td>${v.default_location_code ? `<b>${esc(v.default_location_code)}</b>` : '<span class="muted">-</span>'}</td>
+  </tr>`).join('');
+}
+
+function renderRoutings(){
+  const body = document.getElementById('rutaBody');
+  if (!routings.length) { body.innerHTML = `<tr><td colspan="9" class="empty">Sin hoja de ruta definida para este N/P.</td></tr>`; return; }
+  body.innerHTML = routings.map(r => {
+    const pr = procesos.find(x => x.id === r.proceso_id) || {};
+    const ar = areas.find(x => x.id === r.area_id);
+    const mo = molds.find(x => String(x.id) === String(r.mold_id));
+    const ma = machines.find(x => String(x.id) === String(r.machine_id));
+    const ch = checklists.find(x => x.id === r.checklist_id);
+    return `<tr>
+      <td><b>${r.seq_num}</b></td>
+      <td><b>${esc(pr.nombre || r.proceso_id)}</b>${r.notas ? `<div class="muted">${esc(r.notas)}</div>` : ''}</td>
+      <td>${ar ? esc(ar.area_name) : '-'}</td>
+      <td>${mo ? esc(mo.mold_code) : '-'} / ${ma ? esc(ma.machine_code) : '-'}</td>
+      <td>${r.std_time_sec || 0} s</td>
+      <td>${r.setup_time_min || 0} min</td>
+      <td>${r.operators_req || 1}</td>
+      <td>${ch ? `<span class="badge b-info">${esc(ch.codigo)}</span>` : '-'}</td>
+      <td style="text-align:right"><button class="btn btn-sm btn-danger-soft" onclick="eliminarPaso(${r.id})"><i class="fas fa-trash"></i></button></td>
+    </tr>`;
+  }).join('');
+}
+
+function onProcesoChange(){
+  const pr = procesos.find(x => String(x.id) === val('r_proc'));
+  if (!pr) return;
+  if (pr.area_id) document.getElementById('r_area').value = pr.area_id;
+  if (pr.std_setup_min) document.getElementById('r_setup').value = pr.std_setup_min;
+}
+
+async function agregarPasoRuta(){
+  if (!selectedPartId) return;
+  const procId = val('r_proc');
+  if (!procId) return alert('Selecciona un proceso.');
+  const { error } = await client.from('part_routings').insert([{
+    part_id: selectedPartId,
+    seq_num: parseInt(document.getElementById('r_seq').value, 10) || 10,
+    proceso_id: Number(procId),
+    area_id: val('r_area') ? Number(val('r_area')) : null,
+    mold_id: val('r_mold') || null,
+    machine_id: val('r_mach') || null,
+    checklist_id: val('r_chk') ? Number(val('r_chk')) : null,
+    std_time_sec: Number(document.getElementById('r_time').value) || 0,
+    setup_time_min: Number(document.getElementById('r_setup').value) || 0,
+    operators_req: parseInt(document.getElementById('r_ops').value, 10) || 1,
+    notas: val('r_notas') || null,
+    is_active: true
+  }]);
+  if (error) return alert('Error: ' + error.message);
+  document.getElementById('r_notas').value = '';
+  await selectPart(selectedPartId);
+}
+
+async function eliminarPaso(id){
+  const { error } = await client.from('part_routings').delete().eq('id', id);
+  if (error) return alert(error.message);
+  await selectPart(selectedPartId);
+}
+
+// ---------------- CATÁLOGO DE PROCESOS ----------------
+function renderProcesos(){
+  const body = document.getElementById('procBody');
+  body.innerHTML = procesos.map(p => {
+    const ar = areas.find(a => a.id === p.area_id);
+    return `<tr style="${p.activo === false ? 'opacity:.55' : ''}">
+      <td><b>${esc(p.codigo)}</b></td>
+      <td><b>${esc(p.nombre)}</b><div class="muted">${esc(p.descripcion || '')}</div></td>
+      <td><span class="badge b-info">${esc(p.tipo)}</span></td>
+      <td>${ar ? esc(ar.area_name) : '-'}</td>
+      <td>${p.std_setup_min || 0} min</td>
+      <td>${p.requiere_molde ? 'Sí' : 'No'}</td>
+      <td>${p.requiere_checklist ? 'Sí' : 'No'}</td>
+      <td><span class="badge ${p.activo !== false ? 'b-ok' : 'b-warn'}">${p.activo !== false ? 'ACTIVO' : 'INACTIVO'}</span></td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn btn-sm btn-secondary" onclick="editarProceso(${p.id})"><i class="fas fa-pen"></i></button>
+        <button class="btn btn-sm btn-danger-soft" onclick="toggleProceso(${p.id}, ${p.activo !== false})"><i class="fas ${p.activo === false ? 'fa-check' : 'fa-ban'}"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function limpiarProceso(){
+  editProcId = null;
+  document.getElementById('pFormTitle').textContent = 'Nuevo Proceso Estándar';
+  ['p_cod','p_nom','p_desc'].forEach(k => document.getElementById(k).value = '');
+  document.getElementById('p_setup').value = 0;
+  document.getElementById('p_area').value = '';
+}
+
+function editarProceso(id){
+  const p = procesos.find(x => x.id === id);
+  if (!p) return;
+  editProcId = id;
+  document.getElementById('pFormTitle').textContent = 'Editar Proceso: ' + p.codigo;
+  document.getElementById('p_cod').value = p.codigo || '';
+  document.getElementById('p_nom').value = p.nombre || '';
+  document.getElementById('p_tipo').value = p.tipo || 'PRODUCCION';
+  document.getElementById('p_area').value = p.area_id || '';
+  document.getElementById('p_setup').value = p.std_setup_min ?? 0;
+  document.getElementById('p_molde').value = String(!!p.requiere_molde);
+  document.getElementById('p_chk').value = String(!!p.requiere_checklist);
+  document.getElementById('p_desc').value = p.descripcion || '';
+}
+
+async function guardarProceso(){
+  const codigo = val('p_cod').toUpperCase();
+  const nombre = val('p_nom');
+  if (!codigo || !nombre) return alert('Código y nombre son obligatorios.');
+  const payload = {
+    codigo, nombre,
+    tipo: val('p_tipo'),
+    area_id: val('p_area') ? Number(val('p_area')) : null,
+    std_setup_min: Number(document.getElementById('p_setup').value) || 0,
+    requiere_molde: val('p_molde') === 'true',
+    requiere_checklist: val('p_chk') === 'true',
+    descripcion: val('p_desc') || null
+  };
+  const res = editProcId
+    ? await client.from('procesos').update(payload).eq('id', editProcId)
+    : await client.from('procesos').insert([{ ...payload, activo: true }]);
+  if (res.error) return alert('Error: ' + res.error.message);
+  limpiarProceso();
+  await init();
+}
+
+async function toggleProceso(id, actual){
+  const { error } = await client.from('procesos').update({ activo: !actual }).eq('id', id);
+  if (error) return alert(error.message);
+  await init();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
+

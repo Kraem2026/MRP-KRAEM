@@ -1,23 +1,27 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Inventarios</title>
+  <title>Login - KRAEM by APEX SYSTEM</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="/favicon.ico">
-  <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#000000">
+  <link rel="icon" href="favicon.ico">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-    .login-box { background: white; padding: 30px; width: 100%; max-width: 350px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    h2 { text-align: center; margin-bottom: 20px; color: #333; }
-    label { font-size: 13px; font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
-    input { width: 100%; padding: 12px; margin-bottom: 15px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; }
-    button:hover { background: #0056b3; }
-    
+    body { font-family: 'Inter', Arial, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .login-box { background: white; padding: 30px; width: 100%; max-width: 370px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    .lang-bar { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 12px; }
+    .lang-pill { border: 1px solid #d1d5db; background: #f8fafc; color: #334155; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .lang-pill.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    h2 { text-align: center; margin: 0 0 20px; color: #0f172a; }
+    label { font-size: 13px; font-weight: bold; color: #475569; display: block; margin-bottom: 5px; }
+    input { width: 100%; padding: 12px; margin-bottom: 15px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; }
+    button.btn-login { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; }
+    button.btn-login:hover { background: #1d4ed8; }
     .status { text-align: center; margin-top: 15px; font-size: 14px; min-height: 20px; }
     .error { color: #dc3545; }
     .success { color: #28a745; }
@@ -27,67 +31,112 @@
 <body>
 
 <div class="login-box">
-  <h2>Acceso MRP-KRAEM</h2>
-  
-  <label>Usuario</label>
-  <input type="text" id="userInput" placeholder="Tu nombre de usuario">
+  <div class="lang-bar">
+    <button type="button" class="lang-pill" data-lang="es" onclick="cambiarIdiomaLogin('es')">🇲🇽 ES</button>
+    <button type="button" class="lang-pill" data-lang="ko" onclick="cambiarIdiomaLogin('ko')">🇰🇷 KO</button>
+    <button type="button" class="lang-pill" data-lang="en" onclick="cambiarIdiomaLogin('en')">🇺🇸 EN</button>
+  </div>
 
-  <label>Contraseña</label>
-  <input type="password" id="password" placeholder="••••••••">
+  <h2 id="txtTitle" style="margin-bottom:4px;">Acceso MRP - KRAEM</h2>
+  <div style="text-align:center;font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;margin-bottom:18px;">POWERED BY <span style="color:#2563eb;">APEX SYSTEM</span></div>
 
-  <button onclick="login()">Entrar al Sistema</button>
+  <label id="lblUser" for="userInput">Usuario</label>
+  <input type="text" id="userInput" placeholder="Tu nombre de usuario" autocomplete="username">
+
+  <label id="lblPass" for="password">Contraseña</label>
+  <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+
+  <button class="btn-login" id="btnLogin" onclick="login()">Entrar al Sistema</button>
 
   <div id="status" class="status"></div>
 </div>
 
 <script>
-  const SUPABASE_URL = 'https://telntsrrschcdxczlape.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw';
+  const LOGIN_I18N = {
+    es: {
+      title: 'Acceso MRP-KRAEM', user: 'Usuario', userPh: 'Tu nombre de usuario',
+      pass: 'Contraseña', btn: 'Entrar al Sistema', empty: 'Escribe tu usuario y clave',
+      checking: 'Validando...', welcome: '¡Bienvenido!'
+    },
+    ko: {
+      title: 'MRP-KRAEM 로그인', user: '사용자 ID', userPh: '사용자 이름 입력',
+      pass: '비밀번호', btn: '시스템 접속', empty: '사용자 ID와 비밀번호를 입력하세요',
+      checking: '확인 중...', welcome: '환영합니다!'
+    },
+    en: {
+      title: 'MRP-KRAEM Login', user: 'Username', userPh: 'Your username',
+      pass: 'Password', btn: 'Sign In', empty: 'Enter your username and password',
+      checking: 'Validating...', welcome: 'Welcome!'
+    }
+  };
 
-  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  function cambiarIdiomaLogin(lang) {
+    const active = KraemI18n.setLang(lang);
+    const t = LOGIN_I18N[active] || LOGIN_I18N.es;
+    document.getElementById('txtTitle').textContent = t.title;
+    document.getElementById('lblUser').textContent = t.user;
+    document.getElementById('userInput').placeholder = t.userPh;
+    document.getElementById('lblPass').textContent = t.pass;
+    document.getElementById('btnLogin').textContent = t.btn;
+    document.querySelectorAll('.lang-pill').forEach(b => b.classList.toggle('active', b.dataset.lang === active));
+  }
+
+  function getSafeRedirect() {
+    const raw = new URLSearchParams(window.location.search).get('redirect') || '';
+    if (/^[a-zA-Z0-9_\-]+\.html(\?.*)?$/.test(raw) && !raw.startsWith('index.html')) {
+      return raw;
+    }
+    return 'dashboard.html';
+  }
 
   async function login() {
+    const lang = KraemI18n.getLang();
+    const t = LOGIN_I18N[lang] || LOGIN_I18N.es;
     const user = document.getElementById('userInput').value.trim();
     const pass = document.getElementById('password').value;
     const statusDiv = document.getElementById('status');
 
     if (!user || !pass) {
-      statusDiv.textContent = 'Escribe tu usuario y clave';
+      statusDiv.textContent = t.empty;
       statusDiv.className = 'status error';
       return;
     }
 
-    statusDiv.textContent = 'Validando...';
+    statusDiv.textContent = t.checking;
     statusDiv.className = 'status';
 
-    // 🔥 FORZAR LOGOUT (evita sesión corrupta)
     await client.auth.signOut();
 
-    // Convertimos usuario a email
-    const fakeEmail = user.toLowerCase() + "@kraem.com";
+    const fakeEmail = user.includes('@') ? user.toLowerCase() : (user.toLowerCase() + '@kraem.com');
 
     const { data, error } = await client.auth.signInWithPassword({
       email: fakeEmail,
       password: pass,
     });
 
-    // 🔥 DEBUG REAL
-    console.log("DATA:", data);
-    console.log("ERROR:", error);
-
     if (error) {
-      statusDiv.textContent = error.message; // 👈 AQUI ves el error real
+      statusDiv.textContent = error.message;
       statusDiv.className = 'status error';
     } else {
-      statusDiv.textContent = '¡Bienvenido!';
+      statusDiv.textContent = t.welcome;
       statusDiv.className = 'status success';
 
       setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 800);
+        window.location.href = getSafeRedirect();
+      }, 500);
     }
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    cambiarIdiomaLogin(KraemI18n.getLang());
+    ['userInput', 'password'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') login();
+      });
+    });
+  });
 </script>
 
 </body>
 </html>
+

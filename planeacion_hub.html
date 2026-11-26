@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM ERP | Cockpit Planeación (Boceto PP/MRP/APS)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="kraem_nav.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+:root{
+  --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+  --primary:#2563eb; --accent:#4f46e5; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
+.container{max-width:1440px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:20px}
+.title-wrap{display:flex;align-items:center;gap:14px}
+.title-wrap h1{margin:0;font-size:24px}
+.title-wrap p{margin:3px 0 0;color:var(--muted);font-size:13px}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:10px 15px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff;border:none}
+.pill-boceto{background:rgba(79,70,229,0.14);color:#6366f1;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px 18px;border-left:4px solid var(--primary)}
+.kpi .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.kpi .val{font-size:24px;font-weight:800;margin-top:4px}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
+.card h2{margin:0 0 6px;font-size:17px}
+.card .desc{color:var(--muted);font-size:13px;margin:0 0 16px}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;align-items:stretch}
+.step{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;position:relative;transition:.2s}
+.step:hover{border-color:var(--primary);transform:translateY(-2px)}
+.step-num{font-size:11px;font-weight:800;color:var(--primary);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.step h3{margin:0 0 8px;font-size:16px;display:flex;align-items:center;gap:8px}
+.step p{margin:0 0 12px;font-size:12.5px;color:var(--muted);line-height:1.45}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tag{font-size:10.5px;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(37,99,235,0.1);color:var(--primary)}
+.matrix{width:100%;border-collapse:collapse;font-size:13px}
+.matrix th,.matrix td{padding:11px 12px;border-bottom:1px solid var(--border);text-align:left}
+.matrix th{font-size:11px;text-transform:uppercase;color:var(--muted)}
+.status-ok{color:var(--success);font-weight:700}
+.status-wip{color:var(--warning);font-weight:700}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="title-wrap">
+      <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> Dashboard</button>
+      <div>
+        <h1 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span><i class="fas fa-diagram-project" style="color:var(--primary)"></i> Cockpit de Planeación & Control ERP</span>
+          <span style="font-size:11px;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.12);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
+          <span class="pill-boceto">Boceto Base</span>
+        </h1>
+        <p>Arquitectura SAP PP/MRP/APS conectada con Ingeniería, Moldes, WMS, Compras y Producción</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <a href="Planeacion.html" class="btn"><i class="fas fa-clock-rotate-left"></i> Prototipos Anteriores</a>
+      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- KPIs REALES DE INGENIERÍA / WMS PARA PLANEACIÓN -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="lbl">Productos Terminados / Sub</div>
+      <div class="val" id="kPt">-</div>
+      <div class="sub">Base para Demanda y Forecast</div>
+    </div>
+    <div class="kpi" style="border-left-color:var(--danger)">
+      <div class="lbl">Materiales Bajo Stock Seg.</div>
+      <div class="val" id="kLowMat">-</div>
+      <div class="sub">Resinas/Componentes vs WMS</div>
+    </div>
+    <div class="kpi" style="border-left-color:var(--accent)">
+      <div class="lbl">Máquinas Configuradas</div>
+      <div class="val" id="kMach">-</div>
+      <div class="sub">Centros de trabajo (mes_machines)</div>
+    </div>
+    <div class="kpi" style="border-left-color:var(--success)">
+      <div class="lbl">Moldes Registrados</div>
+      <div class="val" id="kMold">-</div>
+      <div class="sub">Disponibilidad y disparos PM</div>
+    </div>
+  </div>
+
+  <!-- FLUJO END-TO-END DEL ERP -->
+  <div class="card">
+    <h2><i class="fas fa-route" style="color:var(--primary)"></i> Flujo Completo de Planeación en el ERP</h2>
+    <p class="desc">Cada bloque representa un módulo conectado en cadena. Entra a los 3 bocetos interactivos para validar la lógica antes de bajarlo a tablas finales de Supabase.</p>
+
+    <div class="flow">
+      <div class="step">
+        <div>
+          <div class="step-num"><span>Paso 1 · Demanda</span><span class="tag">SAP MD61 / VA01</span></div>
+          <h3><i class="fas fa-chart-line" style="color:var(--primary)"></i> Forecast & Requerimientos</h3>
+          <p>Captura de demanda firme y pronóstico por Cliente + N° Parte PT. Compara contra Stock WMS y Stock de Seguridad para calcular Necesidad Neta.</p>
+          <div class="tags"><span class="tag">clientes</span><span class="tag">parts</span><span class="tag">v_inventory_by_location</span></div>
+        </div>
+        <a href="planeacion_mrp_forecast.html" class="btn btn-primary" style="justify-content:center"><i class="fas fa-play"></i> Abrir Boceto Forecast & MRP</a>
+      </div>
+
+      <div class="step">
+        <div>
+          <div class="step-num"><span>Paso 2 · Abasto</span><span class="tag">SAP MD01 / MD04</span></div>
+          <h3><i class="fas fa-boxes-stacked" style="color:var(--warning)"></i> Explosión MRP de Materiales</h3>
+          <p>Explota el BOM multinivel con % de scrap, consolida kilos de resina e insertos, resta inventario WMS y genera alertas de compra según Lead Time y lote mínimo.</p>
+          <div class="tags"><span class="tag">bom_structures</span><span class="tag">explorar_bom_multinivel</span><span class="tag">safety_stock</span></div>
+        </div>
+        <a href="planeacion_mrp_forecast.html#tab-mrp" class="btn" style="justify-content:center;border-color:var(--warning);color:var(--warning)"><i class="fas fa-calculator"></i> Simular Explosión MRP</a>
+      </div>
+
+      <div class="step">
+        <div>
+          <div class="step-num"><span>Abasto Externo</span><span class="tag">SAP ME21N / MIGO</span></div>
+          <h3><i class="fas fa-file-invoice-dollar" style="color:#0ea5e9"></i> Compras, Proveedores & Recibo</h3>
+          <p>Emisión de Órdenes de Compra con notificación por correo al proveedor, recepción WMS con lote de proveedor para FIFO y etiquetado QR de tarimas.</p>
+          <div class="tags"><span class="tag">proveedores</span><span class="tag">compras_ordenes</span><span class="tag">recibo_fifo</span></div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <a href="compras_ordenes.html" class="btn btn-primary" style="flex:1;justify-content:center;background:#0ea5e9;font-size:12px"><i class="fas fa-cart-shopping"></i> Órdenes Compra</a>
+          <a href="compras_recibo.html" class="btn btn-secondary" style="flex:1;justify-content:center;font-size:12px"><i class="fas fa-truck-ramp-box"></i> Recibo WMS</a>
+        </div>
+      </div>
+
+      <div class="step">
+        <div>
+          <div class="step-num"><span>Paso 3 · Capacidad</span><span class="tag">SAP CM25 / CO01</span></div>
+          <h3><i class="fas fa-calendar-week" style="color:var(--accent)"></i> Tablero APS & Máquinas</h3>
+          <p>Convierte necesidades en Órdenes de Producción (WO). Asigna máquina + molde validando tonelaje, entre-barras, horas/turno y OEE meta en calendario.</p>
+          <div class="tags"><span class="tag">mes_machines CR01</span><span class="tag">part_molds</span><span class="tag">empaques_partes</span></div>
+        </div>
+        <a href="planeacion_aps_tablero.html" class="btn btn-primary" style="justify-content:center;background:var(--accent)"><i class="fas fa-sliders"></i> Abrir Tablero APS</a>
+      </div>
+
+      <div class="step">
+        <div>
+          <div class="step-num"><span>Paso 4 · Piso</span><span class="tag">SMED / PRT</span></div>
+          <h3><i class="fas fa-wrench" style="color:var(--success)"></i> Montaje de Moldes SMED</h3>
+          <p>Cola de cambios de molde derivada del plan APS: valida estado PM de disparos, surtido de resina/insertos por WMS y checklist SMED para liberar arranque a Producción.</p>
+          <div class="tags"><span class="tag">molds</span><span class="tag">checklists</span><span class="tag">checklist_items</span></div>
+        </div>
+        <a href="planeacion_montaje_moldes.html" class="btn btn-primary" style="justify-content:center;background:var(--success)"><i class="fas fa-clipboard-check"></i> Abrir Boceto Montaje SMED</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAPA DE INTEGRACIÓN CON EL RESTO DEL ERP -->
+  <div class="card">
+    <h2><i class="fas fa-link" style="color:var(--primary)"></i> Mapa de Conexión entre Módulos (Ingeniería ↔ Planeación ↔ WMS ↔ Producción)</h2>
+    <p class="desc">Resumen de qué consume Planeación de cada área y qué le entrega de regreso.</p>
+    <div style="overflow-x:auto">
+      <table class="matrix">
+        <thead>
+          <tr><th>Módulo Conectado</th><th>Qué lee Planeación de él</th><th>Qué le entrega Planeación</th><th>Estado Base</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Ingeniería</strong></td>
+            <td>`parts` (MRP/Lead Time/Scrap), `bom_structures`, `molds` / `part_molds`, `mes_machines` (CR01), `part_routings`, `empaques_partes`</td>
+            <td>Alertas de partes sin molde, sin BOM o sin ubicación default WMS</td>
+            <td class="status-ok"><i class="fas fa-check-circle"></i> Maestro listo (Fase 1 y 2)</td>
+          </tr>
+          <tr>
+            <td><strong>WMS (Almacén)</strong></td>
+            <td>`v_inventory_by_location` (Stock neto por ubicación/lote), ubicaciones fijas, capacidad de carritos</td>
+            <td>Lista de Surtido/Kitting por WO a pie de máquina y Requisiciones de compra de MP</td>
+            <td class="status-wip"><i class="fas fa-circle-half-stroke"></i> Lectura WMS lista · Kitting en Fase 3</td>
+          </tr>
+          <tr>
+            <td><strong>Montaje / Calidad</strong></td>
+            <td>Estatus PM de moldes (`current_shots`), `checklists` SMED y Primera Pieza</td>
+            <td>Secuencia de cambios de molde con fecha/hora objetivo y máquina destino</td>
+            <td class="status-wip"><i class="fas fa-circle-half-stroke"></i> Boceto listo en este módulo</td>
+          </tr>
+          <tr>
+            <td><strong>Producción (Piso)</strong></td>
+            <td>Avance real de piezas buenas/scrap y paros (`produccion_captura.html`)</td>
+            <td>Órdenes de Producción (WO) liberadas con máquina, molde, meta/hora y estándar de empaque</td>
+            <td class="status-wip"><i class="fas fa-circle-half-stroke"></i> Pendiente unificar tabla máquinas</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadSummary(){
+  try{
+    const [partsData, rStock, rMach, rMolds] = await Promise.all([
+      window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, product_type, safety_stock, obsolete', filter: q => q.eq('obsolete', false), orderBy: 'id' }) : client.from('parts').select('id, product_type, safety_stock, obsolete').eq('obsolete', false).then(r => r.data || []),
+      client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0),
+      client.from('mes_machines').select('id', {count:'exact', head:true}).eq('active', true),
+      client.from('molds').select('id', {count:'exact', head:true})
+    ]);
+
+    const parts = Array.isArray(partsData) ? partsData : (partsData.data || []);
+    const pts = parts.filter(p => p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
+    const mats = parts.filter(p => p.product_type === 'RESINA' || p.product_type === 'COMPONENTE');
+
+    const stk = {};
+    (rStock.data || []).forEach(s => { stk[s.part_id] = (stk[s.part_id] || 0) + (parseFloat(s.quantity) || 0); });
+    const lowCount = mats.filter(m => Number(m.safety_stock || 0) > 0 && (stk[m.id] || 0) < Number(m.safety_stock)).length;
+
+    document.getElementById('kPt').textContent = pts.length || '0';
+    document.getElementById('kLowMat').textContent = rStock.error ? 'N/D' : lowCount;
+    document.getElementById('kMach').textContent = rMach.error ? 'N/D' : (rMach.count ?? 0);
+    document.getElementById('kMold').textContent = rMolds.error ? 'SQL F1' : (rMolds.count ?? 0);
+  } catch (e) {
+    console.warn('Resumen boceto:', e);
+  }
+}
+document.addEventListener('DOMContentLoaded', loadSummary);
+</script>
+</body>
+</html>

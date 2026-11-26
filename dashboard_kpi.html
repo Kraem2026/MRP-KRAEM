@@ -1,0 +1,842 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRAEM MRP | Dashboard Ejecutivo de KPIs</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b;
+      --border: #e2e8f0; --primary: #2563eb; --accent: #4f46e5;
+      --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+    }
+    [data-theme="dark"] {
+      --bg: #020617; --card: #1e293b; --text: #f1f5f9; --muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.25s; }
+    .container { max-width: 1420px; margin: auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+    .title-wrap { display: flex; align-items: center; gap: 12px; }
+    .title-wrap h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+    .title-wrap p { margin: 3px 0 0; font-size: 0.85rem; color: var(--muted); }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .btn { padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-weight: 700; font-size: 0.83rem; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; transition: 0.15s; }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-primary { background: var(--primary); color: #fff; border: none; }
+    .btn-primary:hover { color: #fff; opacity: 0.92; }
+    .btn-demo.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .tab-btn { padding: 11px 18px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.18s; }
+    .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 6px 16px rgba(37,99,235,0.22); }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .kpi-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; border-left: 4px solid var(--primary); }
+    .kpi-lbl { font-size: 0.74rem; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+    .kpi-num { font-size: 2rem; font-weight: 900; margin: 4px 0; }
+    .kpi-sub { font-size: 0.78rem; color: var(--muted); }
+
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; margin-bottom: 20px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 18px; }
+    .card h3 { margin: 0 0 12px; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .chart-wrap { position: relative; height: 290px; width: 100%; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { text-align: left; padding: 10px 12px; font-size: 0.74rem; text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--border); background: rgba(148,163,184,0.08); }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .badge { padding: 3px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; display: inline-block; }
+    .b-ok { background: rgba(34,197,94,0.15); color: var(--success); }
+    .b-warn { background: rgba(245,158,11,0.16); color: var(--warning); }
+    .b-bad { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .b-info { background: rgba(37,99,235,0.12); color: var(--primary); }
+
+    .banner { padding: 11px 15px; border-radius: 12px; background: rgba(79,70,229,0.09); border: 1px solid rgba(79,70,229,0.25); font-size: 0.83rem; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .filter-bar { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 150px; }
+    .filter-group label { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--muted); }
+    .filter-group select, .filter-group input { padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.85rem; font-weight: 600; }
+    .period-pill { margin-left: auto; background: rgba(37,99,235,0.1); color: var(--primary); padding: 7px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    @media (max-width: 700px) { .charts-grid { grid-template-columns: 1fr; } body { padding: 12px; } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header class="header">
+    <div class="title-wrap">
+      <a href="dashboard.html" class="btn"><i class="fas fa-arrow-left"></i> <span data-i18n="back">Dashboard</span></a>
+      <div>
+        <h1><i class="fas fa-chart-pie"></i> <span data-i18n="title">Dashboard Ejecutivo de KPIs</span></h1>
+        <p data-i18n="subtitle">Análisis visual de OEE, Cumplimiento de Plan y Veracidad de Inventario (IRA)</p>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn btn-demo" id="btnPreview" onclick="togglePreview()">
+        <i class="fas fa-eye"></i> <span id="lblPreview">Vista Ejemplo</span>
+      </button>
+      <button class="btn" onclick="cargarTodo()"><i class="fas fa-sync-alt"></i></button>
+      <a href="configuracion_sistema.html" class="btn" title="Configuración de Metas"><i class="fas fa-sliders-h"></i></a>
+      <button class="btn" onclick="window.print()"><i class="fas fa-print"></i></button>
+      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </header>
+
+  <div class="banner" id="modeBanner">
+    <div><i class="fas fa-database" style="color:var(--accent);"></i> <span id="modeDesc">Mostrando datos reales conectados a Supabase.</span></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;" id="quickLinks"></div>
+  </div>
+
+  <!-- BARRA DE FILTRO DE FECHAS / PERÍODO -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label data-i18n="f_period">Período</label>
+      <select id="periodMode" onchange="onPeriodModeChange()">
+        <option value="current_month" data-i18n="p_cur_month">Mes en curso</option>
+        <option value="week" data-i18n="p_week">Semana específica</option>
+        <option value="month" data-i18n="p_month">Mes específico</option>
+        <option value="year" data-i18n="p_year">Año completo</option>
+        <option value="custom" data-i18n="p_custom">Rango personalizado</option>
+      </select>
+    </div>
+
+    <div class="filter-group" id="grpWeek" style="display:none;">
+      <label data-i18n="f_week">Elegir Semana</label>
+      <input type="week" id="fWeek" onchange="syncFromPicker()">
+    </div>
+
+    <div class="filter-group" id="grpMonth" style="display:none;">
+      <label data-i18n="f_month">Elegir Mes</label>
+      <input type="month" id="fMonth" onchange="syncFromPicker()">
+    </div>
+
+    <div class="filter-group" id="grpYear" style="display:none;">
+      <label data-i18n="f_year">Elegir Año</label>
+      <select id="fYear" onchange="syncFromPicker()"></select>
+    </div>
+
+    <div class="filter-group">
+      <label data-i18n="f_from">Desde</label>
+      <input type="date" id="fStart" onchange="onCustomDateChange()">
+    </div>
+
+    <div class="filter-group">
+      <label data-i18n="f_to">Hasta</label>
+      <input type="date" id="fEnd" onchange="onCustomDateChange()">
+    </div>
+
+    <span class="period-pill" id="periodBadge"><i class="fas fa-calendar-alt"></i> <span id="periodLabel">--</span></span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn" id="tab-oee" onclick="setTab('oee')"><i class="fas fa-percentage"></i> <span data-i18n="t_oee">1. OEE Planta</span></button>
+    <button class="tab-btn" id="tab-cumplimiento" onclick="setTab('cumplimiento')"><i class="fas fa-check-double"></i> <span data-i18n="t_plan">2. Cumplimiento (Plan vs Real)</span></button>
+    <button class="tab-btn" id="tab-veracidad" onclick="setTab('veracidad')"><i class="fas fa-bullseye"></i> <span data-i18n="t_ira">3. Veracidad Inv. (IRA %)</span></button>
+  </div>
+
+  <!-- PESTAÑA 1: OEE -->
+  <section class="tab-pane" id="pane-oee">
+    <div class="kpi-grid">
+      <div class="kpi-box" style="border-left-color:var(--success)">
+        <div class="kpi-lbl" data-i18n="oee_global">OEE Global Planta</div>
+        <div class="kpi-num" id="oeeGlobal">--%</div>
+        <div class="kpi-sub" id="oeeGlobalSub">Meta: 85.0%</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--primary)">
+        <div class="kpi-lbl" data-i18n="oee_disp">Disponibilidad</div>
+        <div class="kpi-num" id="oeeDisp">--%</div>
+        <div class="kpi-sub" id="oeeDispSub">Tiempo operando vs programado</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--accent)">
+        <div class="kpi-lbl" data-i18n="oee_rend">Rendimiento</div>
+        <div class="kpi-num" id="oeeRend">--%</div>
+        <div class="kpi-sub" id="oeeRendSub">Velocidad real vs ciclo estándar</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--warning)">
+        <div class="kpi-lbl" data-i18n="oee_cal">Calidad (FTQ)</div>
+        <div class="kpi-num" id="oeeCal">--%</div>
+        <div class="kpi-sub" id="oeeCalSub">Piezas buenas vs inspeccionadas</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="card">
+        <h3><span><i class="fas fa-chart-bar"></i> <span data-i18n="ch_oee_mach">OEE por Máquina vs Meta</span></span></h3>
+        <div class="chart-wrap"><canvas id="chartOeeMachines"></canvas></div>
+      </div>
+      <div class="card">
+        <h3><span><i class="fas fa-sliders"></i> <span data-i18n="ch_oee_comp">Componentes OEE (D × R × C)</span></span></h3>
+        <div class="chart-wrap"><canvas id="chartOeeFactors"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>
+        <span><i class="fas fa-industry"></i> <span data-i18n="tbl_oee">Desempeño por Prensa / Máquina</span></span>
+        <a href="analisis.html" class="btn" style="padding:6px 10px; font-size:0.75rem;"><i class="fas fa-external-link-alt"></i> <span data-i18n="go_pareto">Ir a Paretos de Calidad</span></a>
+      </h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Máquina</th><th>Tonelaje</th><th>Estatus</th><th>Meta OEE</th><th>Calidad %</th><th>OEE Est.</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyOee"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PESTAÑA 2: CUMPLIMIENTO -->
+  <section class="tab-pane" id="pane-cumplimiento">
+    <div class="kpi-grid">
+      <div class="kpi-box" style="border-left-color:var(--primary)">
+        <div class="kpi-lbl" data-i18n="pl_global">Cumplimiento Global</div>
+        <div class="kpi-num" id="plGlobal">--%</div>
+        <div class="kpi-sub" id="plGlobalSub">Meta: 95.0%</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--success)">
+        <div class="kpi-lbl" data-i18n="pl_pcs">Piezas Producidas / Plan</div>
+        <div class="kpi-num" id="plPcs">0 / 0</div>
+        <div class="kpi-sub" id="plPcsSub">Avance acumulado del periodo</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--accent)">
+        <div class="kpi-lbl" data-i18n="pl_wo_ok">Órdenes Completadas</div>
+        <div class="kpi-num" id="plWoOk">0</div>
+        <div class="kpi-sub" id="plWoOkSub">WO cerradas a tiempo</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--danger)">
+        <div class="kpi-lbl" data-i18n="pl_wo_late">Órdenes Pendientes / Atraso</div>
+        <div class="kpi-num" id="plWoLate">0</div>
+        <div class="kpi-sub" id="plWoLateSub">Requieren seguimiento APS</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="card">
+        <h3><span><i class="fas fa-chart-column"></i> <span data-i18n="ch_plan_bar">Planificado vs Producido (Piezas)</span></span></h3>
+        <div class="chart-wrap"><canvas id="chartPlanBar"></canvas></div>
+      </div>
+      <div class="card">
+        <h3><span><i class="fas fa-chart-pie"></i> <span data-i18n="ch_plan_st">Distribución de Órdenes (WO)</span></span></h3>
+        <div class="chart-wrap"><canvas id="chartPlanStatus"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>
+        <span><i class="fas fa-list-check"></i> <span data-i18n="tbl_plan">Seguimiento de Órdenes de Producción (Plan vs Real)</span></span>
+        <a href="planeacion_aps_tablero.html" class="btn" style="padding:6px 10px; font-size:0.75rem;"><i class="fas fa-external-link-alt"></i> <span data-i18n="go_aps">Ir a Tablero APS</span></a>
+      </h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Orden / Fecha</th><th>N° Parte</th><th>Máquina</th><th>Programado</th><th>Real</th><th>% Cumpl.</th><th>Estatus</th></tr>
+          </thead>
+          <tbody id="tbodyPlan"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PESTAÑA 3: VERACIDAD IRA -->
+  <section class="tab-pane" id="pane-veracidad">
+    <div class="kpi-grid">
+      <div class="kpi-box" style="border-left-color:var(--warning)">
+        <div class="kpi-lbl" data-i18n="ira_global">Veracidad IRA %</div>
+        <div class="kpi-num" id="iraGlobal">--%</div>
+        <div class="kpi-sub" id="iraGlobalSub">Meta: ≥ 98.0%</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--success)">
+        <div class="kpi-lbl" data-i18n="ira_ok">Lotes 100% Exactos</div>
+        <div class="kpi-num" id="iraOk">0</div>
+        <div class="kpi-sub" id="iraOkSub">Sin diferencia sistema vs físico</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--danger)">
+        <div class="kpi-lbl" data-i18n="ira_adj">Lotes Ajustados</div>
+        <div class="kpi-num" id="iraAdj">0</div>
+        <div class="kpi-sub" id="iraAdjSub">Con variación detectada</div>
+      </div>
+      <div class="kpi-box" style="border-left-color:var(--primary)">
+        <div class="kpi-lbl" data-i18n="ira_tot">Total Auditorías IRA</div>
+        <div class="kpi-num" id="iraTot">0</div>
+        <div class="kpi-sub" id="iraTotSub">Historial conteos cíclicos</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="card">
+        <h3><span><i class="fas fa-chart-line"></i> <span data-i18n="ch_ira_trend">Tendencia de Exactitud IRA %</span></span></h3>
+        <div class="chart-wrap"><canvas id="chartIraTrend"></canvas></div>
+      </div>
+      <div class="card">
+        <h3><span><i class="fas fa-bullseye"></i> <span data-i18n="ch_ira_mix">Exactos vs Con Diferencia</span></span></h3>
+        <div class="chart-wrap"><canvas id="chartIraDoughnut"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>
+        <span><i class="fas fa-clipboard-check"></i> <span data-i18n="tbl_ira">Últimas Auditorías de Conteo Cíclico (IRA)</span></span>
+        <a href="conteos_menu.html" class="btn" style="padding:6px 10px; font-size:0.75rem;"><i class="fas fa-external-link-alt"></i> <span data-i18n="go_cnt">Ir a Conteos Cíclicos</span></a>
+      </h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Fecha</th><th>N° Parte</th><th>Ubicación</th><th>Lote</th><th>Sistema</th><th>Físico</th><th>Diferencia</th><th>Resultado</th></tr>
+          </thead>
+          <tbody id="tbodyIra"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const KPI_I18N = {
+  es: {
+    back: 'Dashboard', title: 'Dashboard Ejecutivo de KPIs',
+    subtitle: 'Análisis visual de OEE, Cumplimiento de Plan y Veracidad de Inventario (IRA)',
+    previewOff: 'Vista Ejemplo', previewOn: 'Vista Real',
+    t_oee: '1. OEE Planta', t_plan: '2. Cumplimiento (Plan vs Real)', t_ira: '3. Veracidad Inv. (IRA %)',
+    oee_global: 'OEE Global Planta', oee_disp: 'Disponibilidad', oee_rend: 'Rendimiento', oee_cal: 'Calidad (FTQ)',
+    ch_oee_mach: 'OEE por Máquina vs Meta', ch_oee_comp: 'Componentes OEE (D × R × C)', tbl_oee: 'Desempeño por Prensa / Máquina',
+    pl_global: 'Cumplimiento Global', pl_pcs: 'Piezas Producidas / Plan', pl_wo_ok: 'Órdenes Completadas', pl_wo_late: 'Órdenes Pendientes / Atraso',
+    ch_plan_bar: 'Planificado vs Producido (Piezas)', ch_plan_st: 'Distribución de Órdenes (WO)', tbl_plan: 'Seguimiento de Órdenes (Plan vs Real)',
+    ira_global: 'Veracidad IRA %', ira_ok: 'Lotes 100% Exactos', ira_adj: 'Lotes Ajustados', ira_tot: 'Total Auditorías IRA',
+    ch_ira_trend: 'Tendencia de Exactitud IRA %', ch_ira_mix: 'Exactos vs Con Diferencia', tbl_ira: 'Últimas Auditorías de Conteo Cíclico (IRA)',
+    go_pareto: 'Ir a Paretos de Calidad', go_aps: 'Ir a Tablero APS', go_cnt: 'Ir a Conteos Cíclicos',
+    modeReal: 'Mostrando información real conectada a Supabase.',
+    modeDemo: 'Modo Vista Ejemplo activo: mostrando cómo lucen las gráficas y tablas ya pobladas.',
+    f_period: 'Período', p_cur_month: 'Mes en curso', p_week: 'Semana específica', p_month: 'Mes específico', p_year: 'Año completo', p_custom: 'Rango personalizado',
+    f_week: 'Elegir Semana', f_month: 'Elegir Mes', f_year: 'Elegir Año', f_from: 'Desde', f_to: 'Hasta'
+  },
+  ko: {
+    back: '대시보드', title: '경영진 KPI 대시보드',
+    subtitle: 'OEE, 생산 계획 준수율 및 재고 정확도(IRA) 시각화 분석',
+    previewOff: '샘플 보기', previewOn: '실시간 데이터',
+    t_oee: '1. 공장 OEE', t_plan: '2. 계획 준수율 (Plan vs Real)', t_ira: '3. 재고 정확도 (IRA %)',
+    oee_global: '공장 전체 OEE', oee_disp: '시간 가동률', oee_rend: '성능 가동률', oee_cal: '양품률 (FTQ)',
+    ch_oee_mach: '설비별 OEE vs 목표', ch_oee_comp: 'OEE 구성 요소 (D × R × C)', tbl_oee: '설비별 가동 및 품질 현황',
+    pl_global: '전체 계획 준수율', pl_pcs: '생산 실적 / 계획 수량', pl_wo_ok: '완료된 작업지시', pl_wo_late: '진행 중 / 지연 지시',
+    ch_plan_bar: '계획 대비 생산 실적 (수량)', ch_plan_st: '작업지시 상태 분포', tbl_plan: '작업지시 준수 현황',
+    ira_global: '재고 정확도 IRA %', ira_ok: '100% 일치 로트', ira_adj: '차이 조정 로트', ira_tot: '총 실사 로트 수',
+    ch_ira_trend: 'IRA % 추이', ch_ira_mix: '일치 vs 차이 비율', tbl_ira: '최근 순환 재고 실사 내역',
+    go_pareto: '품질 파레토 보기', go_aps: 'APS 보드 열기', go_cnt: '순환 실사 열기',
+    modeReal: 'Supabase 실시간 데이터를 표시하고 있습니다.',
+    modeDemo: '샘플 미리보기 모드: 데이터가 채워졌을 때의 차트와 표를 보여줍니다.',
+    f_period: '조회 기간', p_cur_month: '이번 달 (기본)', p_week: '특정 주간', p_month: '특정 월', p_year: '연간 전체', p_custom: '사용자 지정',
+    f_week: '주간 선택', f_month: '월 선택', f_year: '연도 선택', f_from: '시작일', f_to: '종료일'
+  },
+  en: {
+    back: 'Dashboard', title: 'Executive KPI Dashboard',
+    subtitle: 'Visual analytics for OEE, Schedule Attainment & Inventory Accuracy (IRA)',
+    previewOff: 'Sample Preview', previewOn: 'Live Data',
+    t_oee: '1. Plant OEE', t_plan: '2. Schedule Attainment', t_ira: '3. Inventory Accuracy (IRA %)',
+    oee_global: 'Plant OEE', oee_disp: 'Availability', oee_rend: 'Performance', oee_cal: 'Quality (FTQ)',
+    ch_oee_mach: 'OEE by Machine vs Target', ch_oee_comp: 'OEE Factors (A × P × Q)', tbl_oee: 'Press / Machine Performance',
+    pl_global: 'Overall Attainment', pl_pcs: 'Produced / Planned Qty', pl_wo_ok: 'Completed Orders', pl_wo_late: 'Open / Delayed Orders',
+    ch_plan_bar: 'Planned vs Actual (Pcs)', ch_plan_st: 'Work Order Status Mix', tbl_plan: 'Production Order Tracking',
+    ira_global: 'Inventory Accuracy IRA %', ira_ok: '100% Exact Lots', ira_adj: 'Adjusted Lots', ira_tot: 'Total IRA Audits',
+    ch_ira_trend: 'IRA % Accuracy Trend', ch_ira_mix: 'Exact vs Adjusted Split', tbl_ira: 'Recent Cycle Count Audits (IRA)',
+    go_pareto: 'Open Quality Paretos', go_aps: 'Open APS Board', go_cnt: 'Open Cycle Counts',
+    modeReal: 'Displaying live data connected to Supabase.',
+    modeDemo: 'Sample Preview active: showing how charts and tables look when populated.',
+    f_period: 'Period', p_cur_month: 'Current Month', p_week: 'Specific Week', p_month: 'Specific Month', p_year: 'Full Year', p_custom: 'Custom Range',
+    f_week: 'Select Week', f_month: 'Select Month', f_year: 'Select Year', f_from: 'From', f_to: 'To'
+  }
+};
+
+let activeTab = 'oee';
+let previewMode = localStorage.getItem('kraem_kpi_preview') === 'true';
+const charts = {};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function setTab(tab) {
+  activeTab = ['oee', 'cumplimiento', 'veracidad'].includes(tab) ? tab : 'oee';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + activeTab).classList.add('active');
+  document.getElementById('pane-' + activeTab).classList.add('active');
+}
+
+function togglePreview() {
+  previewMode = !previewMode;
+  localStorage.setItem('kraem_kpi_preview', String(previewMode));
+  actualizarUiIdioma();
+  cargarTodo();
+}
+
+function actualizarUiIdioma() {
+  const lang = KraemI18n.getLang();
+  const t = KPI_I18N[lang] || KPI_I18N.es;
+  KraemI18n.applyElements(KPI_I18N);
+  document.getElementById('lblPreview').textContent = previewMode ? t.previewOn : t.previewOff;
+  document.getElementById('btnPreview').classList.toggle('active', previewMode);
+  document.getElementById('modeDesc').textContent = previewMode ? t.modeDemo : t.modeReal;
+}
+
+function renderOee(data) {
+  document.getElementById('oeeGlobal').textContent = data.oee === null ? 'N/D' : `${data.oee.toFixed(1)}%`;
+  document.getElementById('oeeGlobalSub').textContent = `Meta: ${data.target.toFixed(1)}%`;
+  document.getElementById('oeeDisp').textContent = data.disp === null ? 'N/D' : `${data.disp.toFixed(1)}%`;
+  document.getElementById('oeeRend').textContent = data.rend === null ? 'N/D' : `${data.rend.toFixed(1)}%`;
+  document.getElementById('oeeCal').textContent = data.cal === null ? 'N/D' : `${data.cal.toFixed(1)}%`;
+  document.getElementById('oeeCalSub').textContent = data.calSub;
+
+  const tbody = document.getElementById('tbodyOee');
+  tbody.innerHTML = data.machines.length ? data.machines.map(m => `
+    <tr>
+      <td><b>${m.code}</b></td>
+      <td>${m.name}</td>
+      <td>${m.tonnage || '-'} T</td>
+      <td><span class="badge ${m.status === 'Producción' ? 'b-ok' : 'b-info'}">${m.status}</span></td>
+      <td>${m.target}%</td>
+      <td>${m.cal === null ? 'N/D' : m.cal.toFixed(1) + '%'}</td>
+      <td><b>${m.oee === null ? 'N/D' : m.oee.toFixed(1) + '%'}</b></td>
+    </tr>
+  `).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted);">Sin máquinas activas registradas.</td></tr>`;
+
+  destroyChart('oeeMach');
+  charts.oeeMach = new Chart(document.getElementById('chartOeeMachines'), {
+    type: 'bar',
+    data: {
+      labels: data.machines.map(m => m.code),
+      datasets: [
+        { label: 'OEE %', data: data.machines.map(m => m.oee ?? 0), backgroundColor: '#2563eb', borderRadius: 6 },
+        { label: 'Meta %', data: data.machines.map(m => m.target), type: 'line', borderColor: '#16a34a', borderDash: [5, 5], tension: 0.2 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+  });
+
+  destroyChart('oeeFactors');
+  charts.oeeFactors = new Chart(document.getElementById('chartOeeFactors'), {
+    type: 'bar',
+    data: {
+      labels: ['Disponibilidad', 'Rendimiento', 'Calidad', 'OEE Total'],
+      datasets: [{
+        label: '%',
+        data: [data.disp ?? 0, data.rend ?? 0, data.cal ?? 0, data.oee ?? 0],
+        backgroundColor: ['#2563eb', '#4f46e5', '#d97706', '#16a34a'],
+        borderRadius: 8
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
+  });
+}
+
+function renderPlan(data) {
+  const planTarget = Number(KraemSettings.get('kpi', 'plan_target_pct', 95));
+  document.getElementById('plGlobal').textContent = data.pct === null ? 'N/D' : `${data.pct.toFixed(1)}%`;
+  document.getElementById('plGlobalSub').textContent = `Meta: ${planTarget.toFixed(1)}%`;
+  document.getElementById('plPcs').textContent = `${data.realTotal.toLocaleString()} / ${data.planTotal.toLocaleString()}`;
+  document.getElementById('plWoOk').textContent = data.okCount;
+  document.getElementById('plWoLate').textContent = data.openCount;
+
+  const tbody = document.getElementById('tbodyPlan');
+  tbody.innerHTML = data.rows.length ? data.rows.map(r => `
+    <tr>
+      <td><b>${r.wo}</b><div style="font-size:11px;color:var(--muted)">${r.date}</div></td>
+      <td><b>${r.part}</b></td>
+      <td>${r.machine}</td>
+      <td>${r.plan.toLocaleString()}</td>
+      <td>${r.real.toLocaleString()}</td>
+      <td><b>${r.pct.toFixed(1)}%</b></td>
+      <td><span class="badge ${r.badge}">${r.status}</span></td>
+    </tr>
+  `).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted);">No hay órdenes en production_plan / production_orders aún. Activa "Vista Ejemplo" arriba para ver cómo luce poblado.</td></tr>`;
+
+  destroyChart('planBar');
+  charts.planBar = new Chart(document.getElementById('chartPlanBar'), {
+    type: 'bar',
+    data: {
+      labels: data.chartLabels,
+      datasets: [
+        { label: 'Programado', data: data.chartPlan, backgroundColor: 'rgba(148,163,184,0.55)', borderRadius: 6 },
+        { label: 'Real', data: data.chartReal, backgroundColor: '#2563eb', borderRadius: 6 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  destroyChart('planSt');
+  charts.planSt = new Chart(document.getElementById('chartPlanStatus'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Completadas', 'En Proceso / Plan', 'Con Atraso'],
+      datasets: [{ data: [data.okCount, data.inProgCount, data.lateCount], backgroundColor: ['#16a34a', '#2563eb', '#dc2626'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
+function renderIra(data) {
+  const iraTarget = Number(KraemSettings.get('kpi', 'ira_target_pct', 98));
+  document.getElementById('iraGlobal').textContent = `${data.pct.toFixed(1)}%`;
+  document.getElementById('iraGlobalSub').textContent = `Meta: ≥ ${iraTarget.toFixed(1)}%`;
+  document.getElementById('iraOk').textContent = data.exactos;
+  document.getElementById('iraAdj').textContent = data.ajustados;
+  document.getElementById('iraTot').textContent = data.total;
+
+  const tbody = document.getElementById('tbodyIra');
+  tbody.innerHTML = data.rows.length ? data.rows.map(r => `
+    <tr>
+      <td>${r.fecha}</td>
+      <td><b>${r.part}</b></td>
+      <td>${r.loc}</td>
+      <td>${r.lot}</td>
+      <td>${r.sis}</td>
+      <td><b>${r.fis}</b></td>
+      <td style="font-weight:800;color:${r.diff === 0 ? 'var(--success)' : 'var(--danger)'}">${r.diff > 0 ? '+' + r.diff : r.diff}</td>
+      <td><span class="badge ${r.exacto ? 'b-ok' : 'b-bad'}">${r.exacto ? '100% EXACTO' : 'AJUSTADO'}</span></td>
+    </tr>
+  `).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--muted);">Aún no hay conteos cíclicos registrados.</td></tr>`;
+
+  destroyChart('iraTrend');
+  charts.iraTrend = new Chart(document.getElementById('chartIraTrend'), {
+    type: 'line',
+    data: {
+      labels: data.trendLabels,
+      datasets: [{
+        label: 'IRA %',
+        data: data.trendValues,
+        borderColor: '#d97706',
+        backgroundColor: 'rgba(217,119,6,0.12)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 80, max: 100 } } }
+  });
+
+  destroyChart('iraMix');
+  charts.iraMix = new Chart(document.getElementById('chartIraDoughnut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Exactos (DIF = 0)', 'Ajustados (DIF ≠ 0)'],
+      datasets: [{ data: [data.exactos, data.ajustados], backgroundColor: ['#16a34a', '#dc2626'] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function toYmd(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+
+function getIsoWeekInputValue(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${pad2(weekNo)}`;
+}
+
+function weekValueToRange(weekStr) {
+  const m = /^(\d{4})-W(\d{2})$/.exec(weekStr || '');
+  if (!m) return null;
+  const year = Number(m[1]), week = Number(m[2]);
+  const simple = new Date(year, 0, 1 + (week - 1) * 7);
+  const dow = simple.getDay();
+  const monday = new Date(simple);
+  monday.setDate(simple.getDate() - (dow === 0 ? 6 : dow - 1));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: toYmd(monday), end: toYmd(sunday) };
+}
+
+function initPeriodControls() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const selYear = document.getElementById('fYear');
+  selYear.innerHTML = '';
+  for (let yr = y + 1; yr >= y - 4; yr--) {
+    selYear.innerHTML += `<option value="${yr}" ${yr === y ? 'selected' : ''}>${yr}</option>`;
+  }
+  document.getElementById('fMonth').value = `${y}-${pad2(now.getMonth() + 1)}`;
+  document.getElementById('fWeek').value = getIsoWeekInputValue(now);
+  document.getElementById('periodMode').value = 'current_month';
+  onPeriodModeChange(false);
+}
+
+function onPeriodModeChange(reload = true) {
+  const mode = document.getElementById('periodMode').value;
+  document.getElementById('grpWeek').style.display = mode === 'week' ? 'flex' : 'none';
+  document.getElementById('grpMonth').style.display = mode === 'month' ? 'flex' : 'none';
+  document.getElementById('grpYear').style.display = mode === 'year' ? 'flex' : 'none';
+  syncFromPicker(reload);
+}
+
+function syncFromPicker(reload = true) {
+  const mode = document.getElementById('periodMode').value;
+  const now = new Date();
+  let start = toYmd(new Date(now.getFullYear(), now.getMonth(), 1));
+  let end = toYmd(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
+  if (mode === 'week') {
+    const r = weekValueToRange(document.getElementById('fWeek').value);
+    if (r) { start = r.start; end = r.end; }
+  } else if (mode === 'month') {
+    const val = document.getElementById('fMonth').value;
+    if (/^\d{4}-\d{2}$/.test(val)) {
+      const [yy, mm] = val.split('-').map(Number);
+      start = toYmd(new Date(yy, mm - 1, 1));
+      end = toYmd(new Date(yy, mm, 0));
+    }
+  } else if (mode === 'year') {
+    const yy = Number(document.getElementById('fYear').value) || now.getFullYear();
+    start = `${yy}-01-01`;
+    end = `${yy}-12-31`;
+  } else if (mode === 'custom') {
+    if (document.getElementById('fStart').value) start = document.getElementById('fStart').value;
+    if (document.getElementById('fEnd').value) end = document.getElementById('fEnd').value;
+  }
+
+  document.getElementById('fStart').value = start;
+  document.getElementById('fEnd').value = end;
+  actualizarEtiquetaPeriodo();
+  if (reload) cargarTodo();
+}
+
+function onCustomDateChange() {
+  const sEl = document.getElementById('fStart');
+  const eEl = document.getElementById('fEnd');
+  if (sEl.value && eEl.value && sEl.value > eEl.value) {
+    eEl.value = sEl.value;
+  }
+  document.getElementById('periodMode').value = 'custom';
+  document.getElementById('grpWeek').style.display = 'none';
+  document.getElementById('grpMonth').style.display = 'none';
+  document.getElementById('grpYear').style.display = 'none';
+  actualizarEtiquetaPeriodo();
+  cargarTodo();
+}
+
+function actualizarEtiquetaPeriodo() {
+  const s = document.getElementById('fStart').value;
+  const e = document.getElementById('fEnd').value;
+  document.getElementById('periodLabel').textContent = `${s} → ${e}`;
+}
+
+async function cargarTodo() {
+  const startDate = document.getElementById('fStart').value;
+  const endDate = document.getElementById('fEnd').value;
+  const startIso = `${startDate}T00:00:00.000Z`;
+  const endIso = `${endDate}T23:59:59.999Z`;
+  const mode = document.getElementById('periodMode').value;
+  const cfgOeeTarget = Number(KraemSettings.get('kpi', 'oee_target_pct', 85));
+  const cfgPerfDef = Number(KraemSettings.get('kpi', 'oee_perf_default_pct', 92));
+  const cfgAvailFb = Number(KraemSettings.get('kpi', 'oee_avail_fallback_pct', 88));
+  const cfgIraTol = Number(KraemSettings.get('wms', 'ira_tolerance_qty', 0));
+
+  if (previewMode) {
+    const isWeek = mode === 'week';
+    const isYear = mode === 'year';
+    const planLabels = isWeek
+      ? ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+      : isYear
+        ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+        : ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+    const planSeries = isWeek
+      ? [2800, 2800, 2800, 2800, 2800, 2000]
+      : isYear
+        ? [62000, 64000, 68000, 65000, 70000, 72000, 69000, 71000, 74000, 75000, 72000, 68000]
+        : [16000, 17500, 18000, 16500];
+    const realSeries = isWeek
+      ? [2750, 2680, 2600, 2510, 2400, 1750]
+      : isYear
+        ? [58900, 61200, 64800, 62100, 67500, 68900, 65400, 68200, 71100, 72300, 68500, 64900]
+        : [15200, 16400, 16800, 15100];
+    const planTotal = planSeries.reduce((a, b) => a + b, 0);
+    const realTotal = realSeries.reduce((a, b) => a + b, 0);
+
+    renderOee({
+      oee: isWeek ? 85.4 : isYear ? 83.6 : 84.2,
+      target: cfgOeeTarget,
+      disp: isWeek ? 93.0 : isYear ? 91.2 : 92.0,
+      rend: isWeek ? 94.2 : isYear ? 93.8 : 94.0,
+      cal: isWeek ? 97.5 : isYear ? 97.7 : 97.4,
+      calSub: isYear ? '781,200 OK / 799,500 insp.' : isWeek ? '14,690 OK / 15,060 insp.' : '63,500 OK / 65,190 insp.',
+      machines: [
+        { code: 'INJ-01', name: 'Nissei 150T', tonnage: 150, status: 'Producción', target: cfgOeeTarget, cal: 98.2, oee: isYear ? 85.1 : 86.4 },
+        { code: 'INJ-02', name: 'Engel 250T', tonnage: 250, status: 'Producción', target: cfgOeeTarget, cal: 96.5, oee: isWeek ? 83.0 : 81.0 },
+        { code: 'INJ-03', name: 'Toshiba 350T', tonnage: 350, status: 'Producción', target: cfgOeeTarget, cal: 97.8, oee: 85.2 },
+        { code: 'LS-01', name: 'LS Mtron 450T', tonnage: 450, status: 'Setup', target: cfgOeeTarget, cal: 97.1, oee: 84.1 }
+      ]
+    });
+    renderPlan({
+      pct: (realTotal / planTotal) * 100,
+      planTotal, realTotal,
+      okCount: isYear ? 138 : isWeek ? 11 : 44,
+      openCount: isYear ? 8 : isWeek ? 1 : 3,
+      inProgCount: isYear ? 5 : 0,
+      lateCount: isYear ? 3 : isWeek ? 1 : 3,
+      chartLabels: planLabels,
+      chartPlan: planSeries,
+      chartReal: realSeries,
+      rows: [
+        { wo: 'WO-2026-101', date: endDate, part: '84120-KRAEM-01', machine: 'INJ-01', plan: 4000, real: 4000, pct: 100.0, badge: 'b-ok', status: 'COMPLETADA' },
+        { wo: 'WO-2026-102', date: endDate, part: '91350-HDL-02', machine: 'INJ-02', plan: 5000, real: 4190, pct: 83.8, badge: 'b-warn', status: 'ATRASADA' },
+        { wo: 'WO-2026-103', date: startDate, part: '77210-NIS-05', machine: 'INJ-03', plan: 7000, real: 6500, pct: 92.9, badge: 'b-ok', status: 'COMPLETADA' }
+      ]
+    });
+    renderIra({
+      pct: isYear ? 97.9 : isWeek ? 98.9 : 98.4,
+      exactos: isYear ? 1420 : isWeek ? 88 : 123,
+      ajustados: isYear ? 31 : isWeek ? 1 : 2,
+      total: isYear ? 1451 : isWeek ? 89 : 125,
+      trendLabels: isYear ? ['Q1', 'Q2', 'Q3', 'Q4'] : ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+      trendValues: isYear ? [96.8, 97.5, 98.2, 98.6] : [97.4, 98.0, 98.2, 98.4],
+      rows: [
+        { fecha: endDate, part: '84120-KRAEM-01', loc: 'PT-A01', lot: '20261110', sis: 500, fis: 500, diff: 0, exacto: true },
+        { fecha: endDate, part: 'RES-PP-BLK', loc: 'MP-R03', lot: 'L261105', sis: 1200, fis: 1175, diff: -25, exacto: false },
+        { fecha: startDate, part: '91350-HDL-02', loc: 'PT-B04', lot: '20261109', sis: 320, fis: 320, diff: 0, exacto: true }
+      ]
+    });
+    return;
+  }
+
+  // DATOS REALES DESDE SUPABASE FILTRADOS POR EL PERÍODO SELECCIONADO
+  const [rMach, rRuns, rInsp, rPlan, rOrd, rParts, rIra] = await Promise.all([
+    client.from('mes_machines').select('id, machine_code, machine_name, tonnage, status, oee_target_pct').eq('active', true).order('machine_code'),
+    client.from('runs').select('id, machine_id, status, start_time').gte('start_time', startIso).lte('start_time', endIso).order('id', { ascending: false }).limit(500),
+    client.from('inspeccion_produccion').select('maquina, cant_inspeccionada, cant_defectuosa, fecha').gte('fecha', startDate).lte('fecha', endDate).order('id', { ascending: false }).limit(1000),
+    client.from('production_plan').select('id, part_id, machine_id, quantity, production_date, status').gte('production_date', startDate).lte('production_date', endDate).order('production_date', { ascending: false }).limit(300),
+    client.from('production_orders').select('id, part_id, machine_id, target_qty, status, created_at').gte('created_at', startIso).lte('created_at', endIso).order('id', { ascending: false }).limit(300),
+    window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number', orderBy: 'id' }) : client.from('parts').select('id, part_number'),
+    client.from('v_history_master').select('*').or('comment.ilike.%[AUDIT_IRA:%,comment.ilike.%Audit: Sis%').gte('created_at', startIso).lte('created_at', endIso).order('created_at', { ascending: false }).limit(500)
+  ]);
+
+  const machs = rMach.data || [];
+  const runs = rRuns.data || [];
+  const insp = rInsp.data || [];
+  const totInsp = insp.reduce((s, r) => s + (Number(r.cant_inspeccionada) || 0), 0);
+  const totDef = insp.reduce((s, r) => s + (Number(r.cant_defectuosa) || 0), 0);
+  const calGlobal = totInsp > 0 ? ((totInsp - totDef) / totInsp) * 100 : null;
+  const targetAvg = machs.length ? machs.reduce((s, m) => s + (Number(m.oee_target_pct) || cfgOeeTarget), 0) / machs.length : cfgOeeTarget;
+  const dispReal = runs.length && machs.length ? Math.min(100, Math.max(75, (machs.filter(m => m.status === 'Producción').length / machs.length) * 100 || cfgAvailFb)) : null;
+  const rendReal = runs.length ? cfgPerfDef : null;
+  const oeeReal = (dispReal !== null && rendReal !== null && calGlobal !== null)
+    ? (dispReal / 100) * (rendReal / 100) * (calGlobal / 100) * 100
+    : calGlobal;
+
+  renderOee({
+    oee: oeeReal, target: targetAvg, disp: dispReal, rend: rendReal, cal: calGlobal,
+    calSub: totInsp > 0 ? `${(totInsp - totDef).toLocaleString()} OK de ${totInsp.toLocaleString()} insp.` : 'Sin inspecciones registradas',
+    machines: machs.map(m => {
+      const mInsp = insp.filter(i => String(i.maquina || '').toUpperCase().includes(String(m.machine_code || '').toUpperCase()));
+      const mTot = mInsp.reduce((s, r) => s + (Number(r.cant_inspeccionada) || 0), 0);
+      const mDef = mInsp.reduce((s, r) => s + (Number(r.cant_defectuosa) || 0), 0);
+      const mCal = mTot > 0 ? ((mTot - mDef) / mTot) * 100 : calGlobal;
+      return {
+        code: m.machine_code, name: m.machine_name, tonnage: m.tonnage,
+        status: m.status || 'Disponible', target: Number(m.oee_target_pct) || cfgOeeTarget,
+        cal: mCal, oee: mCal
+      };
+    })
+  });
+
+  // Cumplimiento real
+  const partsMap = {};
+  (Array.isArray(rParts) ? rParts : (rParts.data || [])).forEach(p => { partsMap[p.id] = p.part_number; });
+  const machMap = {};
+  machs.forEach(m => { machMap[m.id] = m.machine_code; });
+
+  const planRows = (rPlan.data || []).map(p => {
+    const done = ['completed', 'done', 'COMPLETADA', 'CERRADA'].includes(String(p.status));
+    return {
+      wo: `PLAN-${p.id}`, date: p.production_date || '-', part: partsMap[p.part_id] || `#${p.part_id}`,
+      machine: machMap[p.machine_id] || '-', plan: Number(p.quantity) || 0,
+      real: done ? (Number(p.quantity) || 0) : 0, pct: done ? 100 : 0,
+      badge: done ? 'b-ok' : 'b-info', status: p.status || 'planned', done
+    };
+  });
+  const ordRows = (rOrd.data || []).map(o => {
+    const done = ['COMPLETADA', 'CERRADA', 'FINALIZADA'].includes(String(o.status));
+    return {
+      wo: `WO-${o.id}`, date: (o.created_at || '').slice(0, 10) || '-', part: partsMap[o.part_id] || `#${o.part_id}`,
+      machine: machMap[o.machine_id] || '-', plan: Number(o.target_qty) || 0,
+      real: done ? (Number(o.target_qty) || 0) : 0, pct: done ? 100 : 0,
+      badge: done ? 'b-ok' : 'b-warn', status: o.status || 'PROGRAMADA', done
+    };
+  });
+  const allPlan = [...ordRows, ...planRows];
+  const planTotal = allPlan.reduce((s, x) => s + x.plan, 0);
+  const realTotal = allPlan.reduce((s, x) => s + x.real, 0);
+  const okCount = allPlan.filter(x => x.done).length;
+  const openCount = allPlan.length - okCount;
+  renderPlan({
+    pct: allPlan.length && planTotal > 0 ? (realTotal / planTotal) * 100 : null,
+    planTotal, realTotal, okCount, openCount, inProgCount: openCount, lateCount: 0,
+    chartLabels: allPlan.slice(0, 6).map(x => x.wo),
+    chartPlan: allPlan.slice(0, 6).map(x => x.plan),
+    chartReal: allPlan.slice(0, 6).map(x => x.real),
+    rows: allPlan.slice(0, 25)
+  });
+
+  // Veracidad IRA real
+  const iraList = rIra.data || [];
+  let exactos = 0;
+  const iraParsed = iraList.map(r => {
+    let sis = '-', fis = '-', diff = Number(r.quantity) || 0, loc = r.to_location || r.from_location || '-';
+    let exacto = Math.abs(diff) <= cfgIraTol;
+    const nota = r.comment || '';
+    if (nota.includes('[AUDIT_IRA:')) {
+      const ini = nota.indexOf('[AUDIT_IRA:') + 11;
+      const fin = nota.indexOf(']', ini);
+      if (fin !== -1) {
+        nota.substring(ini, fin).split('|').forEach(kv => {
+          const [k, v] = kv.split('=');
+          if (k === 'SIS') sis = v;
+          if (k === 'FIS') fis = v;
+          if (k === 'DIF') diff = Number(v) || 0;
+          if (k === 'EXACTO') exacto = (v === '1');
+          if (k === 'LOC' && v) loc = v;
+        });
+        if (cfgIraTol > 0 && Math.abs(diff) <= cfgIraTol) exacto = true;
+      }
+    }
+    if (exacto) exactos++;
+    return {
+      fecha: r.created_at ? new Date(r.created_at).toLocaleDateString() : '-',
+      part: r.part_number || '-', loc, lot: r.lot_number || 'S/L', sis, fis, diff, exacto
+    };
+  });
+  const totalIra = iraParsed.length;
+  const iraPct = totalIra > 0 ? (exactos / totalIra) * 100 : 100;
+  renderIra({
+    pct: iraPct, exactos, ajustados: totalIra - exactos, total: totalIra,
+    trendLabels: iraParsed.slice(0, 10).reverse().map((x, i) => `#${i + 1}`),
+    trendValues: iraParsed.slice(0, 10).reverse().map(x => x.exacto ? 100 : 0),
+    rows: iraParsed.slice(0, 30)
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const tabParam = new URLSearchParams(window.location.search).get('tab') || 'oee';
+  initPeriodControls();
+  setTab(tabParam);
+  actualizarUiIdioma();
+  if (window.KraemAuth && window.KraemAuth.ready) {
+    cargarTodo();
+  } else {
+    document.addEventListener('kraem:authready', cargarTodo, { once: true });
+  }
+});
+</script>
+</body>
+</html>
+

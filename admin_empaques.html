@@ -1,0 +1,1094 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KRAEM | Catálogo Maestro de Empaques y Gestión de Flota</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #8b5cf6;
+}
+
+[data-theme="dark"] {
+  --bg: #020617;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; transition: 0.3s; }
+.container { max-width: 1550px; margin: auto; }
+
+/* Header */
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:15px; }
+.top-left { display:flex; align-items:center; gap:15px; }
+.btn-back { width:45px; height:45px; border-radius:12px; border:1px solid var(--border); background:var(--card); color:var(--primary); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:0.2s; }
+.btn-back:hover { background:var(--primary); color:white; }
+.title-box h1 { margin:0; font-size:24px; font-weight:800; }
+.title-box p { margin:3px 0 0; color:var(--text-secondary); font-size:13px; }
+
+.controls { display:flex; gap:10px; align-items:center; }
+.btn { padding:10px 18px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); cursor:pointer; font-weight:600; font-size:14px; display:inline-flex; align-items:center; gap:8px; transition:0.2s; }
+.btn-primary { background:var(--primary); color:white; border:none; }
+.btn-primary:hover { background:var(--primary-dark); }
+.btn-purple { background:var(--purple); color:white; border:none; }
+.btn-purple:hover { background:#7c3aed; }
+.btn-sm { padding:6px 10px; font-size:12px; border-radius:6px; }
+.lang-btn { width:32px; height:32px; border-radius:50%; cursor:pointer; border:1px solid var(--border); overflow:hidden; padding:0; }
+.lang-btn img { width:100%; height:100%; object-fit:cover; }
+
+/* KPI Cards */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:15px; margin-bottom:20px; }
+.kpi-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 20px; display:flex; align-items:center; gap:15px; box-shadow:0 2px 6px rgba(0,0,0,0.03); cursor:pointer; transition:0.2s; }
+.kpi-card:hover { transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,0.06); }
+.kpi-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.kpi-info h4 { margin:0; font-size:12px; color:var(--text-secondary); text-transform:uppercase; font-weight:700; }
+.kpi-info .num { font-size:24px; font-weight:800; margin-top:2px; color:var(--text); }
+.kpi-info .sub-num { font-size:11px; color:var(--text-secondary); margin-top:2px; font-weight:600; }
+
+/* Filter Panel */
+.filter-panel { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:15px; margin-bottom:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+input, select, textarea { width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; outline:none; transition:0.2s; }
+input:focus, select:focus, textarea:focus { border-color:var(--primary); }
+
+/* Table */
+.table-card { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow-x:auto; box-shadow:0 4px 12px rgba(0,0,0,0.03); margin-bottom:30px; }
+table { width:100%; border-collapse:collapse; min-width:1050px; text-align:left; font-size:13px; }
+th { background:rgba(0,0,0,0.02); color:var(--text-secondary); padding:14px 16px; font-size:11px; text-transform:uppercase; font-weight:700; border-bottom:1px solid var(--border); }
+td { padding:14px 16px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tr:hover td { background:rgba(37,99,235,0.02); }
+
+/* Badges */
+.badge-type { padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:5px; }
+.type-carro { background:rgba(139,92,246,0.12); color:#7c3aed; }
+.type-retornable { background:rgba(37,99,235,0.12); color:#2563eb; }
+.type-interna { background:rgba(34,197,94,0.12); color:#16a34a; }
+.type-carton { background:rgba(245,158,11,0.12); color:#d97706; }
+
+.badge-status { padding:3px 8px; border-radius:6px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
+.status-operativo { background:#dcfce7; color:#15803d; }
+.status-reparacion { background:#fef3c7; color:#b45309; }
+.status-baja { background:#fee2e2; color:#b91c1c; }
+
+.badge-parcial { background:#e0f2fe; color:#0284c7; padding:2px 8px; border-radius:6px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+
+/* Modals */
+.modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.65); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter:blur(4px); }
+.modal-content { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; width:90%; max-width:650px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.25); }
+.modal-title { font-size:18px; font-weight:800; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; }
+.modal-close { background:none; border:none; font-size:22px; color:var(--text-secondary); cursor:pointer; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:15px; }
+.form-group { display:flex; flex-direction:column; gap:4px; }
+.form-group.full { grid-column:1 / -1; }
+.form-group label { font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-secondary); }
+
+/* QR Print Area */
+#qrPrintArea { text-align:center; padding:20px; background:white; color:black; border-radius:12px; }
+#qrcode { display:flex; justify-content:center; margin:15px 0; }
+
+@media print {
+  body * { visibility:hidden; }
+  #qrPrintArea, #qrPrintArea * { visibility:visible; }
+  #qrPrintArea { position:absolute; left:0; top:0; width:100%; border:none; }
+}
+</style>
+</head>
+<body data-theme="light">
+
+<div class="container">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="top-left">
+      <a href="ingenieria_catalogos.html" class="btn-back" title="Volver a Catálogos"><i class="fas fa-arrow-left"></i></a>
+      <div class="title-box">
+        <h1 id="txtTitle">📦 Catálogo de Empaques y Gestión de Flota</h1>
+        <p id="txtSub">Control de los 107 Carros en Planta (Capacidad, Mantenimiento y Daños), Cajas Retornables y Cartón</p>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn btn-purple" onclick="abrirModalFlota()"><i class="fas fa-dolly"></i> <span id="txtBtnFlota">Gestionar Flota de Carros</span></button>
+      <button class="btn btn-primary" onclick="abrirModalEmpaque()"><i class="fas fa-plus"></i> <span id="txtBtnNuevo">Nuevo Empaque</span></button>
+      <button class="lang-btn" onclick="setLang('es')" title="Español (MX)"><img src="https://flagcdn.com/w80/mx.png"></button>
+      <button class="lang-btn" onclick="setLang('ko')" title="한국어 (KO)"><img src="https://flagcdn.com/w80/kr.png"></button>
+      <button class="lang-btn" onclick="setLang('en')" title="English (US)"><img src="https://flagcdn.com/w80/us.png"></button>
+      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card" onclick="filtrarPorTipo('')">
+      <div class="kpi-icon" style="background:rgba(37,99,235,0.1); color:var(--primary);"><i class="fas fa-boxes-packing"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitle1">Total Modelos</h4>
+        <div class="num" id="kpiTotal">0</div>
+        <div class="sub-num" id="kpiSub1">Modelos en catálogo</div>
+      </div>
+    </div>
+
+    <!-- KPI FLOTA DE CARROS (CLAVE PARA EL USUARIO) -->
+    <div class="kpi-card" onclick="abrirModalFlota()" style="border-left:4px solid var(--purple);">
+      <div class="kpi-icon" style="background:rgba(139,92,246,0.1); color:var(--purple);"><i class="fas fa-dolly"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitle2">Flota Carros (107)</h4>
+        <div class="num" id="kpiCarrosOperativos" style="color:var(--success);">0 <span style="font-size:14px; font-weight:normal; color:var(--text-secondary);">/ 107</span></div>
+        <div class="sub-num" id="kpiCarrosDetalle">Cargando flota...</div>
+      </div>
+    </div>
+
+    <div class="kpi-card" onclick="filtrarPorTipo('RETORNABLE_CLIENTE')">
+      <div class="kpi-icon" style="background:rgba(37,99,235,0.1); color:var(--primary);"><i class="fas fa-rotate"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitle3">Retornables Cliente</h4>
+        <div class="num" id="kpiRetornables">0</div>
+        <div class="sub-num" id="kpiSub3">Totes y KLTs de clientes</div>
+      </div>
+    </div>
+
+    <div class="kpi-card" onclick="filtrarPorTipo('DESECHABLE_CARTON')">
+      <div class="kpi-icon" style="background:rgba(245,158,11,0.1); color:var(--warning);"><i class="fas fa-box-open"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitle4">Cartón / Desviación</h4>
+        <div class="num" id="kpiCarton">0</div>
+        <div class="sub-num" id="kpiSub4">Empaque de emergencia</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Panel -->
+  <div class="filter-panel">
+    <input type="text" id="fSearch" placeholder="🔍 Buscar código, nombre o cliente..." oninput="filtrarEmpaques()">
+    <select id="fTipo" onchange="filtrarEmpaques()">
+      <option value="" id="optFTipoAll">Todos los Tipos de Empaque</option>
+      <option value="CARRO_INTERNO" id="optFTipoCarro">🛒 Carro Interno (Flota de 107)</option>
+      <option value="RETORNABLE_CLIENTE" id="optFTipoRet">🔄 Retornable de Cliente (Tote/KLT)</option>
+      <option value="CAJA_INTERNA" id="optFTipoCaja">📦 Caja Grande Interna (Macrobin)</option>
+      <option value="DESECHABLE_CARTON" id="optFTipoCarton">📄 Desechable (Cartón)</option>
+    </select>
+    <select id="fCliente" onchange="filtrarEmpaques()">
+      <option value="" id="optFClienteAll">Todos los Clientes / Propietarios</option>
+    </select>
+    <select id="fActivo" onchange="filtrarEmpaques()">
+      <option value="" id="optFEstAll">Todos los Estados</option>
+      <option value="true" id="optFEstAct" selected>Solo Activos</option>
+      <option value="false" id="optFEstInact">Solo Inactivos</option>
+    </select>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>QR</th>
+          <th id="thEmpCod">Código</th>
+          <th id="thEmpNom">Nombre del Empaque</th>
+          <th id="thEmpTipo">Tipo</th>
+          <th id="thEmpProp">Propietario</th>
+          <th id="thEmpDim">Dimensiones (cm)</th>
+          <th id="thEmpTara">Tara (kg)</th>
+          <th id="thEmpParc">Parcialidades</th>
+          <th id="thEmpFlota">Unidades Físicas / Flota</th>
+          <th id="thEmpNP">N/P Asignados</th>
+          <th id="thEmpEst">Estado</th>
+          <th id="thEmpAcc" style="text-align:right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="empaquesTableBody">
+        <tr><td colspan="12" style="text-align:center; padding:30px;">Cargando catálogo de empaques...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: GESTIÓN DE FLOTA DE CARROS (ESTATUS, DAÑOS, REPARACIÓN Y CAPACIDAD)-->
+<!-- ========================================================================= -->
+<div id="modalFlota" class="modal" onclick="if(event.target==this)cerrarModalFlota()">
+  <div class="modal-content" style="max-width:950px;">
+    <div class="modal-title">
+      <div>
+        <span style="display:flex; align-items:center; gap:8px;">
+          <i class="fas fa-dolly" style="color:var(--purple);"></i> 
+          Gestión de Flota de Carros en Planta (Admin Ubicaciones)
+        </span>
+        <div style="font-size:12px; font-weight:normal; color:var(--text-secondary); margin-top:2px;">
+          Control de carros fuera de servicio por daño o en reparación (Afecta directamente la capacidad de Planeación).
+        </div>
+      </div>
+      <button class="modal-close" onclick="cerrarModalFlota()">&times;</button>
+    </div>
+
+    <!-- Barra de Estado de la Flota (Capacidad Real) -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:15px;">
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text-secondary);">Flota Total Creada</div>
+        <div style="font-size:20px; font-weight:800;" id="flotaTotalNum">0</div>
+      </div>
+      <div style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--success);">🟢 Operativos (Disponibles)</div>
+        <div style="font-size:20px; font-weight:800; color:var(--success);" id="flotaOperativosNum">0</div>
+      </div>
+      <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--warning);">🟡 En Taller / Reparación</div>
+        <div style="font-size:20px; font-weight:800; color:var(--warning);" id="flotaReparacionNum">0</div>
+      </div>
+      <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:10px 14px;">
+        <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--danger);">🔴 Dados de Baja / Chatarra</div>
+        <div style="font-size:20px; font-weight:800; color:var(--danger);" id="flotaBajaNum">0</div>
+      </div>
+    </div>
+
+    <!-- Filtros de la Flota -->
+    <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+      <input type="text" id="filtroCarroTexto" placeholder="🔍 Buscar carro (ej: CARRO-05)..." oninput="renderizarTablaFlota()" style="flex:2; min-width:180px;">
+      <select id="filtroCarroStatus" onchange="renderizarTablaFlota()" style="flex:1; min-width:150px;">
+        <option value="">Todos los Estados</option>
+        <option value="OPERATIVO">🟢 Solo Operativos</option>
+        <option value="EN_REPARACION">🟡 Solo en Reparación</option>
+        <option value="BAJA">🔴 Solo Dados de Baja</option>
+      </select>
+    </div>
+
+    <!-- Tabla de Carros Físicos -->
+    <div style="max-height:420px; overflow-y:auto; border:1px solid var(--border); border-radius:10px;">
+      <table style="min-width:100%; font-size:12px;">
+        <thead>
+          <tr>
+            <th style="width:60px;">QR</th>
+            <th>Código de Carro</th>
+            <th>Nombre / Ubicación</th>
+            <th style="width:160px;">Estatus Operativo</th>
+            <th>Motivo de Daño / Taller</th>
+            <th style="text-align:center; width:80px;">Guardar</th>
+          </tr>
+        </thead>
+        <tbody id="flotaTableBody">
+          <tr><td colspan="6" style="text-align:center; padding:20px;">Cargando unidades físicas desde 'locations'...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
+      <span style="font-size:12px; color:var(--text-secondary);" id="flotaInfoPie">Capacidad operativa actualizada</span>
+      <button class="btn" onclick="cerrarModalFlota()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Alta / Edición de Empaque Maestro -->
+<div id="modalEmpaque" class="modal" onclick="if(event.target==this)cerrarModalEmpaque()">
+  <div class="modal-content">
+    <div class="modal-title">
+      <span id="modalEmpaqueTitle">Nuevo Empaque / Contenedor</span>
+      <button class="modal-close" onclick="cerrarModalEmpaque()">&times;</button>
+    </div>
+
+    <form id="formEmpaque" onsubmit="guardarEmpaque(event)">
+      <input type="hidden" id="empId">
+      
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Código Único (QR) *</label>
+          <input type="text" id="empCodigo" placeholder="Ej: CARRO-01, TOTE-4314..." required>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Empaque *</label>
+          <select id="empTipo" required onchange="ajustarTipoEmpaque()">
+            <option value="CARRO_INTERNO">🛒 Carro Interno (Flota de 107)</option>
+            <option value="RETORNABLE_CLIENTE">🔄 Retornable de Cliente (Tote/KLT)</option>
+            <option value="CAJA_INTERNA">📦 Caja Grande Interna (Macrobin)</option>
+            <option value="DESECHABLE_CARTON">📄 Desechable (Cartón)</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>Nombre / Descripción *</label>
+          <input type="text" id="empNombre" placeholder="Ej: Carro Tubular Metálico Piso / Tote Hyundai Azul..." required>
+        </div>
+
+        <div class="form-group">
+          <label>Cliente / Propietario</label>
+          <input type="text" id="empCliente" placeholder="Ej: KRAEM, HYUNDAI, MOBIS..." value="KRAEM">
+        </div>
+
+        <div class="form-group">
+          <label>Peso Tara Vacío (kg)</label>
+          <input type="number" step="0.01" id="empTara" placeholder="0.00" value="0">
+        </div>
+
+        <div class="form-group">
+          <label>Largo × Ancho (cm)</label>
+          <div style="display:flex; gap:6px;">
+            <input type="number" step="0.1" id="empLargo" placeholder="Largo cm">
+            <input type="number" step="0.1" id="empAncho" placeholder="Ancho cm">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Alto (cm)</label>
+          <input type="number" step="0.1" id="empAlto" placeholder="Alto cm">
+        </div>
+
+        <div class="form-group full" style="margin-top:6px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="empParciales" checked style="width:auto;">
+            <span><b>Permitir Parcialidades:</b> Permite registrar cajas incompletas si la máquina se detiene a medias.</span>
+          </label>
+        </div>
+
+        <div class="form-group full">
+          <label>Observaciones / Reglas de uso</label>
+          <textarea id="empObs" rows="2" placeholder="Notas sobre estiba, clientes autorizados o si es empaque de desviación..."></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+        <button type="button" class="btn" onclick="cerrarModalEmpaque()">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btnGuardarEmpaque"><i class="fas fa-save"></i> Guardar Empaque</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Matriz de Partes Asociadas (Standard Pack) -->
+<div id="modalPartes" class="modal" onclick="if(event.target==this)cerrarModalPartes()">
+  <div class="modal-content" style="max-width:700px;">
+    <div class="modal-title">
+      <div>
+        <span id="modalPartesTitle">Piezas que caben en este empaque</span>
+        <div id="modalPartesSub" style="font-size:12px; font-weight:normal; color:var(--text-secondary); margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="cerrarModalPartes()">&times;</button>
+    </div>
+
+    <!-- Formulario para agregar una parte a este empaque -->
+    <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:15px;">
+      <h5 style="margin:0 0 8px 0; font-size:12px; text-transform:uppercase; color:var(--text-secondary);">➕ Asignar Número de Parte a este Contenedor</h5>
+      <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; align-items:flex-end;">
+        <div>
+          <label style="font-size:10px; font-weight:700; text-transform:uppercase;">N° de Parte</label>
+          <input type="text" id="asocPartInput" placeholder="Busca N/P..." list="dlPartes">
+          <datalist id="dlPartes"></datalist>
+        </div>
+        <div>
+          <label style="font-size:10px; font-weight:700; text-transform:uppercase;">Pzs por Caja (Std)</label>
+          <input type="number" id="asocStdPack" placeholder="Ej: 50" min="1">
+        </div>
+        <div>
+          <label style="font-size:10px; font-weight:700; text-transform:uppercase;">¿Principal?</label>
+          <select id="asocPrincipal">
+            <option value="true">✅ Sí (Oficial)</option>
+            <option value="false">⚠️ Alternativo</option>
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-primary btn-sm" onclick="agregarParteAEmpaque()" style="height:42px;"><i class="fas fa-plus"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista de partes asociadas a este empaque -->
+    <div style="max-height:300px; overflow-y:auto; border:1px solid var(--border); border-radius:10px;">
+      <table style="min-width:100%;">
+        <thead>
+          <tr>
+            <th>N° de Parte</th>
+            <th>Descripción</th>
+            <th style="text-align:right;">Pzs / Empaque</th>
+            <th>Tipo</th>
+            <th style="text-align:center;">Quitar</th>
+          </tr>
+        </thead>
+        <tbody id="asocPartesBody">
+          <tr><td colspan="5" style="text-align:center; padding:15px;">No hay partes vinculadas.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="text-align:right; margin-top:15px;">
+      <button class="btn" onclick="cerrarModalPartes()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Generación e Impresión de QR -->
+<div id="modalQR" class="modal" onclick="if(event.target==this)cerrarModalQR()">
+  <div class="modal-content" style="max-width:400px; text-align:center;">
+    <div class="modal-title">
+      <span>Etiqueta QR de Contenedor</span>
+      <button class="modal-close" onclick="cerrarModalQR()">&times;</button>
+    </div>
+
+    <div id="qrPrintArea">
+      <h3 style="margin:0 0 4px 0; font-size:18px;" id="qrCodigoText">CARRO-01</h3>
+      <div style="font-size:12px; color:#555; margin-bottom:10px;" id="qrNombreText">Carro Metálico de Planta</div>
+      <div id="qrcode"></div>
+      <div style="font-size:11px; font-weight:bold; color:#777; margin-top:8px;" id="qrDetalleText">Capacidad según N/P | Acepta Parciales</div>
+    </div>
+
+    <div style="display:flex; justify-content:center; gap:10px; margin-top:20px;">
+      <button class="btn" onclick="cerrarModalQR()">Cerrar</button>
+      <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir Etiqueta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allEmpaques = [];
+let allPartes = [];
+let allRelaciones = [];
+let allCarrosFisicos = []; // Ubicaciones de tipo Móvil / Carro en locations
+let currentEmpaqueIdParaPartes = null;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', async () => {
+  await cargarCatalogos();
+  await cargarEmpaques();
+  await cargarFlotaCarros();
+});
+
+// Cargar catálogo de partes para el buscador de asociación
+async function cargarCatalogos() {
+  const partes = window.fetchAllRows 
+    ? await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type', orderBy: 'part_number' })
+    : ((await client.from('parts').select('id, part_number, part_name, product_type')).data || []);
+  if (partes) {
+    allPartes = partes;
+    const dl = document.getElementById('dlPartes');
+    dl.innerHTML = partes.map(p => `<option value="${p.part_number}">${p.part_name || ''} (${p.product_type || 'PT'})</option>`).join('');
+  }
+}
+
+// Cargar Empaques desde Supabase
+async function cargarEmpaques() {
+  const tbody = document.getElementById('empaquesTableBody');
+  try {
+    const { data: empaques, error: errEmp } = await client.from('empaques').select('*').order('codigo');
+    if (errEmp) throw errEmp;
+
+    const rels = window.fetchAllRows
+      ? await window.fetchAllRows('empaques_partes', { orderBy: 'id' })
+      : ((await client.from('empaques_partes').select('*')).data || []);
+    allRelaciones = rels || [];
+    allEmpaques = empaques || [];
+
+    poblarFiltroClientes();
+    filtrarEmpaques();
+  } catch (err) {
+    console.error("Error al cargar empaques:", err);
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--danger); padding:30px;">
+      ⚠️ Recuerda ejecutar el script <b>empaques.sql</b> en el SQL Editor de Supabase.<br><br>
+      Detalle: ${err.message}
+    </td></tr>`;
+  }
+}
+
+// Cargar los Carros Físicos desde 'locations'
+async function cargarFlotaCarros() {
+  try {
+    const { data: locs, error } = await client.from('locations')
+      .select('*')
+      .or('type.eq.Móvil,type.eq.Contenedor,location_code.ilike.CARRO%')
+      .order('location_code');
+
+    if (!error && locs) {
+      allCarrosFisicos = locs.map(c => ({
+        ...c,
+        status_operativo: c.status_operativo || 'OPERATIVO',
+        motivo_estado: c.motivo_estado || ''
+      }));
+      actualizarKPIsFlota();
+    }
+  } catch (err) {
+    console.warn("No se pudieron cargar los carros de locations:", err);
+  }
+}
+
+// Actualizar contadores KPI
+function actualizarKPIsFlota() {
+  const total = allCarrosFisicos.length;
+  const operativos = allCarrosFisicos.filter(c => c.status_operativo === 'OPERATIVO' || !c.status_operativo).length;
+  const enReparacion = allCarrosFisicos.filter(c => c.status_operativo === 'EN_REPARACION').length;
+  const baja = allCarrosFisicos.filter(c => c.status_operativo === 'BAJA').length;
+
+  document.getElementById('kpiTotal').textContent = allEmpaques.length;
+  document.getElementById('kpiCarrosOperativos').innerHTML = `${operativos} <span style="font-size:14px; font-weight:normal; color:var(--text-secondary);">/ ${total || 107}</span>`;
+  document.getElementById('kpiCarrosDetalle').textContent = `${enReparacion} en taller • ${baja} de baja`;
+
+  const retornables = allEmpaques.filter(e => e.tipo_empaque === 'RETORNABLE_CLIENTE').length;
+  const carton = allEmpaques.filter(e => e.tipo_empaque === 'DESECHABLE_CARTON' || e.tipo_empaque === 'CAJA_INTERNA').length;
+  document.getElementById('kpiRetornables').textContent = retornables;
+  document.getElementById('kpiCarton').textContent = carton;
+
+  // Actualizar Modal Flota
+  document.getElementById('flotaTotalNum').textContent = total;
+  document.getElementById('flotaOperativosNum').textContent = operativos;
+  document.getElementById('flotaReparacionNum').textContent = enReparacion;
+  document.getElementById('flotaBajaNum').textContent = baja;
+  document.getElementById('flotaInfoPie').textContent = `Capacidad real operativa para planeación: ${operativos} carros disponibles.`;
+}
+
+// Poblar selector de clientes
+function poblarFiltroClientes() {
+  const sel = document.getElementById('fCliente');
+  const clientes = [...new Set(allEmpaques.map(e => e.cliente_propietario).filter(Boolean))];
+  sel.innerHTML = `<option value="">Todos los Clientes / Propietarios</option>` + 
+    clientes.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function filtrarPorTipo(tipo) {
+  document.getElementById('fTipo').value = tipo;
+  filtrarEmpaques();
+}
+
+// Filtrar en memoria
+function filtrarEmpaques() {
+  const q = document.getElementById('fSearch').value.toLowerCase().trim();
+  const tipo = document.getElementById('fTipo').value;
+  const cliente = document.getElementById('fCliente').value;
+  const activo = document.getElementById('fActivo').value;
+
+  const filtrados = allEmpaques.filter(e => {
+    const matchQ = !q || (e.codigo && e.codigo.toLowerCase().includes(q)) || 
+                          (e.nombre && e.nombre.toLowerCase().includes(q)) ||
+                          (e.cliente_propietario && e.cliente_propietario.toLowerCase().includes(q));
+    const matchTipo = !tipo || e.tipo_empaque === tipo;
+    const matchCliente = !cliente || e.cliente_propietario === cliente;
+    const matchActivo = activo === "" || String(e.activo) === activo;
+    return matchQ && matchTipo && matchCliente && matchActivo;
+  });
+
+  renderTable(filtrados);
+}
+
+// Renderizar tabla maestra de empaques
+function renderTable(lista) {
+  const tbody = document.getElementById('empaquesTableBody');
+  if (lista.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding:25px; color:var(--text-secondary);">No se encontraron empaques con los filtros actuales.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(e => {
+    // Info del tipo
+    let tipoBadge = '';
+    if (e.tipo_empaque === 'CARRO_INTERNO') tipoBadge = `<span class="badge-type type-carro"><i class="fas fa-dolly"></i> Carro Interno</span>`;
+    else if (e.tipo_empaque === 'RETORNABLE_CLIENTE') tipoBadge = `<span class="badge-type type-retornable"><i class="fas fa-rotate"></i> Retornable Cliente</span>`;
+    else if (e.tipo_empaque === 'CAJA_INTERNA') tipoBadge = `<span class="badge-type type-interna"><i class="fas fa-box"></i> Macrobin Interno</span>`;
+    else tipoBadge = `<span class="badge-type type-carton"><i class="fas fa-box-open"></i> Cartón Desechable</span>`;
+
+    // Conteo de unidades físicas si es Carro
+    let unidadesFisicasBadge = `<span style="color:var(--text-secondary); font-size:11px;">N/A (Lote)</span>`;
+    if (e.tipo_empaque === 'CARRO_INTERNO') {
+      const cantOperativos = allCarrosFisicos.filter(c => c.status_operativo === 'OPERATIVO' || !c.status_operativo).length;
+      unidadesFisicasBadge = `
+        <button class="btn btn-sm btn-purple" onclick="abrirModalFlota()" title="Ver y gestionar carros en locations">
+          <i class="fas fa-dolly"></i> ${allCarrosFisicos.length || 107} carros (${cantOperativos} activos)
+        </button>
+      `;
+    }
+
+    // Conteo de piezas asociadas
+    const partesVinculadas = allRelaciones.filter(r => r.empaque_id === e.id);
+    const badgePartes = partesVinculadas.length > 0 
+      ? `<button class="btn btn-sm" onclick="abrirModalPartes('${e.id}')" style="background:rgba(37,99,235,0.08); color:var(--primary); font-weight:700;"><i class="fas fa-sitemap"></i> ${partesVinculadas.length} N/P</button>`
+      : `<button class="btn btn-sm" onclick="abrirModalPartes('${e.id}')" style="color:var(--text-secondary);"><i class="fas fa-plus"></i> Asignar</button>`;
+
+    // Medidas
+    const dims = (e.largo_cm || e.ancho_cm || e.alto_cm) 
+      ? `${e.largo_cm || 0}×${e.ancho_cm || 0}×${e.alto_cm || 0}`
+      : `<span style="color:var(--text-secondary);">N/A</span>`;
+
+    // Parcialidades
+    const parcialBadge = e.permite_parciales 
+      ? `<span class="badge-parcial" title="Acepta cajas incompletas por paro de máquina"><i class="fas fa-check-circle"></i> SÍ</span>` 
+      : `<span style="color:var(--text-secondary); font-size:11px;">Solo llena</span>`;
+
+    return `
+      <tr>
+        <td>
+          <button class="btn btn-sm" onclick="verQREmpaque('${e.codigo}', '${e.nombre}', '${e.tipo_empaque}')" style="padding:4px 8px;" title="Ver QR"><i class="fas fa-qrcode"></i></button>
+        </td>
+        <td><strong>${e.codigo}</strong></td>
+        <td>
+          <div style="font-weight:600;">${e.nombre}</div>
+          ${e.observaciones ? `<div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${e.observaciones}</div>` : ''}
+        </td>
+        <td>${tipoBadge}</td>
+        <td><b>${e.cliente_propietario || 'KRAEM'}</b></td>
+        <td>${dims}</td>
+        <td>${e.peso_tara_kg ? e.peso_tara_kg + ' kg' : '0'}</td>
+        <td>${parcialBadge}</td>
+        <td>${unidadesFisicasBadge}</td>
+        <td>${badgePartes}</td>
+        <td>
+          <span class="badge-status ${e.activo ? 'status-operativo' : 'status-baja'}">
+            ${e.activo ? 'ACTIVO' : 'INACTIVO'}
+          </span>
+        </td>
+        <td style="text-align:right;">
+          <button class="btn btn-sm" onclick="editarEmpaque('${e.id}')" title="Editar"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm" onclick="toggleActivoEmpaque('${e.id}', ${e.activo})" title="${e.activo ? 'Desactivar' : 'Activar'}" style="color:${e.activo ? 'var(--danger)' : 'var(--success)'};">
+            <i class="fas ${e.activo ? 'fa-ban' : 'fa-check'}"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// =========================================================================
+// FUNCIONES DE FLOTA DE CARROS (GESTIÓN DE DAÑOS Y CAPACIDAD)
+// =========================================================================
+function abrirModalFlota() {
+  document.getElementById('modalFlota').style.display = 'flex';
+  renderizarTablaFlota();
+}
+
+function cerrarModalFlota() {
+  document.getElementById('modalFlota').style.display = 'none';
+}
+
+function renderizarTablaFlota() {
+  const tbody = document.getElementById('flotaTableBody');
+  const txt = document.getElementById('filtroCarroTexto').value.toUpperCase().trim();
+  const st = document.getElementById('filtroCarroStatus').value;
+
+  const filtrados = allCarrosFisicos.filter(c => {
+    const matchTxt = !txt || c.location_code.includes(txt) || (c.location_name && c.location_name.toUpperCase().includes(txt));
+    const matchSt = !st || c.status_operativo === st;
+    return matchTxt && matchSt;
+  });
+
+  if (filtrados.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-secondary);">No se encontraron carros con los filtros indicados.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map(c => {
+    const isOp = c.status_operativo === 'OPERATIVO';
+    const isRep = c.status_operativo === 'EN_REPARACION';
+    const isBaja = c.status_operativo === 'BAJA';
+
+    return `
+      <tr>
+        <td>
+          <button class="btn btn-sm" onclick="verQREmpaque('${c.location_code}', '${c.location_name || 'Carro de Planta'}', 'CARRO_INTERNO')" style="padding:2px 6px;">
+            <i class="fas fa-qrcode"></i>
+          </button>
+        </td>
+        <td><strong>${c.location_code}</strong></td>
+        <td>${c.location_name || 'Carro Tubular de Planta'}</td>
+        <td>
+          <select id="status_carro_${c.id}" onchange="cambioEstatusCarroVisual('${c.id}')" style="padding:6px; font-weight:700; font-size:11px; border-radius:6px; ${isOp ? 'background:#dcfce7; color:#15803d;' : isRep ? 'background:#fef3c7; color:#b45309;' : 'background:#fee2e2; color:#b91c1c;'}">
+            <option value="OPERATIVO" ${isOp ? 'selected' : ''}>🟢 OPERATIVO</option>
+            <option value="EN_REPARACION" ${isRep ? 'selected' : ''}>🟡 EN REPARACIÓN</option>
+            <option value="BAJA" ${isBaja ? 'selected' : ''}>🔴 DADO DE BAJA</option>
+          </select>
+        </td>
+        <td>
+          <input type="text" id="motivo_carro_${c.id}" value="${c.motivo_estado || ''}" placeholder="Ej: Rueda rota, soldadura pendiente..." style="padding:6px 8px; font-size:12px;">
+        </td>
+        <td style="text-align:center;">
+          <button class="btn btn-sm btn-primary" onclick="guardarEstatusCarro('${c.id}')" title="Guardar"><i class="fas fa-save"></i></button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function cambioEstatusCarroVisual(id) {
+  const sel = document.getElementById(`status_carro_${id}`);
+  const val = sel.value;
+  if (val === 'OPERATIVO') {
+    sel.style.background = '#dcfce7'; sel.style.color = '#15803d';
+  } else if (val === 'EN_REPARACION') {
+    sel.style.background = '#fef3c7'; sel.style.color = '#b45309';
+  } else {
+    sel.style.background = '#fee2e2'; sel.style.color = '#b91c1c';
+  }
+}
+
+async function guardarEstatusCarro(carroId) {
+  const nuevoStatus = document.getElementById(`status_carro_${carroId}`).value;
+  const nuevoMotivo = document.getElementById(`motivo_carro_${carroId}`).value.trim();
+
+  // Buscar y actualizar en memoria
+  const carro = allCarrosFisicos.find(c => String(c.id) === String(carroId));
+  if (carro) {
+    carro.status_operativo = nuevoStatus;
+    carro.motivo_estado = nuevoMotivo;
+  }
+
+  // Actualizar en base de datos Supabase
+  const { error } = await client.from('locations').update({
+    status_operativo: nuevoStatus,
+    motivo_estado: nuevoMotivo
+  }).eq('id', carroId);
+
+  if (error) {
+    alert("Error al actualizar carro: " + error.message);
+  } else {
+    actualizarKPIsFlota();
+    filtrarEmpaques();
+    alert(`✅ ${carro.location_code} actualizado a: ${nuevoStatus}`);
+  }
+}
+
+// Modal Alta / Edición
+function abrirModalEmpaque(emp = null) {
+  const form = document.getElementById('formEmpaque');
+  form.reset();
+  document.getElementById('empId').value = '';
+  document.getElementById('modalEmpaqueTitle').textContent = 'Nuevo Empaque / Contenedor';
+  document.getElementById('empCliente').value = 'KRAEM';
+  document.getElementById('empParciales').checked = true;
+
+  if (emp) {
+    document.getElementById('modalEmpaqueTitle').textContent = 'Editar Empaque: ' + emp.codigo;
+    document.getElementById('empId').value = emp.id;
+    document.getElementById('empCodigo').value = emp.codigo;
+    document.getElementById('empNombre').value = emp.nombre;
+    document.getElementById('empTipo').value = emp.tipo_empaque;
+    document.getElementById('empCliente').value = emp.cliente_propietario || 'KRAEM';
+    document.getElementById('empTara').value = emp.peso_tara_kg || 0;
+    document.getElementById('empLargo').value = emp.largo_cm || '';
+    document.getElementById('empAncho').value = emp.ancho_cm || '';
+    document.getElementById('empAlto').value = emp.alto_cm || '';
+    document.getElementById('empParciales').checked = emp.permite_parciales !== false;
+    document.getElementById('empObs').value = emp.observaciones || '';
+  }
+
+  document.getElementById('modalEmpaque').style.display = 'flex';
+}
+
+function cerrarModalEmpaque() {
+  document.getElementById('modalEmpaque').style.display = 'none';
+}
+
+function ajustarTipoEmpaque() {
+  const tipo = document.getElementById('empTipo').value;
+  const clienteInput = document.getElementById('empCliente');
+  if (tipo === 'CARRO_INTERNO' || tipo === 'CAJA_INTERNA') {
+    clienteInput.value = 'KRAEM';
+  } else if (tipo === 'RETORNABLE_CLIENTE' && clienteInput.value === 'KRAEM') {
+    clienteInput.value = '';
+    clienteInput.placeholder = 'Nombre del Cliente (ej. HYUNDAI)';
+  }
+}
+
+// Guardar Empaque (Insert o Update)
+async function guardarEmpaque(e) {
+  e.preventDefault();
+  const id = document.getElementById('empId').value;
+  const payload = {
+    codigo: document.getElementById('empCodigo').value.trim().toUpperCase(),
+    nombre: document.getElementById('empNombre').value.trim(),
+    tipo_empaque: document.getElementById('empTipo').value,
+    cliente_propietario: document.getElementById('empCliente').value.trim() || 'KRAEM',
+    peso_tara_kg: parseFloat(document.getElementById('empTara').value) || 0,
+    largo_cm: parseFloat(document.getElementById('empLargo').value) || 0,
+    ancho_cm: parseFloat(document.getElementById('empAncho').value) || 0,
+    alto_cm: parseFloat(document.getElementById('empAlto').value) || 0,
+    permite_parciales: document.getElementById('empParciales').checked,
+    observaciones: document.getElementById('empObs').value.trim(),
+    updated_at: new Date().toISOString()
+  };
+
+  const btn = document.getElementById('btnGuardarEmpaque');
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Guardando...`;
+
+  try {
+    let res;
+    if (id) {
+      res = await client.from('empaques').update(payload).eq('id', id);
+    } else {
+      res = await client.from('empaques').insert([payload]);
+    }
+    if (res.error) throw res.error;
+
+    cerrarModalEmpaque();
+    await cargarEmpaques();
+  } catch (err) {
+    alert("Error al guardar empaque: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-save"></i> Guardar Empaque`;
+  }
+}
+
+function editarEmpaque(id) {
+  const emp = allEmpaques.find(e => e.id === id);
+  if (emp) abrirModalEmpaque(emp);
+}
+
+async function toggleActivoEmpaque(id, estadoActual) {
+  if (!confirm(`¿Deseas ${estadoActual ? 'desactivar' : 'activar'} este contenedor?`)) return;
+  const { error } = await client.from('empaques').update({ activo: !estadoActual }).eq('id', id);
+  if (error) alert("Error: " + error.message);
+  else await cargarEmpaques();
+}
+
+// Modal Matriz de Partes (Standard Pack)
+function abrirModalPartes(empaqueId) {
+  currentEmpaqueIdParaPartes = empaqueId;
+  const emp = allEmpaques.find(e => e.id === empaqueId);
+  if (!emp) return;
+
+  document.getElementById('modalPartesTitle').textContent = `Piezas asociadas a: ${emp.codigo}`;
+  document.getElementById('modalPartesSub').textContent = `${emp.nombre} (${emp.tipo_empaque})`;
+  document.getElementById('asocPartInput').value = '';
+  document.getElementById('asocStdPack').value = '';
+  document.getElementById('asocPrincipal').value = 'true';
+
+  renderPartesAsociadas();
+  document.getElementById('modalPartes').style.display = 'flex';
+}
+
+function cerrarModalPartes() {
+  document.getElementById('modalPartes').style.display = 'none';
+  currentEmpaqueIdParaPartes = null;
+}
+
+function renderPartesAsociadas() {
+  const tbody = document.getElementById('asocPartesBody');
+  const partesEmpaque = allRelaciones.filter(r => r.empaque_id === currentEmpaqueIdParaPartes);
+
+  if (partesEmpaque.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--text-secondary);">Aún no hay Números de Parte vinculados a este empaque. Asigna uno arriba.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = partesEmpaque.map(r => `
+    <tr>
+      <td><strong>${r.part_number}</strong></td>
+      <td>${r.part_name || '-'}</td>
+      <td style="text-align:right; font-weight:700; color:var(--primary); font-size:14px;">${r.standard_pack.toLocaleString()} pzs</td>
+      <td>
+        <span class="badge-status ${r.es_empaque_primario ? 'status-operativo' : 'status-reparacion'}" style="font-size:10px;">
+          ${r.es_empaque_primario ? 'OFICIAL' : 'ALTERNATIVO'}
+        </span>
+      </td>
+      <td style="text-align:center;">
+        <button class="btn btn-sm" onclick="eliminarParteDeEmpaque('${r.id}')" style="color:var(--danger); border:none;" title="Quitar"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function agregarParteAEmpaque() {
+  const partNumber = document.getElementById('asocPartInput').value.trim().toUpperCase();
+  const stdPack = parseInt(document.getElementById('asocStdPack').value, 10);
+  const esPrincipal = document.getElementById('asocPrincipal').value === 'true';
+
+  if (!partNumber || isNaN(stdPack) || stdPack <= 0) {
+    return alert("Por favor escribe un Número de Parte válido y la cantidad de piezas estándar (mayor a 0).");
+  }
+
+  const parteEncontrada = allPartes.find(p => p.part_number.toUpperCase() === partNumber);
+  const partId = parteEncontrada ? parteEncontrada.id : null;
+  const partName = parteEncontrada ? parteEncontrada.part_name : '';
+
+  const { error } = await client.from('empaques_partes').insert([{
+    empaque_id: currentEmpaqueIdParaPartes,
+    part_id: partId,
+    part_number: partNumber,
+    part_name: partName,
+    standard_pack: stdPack,
+    es_empaque_primario: esPrincipal
+  }]);
+
+  if (error) {
+    alert("Error al vincular: " + error.message);
+  } else {
+    const { data: rels } = await client.from('empaques_partes').select('*');
+    allRelaciones = rels || [];
+    renderPartesAsociadas();
+    filtrarEmpaques();
+    document.getElementById('asocPartInput').value = '';
+    document.getElementById('asocStdPack').value = '';
+  }
+}
+
+async function eliminarParteDeEmpaque(relId) {
+  if (!confirm("¿Deseas desvincular este Número de Parte de este empaque?")) return;
+  const { error } = await client.from('empaques_partes').delete().eq('id', relId);
+  if (error) {
+    alert("Error: " + error.message);
+  } else {
+    allRelaciones = allRelaciones.filter(r => r.id !== relId);
+    renderPartesAsociadas();
+    filtrarEmpaques();
+  }
+}
+
+// Modal QR & Impresión
+function verQREmpaque(codigo, nombre, tipo) {
+  document.getElementById('qrCodigoText').textContent = codigo;
+  document.getElementById('qrNombreText').textContent = nombre;
+  document.getElementById('qrDetalleText').textContent = `Tipo: ${tipo} | KRAEM MRP`;
+
+  const container = document.getElementById('qrcode');
+  container.innerHTML = '';
+  new QRCode(container, {
+    text: codigo,
+    width: 170,
+    height: 170,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  document.getElementById('modalQR').style.display = 'flex';
+}
+
+function cerrarModalQR() {
+  document.getElementById('modalQR').style.display = 'none';
+}
+
+const i18nEmp = {
+  es: {
+    title: "📦 Catálogo de Empaques y Gestión de Flota",
+    sub: "Control de los 107 Carros en Planta (Capacidad, Mantenimiento y Daños), Cajas Retornables y Cartón",
+    btnFlota: "Gestionar Flota de Carros",
+    btnNuevo: "Nuevo Empaque",
+    kpi1: "Total Modelos", kpiSub1: "Modelos en catálogo",
+    kpi2: "Flota Carros (107)",
+    kpi3: "Retornables Cliente", kpiSub3: "Totes y KLTs de clientes",
+    kpi4: "Cartón / Desviación", kpiSub4: "Empaque de emergencia",
+    phSearch: "🔍 Buscar código, nombre o cliente...",
+    optFTipoAll: "Todos los Tipos de Empaque",
+    optFTipoCarro: "🛒 Carro Interno (Flota de 107)",
+    optFTipoRet: "🔄 Retornable de Cliente (Tote/KLT)",
+    optFTipoCaja: "📦 Caja Grande Interna (Macrobin)",
+    optFTipoCarton: "📄 Desechable (Cartón)",
+    optFClienteAll: "Todos los Clientes / Propietarios",
+    optFEstAll: "Todos los Estados",
+    optFEstAct: "Solo Activos",
+    optFEstInact: "Solo Inactivos",
+    thCod: "Código", thNom: "Nombre del Empaque", thTipo: "Tipo", thProp: "Propietario",
+    thDim: "Dimensiones (cm)", thTara: "Tara (kg)", thParc: "Parcialidades",
+    thFlota: "Unidades Físicas / Flota", thNP: "N/P Asignados", thEst: "Estado", thAcc: "Acciones"
+  },
+  ko: {
+    title: "📦 포장 마스터 카탈로그 및 대차(카트) 관리",
+    sub: "공장 내 107대 대차 상태(가용 용량, 수리 및 파손), 고객사 리터너블 박스 및 단프라/종이 박스 관리",
+    btnFlota: "대차(카트) 현황 관리",
+    btnNuevo: "신규 포장 등록",
+    kpi1: "전체 모델", kpiSub1: "등록된 포장 모델",
+    kpi2: "대차 가동 현황 (107)",
+    kpi3: "고객사 리터너블", kpiSub3: "고객사 Tote 및 KLT 박스",
+    kpi4: "종이박스 / 대체포장", kpiSub4: "비상용 대체 포장재",
+    phSearch: "🔍 코드, 이름 또는 고객사 검색...",
+    optFTipoAll: "모든 포장 유형",
+    optFTipoCarro: "🛒 사내 대차 (107대)",
+    optFTipoRet: "🔄 고객사 리터너블 박스 (Tote/KLT)",
+    optFTipoCaja: "📦 대형 사내 박스 (Macrobin)",
+    optFTipoCarton: "📄 일회용 종이박스 (Cartón)",
+    optFClienteAll: "모든 고객사 / 소유자",
+    optFEstAll: "모든 상태",
+    optFEstAct: "활성 모델만",
+    optFEstInact: "비활성 모델만",
+    thCod: "코드", thNom: "포장재 명칭", thTipo: "유형", thProp: "소유자",
+    thDim: "규격 (cm)", thTara: "자중 (kg)", thParc: "잔량 허용",
+    thFlota: "실물 대차 / 수량", thNP: "할당된 품번(N/P)", thEst: "상태", thAcc: "관리"
+  },
+  en: {
+    title: "📦 Packaging Master Catalog & Fleet Management",
+    sub: "Control of 107 Plant Carts (Capacity, Maintenance & Damage), Customer Returnable Totes & Cardboard",
+    btnFlota: "Manage Cart Fleet",
+    btnNuevo: "New Packaging",
+    kpi1: "Total Models", kpiSub1: "Models in catalog",
+    kpi2: "Cart Fleet (107)",
+    kpi3: "Customer Returnables", kpiSub3: "Customer Totes & KLTs",
+    kpi4: "Cardboard / Deviation", kpiSub4: "Emergency packaging",
+    phSearch: "🔍 Search code, name or customer...",
+    optFTipoAll: "All Packaging Types",
+    optFTipoCarro: "🛒 Internal Cart (Fleet of 107)",
+    optFTipoRet: "🔄 Customer Returnable (Tote/KLT)",
+    optFTipoCaja: "📦 Internal Macrobin",
+    optFTipoCarton: "📄 Disposable Cardboard",
+    optFClienteAll: "All Customers / Owners",
+    optFEstAll: "All Statuses",
+    optFEstAct: "Active Only",
+    optFEstInact: "Inactive Only",
+    thCod: "Code", thNom: "Packaging Name", thTipo: "Type", thProp: "Owner",
+    thDim: "Dimensions (cm)", thTara: "Tare (kg)", thParc: "Partials",
+    thFlota: "Physical Units / Fleet", thNP: "Assigned P/N", thEst: "Status", thAcc: "Actions"
+  }
+};
+
+function setLang(lang) {
+  if (window.KraemI18n) { window.KraemI18n.setLang(lang); } else { localStorage.setItem('lang', lang); localStorage.setItem('kraem_lang', lang); }
+  localStorage.setItem('kraem_lang', lang);
+  const t = i18nEmp[lang] || i18nEmp.es;
+  document.getElementById('txtTitle').innerText = t.title;
+  document.getElementById('txtSub').innerText = t.sub;
+  document.getElementById('txtBtnFlota').innerText = t.btnFlota;
+  document.getElementById('txtBtnNuevo').innerText = t.btnNuevo;
+  document.getElementById('kpiTitle1').innerText = t.kpi1;
+  document.getElementById('kpiSub1').innerText = t.kpiSub1;
+  document.getElementById('kpiTitle2').innerText = t.kpi2;
+  document.getElementById('kpiTitle3').innerText = t.kpi3;
+  document.getElementById('kpiSub3').innerText = t.kpiSub3;
+  document.getElementById('kpiTitle4').innerText = t.kpi4;
+  document.getElementById('kpiSub4').innerText = t.kpiSub4;
+  document.getElementById('fSearch').placeholder = t.phSearch;
+  document.getElementById('optFTipoAll').innerText = t.optFTipoAll;
+  document.getElementById('optFTipoCarro').innerText = t.optFTipoCarro;
+  document.getElementById('optFTipoRet').innerText = t.optFTipoRet;
+  document.getElementById('optFTipoCaja').innerText = t.optFTipoCaja;
+  document.getElementById('optFTipoCarton').innerText = t.optFTipoCarton;
+  document.getElementById('optFClienteAll').innerText = t.optFClienteAll;
+  document.getElementById('optFEstAll').innerText = t.optFEstAll;
+  document.getElementById('optFEstAct').innerText = t.optFEstAct;
+  document.getElementById('optFEstInact').innerText = t.optFEstInact;
+  document.getElementById('thEmpCod').innerText = t.thCod;
+  document.getElementById('thEmpNom').innerText = t.thNom;
+  document.getElementById('thEmpTipo').innerText = t.thTipo;
+  document.getElementById('thEmpProp').innerText = t.thProp;
+  document.getElementById('thEmpDim').innerText = t.thDim;
+  document.getElementById('thEmpTara').innerText = t.thTara;
+  document.getElementById('thEmpParc').innerText = t.thParc;
+  document.getElementById('thEmpFlota').innerText = t.thFlota;
+  document.getElementById('thEmpNP').innerText = t.thNP;
+  document.getElementById('thEmpEst').innerText = t.thEst;
+  document.getElementById('thEmpAcc').innerText = t.thAcc;
+}
+
+setLang(localStorage.getItem('kraem_lang') || 'es');
+</script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
+</script>
+</body>
+</html>
+

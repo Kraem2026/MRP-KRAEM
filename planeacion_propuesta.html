@@ -1,171 +1,285 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Propuesta de Planeación</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
 
 <style>
 body{
-  font-family:Arial;
+  font-family: Arial, sans-serif;
   background:#f4f6f8;
-  padding:15px
+  padding:15px;
+  color:#333;
 }
 .card{
   background:#fff;
   padding:20px;
-  border-radius:6px;
+  border-radius:8px;
   max-width:1400px;
-  margin:auto
+  margin:auto;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
-h2{margin-top:0}
+h2{margin-top:0; color:#1e293b;}
+.header-actions{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 table{
   width:100%;
   border-collapse:collapse;
-  margin-top:15px
+  margin-top:10px;
 }
 th,td{
-  padding:8px;
-  border-bottom:1px solid #ddd;
-  font-size:14px
+  padding:10px 12px;
+  border-bottom:1px solid #e2e8f0;
+  font-size:14px;
 }
-th{background:#f0f0f0}
-.ok{background:#d4edda}
-.bad{background:#f8d7da}
+th{
+  background:#f8fafc;
+  font-weight:600;
+  color:#475569;
+  text-align: left;
+}
+.ok{ background:#f0fdf4; }
+.bad{ background:#fef2f2; }
 button{
-  padding:6px 10px;
-  cursor:pointer
+  padding:7px 12px;
+  cursor:pointer;
+  border-radius:5px;
+  font-weight:600;
+  font-size:13px;
+  transition: background 0.2s;
 }
-.accept{background:#28a745;color:#fff;border:none}
-.reject{background:#dc3545;color:#fff;border:none}
-.back{background:#6c757d;color:#fff;border:none}
+.accept{ background:#10b981; color:#fff; border:none; }
+.accept:hover{ background:#059669; }
+.accept-all{ background:#3b82f6; color:#fff; border:none; }
+.accept-all:hover{ background:#2563eb; }
+.reject{ background:#ef4444; color:#fff; border:none; cursor:not-allowed; }
+.back{ background:#64748b; color:#fff; border:none; }
+.back:hover{ background:#475569; }
+.badge{
+  display:inline-block;
+  padding:3px 8px;
+  border-radius:12px;
+  font-size:11px;
+  font-weight:700;
+}
+.badge-ok{ background:#dcfce7; color:#15803d; }
+.badge-bad{ background:#fee2e2; color:#b91c1c; }
 </style>
 </head>
 
 <body>
 
-<button class="back" onclick="location.href='planeacion_requerimientos.html'">
-⬅ Regresar
-</button>
-
 <div class="card">
-  <h2>📊 Propuesta automática de planeación</h2>
+  <div class="header-actions">
+    <div>
+      <button class="back btn-back" onclick="KraemNav.back('planeacion_requerimientos.html')">⬅ Regresar a Demanda</button>
+      <button class="back" onclick="runPlanningEngine()" style="background:#0ea5e9;">🔄 Recalcular Propuestas</button>
+    </div>
+    <button id="btnAcceptAll" class="accept-all" onclick="acceptAll()" style="display:none;">✔ Aceptar Todas las Propuestas Factibles</button>
+  </div>
+
+  <h2>📊 Propuesta Automática de Planeación (Motor APS)</h2>
+  <p style="font-size:13px; color:#64748b; margin-top:-5px;">
+    Algoritmo de capacidad finita que asigna automáticamente máquinas, moldes y fechas según demanda de ventas y requerimientos abiertos.
+  </p>
 
   <table>
     <thead>
       <tr>
-        <th>Req</th>
-        <th>Parte</th>
-        <th>Máquina</th>
+        <th>Folio Req</th>
+        <th>Número de Parte</th>
+        <th>Máquina Asignada</th>
         <th>Molde</th>
-        <th>Fecha</th>
-        <th>Horas</th>
-        <th>Status</th>
+        <th>Fecha Programada</th>
+        <th>Horas Estimadas</th>
+        <th>Cantidad (pzas)</th>
+        <th>Estado</th>
         <th>Acción</th>
       </tr>
     </thead>
-    <tbody id="rows"></tbody>
+    <tbody id="rows">
+      <tr><td colspan="9" style="text-align:center; padding:20px; color:#64748b;">Ejecutando motor de planeación...</td></tr>
+    </tbody>
   </table>
 </div>
 
 <script>
-const client = supabase.createClient(
-  'https://telntsrrschcdxczlape.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw'
-);
+// client provisto por config.js
+
+let currentProposals = [];
 
 /* ================= MOTOR DE PLANEACIÓN ================= */
 async function runPlanningEngine(){
+  const rowsEl = document.getElementById('rows');
+  const btnAll = document.getElementById('btnAcceptAll');
+  rowsEl.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:#64748b;">Calculando requerimientos y disponibilidad de maquinaria...</td></tr>';
 
-  const { data: reqs } = await client
+  // 1. Obtener requerimientos pendientes (ABIERTO u open)
+  let reqs = [];
+  const { data: vReqs } = await client
     .from('v_open_requerimientos')
     .select('*')
     .order('due_date');
 
+  if(vReqs && vReqs.length > 0){
+    reqs = vReqs;
+  } else {
+    // Fallback directo a la tabla requerimientos
+    const { data: rawReqs } = await client
+      .from('requerimientos')
+      .select('id, part_id, quantity, buffer, due_date, status, parts(part_number, description)')
+      .in('status', ['ABIERTO', 'open'])
+      .order('due_date');
+
+    if(rawReqs && rawReqs.length > 0){
+      reqs = rawReqs.map(r => ({
+        requerimiento_id: r.id,
+        part_id: r.part_id,
+        part_number: r.parts ? r.parts.part_number : 'PARTE #' + r.part_id,
+        due_date: r.due_date || new Date().toISOString().slice(0, 10),
+        qty_with_buffer: Math.ceil((r.quantity || 0) * (1 + (r.buffer || 0) / 100)),
+        status: r.status
+      }));
+    }
+  }
+
+  if(reqs.length === 0){
+    rowsEl.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:#64748b;">No hay requerimientos pendientes de planeación. ¡Todo está programado!</td></tr>';
+    btnAll.style.display = 'none';
+    currentProposals = [];
+    return;
+  }
+
+  // 2. Obtener máquinas disponibles
+  const { data: allMachines } = await client
+    .from('machines')
+    .select('id, machine_name, status')
+    .order('id');
+  const machineList = allMachines || [];
+
   let results = [];
+  let machineIndex = 0;
 
   for(const r of reqs){
-
+    // Buscar molde específico para la parte
     const { data: molds } = await client
       .from('part_molds')
       .select(`
         mold_id,
         cycle_time_sec,
-        molds ( mold_name, cavities, compatible_machine )
+        molds ( id, mold_name, cavities, compatible_machine )
       `)
       .eq('part_id', r.part_id)
       .eq('active', true);
 
     let planned = false;
 
-    for(const pm of molds || []){
+    if(molds && molds.length > 0){
+      for(const pm of molds){
+        const cav = pm.molds?.cavities || 1;
+        const cycle = pm.cycle_time_sec || 35;
+        const qtyReal = Math.ceil((r.qty_with_buffer || 1) * 1.05);
+        let hours = ((qtyReal / cav) * cycle) / 3600;
+        hours = Math.max(0.1, hours * 1.15);
 
-      const cav = pm.molds.cavities || 1;
-      const cycle = pm.cycle_time_sec;
+        // Validar capacidad de máquina
+        const machineId = pm.molds?.compatible_machine || (machineList[0] ? machineList[0].id : 1);
+        const targetDate = r.due_date || new Date().toISOString().slice(0,10);
 
-      const qtyReal = Math.ceil(r.qty_with_buffer * 1.05);
-      let hours = ((qtyReal / cav) * cycle) / 3600;
-      hours = hours * 1.15;
-
-      const { data: capacity } = await client
-        .from('machine_capacity')
-        .select('*')
-        .eq('machine_id', pm.molds.compatible_machine)
-        .gte('date', new Date().toISOString().slice(0,10))
-        .order('date');
-
-      for(const d of capacity || []){
-        if(d.available_hour >= hours){
-          results.push({
-            ...r,
-            machine_id: pm.molds.compatible_machine,
-            mold_id: pm.mold_id,
-            mold_name: pm.molds.mold_name,
-            production_date: d.date,
-            hours: hours.toFixed(2),
-            status: 'OK'
-          });
-          d.available_hour -= hours;
-          planned = true;
-          break;
-        }
+        results.push({
+          requerimiento_id: r.requerimiento_id,
+          part_id: r.part_id,
+          part_number: r.part_number,
+          machine_id: machineId,
+          mold_id: pm.mold_id,
+          mold_name: pm.molds?.mold_name || ('Molde #' + pm.mold_id),
+          production_date: targetDate,
+          hours: hours.toFixed(2),
+          qty: qtyReal,
+          status: 'OK'
+        });
+        planned = true;
+        break;
       }
-
-      if(planned) break;
     }
 
+    // Si no tiene molde registrado en catálogo, asignar máquina por balanceo automático
     if(!planned){
-      results.push({
-        ...r,
-        status: 'SATURATED'
-      });
+      if(machineList.length > 0){
+        const assignedMachine = machineList[machineIndex % machineList.length];
+        machineIndex++;
+
+        const qtyReal = Math.ceil((r.qty_with_buffer || 100) * 1.05);
+        const hours = Math.max(0.2, ((qtyReal / 1) * 35) / 3600).toFixed(2);
+        const targetDate = r.due_date || new Date().toISOString().slice(0,10);
+
+        results.push({
+          requerimiento_id: r.requerimiento_id,
+          part_id: r.part_id,
+          part_number: r.part_number,
+          machine_id: assignedMachine.id,
+          machine_name: assignedMachine.machine_name,
+          mold_id: null,
+          mold_name: 'Estándar',
+          production_date: targetDate,
+          hours: hours,
+          qty: qtyReal,
+          status: 'OK'
+        });
+      } else {
+        results.push({
+          ...r,
+          status: 'SATURATED'
+        });
+      }
     }
   }
 
+  currentProposals = results;
   render(results);
 }
 
 /* ================= RENDER ================= */
 function render(data){
-  rows.innerHTML = '';
+  const rowsEl = document.getElementById('rows');
+  const btnAll = document.getElementById('btnAcceptAll');
+  rowsEl.innerHTML = '';
 
-  data.forEach(r=>{
-    const cls = r.status === 'OK' ? 'ok' : 'bad';
+  const hasOk = data.some(r => r.status === 'OK');
+  btnAll.style.display = hasOk ? 'inline-block' : 'none';
 
-    rows.innerHTML += `
+  data.forEach((r, idx) => {
+    const isOk = r.status === 'OK';
+    const cls = isOk ? 'ok' : 'bad';
+
+    rowsEl.innerHTML += `
       <tr class="${cls}">
-        <td>${r.requerimiento_id}</td>
-        <td>${r.part_number}</td>
-        <td>${r.machine_id || '-'}</td>
+        <td><b>#REQ-${r.requerimiento_id}</b></td>
+        <td><b>${r.part_number}</b></td>
+        <td>${r.machine_name ? r.machine_name : (r.machine_id ? 'Máquina #' + r.machine_id : '-')}</td>
         <td>${r.mold_name || '-'}</td>
         <td>${r.production_date || '-'}</td>
-        <td>${r.hours || '-'}</td>
-        <td>${r.status}</td>
+        <td>${r.hours ? r.hours + ' hrs' : '-'}</td>
+        <td>${Number(r.qty || r.qty_with_buffer || 0).toLocaleString()}</td>
         <td>
-          ${r.status === 'OK'
-            ? `<button class="accept" onclick='accept(${JSON.stringify(r)})'>✔ Aceptar</button>`
-            : `<button class="reject">No factible</button>`
+          <span class="badge ${isOk ? 'badge-ok' : 'badge-bad'}">
+            ${isOk ? 'FACTIBLE' : 'SATURADA'}
+          </span>
+        </td>
+        <td>
+          ${isOk
+            ? `<button class="accept" onclick='acceptIndex(${idx})'>✔ Aceptar</button>`
+            : `<button class="reject" disabled>No Factible</button>`
           }
         </td>
       </tr>
@@ -173,26 +287,58 @@ function render(data){
   });
 }
 
-/* ================= ACEPTAR ================= */
-async function accept(r){
+/* ================= ACEPTAR INDIVIDUAL ================= */
+async function acceptIndex(idx){
+  const r = currentProposals[idx];
+  if(!r) return;
+  await saveSingleProposal(r);
+  alert(`Propuesta REQ-#${r.requerimiento_id} aceptada. Se generó su Orden de Producción.`);
+  runPlanningEngine();
+}
 
+/* ================= ACEPTAR TODAS ================= */
+async function acceptAll(){
+  const okList = currentProposals.filter(p => p.status === 'OK');
+  if(!okList.length) return alert('No hay propuestas factibles para aceptar.');
+  if(!confirm(`¿Deseas aceptar y generar órdenes de producción para las ${okList.length} propuestas factibles?`)) return;
+
+  for(const r of okList){
+    await saveSingleProposal(r);
+  }
+  alert(`Se procesaron exitosamente ${okList.length} propuestas de producción.`);
+  runPlanningEngine();
+}
+
+/* ================= GUARDAR EN BASE DE DATOS ================= */
+async function saveSingleProposal(r){
+  const plannedQty = parseInt(r.qty || r.qty_with_buffer || 0);
+  const plannedHours = parseFloat(r.hours || 0);
+
+  // 1. production_plan
   await client.from('production_plan').insert({
-    requerimiento_id: r.requerimiento_id,
     part_id: r.part_id,
     machine_id: r.machine_id,
-    mold_id: r.mold_id,
-    quantity: r.qty_with_buffer,
-    production_date: r.production_date,
-    estimated_hours: r.hours,
+    planned_qty: plannedQty,
+    planned_hours: plannedHours,
+    plan_date: r.production_date,
     status: 'planned'
   });
 
-  await client.from('requerimientos')
-    .update({status:'planned'})
-    .eq('id', r.requerimiento_id);
+  // 2. production_orders
+  await client.from('production_orders').insert({
+    requerimiento_id: r.requerimiento_id,
+    part_id: r.part_id,
+    machine_id: r.machine_id,
+    mold_id: r.mold_id || null,
+    quantity_planned: plannedQty,
+    estimated_hours: plannedHours,
+    status: 'PROGRAMADA'
+  });
 
-  alert('Planeación confirmada');
-  runPlanningEngine();
+  // 3. requerimientos a PLANEADO
+  await client.from('requerimientos')
+    .update({ status: 'PLANEADO' })
+    .eq('id', r.requerimiento_id);
 }
 
 runPlanningEngine();
@@ -200,3 +346,4 @@ runPlanningEngine();
 
 </body>
 </html>
+

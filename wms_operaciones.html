@@ -1,0 +1,1792 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KRAEM by APEX SYSTEM | Estación Unificada de Operaciones WMS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="kraem_nav.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #8b5cf6;
+}
+
+[data-theme="dark"] {
+  --bg: #020617;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; transition: 0.3s; }
+.container { max-width: 900px; margin: auto; position: relative; }
+
+/* Header Moderno */
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:var(--card); padding:12px 20px; border-radius:14px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.03); }
+.top-left { display:flex; align-items:center; gap:12px; }
+.btn-back { width:40px; height:40px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--primary); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+.btn-back:hover { background:var(--primary); color:white; }
+.title-box h1 { margin:0; font-size:18px; font-weight:800; }
+.title-box p { margin:2px 0 0; color:var(--text-secondary); font-size:11px; }
+
+.controls { display:flex; gap:8px; align-items:center; }
+.btn-ctrl { background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px; }
+.lang-btn { width:28px; height:28px; border-radius:50%; cursor:pointer; border:1px solid var(--border); overflow:hidden; padding:0; }
+.lang-btn img { width:100%; height:100%; object-fit:cover; }
+
+/* User Badge con indicador de seguridad */
+.user-badge { display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; background:var(--card); border:1px solid var(--border); padding:10px 16px; border-radius:12px; margin-bottom:15px; }
+.badge-online { background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:8px; font-size:11px; display:inline-flex; align-items:center; gap:5px; }
+.badge-offline { background:#fee2e2; color:#b91c1c; padding:4px 10px; border-radius:8px; font-size:11px; display:inline-flex; align-items:center; gap:5px; }
+
+/* Overlay de Bloqueo si NO está logueado */
+.lock-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.85); backdrop-filter:blur(5px); z-index:9999; display:none; justify-content:center; align-items:center; }
+.lock-box { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:35px 30px; text-align:center; max-width:420px; width:90%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); }
+.lock-box i { font-size:48px; color:var(--danger); margin-bottom:15px; }
+.lock-box h2 { margin:0 0 10px; font-size:20px; color:var(--text); }
+.lock-box p { font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px; }
+.btn-login-now { background:var(--primary); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; width:100%; transition:0.2s; }
+
+/* Navigation Tabs (5 Modos con íconos) */
+.tabs { display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; margin-bottom:15px; background:var(--card); padding:6px; border-radius:14px; border:1px solid var(--border); }
+.tabs button { background:transparent; border:none; padding:10px 4px; cursor:pointer; font-size:11px; font-weight:700; border-radius:8px; color:var(--text-secondary); transition:0.2s; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.tabs button i { font-size:15px; }
+.tabs button.active { background:var(--primary); color:white; box-shadow:0 4px 10px rgba(37,99,235,0.3); }
+
+/* Main Card */
+.main-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:0 8px 24px rgba(0,0,0,0.03); }
+
+/* Form Fields */
+.form-group { margin-bottom:14px; position:relative; }
+label { font-size:11px; font-weight:800; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:5px; }
+input, select, textarea { width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; outline:none; transition:0.2s; }
+input:focus, select:focus, textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+
+.input-with-btn { display:flex; gap:6px; }
+.btn-qr { background:var(--primary); color:white; border:none; width:48px; border-radius:10px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.btn-qr:hover { background:var(--primary-dark); }
+.btn-qr-warning { background:var(--warning); color:#000; }
+
+/* Bloques de Origen y Destino con bordes de color */
+.section-block { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:14px; }
+.section-block-title { font-size:11px; font-weight:800; text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.block-origen { border-left:4px solid var(--warning); }
+.block-destino { border-left:4px solid var(--success); }
+
+/* Autobox Dropdown */
+.autobox { background:var(--card); border:1px solid var(--border); position:absolute; width:100%; z-index:1000; max-height:220px; overflow-y:auto; display:none; border-radius:0 0 10px 10px; box-shadow:0 12px 24px rgba(0,0,0,0.15); top:100%; }
+.autobox div { padding:12px 15px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; }
+.autobox div:hover { background:var(--bg); color:var(--primary); }
+
+/* Standard Pack Banner */
+.std-pack-banner { background:rgba(37,99,235,0.06); border:1px dashed var(--primary); padding:10px 14px; border-radius:10px; font-size:12px; margin-bottom:14px; display:none; align-items:center; justify-content:space-between; }
+.badge-std { background:var(--primary); color:white; padding:3px 8px; border-radius:6px; font-weight:800; font-size:11px; }
+
+/* Sub-selector de Transferencia */
+.switch-mode-box { background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.3); padding:12px 14px; border-radius:10px; margin-bottom:14px; display:none; align-items:center; justify-content:space-between; gap:10px; }
+
+/* Tarjeta de Selección Automática FIFO */
+.fifo-card { background:rgba(245,158,11,0.06); border:1px solid var(--warning); border-left:6px solid var(--warning); padding:14px; border-radius:10px; margin-bottom:15px; display:none; }
+.fifo-title { font-size:11px; font-weight:800; text-transform:uppercase; color:var(--warning); display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.fifo-lote-lista { display:flex; flex-direction:column; gap:7px; }
+.fifo-lote-item { background:var(--card); border:2px solid var(--border); border-radius:10px; padding:10px 14px; cursor:pointer; transition:0.18s; display:flex; justify-content:space-between; align-items:center; }
+.fifo-lote-item:hover { border-color:var(--warning); transform:translateX(2px); }
+.fifo-lote-item.selected { border-color:var(--success); background:rgba(34,197,94,0.08); }
+.badge-fifo { background:var(--warning); color:#000; font-size:10px; font-weight:800; padding:2px 7px; border-radius:5px; margin-left:6px; }
+
+/* Botón Principal */
+.btn-action { width:100%; height:52px; border-radius:12px; border:none; color:white; font-size:15px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; margin-top:15px; transition:0.2s; }
+.btn-entrada { background:var(--success); }
+.btn-salida { background:var(--warning); color:#000; }
+.btn-transf { background:var(--purple); }
+.btn-ajuste { background:#d97706; }
+.btn-action:hover { filter:brightness(1.08); transform:translateY(-1px); }
+
+/* Tabla de Historial y Reversas */
+.table-wrap { overflow-x:auto; margin-top:10px; border:1px solid var(--border); border-radius:12px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th, td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; }
+th { background:var(--bg); font-weight:800; color:var(--text-secondary); text-transform:uppercase; font-size:10px; }
+.btn-reversar { background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; }
+.btn-reversar:hover { background:var(--danger); color:white; }
+.badge-reversado { background:#f1f5f9; color:#64748b; padding:3px 7px; border-radius:5px; font-size:10px; font-weight:700; text-decoration:line-through; }
+
+/* Modales */
+.modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); display:none; justify-content:center; align-items:center; z-index:3000; padding:15px; }
+.modal-content { background:var(--card); border:1px solid var(--border); padding:22px; border-radius:16px; width:100%; max-width:480px; color:var(--text); max-height:85vh; overflow-y:auto; }
+#reader { width:100%; background:black; border-radius:10px; overflow:hidden; margin-top:10px; }
+
+/* Adaptación Responsiva para Tablets y Celulares */
+@media (max-width: 768px) {
+  body { padding: 10px; }
+  .topbar { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+  .controls { justify-content: space-between; flex-wrap: wrap; }
+  .user-badge { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .main-card { padding: 15px; }
+  .switch-mode-box { flex-direction: column; align-items: stretch; }
+  .switch-mode-box select { width: 100% !important; }
+  input, select, textarea { font-size: 16px; /* Evita auto-zoom en iPhone/Android */ }
+}
+@media (max-width: 560px) {
+  .tabs { grid-template-columns: repeat(2, 1fr); }
+  .tabs button:last-child { grid-column: 1 / -1; }
+}
+</style>
+</head>
+<body data-theme="light">
+
+<!-- CANDADO DE SESIÓN OBLIGATORIA -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-box">
+    <i class="fas fa-user-lock"></i>
+    <h2 id="txtLockTitle">Sesión de Operador Requerida</h2>
+    <p id="txtLockDesc">Por norma de trazabilidad, el sistema no permite registrar movimientos sin iniciar sesión.</p>
+    <button class="btn-login-now" onclick="location.href='index.html'">
+      <i class="fas fa-sign-in-alt"></i> <span id="txtLockBtn">Iniciar Sesión Ahora</span>
+    </button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Header -->
+  <div class="topbar">
+    <div class="top-left">
+      <button class="btn-back" onclick="KraemNav.back('dashboard.html')" title="Volver al Dashboard"><i class="fas fa-arrow-left"></i></button>
+      <div class="title-box">
+        <h1 id="txtTitle" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>⚡ WMS Estación Operativa Unificada</span>
+          <span style="font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        </h1>
+        <p id="txtSub">Entradas, Salidas FIFO Automáticas, Transferencias, Ajustes y Reversas Blindadas</p>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="lang-btn" onclick="setLang('es')" title="Español (MX)"><img src="https://flagcdn.com/w80/mx.png"></button>
+      <button class="lang-btn" onclick="setLang('ko')" title="한국어 (KO)"><img src="https://flagcdn.com/w80/kr.png"></button>
+      <button class="lang-btn" onclick="setLang('en')" title="English (US)"><img src="https://flagcdn.com/w80/us.png"></button>
+      <button class="btn-ctrl" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- Barra de Operador Logueado -->
+  <div class="user-badge">
+    <span id="userDisplay"><i class="fas fa-spinner fa-spin"></i> Verificando sesión...</span>
+    <span id="userStatusTag"></span>
+  </div>
+
+  <!-- 5 Pestañas de Operación -->
+  <div class="tabs">
+    <button id="btnENTRADA" class="active" onclick="setMode('ENTRADA')">
+      <i class="fas fa-arrow-right-to-bracket"></i> <span id="tabTxtEntrada">1. ENTRADA</span>
+    </button>
+    <button id="btnSALIDA" onclick="setMode('SALIDA')">
+      <i class="fas fa-truck-ramp-box"></i> <span id="tabTxtSalida">2. SALIDA (FIFO)</span>
+    </button>
+    <button id="btnTRANSFERENCIA" onclick="setMode('TRANSFERENCIA')">
+      <i class="fas fa-people-carry-box"></i> <span id="tabTxtTransf">3. REUBICAR</span>
+    </button>
+    <button id="btnAJUSTE" onclick="setMode('AJUSTE')">
+      <i class="fas fa-scale-balanced"></i> <span id="tabTxtAjuste">4. AJUSTES</span>
+    </button>
+    <button id="btnREVERSAS" onclick="setMode('REVERSAS')">
+      <i class="fas fa-history"></i> <span id="tabTxtReversas">5. REVERSAS</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CARD PRINCIPAL DE OPERACIÓN                                           -->
+  <!-- ===================================================================== -->
+  <div class="main-card" id="cardFormulario">
+
+    <!-- MODO TRANSFERENCIA: PIEZA INDIVIDUAL vs CARRITO COMPLETO vs UBICACIÓN COMPLETA -->
+    <div id="divMoverContenedorCompleto" class="switch-mode-box">
+      <span style="font-size:12px; font-weight:800; color:var(--purple);">
+        <i class="fas fa-layer-group"></i> <span id="lblModoTransf">Modo de Transferencia:</span>
+      </span>
+      <select id="selTransferMode" onchange="alternarModoContenedorCompleto()" style="width:auto; font-weight:700; padding:8px 12px;">
+        <option value="INDIVIDUAL" id="optTransfInd">🔤 Pieza Individual (Normal)</option>
+        <option value="CARRITO" id="optTransfCarr">🛒 Mover Carrito Completo (Todas sus piezas)</option>
+        <option value="UBICACION" id="optTransfUbic">📍 Mover Ubicación Fija Completa</option>
+      </select>
+    </div>
+
+    <!-- MODO AJUSTE: POSITIVO / NEGATIVO + MOTIVO DE DISCREPANCIA -->
+    <div id="divAjusteTipo" style="display:none; background:rgba(217,119,6,0.08); border:1px solid rgba(217,119,6,0.3); padding:14px; border-radius:12px; margin-bottom:14px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+        <div>
+          <label id="lType" style="color:#d97706;">Tipo de Ajuste *</label>
+          <select id="ajusteTipo" onchange="toggleInputs()" style="font-weight:700;">
+            <option value="POS" id="optAjustePos">(+) Positivo (Sobra inventario)</option>
+            <option value="NEG" id="optAjusteNeg">(-) Negativo (Falta / Merma)</option>
+          </select>
+        </div>
+        <div>
+          <label id="lMotivoAjuste" style="color:#d97706;">Motivo de Discrepancia *</label>
+          <select id="motivoAjuste" style="font-weight:700;">
+            <option value="DISCREPANCIA_CONTEO" id="optMotConteo">Diferencia en Conteo Físico / Cíclico</option>
+            <option value="DISCREPANCIA_BOM" id="optMotBom">Discrepancia en BOM (Estructura)</option>
+            <option value="SCRAP_NO_DECLARADO" id="optMotScrap">Pieza Dañada / Scrap no declarado</option>
+            <option value="MERMA_MANIOBRA" id="optMotMerma">Merma en maniobra de almacén</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE A: NÚMERO DE PARTE Y LOTE AUTOMÁTICO -->
+    <div id="divPartSearch" class="form-group">
+      <label id="lPart">Número de Parte *</label>
+      <div class="input-with-btn">
+        <input id="partSearch" placeholder="Escribe o escanea etiqueta de Número de Parte..." autocomplete="off">
+        <button class="btn-qr" onclick="abrirEscaner('PARTE')"><i class="fas fa-camera"></i></button>
+      </div>
+      <div id="partResults" class="autobox"></div>
+    </div>
+
+    <!-- BANNER DE STANDARD PACK -->
+    <div id="stdPackBanner" class="std-pack-banner">
+      <div>
+        <i class="fas fa-boxes-packing" style="color:var(--primary); margin-right:6px;"></i>
+        <span id="stdPackText" style="font-weight:700;">Empaque Estándar Oficial</span>
+      </div>
+      <span class="badge-std" id="stdPackQty">0 pzs</span>
+    </div>
+
+    <!-- TARJETA FIFO AUTOMÁTICA (En SALIDA y TRANSFERENCIA se auto-selecciona el más viejo) -->
+    <div id="fifoAutoBox" class="fifo-card">
+      <div class="fifo-title">
+        <i class="fas fa-star"></i> <span id="lblFifoCardTitle">Lotes Disponibles por FIFO (Se auto-carga el más antiguo; toca otro si requieres cambiar)</span>
+      </div>
+      <div id="fifoListContainer" class="fifo-lote-lista"></div>
+    </div>
+
+    <!-- CAMPO DE LOTE: AUTOMÁTICO (NUNCA SE ESCRIBE A MANO) -->
+    <div id="divLotInput" class="form-group">
+      <label id="lLot">Número de Lote / Fecha (Automático)</label>
+      <div id="containerContenedorLote">
+        <input id="lotInput" readonly style="font-weight:800; cursor:not-allowed;">
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- BLOQUE B: ORIGEN (ÁREA ORIGEN + UBICACIÓN FIJA ORIGEN + CARRO ORIGEN) -->
+    <!-- ===================================================================== -->
+    <div id="bloqueOrigen" class="section-block block-origen">
+      <div class="section-block-title" style="color:#d97706;">
+        <i class="fas fa-plane-departure"></i> <span id="lblTituloOrigen">ORIGEN DEL MATERIAL</span>
+      </div>
+
+      <div class="form-group">
+        <label id="lAreaOrig">Área Origen *</label>
+        <select id="areaSelect" onchange="resetSelection()"></select>
+      </div>
+
+      <!-- Ubicación y Carrito Origen (Ocultos en ENTRADA, visibles en SALIDA/TRANSF/AJUSTE NEG) -->
+      <div id="divOrigen" style="display:none;">
+        <div class="form-group">
+          <label id="lLocOrig">📍 Ubicación Fija ORIGEN (Haz clic para ver Stock del Área)</label>
+          <div class="input-with-btn">
+            <input id="originInput" readonly onclick="abrirModalStock()" placeholder="Haz clic aquí para elegir del Stock o escanea..." style="background:rgba(245,158,11,0.08); cursor:pointer; font-weight:700;">
+            <button class="btn-qr btn-qr-warning" onclick="abrirEscaner('ORIGEN')"><i class="fas fa-camera"></i></button>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label id="lContOrig">🛒 Contenedor / Carrito ORIGEN</label>
+          <div class="input-with-btn">
+            <input id="contOriginInput" placeholder="Busca o escanea carrito de origen..." autocomplete="off">
+            <button class="btn-qr btn-qr-warning" onclick="abrirEscaner('CONT_ORIGEN')"><i class="fas fa-camera"></i></button>
+          </div>
+          <div id="contOrigBox" class="autobox"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- BLOQUE C: DESTINO (ÁREA DESTINO + UBICACIÓN FIJA DESTINO + CARRITO)   -->
+    <!-- ===================================================================== -->
+    <div id="divDestino" class="section-block block-destino">
+      <div class="section-block-title" style="color:var(--success);">
+        <i class="fas fa-plane-arrival"></i> <span id="lblTituloDestino">DESTINO DEL MATERIAL (A dónde ingresa)</span>
+      </div>
+
+      <div id="divAreaDest" class="form-group">
+        <label id="lAreaDest">Área Destino *</label>
+        <select id="areaDestSelect" onchange="resetSelectionDest()"></select>
+      </div>
+
+      <div id="divDestinoFijo" class="form-group">
+        <label id="lLocDest">📍 Ubicación Fija / Hilera DESTINO *</label>
+        <div class="input-with-btn">
+          <input id="destInput" placeholder="Busca o escanea hilera destino..." autocomplete="off">
+          <button class="btn-qr" onclick="abrirEscaner('DESTINO')"><i class="fas fa-camera"></i></button>
+        </div>
+        <div id="destBox" class="autobox"></div>
+      </div>
+
+      <div id="divDestinoContenedor" class="form-group" style="margin-bottom:0;">
+        <label id="lContDest">🛒 Contenedor / Carrito DESTINO *</label>
+        <div class="input-with-btn">
+          <input id="destContInput" placeholder="Busca o escanea carrito destino..." autocomplete="off">
+          <button class="btn-qr" onclick="abrirEscaner('CONT_DESTINO')"><i class="fas fa-camera"></i></button>
+        </div>
+        <div id="destContBox" class="autobox"></div>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- BLOQUE D: CANTIDAD, PARCIALIDADES Y REFERENCIA A ÓRDENES              -->
+    <!-- ===================================================================== -->
+    <div id="divQtyInput" class="form-group">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+        <label id="lQty" style="margin:0;">Cantidad de Piezas *</label>
+        <label style="margin:0; text-transform:none; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:5px;">
+          <input type="checkbox" id="chkParcial" style="width:auto;" onchange="if(this.checked){qty.focus();qty.select();}">
+          <span id="lblParcialSwitch" style="font-weight:700; color:var(--warning);">⚠️ ¿Es Parcial? (Caja/Carro incompleto)</span>
+        </label>
+      </div>
+      <input type="number" id="qty" placeholder="0" min="1">
+    </div>
+
+    <!-- Campos preparados para Órdenes de Producción / Embarque y Comentario -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:10px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label id="lOrdenFolio">Folio Orden (OP / Embarque)</label>
+        <input id="ordenFolioInput" placeholder="Opcional (Ej: OP-104)">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label id="lComm">Comentario / Motivo *</label>
+        <input id="comment" placeholder="Escribe comentario o nota...">
+      </div>
+    </div>
+
+    <button id="btnConfirm" onclick="procesarGuardado()" class="btn-action btn-entrada">
+      <i class="fas fa-check-circle"></i> <span id="txtBtnConfirm">CONFIRMAR ENTRADA</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PESTAÑA 5: AUDITORÍA Y REVERSAS ATÓMICAS (CANDADOS 1, 2 Y 3)          -->
+  <!-- ===================================================================== -->
+  <div class="main-card" id="cardReversas" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div>
+        <h3 id="txtRevTitle" style="margin:0; font-size:16px;">📜 Movimientos Recientes y Reversas Blindadas</h3>
+        <p id="txtRevSub" style="margin:2px 0 0; font-size:11px; color:var(--text-secondary);">
+          Si reversas una <b>TRANSFERENCIA</b>, el sistema reversa automáticamente ambos lados (Origen y Destino) para que nunca se descuadre.
+        </p>
+      </div>
+      <button class="btn-ctrl" onclick="cargarMovimientosRecientes()"><i class="fas fa-sync"></i> <span id="txtBtnRefresh">Actualizar</span></button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th id="thFolio">Folio</th>
+            <th id="thHora">Hora</th>
+            <th id="thParte">Parte</th>
+            <th id="thMov">Movimiento</th>
+            <th id="thArea">Área</th>
+            <th id="thUbic">Ubicación / Carro</th>
+            <th id="thCant" style="text-align:right;">Cant.</th>
+            <th id="thLote">Lote</th>
+            <th id="thOperador">Operador</th>
+            <th id="thAccion" style="text-align:center;">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="reversasTableBody">
+          <tr><td colspan="10" style="text-align:center; padding:20px;">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE STOCK EN UBICACIÓN (Al hacer clic en Ubicación Origen) -->
+<div id="modalStock" class="modal" onclick="if(event.target==this)cerrarModal()">
+  <div class="modal-content">
+    <h3 id="txtStockTitle" style="margin-top:0; margin-bottom:10px;"><i class="fas fa-boxes-stacked"></i> Stock disponible (Toca para cargar)</h3>
+    <div id="modalList"></div>
+    <button id="btnCloseModal" onclick="cerrarModal()" style="margin-top:15px; width:100%; background:var(--bg); border:1px solid var(--border); padding:10px; cursor:pointer; color:var(--text); border-radius:8px; font-weight:bold;">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL DE CANDADO 3 PARA REVERSA OFICIAL -->
+<div id="modalReversa" class="modal" onclick="if(event.target==this)cerrarModalReversa()">
+  <div class="modal-content">
+    <h3 id="txtModalRevTitle" style="margin:0 0 10px 0; color:var(--danger); display:flex; align-items:center; gap:8px;">
+      <i class="fas fa-shield-halved"></i> Autorización de Reversa Oficial
+    </h3>
+    <div id="resumenReversaText" style="background:rgba(239,68,68,0.08); border:1px solid var(--danger); padding:12px; border-radius:10px; font-size:12px; margin-bottom:14px; line-height:1.5;"></div>
+
+    <div class="form-group">
+      <label id="lblRevMotivo">Motivo Oficial de Auditoría (Candado 3) *</label>
+      <select id="revMotivoSelect">
+        <option value="" id="optRevSel">-- Selecciona un motivo obligatorio --</option>
+        <option value="ERROR_CANTIDAD" id="optRevCant">Error de digitación en cantidad de piezas</option>
+        <option value="ERROR_PARTE" id="optRevParte">Número de Parte escaneado por error</option>
+        <option value="ERROR_CARRO_UBICACION" id="optRevCarro">Carro o Hilera equivocada</option>
+        <option value="DUPLICADO" id="optRevDup">Captura duplicada accidentalmente</option>
+        <option value="CANCELACION_EMBARQUE" id="optRevEmb">Cancelación de requerimiento / embarque</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label id="lblRevExplicacion">Explicación Detallada (Mínimo 6 caracteres) *</label>
+      <textarea id="revExplicacionInput" rows="3" placeholder="Explica brevemente por qué se reversa este movimiento..."></textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px;">
+      <button class="btn-ctrl" id="btnCancelRev" onclick="cerrarModalReversa()" style="padding:10px 16px;">Cancelar</button>
+      <button class="btn-action" id="btnEjecutarReversa" onclick="confirmarReversaDefinitiva()" style="margin:0; width:auto; height:42px; padding:0 20px; background:var(--danger);">
+        <i class="fas fa-undo"></i> <span id="txtBtnExecRev">Ejecutar Reversa</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ESCÁNER QR -->
+<div id="modalQR" class="modal" onclick="if(event.target==this)cerrarEscaner()">
+  <div class="modal-content" style="max-width:400px; text-align:center;">
+    <h3 id="txtModalQrTitle" style="margin-top:0;"><i class="fas fa-qrcode"></i> Escaneando Código QR</h3>
+    <div id="reader"></div>
+    <button id="btnCancelQr" onclick="cerrarEscaner()" style="margin-top:15px; width:100%; background:var(--danger); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:8px;">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const _client = supabase.createClient(_supabaseUrl, _supabaseKey);
+
+let parts=[], locations=[], containers=[], areas=[], empaquesPartes=[], mode='ENTRADA';
+let selPartId=null, selOrigId=null, selOrigContId=null, selDestId=null, selDestContId=null;
+let currentUserId=null, currentUserEmail=null;
+let selectedMovementToReverse=null;
+let html5QrcodeScanner = null, qrTargetField = '';
+let currentLang = localStorage.getItem('kraem_lang') || 'es';
+
+const i18n = {
+  es: {
+    lockTitle: "Sesión de Operador Requerida",
+    lockDesc: "Por norma de trazabilidad, el sistema no permite registrar movimientos sin iniciar sesión.",
+    lockBtn: "Iniciar Sesión Ahora",
+    title: "⚡ WMS Estación Operativa Unificada",
+    sub: "Entradas, Salidas FIFO Automáticas, Transferencias, Ajustes y Reversas Blindadas",
+    userOperator: "OPERADOR",
+    userTraceActive: "Trazabilidad Activa",
+    userNoSession: "⚠️ SIN SESIÓN ACTIVA",
+    userLocked: "Bloqueado",
+    tabEntrada: "1. ENTRADA",
+    tabSalida: "2. SALIDA (FIFO)",
+    tabTransf: "3. REUBICAR",
+    tabAjuste: "4. AJUSTES",
+    tabReversas: "5. REVERSAS",
+    lblModoTransf: "Modo de Transferencia:",
+    optTransfInd: "🔤 Pieza Individual (Normal)",
+    optTransfCarr: "🛒 Mover Carrito Completo (Todas sus piezas)",
+    optTransfUbic: "📍 Mover Ubicación Fija Completa",
+    lType: "Tipo de Ajuste *",
+    optAjustePos: "(+) Positivo (Sobra inventario)",
+    optAjusteNeg: "(-) Negativo (Falta / Merma)",
+    lMotivoAjuste: "Motivo de Discrepancia *",
+    optMotConteo: "Diferencia en Conteo Físico / Cíclico",
+    optMotBom: "Discrepancia en BOM (Estructura)",
+    optMotScrap: "Pieza Dañada / Scrap no declarado",
+    optMotMerma: "Merma en maniobra de almacén",
+    lPart: "Número de Parte *",
+    phPart: "Escribe o escanea etiqueta de Número de Parte...",
+    stdPackText: "Empaque Estándar Oficial",
+    lblFifoCardTitle: "Lotes Disponibles por FIFO (Se auto-carga el más antiguo; toca otro si requieres cambiar)",
+    lLotEntrada: "Número de Lote (Automático: Fecha de Hoy)",
+    lLotFifo: "Número de Lote (Cargado Automáticamente por FIFO)",
+    lLotAjuste: "Fecha de Lote (Ajuste) *",
+    phLotFifo: "Se carga solo al seleccionar Número de Parte...",
+    titOrigEntrada: "🏭 ORIGEN DE PRODUCCIÓN / PROCESO",
+    titOrigSalida: "🛫 ORIGEN DEL MATERIAL (De dónde sale)",
+    titOrigTransf: "🛫 ORIGEN (De dónde se toma)",
+    titOrigAjuste: "🛫 UBICACIÓN DONDE SE DETECTÓ EL FALTANTE (-)",
+    lAreaOrigEntrada: "Área Productiva Origen *",
+    lAreaOrig: "Área Origen *",
+    lLocOrig: "📍 Ubicación Fija ORIGEN (Haz clic para ver Stock del Área)",
+    phLocOrig: "Haz clic aquí para elegir del Stock o escanea...",
+    lContOrig: "🛒 Contenedor / Carrito ORIGEN",
+    phContOrig: "Busca o escanea carrito de origen...",
+    titDest: "DESTINO DEL MATERIAL (A dónde ingresa)",
+    lAreaDestEntrada: "Área Destino (Donde se almacena) *",
+    lAreaDest: "Área Destino *",
+    lLocDest: "📍 Ubicación Fija / Hilera DESTINO *",
+    phLocDest: "Busca o escanea hilera destino...",
+    lContDest: "🛒 Contenedor / Carrito DESTINO *",
+    phContDest: "Busca o escanea carrito destino...",
+    lQty: "Cantidad de Piezas *",
+    lblParcialSwitch: "⚠️ ¿Es Parcial? (Caja/Carro incompleto)",
+    lOrdenFolio: "Folio Orden (OP / Embarque)",
+    phOrdenFolio: "Opcional (Ej: OP-104)",
+    lComm: "Comentario / Motivo *",
+    phComm: "Escribe comentario o nota...",
+    btnEntrada: "CONFIRMAR ENTRADA",
+    btnSalida: "CONFIRMAR SALIDA (FIFO)",
+    btnTransf: "CONFIRMAR REUBICACIÓN / TRANSFERENCIA",
+    btnAjuste: "APLICAR AJUSTE DE INVENTARIO",
+    revTitle: "📜 Movimientos Recientes y Reversas Blindadas",
+    revSub: "Si reversas una <b>TRANSFERENCIA</b>, el sistema reversa automáticamente ambos lados (Origen y Destino) para que nunca se descuadre.",
+    btnRefresh: "Actualizar",
+    thFolio: "Folio", thHora: "Hora", thParte: "Parte", thMov: "Movimiento", thArea: "Área", thUbic: "Ubicación / Carro", thCant: "Cant.", thLote: "Lote", thOperador: "Operador", thAccion: "Acción",
+    btnReversarRow: "Reversar",
+    stockTitle: "Stock disponible (Toca para cargar)",
+    close: "Cerrar",
+    modalRevTitle: "Autorización de Reversa Oficial",
+    lblRevMotivo: "Motivo Oficial de Auditoría (Candado 3) *",
+    optRevSel: "-- Selecciona un motivo obligatorio --",
+    optRevCant: "Error de digitación en cantidad de piezas",
+    optRevParte: "Número de Parte escaneado por error",
+    optRevCarro: "Carro o Hilera equivocada",
+    optRevDup: "Captura duplicada accidentalmente",
+    optRevEmb: "Cancelación de requerimiento / embarque",
+    lblRevExplicacion: "Explicación Detallada (Mínimo 6 caracteres) *",
+    phRevExp: "Explica brevemente por qué se reversa este movimiento...",
+    btnCancel: "Cancelar",
+    btnExecRev: "Ejecutar Reversa",
+    modalQrTitle: "Escaneando Código QR"
+  },
+  ko: {
+    lockTitle: "작업자 로그인 필요",
+    lockDesc: "이력 추적 규정에 따라 로그인 없이는 재고 이동을 등록할 수 없습니다.",
+    lockBtn: "지금 로그인",
+    title: "⚡ WMS 통합 작업 스테이션",
+    sub: "입고, 자동 선입선출(FIFO) 출고, 재고 이동, 조정 및 안전 역분개(취소)",
+    userOperator: "작업자",
+    userTraceActive: "추적 활성화됨",
+    userNoSession: "⚠️ 로그인 세션 없음",
+    userLocked: "잠김",
+    tabEntrada: "1. 입고 (ENTRADA)",
+    tabSalida: "2. 출고 (FIFO)",
+    tabTransf: "3. 위치 이동",
+    tabAjuste: "4. 재고 조정",
+    tabReversas: "5. 역분개 (취소)",
+    lblModoTransf: "이동 모드:",
+    optTransfInd: "🔤 개별 부품 이동 (일반)",
+    optTransfCarr: "🛒 대차(카트) 전체 이동",
+    optTransfUbic: "📍 고정 위치(랙) 전체 이동",
+    lType: "조정 유형 *",
+    optAjustePos: "(+) 플러스 조정 (재고 과잉)",
+    optAjusteNeg: "(-) 마이너스 조정 (재고 부족/손실)",
+    lMotivoAjuste: "불일치 사유 *",
+    optMotConteo: "실사 / 순환 재고 조사 차이",
+    optMotBom: "BOM (자재명세서) 불일치",
+    optMotScrap: "파손 부품 / 미신고 스크랩",
+    optMotMerma: "창고 작업 중 손실",
+    lPart: "부품 번호 (Part Number) *",
+    phPart: "부품 번호를 입력하거나 라벨을 스캔하세요...",
+    stdPackText: "표준 포장 수량 (Standard Pack)",
+    lblFifoCardTitle: "FIFO 가용 로트 (가장 오래된 로트가 자동 선택됩니다. 변경하려면 터치하세요)",
+    lLotEntrada: "로트 번호 (자동: 오늘 날짜)",
+    lLotFifo: "로트 번호 (FIFO 자동 로드됨)",
+    lLotAjuste: "로트 날짜 (조정) *",
+    phLotFifo: "부품 번호 선택 시 자동으로 입력됩니다...",
+    titOrigEntrada: "🏭 생산 / 공정 출처 (ORIGEN)",
+    titOrigSalida: "🛫 출고 위치 (ORIGEN)",
+    titOrigTransf: "🛫 출발 위치 (ORIGEN)",
+    titOrigAjuste: "🛫 부족 발생 위치 (-)",
+    lAreaOrigEntrada: "생산 공정 구역 *",
+    lAreaOrig: "출발 구역 (Area Origen) *",
+    lLocOrig: "📍 고정 위치 ORIGEN (클릭하여 재고 선택)",
+    phLocOrig: "여기를 클릭하여 재고를 선택하거나 스캔하세요...",
+    lContOrig: "🛒 출발 대차 / 컨테이너",
+    phContOrig: "출발 대차 검색 또는 스캔...",
+    titDest: "도착 위치 (DESTINO - 보관 장소)",
+    lAreaDestEntrada: "보관 창고 구역 (Area Destino) *",
+    lAreaDest: "도착 구역 (Area Destino) *",
+    lLocDest: "📍 도착 고정 위치 / 열 (DESTINO) *",
+    phLocDest: "도착 열(Hilera) 검색 또는 스캔...",
+    lContDest: "🛒 도착 대차 / 컨테이너 *",
+    phContDest: "도착 대차 검색 또는 스캔...",
+    lQty: "수량 (Piezas) *",
+    lblParcialSwitch: "⚠️ 잔량/부분 포장입니까? (박스/대차 미완성)",
+    lOrdenFolio: "작업/출하 지시 번호 (OP)",
+    phOrdenFolio: "선택 사항 (예: OP-104)",
+    lComm: "비고 / 사유 *",
+    phComm: "메모 또는 사유 입력...",
+    btnEntrada: "입고 확인 (CONFIRMAR ENTRADA)",
+    btnSalida: "FIFO 출고 확인",
+    btnTransf: "위치 이동 확인",
+    btnAjuste: "재고 조정 적용",
+    revTitle: "📜 최근 이동 내역 및 안전 역분개 (취소)",
+    revSub: "<b>위치 이동(TRANSFERENCIA)</b>을 취소하면 출발지와 도착지 양쪽이 동시에 자동 복구됩니다.",
+    btnRefresh: "새로고침",
+    thFolio: "번호", thHora: "시간", thParte: "부품번호", thMov: "유형", thArea: "구역", thUbic: "위치 / 대차", thCant: "수량", thLote: "로트", thOperador: "작업자", thAccion: "작업",
+    btnReversarRow: "취소(역분개)",
+    stockTitle: "가용 재고 목록 (터치하여 선택)",
+    close: "닫기",
+    modalRevTitle: "공식 역분개(취소) 승인",
+    lblRevMotivo: "감사 공식 사유 (잠금 3) *",
+    optRevSel: "-- 필수 사유를 선택하세요 --",
+    optRevCant: "수량 입력 오류",
+    optRevParte: "부품 번호 스캔 오류",
+    optRevCarro: "대차 또는 위치 선택 오류",
+    optRevDup: "실수로 인한 중복 입력",
+    optRevEmb: "출하 / 요청 취소",
+    lblRevExplicacion: "상세 사유 설명 (최소 6자 이상) *",
+    phRevExp: "이 이동을 취소하는 이유를 간략히 설명하세요...",
+    btnCancel: "취소",
+    btnExecRev: "역분개 실행",
+    modalQrTitle: "QR 코드 스캔 중"
+  },
+  en: {
+    lockTitle: "Operator Session Required",
+    lockDesc: "For traceability compliance, inventory movements cannot be recorded without signing in.",
+    lockBtn: "Sign In Now",
+    title: "⚡ WMS Unified Operations Station",
+    sub: "Receipts, Auto-FIFO Issues, Transfers, Adjustments & Guarded Reversals",
+    userOperator: "OPERATOR",
+    userTraceActive: "Traceability Active",
+    userNoSession: "⚠️ NO ACTIVE SESSION",
+    userLocked: "Locked",
+    tabEntrada: "1. RECEIPT (IN)",
+    tabSalida: "2. ISSUE (FIFO)",
+    tabTransf: "3. TRANSFER",
+    tabAjuste: "4. ADJUSTMENT",
+    tabReversas: "5. REVERSALS",
+    lblModoTransf: "Transfer Mode:",
+    optTransfInd: "🔤 Single Part (Standard)",
+    optTransfCarr: "🛒 Move Full Cart (All items)",
+    optTransfUbic: "📍 Move Full Fixed Location",
+    lType: "Adjustment Type *",
+    optAjustePos: "(+) Positive (Surplus stock)",
+    optAjusteNeg: "(-) Negative (Shortage / Scrap)",
+    lMotivoAjuste: "Discrepancy Reason *",
+    optMotConteo: "Cycle / Physical Count Variance",
+    optMotBom: "BOM (Bill of Materials) Variance",
+    optMotScrap: "Damaged Part / Undeclared Scrap",
+    optMotMerma: "Warehouse Handling Loss",
+    lPart: "Part Number *",
+    phPart: "Type or scan Part Number label...",
+    stdPackText: "Official Standard Pack",
+    lblFifoCardTitle: "Available Lots by FIFO (Oldest lot is auto-loaded; tap another if needed)",
+    lLotEntrada: "Lot Number (Auto: Today's Date)",
+    lLotFifo: "Lot Number (Auto-loaded by FIFO)",
+    lLotAjuste: "Lot Date (Adjustment) *",
+    phLotFifo: "Auto-filled when selecting Part Number...",
+    titOrigEntrada: "🏭 PRODUCTION / PROCESS ORIGIN",
+    titOrigSalida: "🛫 MATERIAL ORIGIN (Where it leaves from)",
+    titOrigTransf: "🛫 ORIGIN (Where it is taken from)",
+    titOrigAjuste: "🛫 LOCATION WHERE SHORTAGE WAS FOUND (-)",
+    lAreaOrigEntrada: "Origin Production Area *",
+    lAreaOrig: "Origin Area *",
+    lLocOrig: "📍 Fixed Location ORIGIN (Click to view Area Stock)",
+    phLocOrig: "Click here to pick from Stock or scan...",
+    lContOrig: "🛒 ORIGIN Cart / Container",
+    phContOrig: "Search or scan origin cart...",
+    titDest: "MATERIAL DESTINATION (Where it is stored)",
+    lAreaDestEntrada: "Destination Area (Storage) *",
+    lAreaDest: "Destination Area *",
+    lLocDest: "📍 Fixed Location / Lane DESTINATION *",
+    phLocDest: "Search or scan destination lane...",
+    lContDest: "🛒 DESTINATION Cart / Container *",
+    phContDest: "Search or scan destination cart...",
+    lQty: "Quantity (Pieces) *",
+    lblParcialSwitch: "⚠️ Is it Partial? (Incomplete Box/Cart)",
+    lOrdenFolio: "Order Folio (Work / Ship Order)",
+    phOrdenFolio: "Optional (e.g. OP-104)",
+    lComm: "Comment / Reason *",
+    phComm: "Type comment or note...",
+    btnEntrada: "CONFIRM RECEIPT",
+    btnSalida: "CONFIRM FIFO ISSUE",
+    btnTransf: "CONFIRM TRANSFER / RELOCATION",
+    btnAjuste: "APPLY INVENTORY ADJUSTMENT",
+    revTitle: "📜 Recent Movements & Guarded Reversals",
+    revSub: "If you reverse a <b>TRANSFER</b>, the system atomically reverses both sides (Origin & Destination) to prevent discrepancies.",
+    btnRefresh: "Refresh",
+    thFolio: "ID", thHora: "Time", thParte: "Part #", thMov: "Movement", thArea: "Area", thUbic: "Location / Cart", thCant: "Qty", thLote: "Lot", thOperador: "Operator", thAccion: "Action",
+    btnReversarRow: "Reverse",
+    stockTitle: "Available Stock (Tap to load)",
+    close: "Close",
+    modalRevTitle: "Official Reversal Authorization",
+    lblRevMotivo: "Official Audit Reason (Lock 3) *",
+    optRevSel: "-- Select a mandatory reason --",
+    optRevCant: "Quantity typing error",
+    optRevParte: "Wrong Part Number scanned",
+    optRevCarro: "Wrong Cart or Location",
+    optRevDup: "Accidental duplicate entry",
+    optRevEmb: "Shipment / requirement cancellation",
+    lblRevExplicacion: "Detailed Explanation (Min 6 characters) *",
+    phRevExp: "Briefly explain why this movement is being reversed...",
+    btnCancel: "Cancel",
+    btnExecRev: "Execute Reversal",
+    modalQrTitle: "Scanning QR Code"
+  }
+};
+
+// =========================================================================
+// 1. CANDADO DE SESIÓN ACTIVA
+// =========================================================================
+_client.auth.onAuthStateChange((event, session) => {
+  const userDisplay = document.getElementById('userDisplay');
+  const userStatusTag = document.getElementById('userStatusTag');
+  const lockOverlay = document.getElementById('lockOverlay');
+  const t = i18n[currentLang] || i18n.es;
+
+  if (session && session.user) {
+    currentUserId = session.user.id;
+    currentUserEmail = session.user.email;
+    const userShort = session.user.email.split('@')[0].toUpperCase();
+    userDisplay.innerHTML = `<i class="fas fa-id-badge" style="color:var(--primary);"></i> ${t.userOperator}: <b>${userShort}</b> (${currentUserEmail})`;
+    userStatusTag.innerHTML = `<span class="badge-online"><i class="fas fa-shield-check"></i> ${t.userTraceActive}</span>`;
+    lockOverlay.style.display = 'none';
+  } else {
+    currentUserId = null;
+    currentUserEmail = null;
+    userDisplay.innerHTML = t.userNoSession;
+    userStatusTag.innerHTML = `<span class="badge-offline"><i class="fas fa-lock"></i> ${t.userLocked}</span>`;
+    lockOverlay.style.display = 'flex';
+  }
+  cargarCatalogos();
+  setLang(currentLang);
+});
+
+// =========================================================================
+// 2. CARGA DE CATÁLOGOS DINÁMICOS (DESDE ADMIN_AREAS, PARTS, LOCATIONS, EMPAQUES)
+// =========================================================================
+async function cargarCatalogos() {
+  const {data:a} = await _client.from('areas').select('*').order('area_name');
+  if(a) {
+    areas = a;
+    areaSelect.innerHTML = '';
+    areaDestSelect.innerHTML = '';
+    a.forEach(r => { 
+      areaSelect.innerHTML += `<option value="${r.id}">${r.area_name}</option>`; 
+      areaDestSelect.innerHTML += `<option value="${r.id}">${r.area_name}</option>`; 
+    });
+  }
+  
+  const pParts = window.fetchAllRows 
+    ? await window.fetchAllRows('parts', { client: _client, select: 'id, part_number', orderBy: 'part_number' })
+    : ((await _client.from('parts').select('id, part_number')).data || []);
+  if(pParts) parts = pParts;
+  
+  const {data:l} = await _client.from('locations').select('id, location_code, area_id, type, qr_code, status_operativo, motivo_estado');
+  if(l) {
+    locations = l.filter(item => item.type !== 'Móvil' && item.type !== 'Contenedor');
+    containers = l.filter(item => (item.type === 'Móvil' || item.type === 'Contenedor') && item.status_operativo !== 'BAJA');
+  }
+
+  const epRels = window.fetchAllRows
+    ? await window.fetchAllRows('empaques_partes', { client: _client, orderBy: 'id' })
+    : ((await _client.from('empaques_partes').select('*')).data || []);
+  if(epRels) empaquesPartes = epRels;
+
+  setMode(mode);
+}
+
+// =========================================================================
+// 3. NAVEGACIÓN ENTRE LOS 5 MODOS CONSERVANDO TODAS LAS FUNCIONES
+// =========================================================================
+function setMode(m) { 
+  mode = m; 
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active')); 
+  document.getElementById('btn' + m).classList.add('active'); 
+
+  const cardForm = document.getElementById('cardFormulario');
+  const cardRev = document.getElementById('cardReversas');
+  const btn = document.getElementById('btnConfirm');
+  const txtBtn = document.getElementById('txtBtnConfirm');
+
+  if (m === 'REVERSAS') {
+    cardForm.style.display = 'none';
+    cardRev.style.display = 'block';
+    cargarMovimientosRecientes();
+    return;
+  }
+
+  cardForm.style.display = 'block';
+  cardRev.style.display = 'none';
+  
+  document.getElementById('divMoverContenedorCompleto').style.display = (m === 'TRANSFERENCIA') ? 'flex' : 'none';
+  if(m !== 'TRANSFERENCIA') {
+    document.getElementById('selTransferMode').value = 'INDIVIDUAL';
+  }
+  
+  // Mostrar Área Destino tanto en ENTRADA como en TRANSFERENCIA
+  divAreaDest.style.display = (m === 'TRANSFERENCIA' || m === 'ENTRADA') ? 'block' : 'none'; 
+  divAjusteTipo.style.display = (m === 'AJUSTE') ? 'block' : 'none'; 
+
+  const t = i18n[currentLang] || i18n.es;
+
+  if (m === 'ENTRADA') {
+    btn.className = 'btn-action btn-entrada';
+    txtBtn.innerText = t.btnEntrada;
+    document.getElementById('lblTituloOrigen').innerText = t.titOrigEntrada;
+    document.getElementById('lAreaOrig').innerText = t.lAreaOrigEntrada;
+    document.getElementById('lAreaDest').innerText = t.lAreaDestEntrada;
+  } else if (m === 'SALIDA') {
+    btn.className = 'btn-action btn-salida';
+    txtBtn.innerText = t.btnSalida;
+    document.getElementById('lblTituloOrigen').innerText = t.titOrigSalida;
+    document.getElementById('lAreaOrig').innerText = t.lAreaOrig;
+  } else if (m === 'TRANSFERENCIA') {
+    btn.className = 'btn-action btn-transf';
+    txtBtn.innerText = t.btnTransf;
+    document.getElementById('lblTituloOrigen').innerText = t.titOrigTransf;
+    document.getElementById('lAreaOrig').innerText = t.lAreaOrig;
+    document.getElementById('lAreaDest').innerText = t.lAreaDest;
+  } else if (m === 'AJUSTE') {
+    btn.className = 'btn-action btn-ajuste';
+    txtBtn.innerText = t.btnAjuste;
+    document.getElementById('lblTituloOrigen').innerText = t.titOrigAjuste;
+  }
+
+  toggleInputs(); 
+  aplicarReglaLoteAutomatico();
+  alternarModoContenedorCompleto();
+
+  if (selPartId && (m === 'SALIDA' || m === 'TRANSFERENCIA')) {
+    buscarLoteAutomaticoFIFO();
+  } else {
+    document.getElementById('fifoAutoBox').style.display = 'none';
+  }
+}
+
+function toggleInputs() { 
+  const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG'); 
+  document.getElementById('bloqueOrigen').style.display = (mode === 'AJUSTE' && !isNeg) ? 'none' : 'block';
+  divOrigen.style.display = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg) ? 'block' : 'none'; 
+  divDestino.style.display = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg)) ? 'block' : 'none'; 
+  resetSelection(); 
+}
+
+function alternarModoContenedorCompleto() {
+  const transferMode = document.getElementById('selTransferMode').value;
+  const divParte = document.getElementById('divPartSearch');
+  const divLote = document.getElementById('divLotInput');
+  const divCant = document.getElementById('divQtyInput');
+  const inputOrigenFijo = document.getElementById('originInput');
+  const inputOrigenCont = document.getElementById('contOriginInput');
+  
+  if(mode === 'TRANSFERENCIA' && transferMode === 'CARRITO') {
+    divParte.style.opacity = "0.4"; partSearch.disabled = true; partSearch.value = "--- CARRITO COMPLETO ---";
+    divLote.style.display = "none"; divCant.style.display = "none";
+    document.getElementById('fifoAutoBox').style.display = "none";
+    inputOrigenFijo.placeholder = "No requerido (Se moverá todo el Carrito)"; inputOrigenFijo.disabled = true; inputOrigenFijo.value = ""; selOrigId = null;
+    inputOrigenCont.placeholder = "Escribe o escanea Carrito Origen..."; inputOrigenCont.disabled = false;
+  } 
+  else if(mode === 'TRANSFERENCIA' && transferMode === 'UBICACION') {
+    divParte.style.opacity = "0.4"; partSearch.disabled = true; partSearch.value = "--- UBICACIÓN COMPLETA ---";
+    divLote.style.display = "none"; divCant.style.display = "none";
+    document.getElementById('fifoAutoBox').style.display = "none";
+    inputOrigenFijo.placeholder = "Haz clic para seleccionar Ubicación Fija Origen..."; inputOrigenFijo.disabled = false;
+    inputOrigenCont.placeholder = "No requerido (Se vaciará la ubicación fija)"; inputOrigenCont.disabled = true; inputOrigenCont.value = ""; selOrigContId = null;
+  }
+  else {
+    divParte.style.opacity = "1"; partSearch.disabled = false; if(partSearch.value.includes("---")) partSearch.value = "";
+    divLote.style.display = "block"; divCant.style.display = "block";
+    inputOrigenFijo.placeholder = "Haz clic aquí para elegir del Stock o escanea..."; inputOrigenFijo.disabled = false;
+    inputOrigenCont.placeholder = "Busca o escanea carrito de origen..."; inputOrigenCont.disabled = false;
+    aplicarReglaLoteAutomatico();
+  }
+}
+
+function resetSelection() { 
+  selOrigId=null; selOrigContId=null;
+  originInput.value=''; contOriginInput.value='';
+  if(mode !== 'ENTRADA' && mode !== 'TRANSFERENCIA') {
+    selDestId=null; selDestContId=null;
+    if(document.getElementById('destInput')) destInput.value='';
+    destContInput.value='';
+  }
+  aplicarReglaLoteAutomatico();
+}
+
+function resetSelectionDest() {
+  selDestId=null; selDestContId=null;
+  if(document.getElementById('destInput')) destInput.value='';
+  destContInput.value='';
+}
+
+// =========================================================================
+// 4. LOTE AUTOMÁTICO: FECHA DE HOY EN ENTRADA, FIFO EN SALIDA/TRANSF
+// =========================================================================
+function aplicarReglaLoteAutomatico() {
+  const contenedor = document.getElementById('containerContenedorLote');
+  const lblLote = document.getElementById('lLot');
+  const t = i18n[currentLang] || i18n.es;
+
+  if (mode === 'AJUSTE') {
+    lblLote.innerText = t.lLotAjuste;
+    const hoyISO = new Date().toISOString().split('T')[0];
+    contenedor.innerHTML = `<input type="date" id="lotInput" value="${hoyISO}">`;
+  } else if (mode === 'ENTRADA') {
+    lblLote.innerText = t.lLotEntrada;
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    contenedor.innerHTML = `<input id="lotInput" readonly style="background:rgba(34,197,94,0.1); color:var(--success); font-weight:800; border-color:var(--success); cursor:not-allowed;" value="${yyyy}${mm}${dd}">`;
+  } else {
+    lblLote.innerText = t.lLotFifo;
+    contenedor.innerHTML = `<input id="lotInput" readonly style="background:rgba(100,116,139,0.12); font-weight:800; cursor:not-allowed;" placeholder="${t.phLotFifo}">`;
+  }
+}
+
+async function alSeleccionarParte(parte) {
+  selPartId = parte.id;
+  partSearch.value = parte.part_number;
+  partResults.style.display = 'none';
+
+  const empaqueMatches = empaquesPartes.filter(r => r.part_number === parte.part_number);
+  const rel = empaqueMatches.find(r => r.es_empaque_primario) || empaqueMatches[0];
+  const banner = document.getElementById('stdPackBanner');
+  if (rel) {
+    banner.style.display = 'flex';
+    document.getElementById('stdPackText').innerText = rel.es_empaque_primario ? `Empaque Estándar Oficial` : `Empaque Estándar Alternativo`;
+    document.getElementById('stdPackQty').innerText = `${rel.standard_pack} pzs / empaque`;
+    if (mode === 'ENTRADA' && !document.getElementById('chkParcial').checked) {
+      qty.value = rel.standard_pack;
+    }
+  } else {
+    banner.style.display = 'none';
+  }
+
+  if (mode === 'SALIDA' || mode === 'TRANSFERENCIA') {
+    await buscarLoteAutomaticoFIFO();
+  }
+}
+
+// Helper para consultar estatus de Cuarentena / Calidad / Retrabajo / Embarque de un N/P
+async function obtenerMapaEstatusParte(partId, partNumberTxt) {
+  const mapa = {};
+  const { data: movs } = await _client
+    .from('inventory_movements')
+    .select('part_id, lot_number, comment, created_at, status_stock, orden_embarque_folio')
+    .ilike('comment', '%[KRAEM_STATUS:%')
+    .order('created_at', { ascending: true });
+
+  if (movs) {
+    movs.forEach(m => {
+      if (!m.comment || !m.comment.includes('[KRAEM_STATUS:')) return;
+      const ini = m.comment.indexOf('[KRAEM_STATUS:') + 14;
+      const fin = m.comment.indexOf(']', ini);
+      if (fin === -1) return;
+      const partes = m.comment.substring(ini, fin).split('|');
+      const st = m.status_stock || partes[0] || 'DISPONIBLE';
+      let loc = '', cont = '', oe = m.orden_embarque_folio || '';
+      partes.slice(1).forEach(kv => {
+        const idx = kv.indexOf(':');
+        if (idx !== -1) {
+          const k = kv.substring(0, idx).toUpperCase();
+          const v = kv.substring(idx + 1);
+          if (k === 'LOC') loc = v;
+          if (k === 'CONT') cont = v;
+          if (k === 'OE' && !oe) oe = v;
+        }
+      });
+      const lotKey = `${(loc || 'SIN UBICACION').toUpperCase()}||${(cont || 'SIN CONTENEDOR').toUpperCase()}||${(m.lot_number || 'S/L').toUpperCase()}`;
+      if (String(m.part_id).toUpperCase() === String(partId).toUpperCase() || (partNumberTxt && String(m.part_id).toUpperCase() === String(partNumberTxt).toUpperCase())) {
+        mapa[lotKey] = { status: st, oe };
+      }
+    });
+  }
+  return mapa;
+}
+
+function consultarEstatusItem(item, mapaEstatus) {
+  const loc = (item.location || 'SIN UBICACION').toUpperCase();
+  const cont = (item.container_code || item.container_id || 'SIN CONTENEDOR').toUpperCase();
+  const lot = (item.lot_number || 'S/L').toUpperCase();
+  const info = mapaEstatus[`${loc}||${cont}||${lot}`];
+  return info ? info : { status: 'DISPONIBLE', oe: '' };
+}
+
+async function buscarLoteAutomaticoFIFO() {
+  const fifoBox = document.getElementById('fifoAutoBox');
+  const fifoList = document.getElementById('fifoListContainer');
+  if (!selPartId) { fifoBox.style.display = 'none'; return; }
+
+  fifoBox.style.display = 'block';
+  fifoList.innerHTML = `<div style="font-size:12px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Buscando lote más antiguo en piso...</div>`;
+
+  const [resStock, mapaEstatus] = await Promise.all([
+    _client.from('v_inventory_by_location').select('*').eq('part_id', selPartId).gt('quantity', 0).order('created_at', { ascending: true }),
+    obtenerMapaEstatusParte(selPartId, partSearch.value.trim())
+  ]);
+
+  const data = resStock.data;
+  if (!data || data.length === 0) {
+    fifoList.innerHTML = `<div style="color:var(--danger); font-weight:700;">⚠️ Sin inventario disponible para este Número de Parte.</div>`;
+    return;
+  }
+
+  fifoList.innerHTML = '';
+  let primerHabilItem = null;
+
+  data.forEach((item) => {
+    const stInfo = consultarEstatusItem(item, mapaEstatus);
+    item._status_stock = stInfo.status;
+    item._oe_folio = stInfo.oe;
+    const bloqueadoParaSalida = (stInfo.status === 'CALIDAD' || stInfo.status === 'RETRABAJO');
+
+    let esFifoSeleccionado = false;
+    if (!primerHabilItem && (!bloqueadoParaSalida || mode === 'TRANSFERENCIA')) {
+      primerHabilItem = item;
+      esFifoSeleccionado = true;
+    }
+
+    let badgeEstatus = `<span style="background:rgba(16,185,129,0.15); color:#10b981; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800;">🟢 HÁBIL</span>`;
+    if (stInfo.status === 'CALIDAD') badgeEstatus = `<span style="background:rgba(245,158,11,0.2); color:#f59e0b; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800;">🟡 CUARENTENA / CALIDAD</span>`;
+    if (stInfo.status === 'RETRABAJO') badgeEstatus = `<span style="background:rgba(249,115,22,0.2); color:#f97316; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800;">🟠 EN RETRABAJO</span>`;
+    if (stInfo.status === 'ASIGNADO') badgeEstatus = `<span style="background:rgba(59,130,246,0.2); color:#3b82f6; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:800;">🔵 ASIGNADO (${stInfo.oe || 'EMB'})</span>`;
+
+    const div = document.createElement('div');
+    div.className = 'fifo-lote-item' + (esFifoSeleccionado ? ' selected' : '');
+    if (bloqueadoParaSalida && mode === 'SALIDA') {
+      div.style.opacity = '0.65';
+      div.style.borderColor = '#f59e0b';
+    }
+    const contTxt = item.container_code ? `🛒 ${item.container_code}` : `📦 Suelto`;
+    div.innerHTML = `
+      <div>
+        <div style="font-size:13px; font-weight:800; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          📦 Lote: ${item.lot_number || 'S/L'}
+          ${esFifoSeleccionado ? '<span class="badge-fifo">⭐ FIFO OFICIAL</span>' : ''}
+          ${badgeEstatus}
+        </div>
+        <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">
+          🏢 Área: <b>${item.area}</b> • 📍 Ubicación: <b>${item.location}</b> • ${contTxt}
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:16px; font-weight:900; color:var(--primary);">${item.quantity} pzs</div>
+        <div style="font-size:10px; color:var(--text-secondary);">${bloqueadoParaSalida && mode === 'SALIDA' ? '🚫 Bloqueado Salida' : 'Toca para elegir'}</div>
+      </div>
+    `;
+    div.onclick = () => {
+      if (bloqueadoParaSalida && mode === 'SALIDA') {
+        alert(`🚫 CANDADO DE CALIDAD / CUARENTENA:\n\nEl Lote ${item.lot_number || 'S/L'} en [${item.location}] tiene estatus "${stInfo.status}".\nNo se permite darle SALIDA de almacén hasta que Calidad lo libere a DISPONIBLE en la Torre de Control FIFO.`);
+        return;
+      }
+      document.querySelectorAll('.fifo-lote-item').forEach(el => el.classList.remove('selected'));
+      div.classList.add('selected');
+      cargarItemEnFormularioOrigen(item);
+    };
+    fifoList.appendChild(div);
+  });
+
+  if (primerHabilItem) {
+    cargarItemEnFormularioOrigen(primerHabilItem);
+  }
+}
+
+function cargarItemEnFormularioOrigen(item) {
+  for (let i = 0; i < areaSelect.options.length; i++) {
+    if (areaSelect.options[i].text.toUpperCase() === (item.area || '').toUpperCase()) {
+      areaSelect.selectedIndex = i;
+      break;
+    }
+  }
+  originInput.value = item.location || '';
+  selOrigId = item.location_id;
+
+  contOriginInput.value = item.container_code ? item.container_code : "N/A - Sin Contenedor";
+  selOrigContId = item.container_id ? item.container_id : null;
+
+  const lotEl = document.getElementById('lotInput');
+  if (lotEl && mode !== 'AJUSTE') {
+    lotEl.value = item.lot_number || '';
+  }
+
+  qty.value = item.quantity;
+  qty.max = item.quantity;
+}
+
+// =========================================================================
+// 5. BUSCADORES Y MODAL DE STOCK
+// =========================================================================
+partSearch.oninput = () => {
+  const v = partSearch.value.toUpperCase();
+  partResults.innerHTML = '';
+  if (!v) { partResults.style.display = 'none'; return; }
+  const m = parts.filter(p => p.part_number.includes(v)).slice(0, 10);
+  m.forEach(p => { 
+    const d = document.createElement('div'); 
+    d.innerHTML = `<b>${p.part_number}</b>`; 
+    d.onclick = () => alSeleccionarParte(p); 
+    partResults.appendChild(d); 
+  });
+  partResults.style.display = m.length ? 'block' : 'none';
+};
+
+contOriginInput.oninput = () => {
+  const v = contOriginInput.value.toUpperCase();
+  contOrigBox.innerHTML = '';
+  
+  const def = document.createElement('div');
+  def.innerHTML = `📦 <b>N/A - Sin Contenedor (Caja / Suelto)</b>`;
+  def.onclick = () => { contOriginInput.value = "N/A - Sin Contenedor"; selOrigContId = null; contOrigBox.style.display='none'; };
+  contOrigBox.appendChild(def);
+
+  const m = containers.filter(c => c.location_code.includes(v)).slice(0, 10);
+  m.forEach(c => { 
+    const d = document.createElement('div'); 
+    d.innerHTML = `🛒 <b>${c.location_code}</b> ${c.status_operativo==='EN_REPARACION'?'<b style="color:var(--warning)">(EN TALLER)</b>':''}`; 
+    d.onclick = () => { 
+      if (c.status_operativo === 'EN_REPARACION') { alert(`⚠️ El carro ${c.location_code} está en REPARACIÓN / TALLER (${c.motivo_estado || 'Daño reportado'}).`); return; } 
+      contOriginInput.value = c.location_code; 
+      selOrigContId = c.id; 
+      contOrigBox.style.display='none'; 
+    }; 
+    contOrigBox.appendChild(d); 
+  });
+  contOrigBox.style.display = 'block';
+};
+
+document.body.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 'destInput') {
+    const v = e.target.value.toUpperCase();
+    const aId = (mode === 'TRANSFERENCIA' || mode === 'ENTRADA') ? areaDestSelect.value : areaSelect.value;
+    destBox.innerHTML = '';
+    const m = locations.filter(l => l.area_id == aId && l.location_code.includes(v)).slice(0, 10);
+    m.forEach(l => { 
+      const d = document.createElement('div'); 
+      d.innerHTML = `📍 <b>${l.location_code}</b>`; 
+      d.onclick = () => { document.getElementById('destInput').value = l.location_code; selDestId = l.id; destBox.style.display = 'none'; }; 
+      destBox.appendChild(d); 
+    });
+    destBox.style.display = m.length ? 'block' : 'none';
+  }
+});
+
+destContInput.oninput = () => {
+  const v = destContInput.value.toUpperCase();
+  destContBox.innerHTML = '';
+  
+  const def = document.createElement('div');
+  def.innerHTML = `📦 <b>N/A - Sin Contenedor (Caja / Suelto)</b>`;
+  def.onclick = () => { destContInput.value = "N/A - Sin Contenedor"; selDestContId = null; destContBox.style.display='none'; };
+  destContBox.appendChild(def);
+
+  const m = containers.filter(c => c.location_code.includes(v)).slice(0, 10);
+  m.forEach(c => { 
+    const d = document.createElement('div'); 
+    d.innerHTML = `🛒 <b>${c.location_code}</b> ${c.status_operativo==='EN_REPARACION'?'<b style="color:var(--warning)">(EN TALLER)</b>':''}`; 
+    d.onclick = () => { 
+      if (c.status_operativo === 'EN_REPARACION') { alert(`⚠️ El carro ${c.location_code} está en REPARACIÓN / TALLER (${c.motivo_estado || 'Daño reportado'}).`); return; } 
+      destContInput.value = c.location_code; 
+      selDestContId = c.id; 
+      destContBox.style.display='none'; 
+    }; 
+    destContBox.appendChild(d); 
+  });
+  destContBox.style.display = 'block';
+};
+
+async function abrirModalStock() {
+  const transferMode = document.getElementById('selTransferMode').value;
+  const isMasivo = (mode === 'TRANSFERENCIA' && (transferMode === 'CARRITO' || transferMode === 'UBICACION'));
+  if (!selPartId && !isMasivo) return alert("Selecciona un número de parte primero.");
+  
+  modalStock.style.display = 'flex';
+  const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+  
+  let query = _client.from('v_inventory_by_location').select('*').gt('quantity', 0).order('created_at', { ascending: true });
+  
+  if (mode === 'TRANSFERENCIA' && transferMode === 'CARRITO' && selOrigContId) {
+    query = query.eq('container_id', selOrigContId);
+  } else if (mode === 'TRANSFERENCIA' && transferMode === 'UBICACION' && selOrigId) {
+    query = query.eq('location_id', selOrigId);
+  } else if (!isMasivo) {
+    query = query.eq('part_id', selPartId);
+  } else {
+    query = query.eq('area', areaText);
+  }
+  
+  const {data} = await query;
+  
+  modalList.innerHTML = data?.length ? '' : '<p style="text-align:center; color:var(--text-secondary)">Sin stock disponible</p>';
+  data?.forEach(i => { 
+    const d = document.createElement('div'); 
+    d.style.padding = '12px'; 
+    d.style.borderBottom = '1px solid var(--border)'; 
+    d.style.cursor = 'pointer'; 
+    
+    const contLabel = i.container_code ? `🛒 ${i.container_code}` : `📦 Suelto`;
+    d.innerHTML = `📍 <b>${i.location}</b> [${contLabel}] (${i.area})<br>Parte: <b>${i.part_number || ''}</b> - Lote: <b>${i.lot_number || 'S/L'}</b> - <b style="color:var(--success)">${i.quantity} pzas</b>`; 
+    
+    d.onclick = () => {
+      cargarItemEnFormularioOrigen(i);
+      cerrarModal();
+    }; 
+    modalList.appendChild(d); 
+  });
+}
+function cerrarModal() { modalStock.style.display = 'none'; }
+
+// =========================================================================
+// 6. GUARDADO DE MOVIMIENTOS (CON TRANSFER_GROUP_ID PARA REVERSAS ATÓMICAS)
+// =========================================================================
+async function procesarGuardado() {
+  if (!currentUserId) return alert("🔒 Debes iniciar sesión primero.");
+  
+  const transferMode = document.getElementById('selTransferMode').value;
+  let comm = comment.value.trim();
+  const ordenFolio = document.getElementById('ordenFolioInput').value.trim();
+  const lotInput = document.getElementById('lotInput');
+  
+  if (mode === 'AJUSTE') {
+    const mot = document.getElementById('motivoAjuste').value;
+    comm = `[AJUSTE: ${mot}] ${comm}`;
+  }
+  if(!comm) return alert("Por favor escriba un comentario descriptivo.");
+
+  if(mode === 'TRANSFERENCIA' && transferMode === 'CARRITO') {
+    if(!selOrigContId) return alert("❌ Debe seleccionar, escribir o escanear el Carrito de ORIGEN.");
+    if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
+    
+    const { data: stockCarrito } = await _client
+      .from('v_inventory_by_location')
+      .select('*')
+      .eq('container_id', selOrigContId)
+      .gt('quantity', 0);
+        
+    if(!stockCarrito || stockCarrito.length === 0) {
+      return alert("❌ Este carrito no tiene ningún número de parte asignado actualmente.");
+    }
+    
+    guardarMovimientoMasivo(currentUserId, comm, stockCarrito, 'CARRITO', ordenFolio);
+    return;
+  }
+
+  if(mode === 'TRANSFERENCIA' && transferMode === 'UBICACION') {
+    if(!selOrigId) return alert("❌ Debe seleccionar o escanear la Ubicación Fija de ORIGEN.");
+    if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
+    
+    const { data: stockUbicacion } = await _client
+      .from('v_inventory_by_location')
+      .select('*')
+      .eq('location_id', selOrigId)
+      .gt('quantity', 0);
+        
+    if(!stockUbicacion || stockUbicacion.length === 0) {
+      return alert("❌ Esta ubicación física no tiene stock registrado actualmente.");
+    }
+    
+    guardarMovimientoMasivo(currentUserId, comm, stockUbicacion, 'UBICACION', ordenFolio);
+    return;
+  }
+
+  const q = parseInt(qty.value);
+  if(!selPartId || !q || q <= 0) return alert("Completa los campos obligatorios (Número de parte y cantidad válida).");
+
+  const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG');
+  const requiereOrigen = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg);
+  const requiereDestino = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg));
+
+  if (requiereDestino && !selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de Destino.");
+  if (requiereOrigen && !selOrigId) return alert("❌ Debe seleccionar una Ubicación Fija de Origen.");
+
+  let loteFormateado = lotInput.value.trim().toUpperCase();
+  if (mode === 'AJUSTE') {
+    if (!loteFormateado) return alert("❌ Debe seleccionar una fecha para el Ajuste.");
+    loteFormateado = loteFormateado.replace(/-/g, "");
+  }
+
+  if (requiereOrigen && mode !== 'AJUSTE' && selOrigId) {
+    const areaText = areaSelect.options[areaSelect.selectedIndex].text;
+    if (!loteFormateado) return alert("❌ Debe cargarse un número de Lote antes de continuar.");
+
+    const [{ data: todosLosLotes }, mapaEstatus] = await Promise.all([
+      _client
+        .from('v_inventory_by_location')
+        .select('lot_number, location, container_code, container_id, quantity')
+        .eq('part_id', selPartId)
+        .eq('area', areaText)
+        .gt('quantity', 0)
+        .order('created_at', { ascending: true }),
+      obtenerMapaEstatusParte(selPartId, partSearch.value.trim())
+    ]);
+
+    if (todosLosLotes && todosLosLotes.length > 0 && mode === 'SALIDA') {
+      // Filtrar solo lotes HÁBILES (excluir CALIDAD y RETRABAJO)
+      const lotesHabiles = todosLosLotes.filter(l => {
+        const st = consultarEstatusItem(l, mapaEstatus).status;
+        return st !== 'CALIDAD' && st !== 'RETRABAJO';
+      });
+
+      if (lotesHabiles.length === 0) {
+        alert(`🚫 BLOQUEO DE CALIDAD:\nTodos los lotes disponibles en ${areaText} están en CUARENTENA o RETRABAJO. Deben liberarse primero en la Torre de Control FIFO.`);
+        return;
+      }
+
+      const loteMasViejoGlobal = lotesHabiles[0].lot_number;
+      const ubicacionMasViejoGlobal = lotesHabiles[0].location;
+
+      if (loteFormateado !== loteMasViejoGlobal) {
+        alert(`⚠️ ¡ALERTA CRÍTICA DE CONTROL FIFO! ⚠️\n\n` +
+              `El lote seleccionado NO es el lote HÁBIL más antiguo en ${areaText}.\n\n` +
+              `• Lote Seleccionado: ${loteFormateado}\n` +
+              `• Lote Requerido (FIFO Hábil): ${loteMasViejoGlobal || 'Sin Lote'}\n` +
+              `• Encontrado en: [${ubicacionMasViejoGlobal}]\n\n` +
+              `❌ Operación cancelada.`);
+        return;
+      }
+    }
+  }
+
+  guardarMovimiento(currentUserId, q, comm, loteFormateado, ordenFolio);
+}
+
+async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo, ordenFolio) {
+  let rows = [];
+  const areaOrigText = areaSelect.options[areaSelect.selectedIndex].text;
+  const areaDestText = areaDestSelect.options[areaDestSelect.selectedIndex].text;
+  const containerDestId = selDestContId || (tipoMasivo === 'CARRITO' ? selOrigContId : null);
+  
+  registrosStock.forEach((item, idx) => {
+    const groupId = `TR-${Date.now()}-${idx}`;
+    const base = {
+      part_id: item.part_id,
+      comment: tipoMasivo === 'CARRITO' ? `[MASIVO CARRITO] ${comm}` : `[MASIVO UBICACIÓN] ${comm}`,
+      user_id: userId,
+      lot_number: item.lot_number || '',
+      transfer_group_id: groupId,
+      orden_produccion_folio: ordenFolio || null,
+      created_at: new Date().toISOString()
+    };
+    
+    rows.push({
+      ...base,
+      area: item.area || areaOrigText,
+      quantity: -item.quantity,
+      from_location_id: item.location_id,
+      from_container_id: item.container_id || null, 
+      to_location_id: null,
+      to_container_id: null,
+      movement_type: 'TRANSFERENCIA'
+    });
+    
+    rows.push({
+      ...base,
+      area: areaDestText,
+      area_id: parseInt(areaDestSelect?.value) || null,
+      quantity: item.quantity,
+      from_location_id: null,
+      from_container_id: null,
+      to_location_id: selDestId,
+      to_container_id: containerDestId, 
+      movement_type: 'TRANSFERENCIA'
+    });
+  });
+  
+  const { error } = await _client.from('inventory_movements').insert(rows);
+  if(error) {
+    alert("Error al procesar movimiento masivo: " + error.message);
+  } else {
+    alert(`¡Éxito! Se movieron en bloque ${registrosStock.length} ítems correctamente.`);
+    location.reload();
+  }
+}
+
+async function guardarMovimiento(userId, q, comm, loteEspecifico, ordenFolio) {
+  const areaOrigText = areaSelect.options[areaSelect.selectedIndex].text;
+  const areaDestText = areaDestSelect.options[areaDestSelect.selectedIndex]?.text || areaOrigText;
+  const areaOrigId = parseInt(areaSelect.value) || null;
+  const areaDestId = parseInt(areaDestSelect.value) || areaOrigId;
+  const containerOrigId = selOrigContId || null;
+  const containerDestId = selDestContId || null;
+  const esParcial = document.getElementById('chkParcial').checked;
+
+  const commFinal = (mode === 'ENTRADA' && areaOrigText !== areaDestText)
+    ? `[ORIGEN: ${areaOrigText}] ${comm}`
+    : comm;
+
+  const base = { 
+    part_id: selPartId, 
+    area: (mode === 'ENTRADA') ? areaDestText : areaOrigText, 
+    area_id: (mode === 'ENTRADA') ? areaDestId : areaOrigId,
+    comment: commFinal, 
+    user_id: userId, 
+    lot_number: loteEspecifico,
+    es_parcial: esParcial,
+    orden_produccion_folio: ordenFolio || null,
+    orden_embarque_folio: ordenFolio || null,
+    created_at: new Date().toISOString()
+  };
+  
+  let rows = [];
+  
+  if(mode === 'ENTRADA' || (mode === 'AJUSTE' && ajusteTipo.value === 'POS')) {
+    rows.push({ ...base, quantity: q, to_location_id: selDestId, to_container_id: containerDestId, movement_type: mode });
+  }
+  else if(mode === 'SALIDA' || (mode === 'AJUSTE' && ajusteTipo.value === 'NEG')) {
+    rows.push({ ...base, quantity: -q, from_location_id: selOrigId, from_container_id: containerOrigId, movement_type: mode });
+  }
+  else if(mode === 'TRANSFERENCIA') {
+    const groupId = `TR-${Date.now()}`;
+    rows.push({ ...base, transfer_group_id: groupId, area: areaOrigText, area_id: areaOrigId, quantity: -q, from_location_id: selOrigId, from_container_id: containerOrigId, movement_type: 'TRANSFERENCIA' });
+    rows.push({ ...base, transfer_group_id: groupId, area: areaDestText, area_id: areaDestId, quantity: q, to_location_id: selDestId, to_container_id: containerDestId, movement_type: 'TRANSFERENCIA' });
+  }
+  
+  const {error} = await _client.from('inventory_movements').insert(rows);
+  if(error) alert(error.message); else { alert("✅ Movimiento guardado con éxito"); location.reload(); }
+}
+
+// =========================================================================
+// 7. REVERSAS OFICIALES ATÓMICAS (CANDADOS 1, 2 Y 3)
+// =========================================================================
+async function cargarMovimientosRecientes() {
+  const tbody = document.getElementById('reversasTableBody');
+  tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px;">Cargando movimientos...</td></tr>`;
+
+  const { data, error } = await _client.from('v_history_master')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(35);
+
+  if (error || !data) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--danger); padding:20px;">Error al cargar historial.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(m => {
+    const esReversado = m.reversado === true;
+    const esReversaMisma = m.movement_type === 'REVERSA';
+
+    let botonAccion = '';
+    if (esReversado) {
+      botonAccion = `<span class="badge-reversado">REVERSADO</span>`;
+    } else if (esReversaMisma) {
+      botonAccion = `<span style="font-size:10px; color:var(--text-secondary); font-weight:bold;">REVERSA</span>`;
+    } else {
+      const ubicTxt = m.to_container || m.from_container || m.to_location || m.from_location || 'Piso';
+      botonAccion = `<button class="btn-reversar" onclick="abrirModalReversa('${m.id}', '${m.part_number}', '${m.quantity}', '${m.movement_type}', '${ubicTxt}')"><i class="fas fa-undo"></i> Reversar</button>`;
+    }
+
+    let horaSegura = '-';
+    if (m.created_at) {
+      const dt = new Date(m.created_at);
+      if (!isNaN(dt.getTime()) && dt.getFullYear() >= 2020) {
+        horaSegura = dt.toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit'}) + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      }
+    }
+    if (horaSegura === '-' && m.lot_number && /^\d{8}$/.test(String(m.lot_number))) {
+      const s = String(m.lot_number);
+      horaSegura = `${s.slice(6,8)}/${s.slice(4,6)}/${s.slice(0,4)}`;
+    }
+
+    return `
+      <tr>
+        <td><b>#${m.id}</b></td>
+        <td style="font-size:11px; color:var(--text-secondary);">${horaSegura}</td>
+        <td><b>${m.part_number || '-'}</b></td>
+        <td><span class="badge-std" style="font-size:10px; background:${m.movement_type==='ENTRADA'?'var(--success)':m.movement_type==='SALIDA'?'var(--warning)':m.movement_type==='AJUSTE'?'#d97706':'var(--purple)'};">${m.movement_type}</span></td>
+        <td><b>${m.area || '-'}</b></td>
+        <td>${m.to_container ? '🛒 ' + m.to_container : (m.from_container ? '🛒 ' + m.from_container : (m.to_location || m.from_location || '📍 Piso'))}</td>
+        <td style="text-align:right; font-weight:800;">${m.quantity}</td>
+        <td>${m.lot_number || '-'}</td>
+        <td style="font-weight:700; color:var(--primary);">👤 ${(m.user_email || 'OPERADOR').split('@')[0]}</td>
+        <td style="text-align:center;">${botonAccion}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function abrirModalReversa(id, part, qty, tipo, contenedor) {
+  selectedMovementToReverse = id;
+  const notaTransf = (tipo === 'TRANSFERENCIA')
+    ? `<br><span style="color:var(--purple); font-weight:800;">🔗 Nota: Al ser TRANSFERENCIA, el sistema reversará automáticamente ambos lados (Origen A y Destino B) para que no se descuadre.</span>`
+    : '';
+  document.getElementById('resumenReversaText').innerHTML = `
+    <b>Movimiento a Reversar: Folio #${id}</b><br>
+    Pieza: <b>${part}</b> • Cantidad: <b>${qty} pzs</b> • Tipo: <b>${tipo}</b><br>
+    Ubicación/Carro: <b>${contenedor}</b>${notaTransf}
+  `;
+  document.getElementById('revMotivoSelect').value = '';
+  document.getElementById('revExplicacionInput').value = '';
+  document.getElementById('modalReversa').style.display = 'flex';
+}
+
+function cerrarModalReversa() {
+  document.getElementById('modalReversa').style.display = 'none';
+  selectedMovementToReverse = null;
+}
+
+async function confirmarReversaDefinitiva() {
+  if (!currentUserId || !currentUserEmail) return alert("🔒 Inicia sesión para autorizar una reversa.");
+
+  const motivo = document.getElementById('revMotivoSelect').value;
+  const explicacion = document.getElementById('revExplicacionInput').value.trim();
+
+  if (!motivo) return alert("Candado 3: Selecciona el motivo oficial de auditoría.");
+  if (!explicacion || explicacion.length < 6) return alert("Candado 3: Escribe una justificación de mínimo 6 caracteres.");
+
+  const btn = document.getElementById('btnEjecutarReversa');
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Validando Candados...`;
+
+  try {
+    const { data, error } = await _client.rpc('reversar_movimiento_seguro', {
+      p_movement_id: String(selectedMovementToReverse),
+      p_motivo: motivo,
+      p_explicacion: explicacion,
+      p_usuario: currentUserEmail
+    });
+
+    if (error) {
+      alert("❌ BLOQUEO DE SEGURIDAD:\n" + error.message);
+    } else {
+      alert("✅ REVERSA COMPLETADA:\n" + data.message);
+      cerrarModalReversa();
+      cargarMovimientosRecientes();
+    }
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-undo"></i> Ejecutar Reversa`;
+  }
+}
+
+// =========================================================================
+// 8. ESCÁNER QR
+// =========================================================================
+function abrirEscaner(target) {
+  qrTargetField = target;
+  document.getElementById('modalQR').style.display = 'flex';
+  
+  html5QrcodeScanner = new Html5Qrcode("reader");
+  html5QrcodeScanner.start(
+    { facingMode: "environment" }, 
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    onScanSuccess
+  ).catch(err => {
+    alert("Error al abrir cámara: " + err);
+    cerrarEscaner();
+  });
+}
+
+async function onScanSuccess(decodedText) {
+  cerrarEscaner();
+  const cleanCode = decodedText.trim().toUpperCase();
+  const transferMode = document.getElementById('selTransferMode').value;
+  
+  if (qrTargetField === 'PARTE') {
+    if (cleanCode.includes('|')) {
+      const tokens = cleanCode.split('|');
+      const numParte = tokens[0].trim();
+      const cantidad = tokens[1].trim();
+      const parteEncontrada = parts.find(p => p.part_number === numParte);
+      if (parteEncontrada) {
+        await alSeleccionarParte(parteEncontrada);
+        qty.value = cantidad;
+      } else { alert(`Parte "${numParte}" no encontrada.`); }
+    } else {
+      const parteEncontrada = parts.find(p => p.part_number === cleanCode);
+      if (parteEncontrada) {
+        await alSeleccionarParte(parteEncontrada);
+      } else { alert(`Número de parte "${cleanCode}" no encontrado.`); }
+    }
+  } 
+  else if (qrTargetField === 'ORIGEN') {
+    if (!selPartId && transferMode === 'INDIVIDUAL') return alert("❌ Primero selecciona un Número de Parte.");
+    const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
+    if (!encontrada) return alert(`❌ Ubicación Origen "${cleanCode}" no existe.`);
+    originInput.value = encontrada.location_code;
+    selOrigId = encontrada.id;
+    abrirModalStock(); 
+  }
+  else if (qrTargetField === 'CONT_ORIGEN') {
+    const encontrada = containers.find(c => c.qr_code === cleanCode || c.location_code === cleanCode);
+    if (!encontrada) return alert(`❌ Contenedor "${cleanCode}" no existe.`);
+    if (encontrada.status_operativo === 'EN_REPARACION') return alert(`⚠️ El carro ${encontrada.location_code} está en REPARACIÓN.`);
+    contOriginInput.value = encontrada.location_code;
+    selOrigContId = encontrada.id;
+    abrirModalStock();
+  }
+  else if (qrTargetField === 'DESTINO') {
+    const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
+    if (encontrada) {
+      if (mode === 'TRANSFERENCIA' || mode === 'ENTRADA') areaDestSelect.value = encontrada.area_id;
+      else areaSelect.value = encontrada.area_id;
+      destInput.value = encontrada.location_code;
+      selDestId = encontrada.id;
+    } else { alert(`Ubicación "${cleanCode}" no encontrada.`); }
+  }
+  else if (qrTargetField === 'CONT_DESTINO') {
+    const encontrada = containers.find(c => c.qr_code === cleanCode || c.location_code === cleanCode);
+    if (encontrada) {
+      if (encontrada.status_operativo === 'EN_REPARACION') return alert(`⚠️ El carro ${encontrada.location_code} está en REPARACIÓN.`);
+      destContInput.value = encontrada.location_code;
+      selDestContId = encontrada.id;
+    } else { alert(`Contenedor "${cleanCode}" no encontrado.`); }
+  }
+}
+
+function cerrarEscaner() {
+  document.getElementById('modalQR').style.display = 'none';
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.stop().then(() => { html5QrcodeScanner = null; }).catch(err => console.error(err));
+  }
+}
+
+function toggleTheme() {
+  const b = document.body;
+  const isD = b.getAttribute('data-theme') === 'dark';
+  b.setAttribute('data-theme', isD ? 'light' : 'dark');
+  document.getElementById('themeIcon').className = isD ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+function setLang(lang) {
+  if (window.KraemI18n) { window.KraemI18n.setLang(lang); } else { localStorage.setItem('lang', lang); localStorage.setItem('kraem_lang', lang); }
+  currentLang = lang;
+  localStorage.setItem('kraem_lang', lang);
+  const t = i18n[lang] || i18n.es;
+
+  document.getElementById('txtLockTitle').innerText = t.lockTitle;
+  document.getElementById('txtLockDesc').innerText = t.lockDesc;
+  document.getElementById('txtLockBtn').innerText = t.lockBtn;
+  document.getElementById('txtTitle').innerText = t.title;
+  document.getElementById('txtSub').innerText = t.sub;
+
+  // Actualizar barra de usuario
+  if (currentUserEmail) {
+    const userShort = currentUserEmail.split('@')[0].toUpperCase();
+    document.getElementById('userDisplay').innerHTML = `<i class="fas fa-id-badge" style="color:var(--primary);"></i> ${t.userOperator}: <b>${userShort}</b> (${currentUserEmail})`;
+    document.getElementById('userStatusTag').innerHTML = `<span class="badge-online"><i class="fas fa-shield-check"></i> ${t.userTraceActive}</span>`;
+  } else {
+    document.getElementById('userDisplay').innerHTML = t.userNoSession;
+    document.getElementById('userStatusTag').innerHTML = `<span class="badge-offline"><i class="fas fa-lock"></i> ${t.userLocked}</span>`;
+  }
+
+  // Pestañas
+  document.getElementById('tabTxtEntrada').innerText = t.tabEntrada;
+  document.getElementById('tabTxtSalida').innerText = t.tabSalida;
+  document.getElementById('tabTxtTransf').innerText = t.tabTransf;
+  document.getElementById('tabTxtAjuste').innerText = t.tabAjuste;
+  document.getElementById('tabTxtReversas').innerText = t.tabReversas;
+
+  // Sub-selectores
+  document.getElementById('lblModoTransf').innerText = t.lblModoTransf;
+  document.getElementById('optTransfInd').innerText = t.optTransfInd;
+  document.getElementById('optTransfCarr').innerText = t.optTransfCarr;
+  document.getElementById('optTransfUbic').innerText = t.optTransfUbic;
+
+  document.getElementById('lType').innerText = t.lType;
+  document.getElementById('optAjustePos').innerText = t.optAjustePos;
+  document.getElementById('optAjusteNeg').innerText = t.optAjusteNeg;
+  document.getElementById('lMotivoAjuste').innerText = t.lMotivoAjuste;
+  const _setOpt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+  _setOpt('optMotConteo', t.optMotConteo);
+  _setOpt('optMotBom', t.optMotBom);
+  _setOpt('optMotScrap', t.optMotScrap);
+  _setOpt('optMotMerma', t.optMotMerma);
+
+  // Campos de formulario y placeholders
+  document.getElementById('lPart').innerText = t.lPart;
+  document.getElementById('partSearch').placeholder = t.phPart;
+  document.getElementById('stdPackText').innerText = t.stdPackText;
+  document.getElementById('lblFifoCardTitle').innerText = t.lblFifoCardTitle;
+
+  document.getElementById('lLocOrig').innerText = t.lLocOrig;
+  document.getElementById('originInput').placeholder = t.phLocOrig;
+  document.getElementById('lContOrig').innerText = t.lContOrig;
+  document.getElementById('contOriginInput').placeholder = t.phContOrig;
+
+  document.getElementById('lblTituloDestino').innerText = t.titDest;
+  document.getElementById('lLocDest').innerText = t.lLocDest;
+  document.getElementById('destInput').placeholder = t.phLocDest;
+  document.getElementById('lContDest').innerText = t.lContDest;
+  document.getElementById('destContInput').placeholder = t.phContDest;
+
+  document.getElementById('lQty').innerText = t.lQty;
+  document.getElementById('lblParcialSwitch').innerText = t.lblParcialSwitch;
+  document.getElementById('lOrdenFolio').innerText = t.lOrdenFolio;
+  document.getElementById('ordenFolioInput').placeholder = t.phOrdenFolio;
+  document.getElementById('lComm').innerText = t.lComm;
+  document.getElementById('comment').placeholder = t.phComm;
+
+  // Tabla y pestaña de Reversas
+  document.getElementById('txtRevTitle').innerText = t.revTitle;
+  document.getElementById('txtRevSub').innerHTML = t.revSub;
+  document.getElementById('txtBtnRefresh').innerText = t.btnRefresh;
+  document.getElementById('thFolio').innerText = t.thFolio;
+  document.getElementById('thHora').innerText = t.thHora;
+  document.getElementById('thParte').innerText = t.thParte;
+  document.getElementById('thMov').innerText = t.thMov;
+  document.getElementById('thArea').innerText = t.thArea;
+  document.getElementById('thUbic').innerText = t.thUbic;
+  document.getElementById('thCant').innerText = t.thCant;
+  document.getElementById('thLote').innerText = t.thLote;
+  document.getElementById('thOperador').innerText = t.thOperador;
+  document.getElementById('thAccion').innerText = t.thAccion;
+
+  // Modales
+  document.getElementById('txtStockTitle').innerHTML = `<i class="fas fa-boxes-stacked"></i> ${t.stockTitle}`;
+  document.getElementById('btnCloseModal').innerText = t.close;
+  document.getElementById('txtModalRevTitle').innerHTML = `<i class="fas fa-shield-halved"></i> ${t.modalRevTitle}`;
+  document.getElementById('lblRevMotivo').innerText = t.lblRevMotivo;
+  const _setRevOpt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+  _setRevOpt('optRevSel', t.optRevSel);
+  _setRevOpt('optRevCant', t.optRevCant);
+  _setRevOpt('optRevParte', t.optRevParte);
+  _setRevOpt('optRevCarro', t.optRevCarro);
+  _setRevOpt('optRevDup', t.optRevDup);
+  _setRevOpt('optRevEmb', t.optRevEmb);
+  document.getElementById('lblRevExplicacion').innerText = t.lblRevExplicacion;
+  document.getElementById('revExplicacionInput').placeholder = t.phRevExp;
+  document.getElementById('btnCancelRev').innerText = t.btnCancel;
+  document.getElementById('txtBtnExecRev').innerText = t.btnExecRev;
+  document.getElementById('txtModalQrTitle').innerHTML = `<i class="fas fa-qrcode"></i> ${t.modalQrTitle}`;
+  document.getElementById('btnCancelQr').innerText = t.btnCancel;
+
+  // Refrescar etiquetas dependientes del modo actual
+  setMode(mode);
+  syncWmsMotivosFromSettings();
+}
+
+function syncWmsMotivosFromSettings() {
+  if (!window.KraemSettings) return;
+  const ajustes = KraemSettings.get('wms', 'motivos_ajuste');
+  const selAj = document.getElementById('motivoAjuste');
+  if (selAj && Array.isArray(ajustes) && ajustes.length) {
+    const prev = selAj.value;
+    selAj.innerHTML = ajustes.map(m => `<option value="${String(m).replace(/"/g, '&quot;')}">${m}</option>`).join('');
+    if (ajustes.includes(prev)) selAj.value = prev;
+  }
+  const reversas = KraemSettings.get('wms', 'motivos_reversa');
+  const selRev = document.getElementById('revMotivoSelect');
+  if (selRev && Array.isArray(reversas) && reversas.length) {
+    const prev = selRev.value;
+    const firstOpt = selRev.options[0] ? selRev.options[0].textContent : '-- Selecciona un motivo --';
+    selRev.innerHTML = `<option value="">${firstOpt}</option>` + reversas.map(m => `<option value="${String(m).replace(/"/g, '&quot;')}">${m}</option>`).join('');
+    if (reversas.includes(prev)) selRev.value = prev;
+  }
+}
+document.addEventListener('kraem:settingsready', syncWmsMotivosFromSettings);
+document.addEventListener('DOMContentLoaded', syncWmsMotivosFromSettings);
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+<script src="iso_sop_ayuda.js"></script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
+</script>
+</body>
+</html>

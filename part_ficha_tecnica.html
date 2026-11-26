@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
 
     <style>
         :root { 
@@ -84,7 +86,7 @@
         <div class="kpi-card success">
             <div class="kpi-title"><i class="fas fa-boxes-stacked"></i> Inventario Actual Total</div>
             <div class="kpi-value" id="kpiStock">0 PZA</div>
-            <div class="kpi-subtext">Obtenido de `inventory_movements`</div>
+            <div class="kpi-subtext">Stock neto WMS (`v_inventory_by_location`)</div>
         </div>
         <div class="kpi-card">
             <div class="kpi-title"><i class="fas fa-chart-line"></i> Demanda / Salida Prom. Diaria</div>
@@ -179,7 +181,7 @@
             <div class="card">
                 <div class="card-title">
                     <span><i class="fas fa-sitemap"></i> Estructura de Materiales (BOM)</span>
-                    <a href="dashboard_bom.html" class="btn btn-sm"><i class="fas fa-calculator"></i> Ir a Simulación BOM</a>
+                    <a href="ingenieria_bom.html" class="btn btn-sm"><i class="fas fa-calculator"></i> Ir a Simulación BOM</a>
                 </div>
                 <div style="overflow-x: auto;">
                     <table>
@@ -195,6 +197,32 @@
                         </thead>
                         <tbody id="bomTableBody">
                             <tr><td colspan="6" style="text-align:center;">Cargando componentes del BOM...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- MOLDES / VERSIONES DE FABRICACIÓN -->
+            <div class="card">
+                <div class="card-title">
+                    <span><i class="fas fa-cubes"></i> Moldes de Fabricación</span>
+                    <a href="catalogo_moldes.html" class="btn btn-sm"><i class="fas fa-shapes"></i> Maestro de Moldes</a>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Molde</th>
+                                <th>Lado</th>
+                                <th>Cav.</th>
+                                <th>Ciclo</th>
+                                <th>Pzs/Hora</th>
+                                <th>Estatus Molde</th>
+                                <th>Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="moldsTableBody">
+                            <tr><td colspan="7" style="text-align:center;">Cargando moldes...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -249,62 +277,110 @@
         document.getElementById('valCavities').innerText = `${p.cavities || 1} Cav.`;
         document.getElementById('valCycleTime').innerText = `${p.cycle_time_seg || 0} s`;
         
-        const partWeight = parseFloat(p.part_weight_gr || 0);
-        const runnerWeight = parseFloat(p.runner_weight_gr || 0);
-        
-        // Ajuste de visualización en Gramos reales
-        const partGr = (partWeight > 0 && partWeight < 10) ? partWeight * 1000 : partWeight;
-        const runnerGr = (runnerWeight > 0 && runnerWeight < 10) ? runnerWeight * 1000 : runnerWeight;
+        // Pesos: se almacenan SIEMPRE en gramos (ver ingenieria_nuevo_np / carga Excel BOM).
+        const partGr = parseFloat(p.part_weight_gr || 0);
+        const runnerGr = parseFloat(p.runner_weight_gr || 0);
         
         document.getElementById('valPartWeight').innerText = `${partGr.toFixed(1)} g`;
         document.getElementById('valRunnerWeight').innerText = `${runnerGr.toFixed(1)} g`;
         document.getElementById('valTotalWeight').innerText = `${(partGr + runnerGr).toFixed(1)} g`;
 
-        document.getElementById('kpiStdPack').innerText = `${p.std_pack || 0} ${p.unit_of_measure || 'PZA'}`;
+        await loadStandardPack(p);
 
-        // 2. Consultar Inventario desde la tabla `inventory_movements`
+        // 2. Consultar Inventario (misma fuente que el WMS)
         await calculateInventoryAndDemand(p.id, p.unit_of_measure || 'PZA');
 
         // 3. Consultar Estructura BOM
         await loadBomStructure(p.id, p.product_type);
+
+        // 4. Moldes donde se fabrica esta parte
+        await loadMolds(p.id);
+    }
+
+    async function loadMolds(id) {
+        const body = document.getElementById('moldsTableBody');
+        const { data, error } = await client
+            .from('part_molds')
+            .select('cavities_for_part, cycle_time_sec, part_weight_gr, runner_weight_gr, side, is_primary, active, molds(id, mold_code, mold_name, name, current_status, setup_time_min)')
+            .eq('part_id', id);
+
+        if (error) {
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--secondary);">Matriz de moldes no disponible (ejecutar ingenieria_fase1_moldes.sql).</td></tr>`;
+            return;
+        }
+        const rows = (data || []).filter(r => r.active !== false && r.molds);
+        if (!rows.length) {
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--secondary);">Sin molde asignado. <a href="catalogo_moldes.html">Asignar en Maestro de Moldes</a></td></tr>`;
+            return;
+        }
+        body.innerHTML = rows.map(r => {
+            const pph = r.cycle_time_sec > 0 ? Math.round(3600 / r.cycle_time_sec * (r.cavities_for_part || 1)) : null;
+            return `
+                <tr>
+                    <td><strong>${r.molds.mold_code || '-'}</strong><br><small>${r.molds.mold_name || r.molds.name || ''}</small></td>
+                    <td>${r.side || 'NA'}</td>
+                    <td>${r.cavities_for_part || 1}</td>
+                    <td>${r.cycle_time_sec ? r.cycle_time_sec + ' s' : '-'}</td>
+                    <td><strong>${pph ? pph.toLocaleString() : '-'}</strong></td>
+                    <td><span class="badge badge-level">${(r.molds.current_status || 'EN_ALMACEN').replace('_', ' ')}</span></td>
+                    <td>${r.is_primary ? 'PRINCIPAL' : 'ALTERNO'}</td>
+                </tr>`;
+        }).join('');
     }
 
     async function calculateInventoryAndDemand(id, unit) {
-        // Consultar movimientos de inventario en Supabase
-        const { data: moves, error } = await client
+        // 1. Stock actual: misma fuente que el WMS (v_inventory_by_location ya neta entradas,
+        //    salidas, transferencias, ajustes y reversas, porque quantity se guarda con signo).
+        const { data: stockRows } = await client
+            .from('v_inventory_by_location')
+            .select('quantity')
+            .eq('part_id', id)
+            .gt('quantity', 0);
+
+        const totalStock = (stockRows || []).reduce((s, r) => s + (parseFloat(r.quantity) || 0), 0);
+
+        // 2. Demanda: solo SALIDAS reales de los últimos 30 días que NO fueron reversadas.
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: moves } = await client
             .from('inventory_movements')
-            .select('quantity, movement_type, created_at')
-            .eq('part_id', id);
+            .select('quantity, movement_type, reversado, es_reversa')
+            .eq('part_id', id)
+            .eq('movement_type', 'SALIDA')
+            .gte('created_at', thirtyDaysAgo.toISOString());
 
-        let totalStock = 0;
-        let totalOutflowLast30Days = 0;
-
-        if (moves && moves.length > 0) {
-            const now = new Date();
-            const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
-
-            moves.forEach(m => {
-                const qty = parseFloat(m.quantity) || 0;
-                // Sumar entradas, restar salidas
-                if (['ENTRADA', 'IN', 'PRODUCCION'].includes(m.movement_type.toUpperCase())) {
-                    totalStock += qty;
-                } else if (['SALIDA', 'OUT', 'EMBARQUE'].includes(m.movement_type.toUpperCase())) {
-                    totalStock -= qty;
-                    
-                    // Si el movimiento fue en los últimos 30 días, sumar para la demanda histórica
-                    if (new Date(m.created_at) >= thirtyDaysAgo) {
-                        totalOutflowLast30Days += qty;
-                    }
-                }
-            });
-        }
+        const totalOutflowLast30Days = (moves || [])
+            .filter(m => m.reversado !== true && m.es_reversa !== true)
+            .reduce((s, m) => s + Math.abs(parseFloat(m.quantity) || 0), 0);
 
         const avgDailyDemand = totalOutflowLast30Days / 30;
         const coverageDays = avgDailyDemand > 0 ? (totalStock / avgDailyDemand) : 0;
 
         document.getElementById('kpiStock').innerText = `${totalStock.toFixed(0)} ${unit}`;
         document.getElementById('kpiDemand').innerText = `${avgDailyDemand.toFixed(1)} ${unit}/Día`;
-        document.getElementById('kpiCoverage').innerText = `${coverageDays.toFixed(1)} Días`;
+        document.getElementById('kpiCoverage').innerText = avgDailyDemand > 0 ? `${coverageDays.toFixed(1)} Días` : 'Sin consumo';
+    }
+
+    // Standard Pack oficial: el del catálogo de Empaques (empaque primario), que es el que usa el WMS.
+    async function loadStandardPack(p) {
+        const { data } = await client
+            .from('empaques_partes')
+            .select('standard_pack, es_empaque_primario, empaques(codigo)')
+            .eq('part_number', p.part_number);
+
+        const rel = (data || []).find(r => r.es_empaque_primario) || (data || [])[0];
+        const unit = p.unit_of_measure || 'PZA';
+        const kpi = document.getElementById('kpiStdPack');
+        const sub = kpi.nextElementSibling;
+
+        if (rel) {
+            kpi.innerText = `${rel.standard_pack} ${unit}`;
+            sub.innerText = `Empaque ${rel.es_empaque_primario ? 'oficial' : 'alterno'}: ${rel.empaques?.codigo || ''}`;
+        } else {
+            kpi.innerText = `${p.std_pack || 0} ${unit}`;
+            sub.innerText = '⚠️ Sin empaque asignado en Catálogo de Empaques';
+        }
     }
 
     async function loadBomStructure(id, productType) {
@@ -328,16 +404,17 @@
 
         body.innerHTML = bomData.map(b => {
             const item = isParent ? b.child : b.parent;
+            if (!item) return '';
             return `
                 <tr>
                     <td><span class="badge badge-level">Lvl ${b.bom_level || 1}</span></td>
                     <td>
                         <a href="part_ficha_tecnica.html?id=${item.id}" style="color:var(--primary); font-weight:bold; text-decoration:none;">
-                            ${item ? item.part_number : 'N/A'}
+                            ${item.part_number || 'N/A'}
                         </a>
                     </td>
-                    <td>${item ? item.part_name : ''}</td>
-                    <td><span class="badge badge-level">${item ? item.product_type : '-'}</span></td>
+                    <td>${item.part_name || ''}</td>
+                    <td><span class="badge badge-level">${item.product_type || '-'}</span></td>
                     <td><strong>${b.usage_qty || b.quantity || 1}</strong></td>
                     <td>${b.unit || item.unit_of_measure || 'EA'}</td>
                 </tr>
@@ -362,3 +439,4 @@
 </script>
 </body>
 </html>
+

@@ -1,0 +1,483 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM by APEX SYSTEM | Catálogo de Proveedores</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+:root{
+  --primary:#2563eb; --primary-dark:#1d4ed8; --bg:#f8fafc; --card:#ffffff; --text:#0f172a;
+  --muted:#64748b; --border:#e2e8f0; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);transition:.2s}
+.container{max-width:1440px;margin:auto}
+
+/* HEADER & BRANDING */
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
+.title-box{display:flex;align-items:center;gap:14px}
+.brand-badge{display:flex;align-items:baseline;gap:6px}
+.kraem-brand{font-size:22px;font-weight:900;letter-spacing:.5px;color:var(--text)}
+.apex-tag{font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.6px}
+.title-box h1{margin:2px 0 0;font-size:24px;font-weight:800}
+.title-box p{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+.btn{border:none;border-radius:9px;padding:9px 15px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:7px;font-size:13px;transition:.15s;text-decoration:none}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-success{background:var(--success);color:#fff}
+.btn-warn{background:var(--warning);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 10px;font-size:11.5px;border-radius:7px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+.card h3{margin:0 0 12px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.group{display:flex;flex-direction:column}
+label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+input,select,textarea{padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1100px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
+th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(148,163,184,0.08)}
+tr:hover td{background:rgba(148,163,184,0.04)}
+
+.badge{padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.b-ok{background:#dcfce7;color:#166534}
+.b-warn{background:#fef3c7;color:#92400e}
+.b-bad{background:#fee2e2;color:#991b1b}
+.b-info{background:#e0f2fe;color:#075985}
+.b-purple{background:#ede9fe;color:#5b21b6}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;border-left:4px solid var(--primary)}
+.kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.kpi .v{font-size:22px;font-weight:800;margin-top:4px}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- CABECERA PRINCIPAL CON IDENTIDAD KRAEM by APEX SYSTEM -->
+  <div class="header">
+    <div class="title-box">
+      <a href="dashboard.html" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Menú</a>
+      <div>
+        <div class="brand-badge">
+          <span class="kraem-brand">KRAEM</span>
+          <span class="apex-tag">by APEX SYSTEM</span>
+        </div>
+        <h1><i class="fas fa-truck-field" style="color:var(--primary)"></i> Catálogo Maestro de Proveedores</h1>
+        <p>Directorio de proveedores industriales, términos comerciales, lead times y correos para envío automático de OC.</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="compras_ordenes.html" class="btn btn-primary"><i class="fas fa-file-invoice-dollar"></i> Módulo de Compras (OC) →</a>
+      <a href="compras_recibo.html" class="btn btn-success"><i class="fas fa-box-archive"></i> Recibo en WMS →</a>
+      <button class="btn btn-secondary" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- KPIS RÁPIDOS -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="t">Proveedores Activos</div><div class="v" id="kTotal">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t">Proveedores de Resina</div><div class="v" id="kResinas">0</div></div>
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t">Componentes e Insertos</div><div class="v" id="kComps">0</div></div>
+    <div class="kpi" style="border-left-color:var(--primary)"><div class="t">Empaques e Insumos</div><div class="v" id="kEmpaques">0</div></div>
+  </div>
+
+  <!-- FORMULARIO DE ALTA / EDICIÓN -->
+  <div class="card">
+    <h3 id="formTitle"><i class="fas fa-plus-circle" style="color:var(--primary)"></i> Registrar Nuevo Proveedor</h3>
+    <div class="form-grid">
+      <div class="group">
+        <label>Código Proveedor *</label>
+        <input id="f_codigo" placeholder="Ej. PROV-SABIC" style="text-transform:uppercase">
+      </div>
+      <div class="group">
+        <label>Nombre Comercial *</label>
+        <input id="f_nombre" placeholder="Ej. SABIC México">
+      </div>
+      <div class="group" style="grid-column:span 2">
+        <label>Razón Social Fiscal *</label>
+        <input id="f_razon" placeholder="Ej. SABIC Innovative Plastics México S. de R.L. de C.V.">
+      </div>
+      <div class="group">
+        <label>RFC / Tax ID</label>
+        <input id="f_rfc" placeholder="Ej. SIP980421XX1" style="text-transform:uppercase">
+      </div>
+      <div class="group">
+        <label>Categoría Insumo *</label>
+        <select id="f_categoria">
+          <option value="RESINAS">Resinas y Compuestos</option>
+          <option value="COMPONENTES">Componentes, Clips e Insertos</option>
+          <option value="EMPAQUE">Empaques, Cajas y Retornables</option>
+          <option value="QUIMICOS">Químicos, Pigmentos y Masterbatch</option>
+          <option value="REFACCIONES">Refacciones Mantenimiento / Moldes</option>
+          <option value="SERVICIOS">Servicios Externos / Maquila</option>
+        </select>
+      </div>
+      <div class="group" style="grid-column:span 2">
+        <label>Dirección / Ubicación Planta</label>
+        <input id="f_direccion" placeholder="Calle, Número, Parque Industrial, Ciudad">
+      </div>
+      <div class="group">
+        <label>Ciudad / Estado</label>
+        <input id="f_ciudad" placeholder="Ej. Apodaca, NL">
+      </div>
+      <div class="group">
+        <label>Código Postal</label>
+        <input id="f_cp" placeholder="Ej. 66600">
+      </div>
+      <div class="group">
+        <label>Contacto de Ventas</label>
+        <input id="f_contacto" placeholder="Ej. Ing. Carlos Mendoza">
+      </div>
+      <div class="group">
+        <label>Teléfono Directo</label>
+        <input id="f_tel" placeholder="Ej. (81) 8245-1000">
+      </div>
+      <div class="group" style="grid-column:span 2">
+        <label><i class="fas fa-envelope-circle-check" style="color:var(--primary)"></i> Correo Electrónico para Envío de OC *</label>
+        <input id="f_email_pedidos" type="email" placeholder="pedidos@proveedor.com (AQUÍ LLEGARÁ LA COMPRA DEL MRP)">
+      </div>
+      <div class="group">
+        <label>Lead Time Estándar (Días) *</label>
+        <input id="f_lead_time" type="number" min="1" value="5" title="Días que tarda el proveedor en entregar material">
+      </div>
+      <div class="group">
+        <label>Días de Crédito</label>
+        <input id="f_credito" type="number" min="0" value="30">
+      </div>
+      <div class="group">
+        <label>Moneda Preferida</label>
+        <select id="f_moneda">
+          <option value="MXN">MXN - Pesos Mexicanos</option>
+          <option value="USD">USD - Dólares Americanos</option>
+          <option value="EUR">EUR - Euros</option>
+        </select>
+      </div>
+      <div class="group">
+        <label>Estatus</label>
+        <select id="f_activo">
+          <option value="true">Activo</option>
+          <option value="false">Inactivo / Bloqueado</option>
+        </select>
+      </div>
+      <div class="group" style="grid-column:1/-1">
+        <label>Observaciones / Certificaciones / Términos</label>
+        <textarea id="f_obs" rows="2" placeholder="Notas sobre condiciones de entrega, flete, cuentas bancarias, etc."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="limpiar()"><i class="fas fa-eraser"></i> Limpiar</button>
+      <button class="btn btn-primary" id="btnGuardar" onclick="guardar()"><i class="fas fa-save"></i> Guardar Proveedor</button>
+    </div>
+  </div>
+
+  <!-- TABLA DE PROVEEDORES REGISTRADOS -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <h3 style="margin:0"><i class="fas fa-list-check" style="color:var(--primary)"></i> Proveedores en el Sistema</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="q" placeholder="🔍 Buscar código, nombre, contacto o correo..." oninput="render()" style="width:280px">
+        <select id="fCat" onchange="render()" style="width:auto">
+          <option value="">Todas las categorías</option>
+          <option value="RESINAS">Resinas</option>
+          <option value="COMPONENTES">Componentes</option>
+          <option value="EMPAQUE">Empaques</option>
+          <option value="QUIMICOS">Químicos</option>
+          <option value="REFACCIONES">Refacciones</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Empresa / Razón Social</th>
+            <th>Categoría</th>
+            <th>Contacto & Teléfono</th>
+            <th>Correo Pedidos (Envío OC)</th>
+            <th>Lead Time</th>
+            <th>Crédito / Moneda</th>
+            <th>Estatus</th>
+            <th style="text-align:right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="body"><tr><td colspan="9" style="text-align:center;padding:25px">Cargando proveedores...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_PROV = 'apex_kraem_proveedores_v1';
+let proveedores = [];
+let editId = null;
+
+const SEED_PROVEEDORES = [
+  { id: 1, codigo: 'PROV-SABIC', nombre_comercial: 'SABIC México', razon_social: 'SABIC Innovative Plastics México S. de R.L. de C.V.', rfc: 'SIP980421XX1', categoria: 'RESINAS', direccion: 'Av. De los Sauces 12', ciudad: 'Lerma, Edo. Méx.', codigo_postal: '52000', contacto_nombre: 'Ing. Carlos Mendoza', telefono: '7282829000', email_pedidos: 'pedidos.mexico@sabic.com', lead_time_dias: 5, dias_credito: 45, moneda_preferida: 'USD', activo: true },
+  { id: 2, codigo: 'PROV-LGCHEM', nombre_comercial: 'LG Chem Automotive', razon_social: 'LG Chem America Inc. Sucursal México', rfc: 'LGC120805AA2', categoria: 'RESINAS', direccion: 'Parque Industrial Milenium', ciudad: 'Apodaca, NL', codigo_postal: '66600', contacto_nombre: 'Lic. Roberto Garza', telefono: '8182451000', email_pedidos: 'orders.mex@lgchem.com', lead_time_dias: 7, dias_credito: 60, moneda_preferida: 'USD', activo: true },
+  { id: 3, codigo: 'PROV-ALPEK', nombre_comercial: 'Alpek Polyester', razon_social: 'Alpek DAK Americas S.A. de C.V.', rfc: 'ADA010915B33', categoria: 'RESINAS', direccion: 'Av. Gómez Morín 1111', ciudad: 'San Pedro Garza García, NL', codigo_postal: '66220', contacto_nombre: 'Ing. Fernando Treviño', telefono: '8187485200', email_pedidos: 'ventas.resinas@alpek.com', lead_time_dias: 3, dias_credito: 30, moneda_preferida: 'MXN', activo: true },
+  { id: 4, codigo: 'PROV-DUPONT', nombre_comercial: 'DuPont Performance Resins', razon_social: 'DuPont México S.A. de C.V.', rfc: 'DUP6501019A1', categoria: 'RESINAS', direccion: 'Homero 206, Polanco', ciudad: 'Ciudad de México, CDMX', codigo_postal: '11570', contacto_nombre: 'Ing. Valeria Domínguez', telefono: '5557221000', email_pedidos: 'resinas.dupont@dupont.com', lead_time_dias: 10, dias_credito: 45, moneda_preferida: 'USD', activo: true },
+  { id: 5, codigo: 'PROV-CLIPS', nombre_comercial: 'Fasteners & Clips del Norte', razon_social: 'Fijaciones Industriales del Norte S.A. de C.V.', rfc: 'FIN080312KJ4', categoria: 'COMPONENTES', direccion: 'Av. Lincoln 4500', ciudad: 'Monterrey, NL', codigo_postal: '64100', contacto_nombre: 'Lic. Alejandro Ríos', telefono: '8183104500', email_pedidos: 'ventas@clipsdelnorte.com.mx', lead_time_dias: 4, dias_credito: 30, moneda_preferida: 'MXN', activo: true },
+  { id: 6, codigo: 'PROV-EMPAC', nombre_comercial: 'Empaques Industriales Kraem', razon_social: 'Soluciones de Cartón y Corrugados de México S.A.', rfc: 'SCC150420TR8', categoria: 'EMPAQUE', direccion: 'Carretera a Laredo Km 15', ciudad: 'Escobedo, NL', codigo_postal: '66050', contacto_nombre: 'Lic. Sandra Lozano', telefono: '8182993000', email_pedidos: 'pedidos@empaqueskraem.com', lead_time_dias: 2, dias_credito: 15, moneda_preferida: 'MXN', activo: true }
+];
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function init(){
+  try {
+    if (window.fetchAllRows) {
+      const data = await window.fetchAllRows('proveedores', { orderBy: 'nombre_comercial' });
+      if (data && data.length) proveedores = data;
+    }
+  } catch (e) {
+    console.info("Usando almacenamiento local para proveedores:", e.message);
+  }
+
+  if (!proveedores.length) {
+    try {
+      if (client && client.from) {
+        const { data: dbProv } = await client.from('system_settings').select('value').eq('key', 'catalogo_proveedores').maybeSingle();
+        if (dbProv && Array.isArray(dbProv.value) && dbProv.value.length) {
+          proveedores = dbProv.value;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (!proveedores.length) {
+    const saved = localStorage.getItem(LS_PROV);
+    proveedores = saved ? JSON.parse(saved) : [...SEED_PROVEEDORES];
+    localStorage.setItem(LS_PROV, JSON.stringify(proveedores));
+
+  // Sincronizar en Supabase system_settings
+  try {
+    if (client && client.from) {
+      client.from('system_settings').upsert({
+        key: 'catalogo_proveedores',
+        category: 'compras',
+        value: proveedores,
+        updated_at: new Date().toISOString()
+      }).then(() => console.log("✅ Catálogo de proveedores sincronizado en Supabase")).catch(e => console.warn(e));
+    }
+  } catch (_) {}
+  }
+  render();
+}
+
+function render(){
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const fCat = document.getElementById('fCat').value;
+
+  const filtered = proveedores.filter(p => {
+    if (fCat && p.categoria !== fCat) return false;
+    if (!q) return true;
+    const txt = `${p.codigo} ${p.nombre_comercial} ${p.razon_social} ${p.contacto_nombre} ${p.email_pedidos} ${p.ciudad}`.toLowerCase();
+    return txt.includes(q);
+  });
+
+  document.getElementById('kTotal').textContent = proveedores.filter(p => p.activo !== false).length;
+  document.getElementById('kResinas').textContent = proveedores.filter(p => p.categoria === 'RESINAS').length;
+  document.getElementById('kComps').textContent = proveedores.filter(p => p.categoria === 'COMPONENTES').length;
+  document.getElementById('kEmpaques').textContent = proveedores.filter(p => p.categoria === 'EMPAQUE').length;
+
+  const tbody = document.getElementById('body');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:25px;color:var(--muted)">No se encontraron proveedores con ese filtro.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => {
+    const catClass = p.categoria === 'RESINAS' ? 'b-ok' : (p.categoria === 'COMPONENTES' ? 'b-warn' : 'b-info');
+    const stClass = p.activo !== false ? 'b-ok' : 'b-bad';
+    return `<tr>
+      <td><strong>${esc(p.codigo)}</strong></td>
+      <td>
+        <strong>${esc(p.nombre_comercial)}</strong>
+        <div style="font-size:11px;color:var(--muted)">${esc(p.razon_social || '')}</div>
+        <div style="font-size:10.5px;color:var(--muted)">RFC: ${esc(p.rfc || 'N/D')} · CP: ${esc(p.codigo_postal || '-')}</div>
+      </td>
+      <td><span class="badge ${catClass}">${esc(p.categoria || 'GENERAL')}</span></td>
+      <td>
+        <strong>${esc(p.contacto_nombre || 'N/D')}</strong>
+        <div style="font-size:11px;color:var(--muted)"><i class="fas fa-phone"></i> ${esc(p.telefono || '-')}</div>
+      </td>
+      <td>
+        <a href="mailto:${esc(p.email_pedidos)}" style="color:var(--primary);font-weight:700;text-decoration:none">
+          <i class="fas fa-envelope"></i> ${esc(p.email_pedidos)}
+        </a>
+        <div style="font-size:10.5px;color:var(--muted)">${esc(p.ciudad || '')}</div>
+      </td>
+      <td><strong>${p.lead_time_dias || 5} días</strong></td>
+      <td>
+        <span class="badge b-purple">${p.dias_credito || 0}d crédito</span>
+        <div style="font-size:11px;margin-top:2px">Moneda: <strong>${esc(p.moneda_preferida || 'MXN')}</strong></div>
+      </td>
+      <td><span class="badge ${stClass}">${p.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
+      <td style="text-align:right;white-space:nowrap">
+        <a href="compras_ordenes.html?prov_id=${p.id}" class="btn btn-sm btn-success" title="Crear Orden de Compra"><i class="fas fa-cart-plus"></i> Nueva OC</a>
+        <button class="btn btn-sm btn-secondary" onclick="editar(${p.id})" title="Editar"><i class="fas fa-pencil"></i></button>
+        <button class="btn btn-sm btn-secondary" onclick="eliminar(${p.id})" title="Dar de baja"><i class="fas fa-trash" style="color:var(--danger)"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function guardar(){
+  const codigo = document.getElementById('f_codigo').value.trim().toUpperCase();
+  const nombre = document.getElementById('f_nombre').value.trim();
+  const razon = document.getElementById('f_razon').value.trim();
+  const email = document.getElementById('f_email_pedidos').value.trim();
+
+  if (!codigo || !nombre || !email) {
+    alert("Por favor completa los campos obligatorios: Código, Nombre Comercial y Correo para Pedidos.");
+    return;
+  }
+
+  const payload = {
+    codigo,
+    nombre_comercial: nombre,
+    razon_social: razon || nombre,
+    rfc: document.getElementById('f_rfc').value.trim().toUpperCase(),
+    categoria: document.getElementById('f_categoria').value,
+    direccion: document.getElementById('f_direccion').value.trim(),
+    ciudad: document.getElementById('f_ciudad').value.trim(),
+    codigo_postal: document.getElementById('f_cp').value.trim(),
+    contacto_nombre: document.getElementById('f_contacto').value.trim(),
+    telefono: document.getElementById('f_tel').value.trim(),
+    email_pedidos: email,
+    lead_time_dias: parseInt(document.getElementById('f_lead_time').value) || 5,
+    dias_credito: parseInt(document.getElementById('f_credito').value) || 30,
+    moneda_preferida: document.getElementById('f_moneda').value,
+    activo: document.getElementById('f_activo').value === 'true',
+    observaciones: document.getElementById('f_obs').value.trim()
+  };
+
+  try {
+    if (client && client.from) {
+      if (editId) {
+        await client.from('proveedores').update(payload).eq('id', editId);
+      } else {
+        await client.from('proveedores').insert([payload]);
+      }
+    }
+  } catch (err) {
+    console.info("Guardado en local:", err.message);
+  }
+
+  // Actualizar memoria y local
+  if (editId) {
+    const idx = proveedores.findIndex(p => p.id === editId);
+    if (idx >= 0) proveedores[idx] = { ...proveedores[idx], ...payload };
+  } else {
+    const newId = Date.now();
+    proveedores.unshift({ id: newId, ...payload });
+  }
+  localStorage.setItem(LS_PROV, JSON.stringify(proveedores));
+
+  // Sincronizar en Supabase system_settings
+  try {
+    if (client && client.from) {
+      client.from('system_settings').upsert({
+        key: 'catalogo_proveedores',
+        category: 'compras',
+        value: proveedores,
+        updated_at: new Date().toISOString()
+      }).then(() => console.log("✅ Catálogo de proveedores sincronizado en Supabase")).catch(e => console.warn(e));
+    }
+  } catch (_) {}
+
+  alert("Proveedor guardado correctamente.");
+  limpiar();
+  render();
+}
+
+function editar(id){
+  const p = proveedores.find(x => x.id === id);
+  if (!p) return;
+  editId = id;
+  document.getElementById('formTitle').innerHTML = `<i class="fas fa-pencil" style="color:var(--warning)"></i> Editando Proveedor: ${esc(p.codigo)}`;
+  document.getElementById('btnGuardar').innerHTML = `<i class="fas fa-save"></i> Actualizar Proveedor`;
+
+  document.getElementById('f_codigo').value = p.codigo || '';
+  document.getElementById('f_nombre').value = p.nombre_comercial || '';
+  document.getElementById('f_razon').value = p.razon_social || '';
+  document.getElementById('f_rfc').value = p.rfc || '';
+  document.getElementById('f_categoria').value = p.categoria || 'RESINAS';
+  document.getElementById('f_direccion').value = p.direccion || '';
+  document.getElementById('f_ciudad').value = p.ciudad || '';
+  document.getElementById('f_cp').value = p.codigo_postal || '';
+  document.getElementById('f_contacto').value = p.contacto_nombre || '';
+  document.getElementById('f_tel').value = p.telefono || '';
+  document.getElementById('f_email_pedidos').value = p.email_pedidos || '';
+  document.getElementById('f_lead_time').value = p.lead_time_dias || 5;
+  document.getElementById('f_credito').value = p.dias_credito || 30;
+  document.getElementById('f_moneda').value = p.moneda_preferida || 'MXN';
+  document.getElementById('f_activo').value = p.activo !== false ? 'true' : 'false';
+  document.getElementById('f_obs').value = p.observaciones || '';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function eliminar(id){
+  if (!confirm("¿Deseas dar de baja a este proveedor?")) return;
+  proveedores = proveedores.filter(p => p.id !== id);
+  localStorage.setItem(LS_PROV, JSON.stringify(proveedores));
+
+  // Sincronizar en Supabase system_settings
+  try {
+    if (client && client.from) {
+      client.from('system_settings').upsert({
+        key: 'catalogo_proveedores',
+        category: 'compras',
+        value: proveedores,
+        updated_at: new Date().toISOString()
+      }).then(() => console.log("✅ Catálogo de proveedores sincronizado en Supabase")).catch(e => console.warn(e));
+    }
+  } catch (_) {}
+  render();
+}
+
+function limpiar(){
+  editId = null;
+  document.getElementById('formTitle').innerHTML = `<i class="fas fa-plus-circle" style="color:var(--primary)"></i> Registrar Nuevo Proveedor`;
+  document.getElementById('btnGuardar').innerHTML = `<i class="fas fa-save"></i> Guardar Proveedor`;
+  ['f_codigo','f_nombre','f_razon','f_rfc','f_direccion','f_ciudad','f_cp','f_contacto','f_tel','f_email_pedidos','f_obs'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f_lead_time').value = '5';
+  document.getElementById('f_credito').value = '30';
+  document.getElementById('f_categoria').value = 'RESINAS';
+  document.getElementById('f_moneda').value = 'MXN';
+  document.getElementById('f_activo').value = 'true';
+}
+
+function toggleTheme(){
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
+

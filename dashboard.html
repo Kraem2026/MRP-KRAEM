@@ -2,303 +2,3243 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>SISTEMA MRP KRAEM - Dashboard Profesional</title>
+  <title>SISTEMA MRP KRAEM by APEX SYSTEM</title>
+  <script>
+    // Frame Breakout: Prevenir que dashboard.html se anide dentro de un iframe
+    if (window.self !== window.top) {
+      document.documentElement.style.display = 'none';
+      try {
+        window.parent.postMessage({ type: 'KRAEM_NAV_REQUEST', action: 'HOME' }, '*');
+        window.parent.postMessage({ type: 'KRAEM_NAV_HOME' }, '*');
+      } catch (e) {}
+      try {
+        if (window.parent && typeof window.parent.navGoHome === 'function') {
+          window.parent.navGoHome();
+        }
+      } catch (e) {}
+    }
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="kraem_plantas.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
-    :root { 
-        --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
-        --border: #e2e8f0; --primary: #2563eb; --accent: #4f46e5; --success: #22c55e;
-        --warning: #f59e0b; --danger: #ef4444;
-    }
-    [data-theme="dark"] { 
-        --bg: #020617; --card: #1e293b; --text: #f1f5f9; --text-secondary: #94a3b8;
-        --border: #334155; 
-    }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-    header { max-width: 1400px; margin: 0 auto 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-    .brand { display: flex; align-items: center; gap: 15px; }
-    .brand img { height: 60px; border-radius: 8px; }
-    .brand h1 { margin: 0; font-size: 1.8rem; letter-spacing: -1px; color: var(--primary); }
-    .grid-main { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; max-width: 1400px; margin: auto; align-items: start; }
-    
-    /* Optimización de secciones colapsables */
-    .section-container { background: rgba(0,0,0,0.02); padding: 20px; border-radius: 16px; border: 1px dashed var(--border); transition: all 0.3s ease; }
-    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; cursor: pointer; user-select: none; padding: 5px 0; }
-    .section-header:hover { color: var(--primary); }
-    .section-header .chevron { transition: transform 0.2s ease; color: var(--text-secondary); font-size: 0.8rem; }
-    
-    /* Estado abierto/cerrado */
-    .section-container.collapsed .card-group { display: none !important; }
-    .section-container.collapsed .section-header .chevron { transform: rotate(-90deg); }
-    .section-container.collapsed { border-style: solid; background: var(--card); box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+    :root {
+      --bg: #090d16;
+      --card: #0f1629;
+      --card-hover: #15203b;
+      --card-active: #192647;
+      --sidebar: #060911;
+      --sidebar-border: rgba(255, 255, 255, 0.07);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-subtle: rgba(255, 255, 255, 0.04);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      --primary: #3b82f6;
+      --primary-subtle: rgba(59, 130, 246, 0.12);
+      --accent: #6366f1;
+      --success: #10b981;
+      --success-subtle: rgba(16, 185, 129, 0.12);
+      --warning: #f59e0b;
+      --warning-subtle: rgba(245, 158, 11, 0.12);
+      --danger: #f43f5e;
+      --danger-subtle: rgba(244, 63, 94, 0.12);
+      --sidebar-w: 240px;
+      --drawer-w: 380px;
 
-    .card-group { display: grid; gap: 12px; }
-    .module-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 15px; text-decoration: none; color: inherit; transition: all 0.2s; cursor: pointer; }
-    .module-card:hover { transform: translateX(5px); border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .icon-box { width: 45px; height: 45px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(37, 99, 235, 0.1); color: var(--primary); flex-shrink: 0; }
-    .module-info h3 { margin: 0; font-size: 1rem; }
-    .module-info p { margin: 3px 0 0; font-size: 0.8rem; color: var(--text-secondary); }
-    #modulo-privado { border: 1px solid var(--primary); background: rgba(37, 99, 235, 0.03); }
-    .hidden { display: none !important; }
-    .badge-live { background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; animation: pulse 2s infinite; }
+      /* Topbar surfaces - Dark Mode */
+      --topbar-bg: rgba(11, 19, 41, 0.92);
+      --topbar-border: rgba(255, 255, 255, 0.08);
+      --topbar-btn-bg: rgba(255, 255, 255, 0.04);
+      --topbar-btn-hover: rgba(255, 255, 255, 0.08);
+      --topbar-input-bg: rgba(255, 255, 255, 0.04);
+      --topbar-kbd-bg: rgba(255, 255, 255, 0.08);
+      --topbar-kbd-text: #94a3b8;
+      --topbar-kbd-border: rgba(255, 255, 255, 0.12);
+      --topbar-plant-bg: rgba(37, 99, 235, 0.12);
+      --topbar-plant-border: rgba(37, 99, 235, 0.25);
+      --topbar-plant-text: #60a5fa;
+      --topbar-role-bg: rgba(59, 130, 246, 0.2);
+      --topbar-role-text: #60a5fa;
+      --topbar-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --card-hover: #f1f5f9;
+      --sidebar: #0f172a;
+      --sidebar-border: rgba(0, 0, 0, 0.08);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --border: #cbd5e1;
+      --border-subtle: #f1f5f9;
+      --border-focus: rgba(37, 99, 235, 0.5);
+      --primary: #2563eb;
+      --primary-subtle: rgba(37, 99, 235, 0.08);
+
+      /* Topbar surfaces - Light Mode (High Contrast, Crisp White) */
+      --topbar-bg: #ffffff;
+      --topbar-border: #e2e8f0;
+      --topbar-btn-bg: #f8fafc;
+      --topbar-btn-hover: #f1f5f9;
+      --topbar-input-bg: #f8fafc;
+      --topbar-kbd-bg: #e2e8f0;
+      --topbar-kbd-text: #334155;
+      --topbar-kbd-border: #cbd5e1;
+      --topbar-plant-bg: rgba(37, 99, 235, 0.08);
+      --topbar-plant-border: rgba(37, 99, 235, 0.25);
+      --topbar-plant-text: #1d4ed8;
+      --topbar-role-bg: rgba(37, 99, 235, 0.12);
+      --topbar-role-text: #1d4ed8;
+      --topbar-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Reglas de Alto Contraste para Modo Claro en Dashboard */
+    [data-theme="light"] .flow-card {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    [data-theme="light"] .flow-card:hover {
+      background: rgba(37, 99, 235, 0.08);
+      border-color: var(--primary);
+    }
+    [data-theme="light"] .flow-name {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .flow-desc {
+      color: #475569 !important;
+    }
+    [data-theme="light"] .flow-step-num {
+      color: #64748b;
+    }
+    [data-theme="light"] .flow-icon {
+      background: rgba(37, 99, 235, 0.08);
+      color: #2563eb;
+    }
+    [data-theme="light"] .flow-card:not(:last-child)::after {
+      color: #cbd5e1;
+    }
+    [data-theme="light"] .dept-head-title {
+      color: #334155;
+    }
+    [data-theme="light"] .dept-head:hover .dept-head-title {
+      color: #0f172a;
+    }
+    [data-theme="light"] .tile {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+    [data-theme="light"] .tile:hover {
+      background: #f1f5f9;
+    }
+    [data-theme="light"] .kpi-box {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ==============================================================
+       SIDEBAR MINIMALISTA INDUSTRIAL
+       ============================================================== */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar);
+      border-right: 1px solid var(--sidebar-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+      z-index: 100;
+      transition: width 0.2s ease, transform 0.2s ease;
+    }
+
+    .sidebar-header {
+      padding: 18px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--sidebar-border);
+    }
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-badge {
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .brand-sub {
+      font-size: 0.68rem;
+      color: #64748b;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .sidebar-search {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--sidebar-border);
+    }
+    .search-box {
+      position: relative;
+    }
+    .search-box i {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      font-size: 0.75rem;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 7px;
+      padding: 6px 10px 6px 28px;
+      color: #fff;
+      font-size: 0.76rem;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .sidebar-menu {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sidebar-menu::-webkit-scrollbar { width: 3px; }
+    .sidebar-menu::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+
+    .menu-cat {
+      font-size: 0.63rem;
+      font-weight: 800;
+      color: #52617a;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 8px 10px 4px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      border-radius: 7px;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .sidebar-link:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      transform: translateX(2px);
+    }
+    .sidebar-link.active {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .link-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .link-left i {
+      width: 15px;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+    .link-badge {
+      font-size: 0.62rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+
+    .sidebar-footer {
+      padding: 12px 14px;
+      border-top: 1px solid var(--sidebar-border);
+      background: rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .user-box { display: flex; flex-direction: column; overflow: hidden; }
+    .user-name { font-size: 0.76rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: 0.62rem; color: #60a5fa; font-weight: 800; text-transform: uppercase; }
+
+    /* ==============================================================
+       MAIN WORKSPACE & TOPBAR
+       ============================================================== */
+    .main-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      background: var(--topbar-bg);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--topbar-border);
+      padding: 0 18px;
+      height: 52px;
+      min-height: 52px;
+      max-height: 52px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      z-index: 90;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      box-shadow: var(--topbar-shadow);
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .btn-collapse {
+      background: var(--topbar-btn-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.15s ease;
+    }
+    .btn-collapse:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--topbar-btn-hover);
+    }
+    .btn-shell-back {
+      padding: 6px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--topbar-plant-border);
+      background: var(--topbar-plant-bg);
+      color: var(--topbar-plant-text);
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.76rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-shell-back:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+    .topbar-breadcrumb {
+      display: flex;
+      align-items: center;
+      font-size: 0.88rem;
+      user-select: none;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .bc-root {
+      font-weight: 900;
+      color: var(--primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.5px;
+    }
+    .bc-root:hover { text-decoration: underline; }
+    .bc-parent {
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .bc-parent:hover {
+      color: var(--text);
+      text-decoration: underline;
+    }
+    .bc-current {
+      color: var(--text);
+      font-weight: 800;
+    }
+    .bc-sep {
+      color: var(--text-dim);
+    }
+
+    /* Desktop Sidebar Collapsible Mode (Ctrl+B) */
+    .sidebar.collapsed {
+      width: 60px !important;
+      min-width: 60px !important;
+    }
+    .sidebar.collapsed .sidebar-header > div,
+    .sidebar.collapsed .sidebar-search,
+    .sidebar.collapsed .menu-cat,
+    .sidebar.collapsed .link-left span,
+    .sidebar.collapsed .link-badge,
+    .sidebar.collapsed .user-box,
+    .sidebar.collapsed .sidebar-footer {
+      display: none !important;
+    }
+    .sidebar.collapsed .sidebar-header {
+      justify-content: center;
+      padding: 12px 0;
+    }
+    .sidebar.collapsed .sidebar-header img {
+      margin: 0 auto;
+      max-height: 28px;
+    }
+    .sidebar.collapsed .sidebar-link {
+      justify-content: center;
+      padding: 12px 0;
+      text-align: center;
+    }
+    .sidebar.collapsed .link-left {
+      gap: 0;
+      justify-content: center;
+      width: 100%;
+    }
+    .sidebar.collapsed .link-left i {
+      font-size: 1.15rem;
+      margin: 0 auto;
+    }
+    .topbar-title h1 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .topbar-title p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+    }
+    .plant-pill-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--topbar-plant-bg) !important;
+      border: 1px solid var(--topbar-plant-border) !important;
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 0.70rem;
+      font-weight: 700;
+      color: var(--topbar-plant-text) !important;
+      cursor: pointer;
+      max-width: 115px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.15s ease;
+    }
+    .plant-pill-top:hover {
+      border-color: var(--primary) !important;
+    }
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--topbar-btn-bg);
+      color: var(--text);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .role-tag {
+      background: var(--topbar-role-bg);
+      color: var(--topbar-role-text);
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .lang-box {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--topbar-btn-bg);
+    }
+    .lang-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      padding: 5px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .lang-btn:hover {
+      color: var(--text);
+      background: var(--topbar-btn-hover);
+    }
+    .lang-btn.active {
+      background: var(--primary);
+      color: #fff !important;
+    }
+    .btn-top {
+      padding: 6px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--topbar-btn-bg);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.74rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+      transition: 0.15s;
+    }
+    .btn-top:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--topbar-btn-hover);
+    }
+
+    /* ==============================================================
+       DASHBOARD BODY
+       ============================================================== */
+    .dashboard-body {
+      padding: 20px 24px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 1560px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ==============================================================
+       SUPPLY CHAIN FLOW - GRANDE, NOTORIO Y TOTALMENTE RESPONSIVE
+       ============================================================== */
+    .flow-wrapper {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+    .flow-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .flow-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flow-tag {
+      background: var(--primary-subtle);
+      color: var(--primary);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    /* Grid de los 8 pasos: Desktop 8 cols, Tablet 4 cols, Móvil 2 cols */
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 10px;
+    }
+    .flow-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      transition: all 0.2s ease;
+      min-height: 98px;
+      justify-content: center;
+    }
+    .flow-card:hover {
+      background: var(--primary-subtle);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+    .flow-step-num {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 0.64rem;
+      font-weight: 900;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+    }
+    .flow-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--primary-subtle);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+      margin-bottom: 7px;
+      margin-top: 4px;
+      transition: transform 0.2s, background 0.2s, color 0.2s;
+    }
+    .flow-card:hover .flow-icon {
+      transform: scale(1.1);
+      background: var(--primary);
+      color: #fff !important;
+    }
+    .flow-name {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .flow-desc {
+      font-size: 0.67rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    /* Flecha decorativa entre pasos en desktop */
+    .flow-card:not(:last-child)::after {
+      content: '›';
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      color: var(--border);
+      z-index: 2;
+    }
+
+    /* ==============================================================
+       SECCIÓN DE GERENCIA & KPIS (CON GRÁFICA INTEGRADA DENTRO)
+       ============================================================== */
+    .kpi-section-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    }
+    .kpi-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .kpi-section-title {
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #10b981;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .kpi-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Botón para desplegar la gráfica ejecutiva */
+    .btn-toggle-trend {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      padding: 5px 11px;
+      border-radius: 7px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-toggle-trend:hover, .btn-toggle-trend.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Fila de los 4 KPIs principales */
+    .kpi-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .kpi-box {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+    }
+    .kpi-box:hover {
+      background: var(--card-hover);
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .kpi-box-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .kpi-box-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .kpi-icon-wrap {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    .kpi-box-titles h3 { font-size: 0.85rem; font-weight: 700; }
+    .kpi-box-titles p { font-size: 0.68rem; color: var(--text-muted); }
+    .kpi-pill {
+      font-size: 0.64rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+    }
+    .pill-green { background: rgba(16, 185, 129, 0.18); color: #34d399; }
+    .pill-blue { background: rgba(59, 130, 246, 0.18); color: #60a5fa; }
+    .pill-orange { background: rgba(245, 158, 11, 0.18); color: #fbbf24; }
+
+    .kpi-box-center {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 2px 0;
+    }
+    .kpi-number {
+      font-size: 1.85rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .kpi-target-txt { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Sparkline mini-gráfica */
+    .sparkline-box {
+      height: 34px;
+      width: 100%;
+      position: relative;
+    }
+
+    .kpi-box-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      border-top: 1px dashed var(--border);
+      padding-top: 5px;
+    }
+
+    /* Gráfica de Rendimiento Ejecutiva (DENTRO del contenedor de KPIs) */
+    .executive-trend-drawer {
+      display: none; /* Oculta por defecto para no estorbar al operador, se abre al dar clic */
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 4px;
+      animation: fadeIn 0.25s ease;
+    }
+    .executive-trend-drawer.open {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .drawer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .drawer-title {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .trend-legends {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .dot-stat { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+    .chart-container-drawer {
+      position: relative;
+      height: 200px;
+      width: 100%;
+    }
+
+    /* ==============================================================
+       GRILLA DE MÓDULOS (COMPACTA, MINIMALISTA, SIN RUIDO)
+       ============================================================== */
+    .depts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+    .dept-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      transition: all 0.2s ease;
+    }
+    .dept-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .dept-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .dept-head-title {
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dept-head:hover .dept-head-title { color: #fff; }
+    .chevron-icon { font-size: 0.72rem; color: var(--text-muted); transition: transform 0.2s; }
+    .dept-card.collapsed .tiles-group { display: none !important; }
+    .dept-card.collapsed .chevron-icon { transform: rotate(-90deg); }
+
+    .tiles-group {
+      display: grid;
+      gap: 8px;
+    }
+    .tile {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .tile:hover {
+      background: var(--card-hover);
+      border-color: var(--primary);
+      transform: translateX(3px);
+    }
+    .tile-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .tile-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      background: rgba(59, 130, 246, 0.12);
+      color: #60a5fa;
+      flex-shrink: 0;
+    }
+    .tile-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tile-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tile-right {
+      color: #475569;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+    .tile:hover .tile-right {
+      color: var(--primary);
+      transform: translateX(2px);
+    }
+
+    .badge-live {
+      background: var(--danger);
+      color: white;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.6rem;
+      font-weight: 800;
+      animation: pulse 2s infinite;
+      margin-left: 4px;
+    }
+    .badge-soon {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-left: 4px;
+    }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .btn-ui { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+    .hidden { display: none !important; }
 
-    /* Estilos específicos para cuando es pantalla pequeña */
+    /* Modal informativo */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      max-width: 420px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ==============================================================
+       ADAPTACIONES MÓVIL Y TABLET (RESPONSIVE PROFESIONAL)
+       ============================================================== */
+    @media (max-width: 1200px) {
+      .flow-grid {
+        grid-template-columns: repeat(4, 1fr); /* 2 filas de 4 en tablet */
+      }
+      .flow-card:nth-child(4)::after { display: none; }
+    }
+
     @media (max-width: 768px) {
-        .grid-main { grid-template-columns: 1fr; gap: 15px; }
-        body { padding: 10px; }
-        header { flex-direction: column; gap: 15px; text-align: center; }
-        .brand { flex-direction: column; }
+      .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        bottom: 0;
+      }
+      .sidebar.open {
+        left: 0;
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+      }
+      .topbar { padding: 10px 14px; }
+      .dashboard-body { padding: 12px; gap: 14px; }
+      .flow-grid {
+        grid-template-columns: repeat(2, 1fr); /* 4 filas de 2 en móvil */
+      }
+      .flow-card::after { display: none !important; }
+      .flow-card { min-height: 85px; }
+      .kpi-cards-grid { grid-template-columns: 1fr 1fr; }
+      .chart-container-drawer { height: 170px; }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-cards-grid { grid-template-columns: 1fr; }
+    }
+    /* Tabular numbers for enterprise clarity */
+    .kpi-number, .dm-val, .flow-step-num, .font-mono, td {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+    }
+
+    /* Command Palette Bar in Topbar */
+    .topbar-center {
+      flex: 1;
+      max-width: 320px;
+      min-width: 120px;
+      margin: 0 10px;
+      flex-shrink: 1;
+    }
+    .cmd-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--topbar-input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .cmd-trigger:hover {
+      background: var(--topbar-btn-hover);
+      border-color: var(--primary);
+      color: var(--text);
+    }
+    .cmd-trigger kbd {
+      background: var(--topbar-kbd-bg);
+      border: 1px solid var(--topbar-kbd-border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.65rem;
+      font-family: inherit;
+      color: var(--topbar-kbd-text);
+      font-weight: 700;
+    }
+
+    /* Modal Command Palette */
+    .cmd-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.75);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 12vh;
+      z-index: 3000;
+    }
+    .cmd-modal-backdrop.open { display: flex; }
+    .cmd-modal-box {
+      width: 100%;
+      max-width: 580px;
+      background: #0d1424;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+      animation: cmdSlideDown 0.18s ease-out;
+    }
+    @keyframes cmdSlideDown {
+      from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .cmd-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .cmd-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+    .cmd-esc-tag {
+      font-size: 0.65rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .cmd-results {
+      max-height: 360px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .cmd-group-title {
+      font-size: 0.64rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #64748b;
+      padding: 8px 10px 4px;
+    }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.82rem;
+      transition: background 0.12s;
+      cursor: pointer;
+    }
+    .cmd-item:hover, .cmd-item.selected {
+      background: rgba(59, 130, 246, 0.15);
+      color: #fff;
+    }
+    .cmd-name { font-weight: 600; flex: 1; }
+    .cmd-path { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Slide-over Inspector Drawer */
+    .inspector-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: var(--drawer-w);
+      background: #0a0f1d;
+      border-left: 1px solid var(--border);
+      z-index: 2500;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+    .inspector-drawer.open {
+      transform: translateX(0);
+    }
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2400;
+      display: none;
+      backdrop-filter: blur(2px);
+    }
+    .drawer-backdrop.open { display: block; }
+    .drawer-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .drawer-badge {
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 4px;
+    }
+    .drawer-title-group h3 {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .drawer-close-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .drawer-close-btn:hover {
+      color: #fff;
+      border-color: var(--danger);
+      background: rgba(244, 63, 94, 0.1);
+    }
+    .drawer-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .drawer-status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .drawer-mini-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+    }
+    .dm-label { font-size: 0.66rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+    .dm-val { font-size: 1.15rem; font-weight: 900; margin: 2px 0; color: #fff; }
+    .dm-sub { font-size: 0.65rem; color: #64748b; }
+
+    .drawer-section h4 {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+    .drawer-actions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .drawer-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .drawer-action-btn:hover {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: var(--primary);
+      transform: translateX(2px);
+    }
+    .drawer-action-btn strong { font-size: 0.78rem; display: block; color: #fff; }
+    .drawer-action-btn small { font-size: 0.68rem; color: var(--text-muted); }
+
+    .audit-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-left: 2px solid rgba(255, 255, 255, 0.08);
+      margin-left: 6px;
+      padding-left: 12px;
+    }
+    .timeline-item { position: relative; }
+    .timeline-dot {
+      position: absolute;
+      left: -17px;
+      top: 4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #64748b;
+    }
+    .dot-emerald { background: #10b981; }
+    .dot-blue { background: #3b82f6; }
+    .dot-amber { background: #f59e0b; }
+    .timeline-body p { font-size: 0.74rem; color: var(--text); line-height: 1.3; }
+    .tl-time { font-size: 0.65rem; color: var(--text-dim); display: block; margin-bottom: 2px; }
+
+    /* Semantics text utilities */
+    .text-emerald { color: #10b981 !important; }
+    .text-blue { color: #60a5fa !important; }
+    .text-amber { color: #f59e0b !important; }
+    .text-rose { color: #f43f5e !important; }
+    .text-purple { color: #a855f7 !important; }
+
+    /* Separadores de Pilares ERP */
+    .pillar-banner {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text);
+      margin-top: 14px;
+      margin-bottom: 2px;
+    }
+    [data-theme="light"] .pillar-banner {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      border-left-color: var(--primary);
+      color: #1e293b;
     }
   </style>
 </head>
-<body data-theme="light">
+<body>
 
-<header>
-  <div class="brand">
-    <img src="logo-kraem.jpg" alt="KRAEM">
-    <div>
-      <h1 id="txt-title">SISTEMA MRP KRAEM</h1>
-      <p id="txt-subtitle" style="margin:0; color: var(--text-secondary);">Panel de Control de Producción e Inventarios</p>
-    </div>
-  </div>
-  <div class="controls">
-    <button class="btn-ui" onclick="toggleLanguage()" id="langBtn">🇰🇷 KO</button>
-    <button class="btn-ui" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
-    <button class="btn-ui" onclick="location.href='index.html'"><i class="fas fa-sign-out-alt"></i></button>
-  </div>
-</header>
-
-<main class="grid-main">
-
-  <div class="section-container hidden" id="modulo-privado">
-    <div class="section-header" onclick="toggleSection('modulo-privado')">
-      <div><i class="fas fa-shield-alt" style="color: var(--primary);"></i> <span style="color: var(--primary);">Control de Inspección (Validación)</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group">
-      <a href="produccion_inspeccion_captura.html" class="module-card">
-        <div class="icon-box" style="background: var(--primary); color: white;"><i class="fas fa-edit"></i></div>
-        <div class="module-info"><h3>Captura de Inspección</h3><p>Registro preventivo para Inspectores.</p></div>
-      </a>
-      <a href="analisis.html" class="module-card">
-        <div class="icon-box" style="background: var(--accent); color: white;"><i class="fas fa-chart-bar"></i></div>
-        <div class="module-info"><h3>Análisis y Paretos</h3><p>Reportes de calidad (Validación).</p></div>
-      </a>
-    </div>
-  </div> 
-
-  <div class="section-container" id="sec-personal">
-    <div class="section-header" onclick="toggleSection('sec-personal')">
-      <div><i class="fas fa-users"></i> <span>Gestión de Personal</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group">
-      <a href="rh_empleados.html" class="module-card">
-        <div class="icon-box" style="background: var(--primary); color: white;"><i class="fas fa-id-card"></i></div>
-        <div class="module-info"><h3>Registro de Personal</h3><p>Fotos, puestos y datos generales.</p></div>
-      </a>
-      <a href="rh_asistencia.html" class="module-card">
-        <div class="icon-box" style="background: var(--success); color: white;"><i class="fas fa-calendar-check"></i></div>
-        <div class="module-info"><h3>Pase de Lista Diario</h3><p>Registro de asistencia y vacaciones.</p></div>
-      </a>
-      <a href="rh_reporte_asistencia.html" class="module-card">
-        <div class="icon-box" style="background: var(--warning); color: white;"><i class="fas fa-table"></i></div>
-        <div class="module-info"><h3>Reporte de Asistencias</h3><p>Consolidado mensual y faltas.</p></div>
-      </a>
-      <a href="rh_evaluacion_5s.html" class="module-card" style="border-left: 4px solid var(--success);">
-        <div class="icon-box" style="background: rgba(34, 197, 94, 0.1); color: var(--success);"><i class="fas fa-broom"></i></div>
-        <div class="module-info"><h3>Auditoría 5's</h3><p>Evaluación de orden y limpieza.</p></div>
-      </a>
-      <a href="dashboard_5s.html" class="module-card" style="border-left: 4px solid var(--primary);">
-        <div class="icon-box" style="background: rgba(37, 99, 235, 0.1); color: var(--primary);"><i class="fas fa-chart-pie"></i></div>
-        <div class="module-info"><h3>Panel 5'S</h3><p>Métricas, gráficas y cumplimiento.</p></div>
-      </a>
-      <a href="rh_solicitudes.html" class="module-card" style="border-left: 4px solid var(--accent);">
-        <div class="icon-box" style="background: rgba(37, 99, 235, 0.1); color: var(--accent);"><i class="fas fa-file-medical"></i></div>
-        <div class="module-info"><h3>Solicitudes y Permisos</h3><p>Vacaciones, incapacidades y permisos.</p></div>
-      </a>
-      <a href="rh_matriz_habilidades.html" class="module-card" style="border-left: 4px solid var(--accent); background: rgba(79, 70, 229, 0.02);">
-        <div class="icon-box" style="background: var(--accent); color: white;"><i class="fas fa-graduation-cap"></i></div>
-        <div class="module-info"><h3>Capacitación</h3><p>Matriz de habilidades y conocimientos.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container" id="sec-ingenieria">
-    <div class="section-header" onclick="toggleSection('sec-ingenieria')">
-      <div><i class="fas fa-drafting-compass"></i> <span>Ingeniería</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group">
-      <a href="admin_partes.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-list-ol"></i></div>
-        <div class="module-info"><h3>Catálogo de N/P</h3><p>Ficha técnica y tabla exportable.</p></div>
-      </a>
-      <a href="ingenieria_bom.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-sitemap"></i></div>
-        <div class="module-info"><h3>BOM</h3><p>Estructura de materiales.</p></div>
-      </a>
-      <a href="#" class="module-card">
-        <div class="icon-box"><i class="fas fa-shapes"></i></div>
-        <div class="module-info"><h3>Matriz de Moldes</h3><p>Cavidades y especificaciones.</p></div>
-      </a>
-      <a href="admin_areas.html" class="module-card" style="border-top: 1px dashed var(--border);">
-        <div class="icon-box" style="background: rgba(79, 70, 229, 0.1); color: var(--accent);"><i class="fas fa-layer-group"></i></div>
-        <div class="module-info"><h3>Administración de Áreas</h3><p>Configuración de departamentos.</p></div>
-      </a>
-      <a href="ingenieria_catalogos.html" class="module-card">
-        <div class="icon-box" style="background: rgba(79, 70, 229, 0.1); color: var(--accent);"><i class="fas fa-sitemap"></i></div>
-        <div class="module-info"><h3>Catálogos Ingeniería</h3><p>Áreas, ubicaciones, máquinas, defectos y configuraciones maestras.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container" id="sec-calidad">
-    <div class="section-header" onclick="toggleSection('sec-calidad')">
-      <div><i class="fas fa-check-circle"></i> <span>Calidad</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group">
-      <a href="calidad_control.html" class="module-card">
-        <div class="icon-box" style="color: var(--success);"><i class="fas fa-check-double"></i></div>
-        <div class="module-info"><h3>Control de Calidad</h3><p>Liberaciones y auditorías.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container" id="sec-wms">
-    <div class="section-header" onclick="toggleSection('sec-wms')">
-      <div><i class="fas fa-warehouse"></i> <span>WMS (Inventarios)</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group">
-      <a href="inventarios.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-boxes"></i></div>
-        <div class="module-info"><h3>Inventario General</h3><p>Existencias PT y MP.</p></div>
-      </a>
-      <a href="inventarios_ubicacion.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-map-marker-alt"></i></div>
-        <div class="module-info"><h3>Inventario por Ubicación</h3><p>Rastreo en almacenes.</p></div>
-      </a>
-      <a href="captura_inventario.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-exchange-alt"></i></div>
-        <div class="module-info"><h3>Transacciones</h3><p>Entradas y salidas.</p></div>
-      </a>
-      <a href="consulta_fifo.html" class="module-card" style="border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.02);">
-        <div class="icon-box" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);"><i class="fas fa-clock"></i></div>
-        <div class="module-info"><h3>Buscador / Consulta FIFO</h3><p>Verificación de lotes más antiguos por N/P.</p></div>
-      </a>
-      <a href="historial.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-history"></i></div>
-        <div class="module-info"><h3>Historial de Movimientos</h3><p>Kardex de transacciones.</p></div>
-      </a>
-      <a href="conteos_menu.html" class="module-card" style="border-left: 4px solid var(--warning);">
-        <div class="icon-box" style="color: var(--warning);"><i class="fas fa-redo"></i></div>
-        <div class="module-info"><h3>Conteos Cíclicos</h3><p>Auditoría y veracidad de stock.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container" id="sec-produccion">
-    <div class="section-header" onclick="toggleSection('sec-produccion')">
-      <div><i class="fas fa-microchip"></i> <span>Producción</span> <span class="badge-live">LIVE</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group">
-      <a href="produccion_captura.html" class="module-card">
-        <div class="icon-box"><i class="fas fa-tablet-alt"></i></div>
-        <div class="module-info"><h3>Ejecución en Máquina</h3><p>Reporte en tiempo real (Tablet).</p></div>
-      </a>
-      <a href="#" class="module-card">
-        <div class="icon-box"><i class="fas fa-trash-alt"></i></div>
-        <div class="module-info"><h3>Registro de Scrap</h3><p>Defectos detectados EN MÁQUINA.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container" id="sec-mantenimiento">
-    <div class="section-header" onclick="toggleSection('sec-mantenimiento')">
-      <div><i class="fas fa-tools"></i> <span>Mantenimiento</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group">
-      <a href="mantenimiento_preventivo.html" class="module-card">
-        <div class="icon-box" style="color: var(--danger);"><i class="fas fa-calendar-check"></i></div>
-        <div class="module-info"><h3>Plan Preventivo</h3><p>Calendario de servicios.</p></div>
-      </a>
-      <a href="mantenimiento_correctivo.html" class="module-card">
-        <div class="icon-box" style="color: var(--warning);"><i class="fas fa-exclamation-triangle"></i></div>
-        <div class="module-info"><h3>Tickets Correctivos</h3><p>Reporte de fallas urgentes.</p></div>
-      </a>
-    </div>
-  </div>
-
-  <div class="section-container" style="grid-column: 1 / -1;" id="sec-gerencial">
-    <div class="section-header" onclick="toggleSection('sec-gerencial')">
-      <div><i class="fas fa-chart-pie"></i> <span>Dashboard Gerencial (Métricas)</span></div>
-      <i class="fas fa-chevron-down chevron"></i>
-    </div>
-    <div class="card-group" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-      <div class="module-card" style="border-bottom: 3px solid var(--success);">
-        <div class="icon-box"><i class="fas fa-percentage"></i></div>
-        <div class="module-info"><h3>OEE</h3><p>Eficiencia General del Equipo.</p></div>
-      </div>
-      <div class="module-card" style="border-bottom: 3px solid var(--primary);">
-        <div class="icon-box"><i class="fas fa-check-double"></i></div>
-        <div class="module-info"><h3>Cumplimiento</h3><p>Plan vs Real Semanal/Mensual.</p></div>
-      </div>
-      <div class="module-card" style="border-bottom: 3px solid var(--warning);">
-        <div class="icon-box"><i class="fas fa-bullseye"></i></div>
-        <div class="module-info"><h3>Veracidad Inv.</h3><p>Basado en conteos cíclicos.</p></div>
+  <!-- ==============================================================
+       SIDEBAR INDUSTRIAL (OPCIÓN 1 - MINIMALISTA)
+       ============================================================== -->
+  <aside class="sidebar" id="appSidebar">
+    <div class="sidebar-header">
+      <img src="logo-kraem.jpg" alt="KRAEM" style="height:34px; border-radius:6px;" onerror="this.style.display='none'">
+      <div>
+        <div class="brand-title">
+          KRAEM
+          <span class="brand-badge">by APEX</span>
+        </div>
+        <div class="brand-sub plant-selector-wrap" title="Sede / Planta Activa" style="display:flex; align-items:center; gap:5px; max-width:140px; overflow:hidden;">
+          <span class="live-dot" style="width:6px; height:6px; background:#10b981; border-radius:50%; flex-shrink:0; display:inline-block;"></span>
+          <select id="selActivePlant" class="plant-select plant-select-compact" onchange="KraemPlant.setActivePlant(this.value)" style="background:transparent; border:none; color:var(--text-muted); font-size:0.72rem; font-weight:700; outline:none; cursor:pointer; padding:0; max-width:125px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+          </select>
+        </div>
       </div>
     </div>
-  </div>
 
-</main>
+    <div class="sidebar-search">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="filterInput" class="search-input" placeholder="Buscar módulo..." onkeyup="filtrarModulos(this.value)">
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <div class="menu-cat">Flujo Operativo</div>
+      <div class="sidebar-link active" onclick="irA('sec-pipeline')">
+        <div class="link-left"><i class="fas fa-network-wired" style="color:#60a5fa;"></i> <span>Supply Chain Flow</span></div>
+        <span class="link-badge">8 Pasos</span>
+      </div>
+      <div class="sidebar-link" onclick="irA('sec-gerencial')">
+        <div class="link-left"><i class="fas fa-chart-pie" style="color:#10b981;"></i> <span>Métricas & Gerencia</span></div>
+        <span class="link-badge">KPI</span>
+      </div>
+
+      <div class="menu-cat">1. Operaciones & Planta</div>
+      <div class="sidebar-link" onclick="irA('sec-ingenieria')">
+        <div class="link-left"><i class="fas fa-drafting-compass" style="color:#818cf8;"></i> <span>1.1 Ingeniería & BOM</span></div>
+        <span class="link-badge">6</span>
+      </div>
+      <div class="sidebar-link" onclick="irA('sec-planeacion')">
+        <div class="link-left"><i class="fas fa-calendar-alt" style="color:#60a5fa;"></i> <span>1.2 Planeación MRP/APS</span></div>
+        <span class="link-badge">4</span>
+      </div>
+      <div class="sidebar-link" onclick="irA('sec-produccion')">
+        <div class="link-left"><i class="fas fa-industry" style="color:#f87171;"></i> <span>1.3 Producción MES</span></div>
+        <span class="link-badge" style="background:rgba(239,68,68,0.2); color:#f87171;">LIVE</span>
+      </div>
+      <div class="sidebar-link" onclick="irA('sec-wms')">
+        <div class="link-left"><i class="fas fa-warehouse" style="color:#34d399;"></i> <span>1.4 Almacén WMS</span></div>
+        <span class="link-badge">4</span>
+      </div>
+      <div class="sidebar-link" onclick="irA('sec-compras')">
+        <div class="link-left"><i class="fas fa-cart-shopping" style="color:#fbbf24;"></i> <span>1.5 Compras & Abasto</span></div>
+        <span class="link-badge">3</span>
+      </div>
+      <div class="sidebar-link" onclick="irA('sec-calidad')">
+        <div class="link-left"><i class="fas fa-certificate" style="color:#10b981;"></i> <span>1.6 Calidad & SGC</span></div>
+        <span class="link-badge">4</span>
+      </div>
+      <div class="sidebar-link" onclick="irA('sec-mantenimiento')">
+        <div class="link-left"><i class="fas fa-tools" style="color:#a78bfa;"></i> <span>1.7 Mantenimiento</span></div>
+        <span class="link-badge">2</span>
+      </div>
+
+      <div class="menu-cat">2. Comercial & Clientes</div>
+      <div class="sidebar-link" onclick="irA('sec-comercial')">
+        <div class="link-left"><i class="fas fa-handshake" style="color:#38bdf8;"></i> <span>2.1 Clientes & Demanda</span></div>
+        <span class="link-badge">3</span>
+      </div>
+
+      <div class="menu-cat">3. Finanzas & Costos</div>
+      <div class="sidebar-link" onclick="irA('sec-finanzas')">
+        <div class="link-left"><i class="fas fa-coins" style="color:#facc15;"></i> <span>3.1 Costeo & Márgenes</span></div>
+        <span class="link-badge">2</span>
+      </div>
+
+      <div class="menu-cat">4. Capital Humano</div>
+      <div class="sidebar-link" onclick="irA('sec-personal')">
+        <div class="link-left"><i class="fas fa-users" style="color:#f472b6;"></i> <span>4.1 Personal & 5S</span></div>
+        <span class="link-badge">7</span>
+      </div>
+
+      <div class="menu-cat">5. Gobernanza & Sede</div>
+      <div class="sidebar-link" onclick="irA('sec-gobernanza')">
+        <div class="link-left"><i class="fas fa-shield-halved" style="color:#94a3b8;"></i> <span>5.1 Sedes & Ajustes</span></div>
+        <span class="link-badge">2</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-box">
+        <div class="user-name" id="sideUserTxt">ADMINISTRADOR</div>
+        <div class="user-role" id="sideRoleTxt">SISTEMA APEX</div>
+      </div>
+      <a href="configuracion_sistema.html" class="btn-top" id="sideBtnSettings" title="Configuración" style="padding:5px 8px;">
+        <i class="fas fa-sliders-h"></i>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ==============================================================
+       MAIN WORKSPACE
+       ============================================================== -->
+  <main class="main-wrap">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="btn-collapse" id="btnSidebarToggle" onclick="toggleSidebarCollapse()" title="Colapsar / Expandir Menú (Ctrl+B)"><i class="fas fa-bars"></i></button>
+        <button class="btn-shell-back" id="btnShellBack" onclick="navShellBack()" style="display:none;" title="Regresar al nivel anterior">
+          <i class="fas fa-arrow-left"></i>
+          <span>Volver</span>
+        </button>
+        <div class="topbar-breadcrumb" id="topbarBreadcrumb">
+          <span class="bc-root" onclick="navGoHome()" title="Ir al Dashboard Principal">KRAEM</span>
+          <span class="bc-sep" id="bcSep1" style="display:none; margin:0 4px;">/</span>
+          <span class="bc-parent" id="bcParent" style="display:none; font-size:0.8rem; font-weight:600;"></span>
+          <span class="bc-sep" id="bcSep2" style="display:none; margin:0 4px;">/</span>
+          <span class="bc-current" id="bcCurrent" style="font-size:0.88rem; font-weight:800;">Dashboard Operativo</span>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <div class="cmd-trigger" onclick="toggleCmdPalette()" title="Buscar en todo el sistema (Ctrl+K)">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-search" style="font-size:0.75rem;"></i>
+            <span>Buscar orden, SKU, almacén...</span>
+          </div>
+          <kbd>Ctrl + K</kbd>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="plant-pill-top" id="topbarPlantPill" title="Sede activa: Clic para ver Catálogo de Plantas" onclick="openModuleInShell('catalogo_plantas.html')">
+          <i class="fas fa-industry" style="font-size:0.68rem; flex-shrink:0;"></i>
+          <span id="topbarPlantTxt">Planta Monterrey</span>
+        </div>
+
+        <div class="user-pill" id="userBadge">
+          <i class="fas fa-user-shield" style="color:var(--primary);"></i>
+          <span id="userEmailTxt">...</span>
+          <span class="role-tag" id="userRoleTxt">ADMIN</span>
+        </div>
+
+        <button class="btn-top" onclick="toggleInspectorDrawer()" title="Panel Inspector de Planta">
+          <i class="fas fa-sliders-h" style="color:var(--primary);"></i>
+          <span>Inspector</span>
+        </button>
+
+        <div class="lang-box" role="group">
+          <button type="button" class="lang-btn" data-lang="es" onclick="setDashboardLang('es')">🇲🇽 ES</button>
+          <button type="button" class="lang-btn" data-lang="ko" onclick="setDashboardLang('ko')">🇰🇷 KO</button>
+          <button type="button" class="lang-btn" data-lang="en" onclick="setDashboardLang('en')">🇺🇸 EN</button>
+        </div>
+
+        <button class="btn-top" onclick="toggleTheme()" title="Tema"><i id="themeIcon" class="fas fa-moon"></i></button>
+
+        <a href="configuracion_sistema.html" class="btn-top" id="btnSettings" style="display:none;" title="Configuración">
+          <i class="fas fa-sliders-h"></i>
+          <span data-i18n="settings">Settings</span>
+        </a>
+
+        <button class="btn-top" onclick="logout()" id="btnLogout" title="Salir">
+          <i class="fas fa-sign-out-alt"></i>
+          <span id="txt-logout">Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Dashboard Body -->
+    <div id="homeDashboardView" class="dashboard-body">
+
+      <!-- 1. SUPPLY CHAIN FLOW (GRANDE, VISIBLE COMPLETO Y RESPONSIVE EN MÓVIL/TABLET) -->
+      <section class="flow-wrapper" id="sec-pipeline">
+        <div class="flow-header">
+          <div class="flow-title">
+            <i class="fas fa-network-wired"></i>
+            <span>Cadena de Suministro & Manufactura (Supply Chain Flow)</span>
+          </div>
+          <span class="flow-tag"><i class="fas fa-check-double"></i> Flujo End-to-End</span>
+        </div>
+
+        <div class="flow-grid">
+          <!-- 1. Demanda -->
+          <a href="catalogo_clientes.html" class="flow-card">
+            <span class="flow-step-num">01</span>
+            <div class="flow-icon"><i class="fas fa-users"></i></div>
+            <div class="flow-name">1. Demanda</div>
+            <div class="flow-desc">Clientes & Forecast</div>
+          </a>
+
+          <!-- 2. MRP -->
+          <a href="planeacion_mrp_forecast.html" class="flow-card">
+            <span class="flow-step-num">02</span>
+            <div class="flow-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="flow-name">2. MRP</div>
+            <div class="flow-desc">Explosión Resinas</div>
+          </a>
+
+          <!-- 3. Compras -->
+          <a href="compras_ordenes.html" class="flow-card">
+            <span class="flow-step-num">03</span>
+            <div class="flow-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="flow-name">3. Compras</div>
+            <div class="flow-desc">OCs Proveedores</div>
+          </a>
+
+          <!-- 4. Recibo WMS -->
+          <a href="compras_recibo.html" class="flow-card">
+            <span class="flow-step-num">04</span>
+            <div class="flow-icon"><i class="fas fa-truck-ramp-box"></i></div>
+            <div class="flow-name">4. Recibo</div>
+            <div class="flow-desc">WMS Lote FIFO</div>
+          </a>
+
+          <!-- 5. SMED -->
+          <a href="planeacion_montaje_moldes.html" class="flow-card">
+            <span class="flow-step-num">05</span>
+            <div class="flow-icon"><i class="fas fa-wrench"></i></div>
+            <div class="flow-name">5. SMED</div>
+            <div class="flow-desc">Montaje Moldes</div>
+          </a>
+
+          <!-- 6. Inyección -->
+          <a href="planeacion_aps_tablero.html" class="flow-card">
+            <span class="flow-step-num">06</span>
+            <div class="flow-icon"><i class="fas fa-calendar-week"></i></div>
+            <div class="flow-name">6. Inyección</div>
+            <div class="flow-desc">Tablero APS Prensa</div>
+          </a>
+
+          <!-- 7. Calidad -->
+          <a href="calidad_control.html" class="flow-card">
+            <span class="flow-step-num">07</span>
+            <div class="flow-icon"><i class="fas fa-certificate"></i></div>
+            <div class="flow-name">7. Calidad</div>
+            <div class="flow-desc">Auditoría & ISO</div>
+          </a>
+
+          <!-- 8. Embarque -->
+          <a href="consulta_fifo.html" class="flow-card">
+            <span class="flow-step-num">08</span>
+            <div class="flow-icon" style="color:#10b981;"><i class="fas fa-truck-fast"></i></div>
+            <div class="flow-name">8. Embarque</div>
+            <div class="flow-desc">FIFO & Despacho</div>
+          </a>
+        </div>
+      </section>
+
+      <!-- 2. MÉTRICAS GERENCIALES & KPIS (CON LA GRÁFICA DE RENDIMIENTO INTEGRADA DENTRO) -->
+      <section class="kpi-section-container" id="sec-gerencial">
+        <div class="kpi-section-header">
+          <div class="kpi-section-title">
+            <i class="fas fa-chart-pie"></i>
+            <span data-i18n="sec_gerencial">Dashboard Gerencial & KPIs</span>
+            <span id="dashPeriodTag" class="kpi-pill pill-blue" style="margin-left:6px;" data-i18n="period_cur_month">Mes en curso</span>
+          </div>
+
+          <div class="kpi-header-actions">
+            <!-- Botón para ver/ocultar la gráfica ejecutiva -->
+            <button type="button" class="btn-toggle-trend" id="btnToggleTrend" onclick="toggleTrendDrawer()">
+              <i class="fas fa-chart-area"></i>
+              <span id="txtTrendBtn">Ver Gráfica de Rendimiento</span>
+            </button>
+
+            <!-- Botón Vista Ejemplo / Real -->
+            <button type="button" class="btn-top" id="btnTogglePreview" onclick="toggleKpiPreview()" style="font-size:0.72rem; padding:5px 9px;">
+              <i class="fas fa-eye"></i>
+              <span id="txtPreviewBtn">Vista Ejemplo</span>
+            </button>
+
+            <button type="button" class="btn-top" onclick="cargarMetricasGerenciales()" title="Recalcular métricas" style="padding:5px 8px;">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Tarjetas Compactas de KPIs con Sparklines -->
+        <div class="kpi-cards-grid">
+          <!-- KPI 1: OEE -->
+          <a href="dashboard_kpi.html?tab=oee" class="kpi-box" style="border-bottom: 3px solid #10b981;">
+            <div class="kpi-box-top">
+              <div class="kpi-box-left">
+                <div class="kpi-icon-wrap" style="background:rgba(16,185,129,0.15); color:#10b981;"><i class="fas fa-percentage"></i></div>
+                <div class="kpi-box-titles">
+                  <h3 data-i18n="kpi_oee_title">OEE</h3>
+                  <p data-i18n="kpi_oee_sub">Eficiencia General</p>
+                </div>
+              </div>
+              <span class="kpi-pill pill-green" id="oeeBadge">...</span>
+            </div>
+            <div class="kpi-box-center">
+              <div class="kpi-number" id="oeeVal">--%</div>
+              <div class="kpi-target-txt" id="oeeTarget">Meta: 85%</div>
+            </div>
+            <div class="sparkline-box"><canvas id="chartSparkOee"></canvas></div>
+            <div class="kpi-box-bottom">
+              <span id="oeeDetail">Calculando corridas...</span>
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <!-- KPI 2: CUMPLIMIENTO PLAN -->
+          <a href="dashboard_kpi.html?tab=cumplimiento" class="kpi-box" style="border-bottom: 3px solid #3b82f6;">
+            <div class="kpi-box-top">
+              <div class="kpi-box-left">
+                <div class="kpi-icon-wrap" style="background:rgba(59,130,246,0.15); color:#3b82f6;"><i class="fas fa-check-double"></i></div>
+                <div class="kpi-box-titles">
+                  <h3 data-i18n="kpi_plan_title">Cumplimiento</h3>
+                  <p data-i18n="kpi_plan_sub">Plan vs Real Mensual</p>
+                </div>
+              </div>
+              <span class="kpi-pill pill-blue" id="planBadge">...</span>
+            </div>
+            <div class="kpi-box-center">
+              <div class="kpi-number" id="planVal">--%</div>
+              <div class="kpi-target-txt" id="planTarget">Meta: 95%</div>
+            </div>
+            <div class="sparkline-box"><canvas id="chartSparkPlan"></canvas></div>
+            <div class="kpi-box-bottom">
+              <span id="planDetail">Órdenes planeadas...</span>
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <!-- KPI 3: VERACIDAD DE INVENTARIO (IRA %) -->
+          <a href="dashboard_kpi.html?tab=veracidad" class="kpi-box" style="border-bottom: 3px solid #f59e0b;">
+            <div class="kpi-box-top">
+              <div class="kpi-box-left">
+                <div class="kpi-icon-wrap" style="background:rgba(245,158,11,0.15); color:#f59e0b;"><i class="fas fa-bullseye"></i></div>
+                <div class="kpi-box-titles">
+                  <h3 data-i18n="kpi_ira_title">Veracidad Inv.</h3>
+                  <p data-i18n="kpi_ira_sub">Conteos Cíclicos IRA</p>
+                </div>
+              </div>
+              <span class="kpi-pill pill-orange" id="iraBadge">...</span>
+            </div>
+            <div class="kpi-box-center">
+              <div class="kpi-number" id="iraVal">--%</div>
+              <div class="kpi-target-txt" id="iraTarget">Meta: 98%</div>
+            </div>
+            <div class="sparkline-box"><canvas id="chartSparkIra"></canvas></div>
+            <div class="kpi-box-bottom">
+              <span id="iraDetail">Auditorías cíclicas...</span>
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+
+          <!-- KPI 4: CAPACIDAD & ÓRDENES ACTIVAS -->
+          <a href="planeacion_aps_tablero.html" class="kpi-box" style="border-bottom: 3px solid #8b5cf6;">
+            <div class="kpi-box-top">
+              <div class="kpi-box-left">
+                <div class="kpi-icon-wrap" style="background:rgba(139,92,246,0.15); color:#a78bfa;"><i class="fas fa-cubes-stacked"></i></div>
+                <div class="kpi-box-titles">
+                  <h3>Órdenes Activas</h3>
+                  <p>Carga de Prensas</p>
+                </div>
+              </div>
+              <span class="kpi-pill pill-blue">8 Prensas</span>
+            </div>
+            <div class="kpi-box-center">
+              <div class="kpi-number" style="color:#c4b5fd;">18 <span style="font-size:1rem;font-weight:600;color:var(--text-muted);">WO</span></div>
+              <div class="kpi-target-txt">53.4 hrs cargadas</div>
+            </div>
+            <div class="sparkline-box"><canvas id="chartSparkWo"></canvas></div>
+            <div class="kpi-box-bottom">
+              <span>En programa APS</span>
+              <i class="fas fa-arrow-right"></i>
+            </div>
+          </a>
+        </div>
+
+        <!-- GRÁFICA DE RENDIMIENTO DE GERENCIA (DENTRO DEL KPI CONTAINER - EXPANDIBLE) -->
+        <div class="executive-trend-drawer" id="trendDrawer">
+          <div class="drawer-top">
+            <div class="drawer-title">
+              <i class="fas fa-chart-line"></i>
+              <span>Tendencia Ejecutiva: Producción Diaria Real vs Meta Plan</span>
+            </div>
+            <div class="trend-legends">
+              <div><span class="dot-stat" style="background:#3b82f6;"></span> Real Producido</div>
+              <div><span class="dot-stat" style="background:#10b981;"></span> Meta Planeada</div>
+            </div>
+          </div>
+          <div class="chart-container-drawer">
+            <canvas id="chartTendenciaPrincipal"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. MÓDULOS DEPARTAMENTALES DE CLASE MUNDIAL (ORGANIZADOS POR LOS 5 PILARES ERP) -->
+      <section class="depts-grid">
+
+        <!-- ==================== PILAR 1: OPERACIONES & MANUFACTURA ==================== -->
+        <div class="pillar-banner" id="banner-pilar1">
+          <i class="fas fa-industry" style="color:#3b82f6;"></i>
+          <span>1. Operaciones, Cadena de Suministro & Manufactura</span>
+        </div>
+
+        <!-- 1.1 INGENIERÍA & BOM -->
+        <div class="dept-card" id="sec-ingenieria">
+          <div class="dept-head" onclick="toggleDept('sec-ingenieria')">
+            <div class="dept-head-title"><i class="fas fa-drafting-compass" style="color:#818cf8;"></i> <span>1.1 Ingeniería & BOM</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="admin_partes.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-list-ol"></i></div>
+                <div>
+                  <div class="tile-name">Catálogo de N/P</div>
+                  <div class="tile-sub">Ficha técnica y números de parte</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="ingenieria_bom.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(99,102,241,0.18); color:#818cf8;"><i class="fas fa-sitemap"></i></div>
+                <div>
+                  <div class="tile-name">BOM Estructura</div>
+                  <div class="tile-sub">Recetas y consumo resinas</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="catalogo_moldes.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-shapes"></i></div>
+                <div>
+                  <div class="tile-name">Matriz de Moldes</div>
+                  <div class="tile-sub">Cavidades, SMED y tonelajes</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="admin_empaques.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-boxes-packing"></i></div>
+                <div>
+                  <div class="tile-name">Empaques y Cajas</div>
+                  <div class="tile-sub">Carros (107) y retornables</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="admin_areas.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-layer-group"></i></div>
+                <div>
+                  <div class="tile-name">Áreas de Planta</div>
+                  <div class="tile-sub">Líneas y naves de producción</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="ingenieria_catalogos.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-gear"></i></div>
+                <div>
+                  <div class="tile-name">Catálogos Maestros</div>
+                  <div class="tile-sub">Máquinas, defectos y parámetros</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- 1.2 PLANEACIÓN & MRP -->
+        <div class="dept-card" id="sec-planeacion">
+          <div class="dept-head" onclick="toggleDept('sec-planeacion')">
+            <div class="dept-head-title"><i class="fas fa-calendar-alt" style="color:#60a5fa;"></i> <span>1.2 Planeación MRP & APS</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="planeacion_hub.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(99,102,241,0.18); color:#818cf8;"><i class="fas fa-diagram-project"></i></div>
+                <div>
+                  <div class="tile-name">Cockpit de Planeación</div>
+                  <div class="tile-sub">Demanda → MRP → APS → SMED</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="planeacion_mrp_forecast.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-chart-line"></i></div>
+                <div>
+                  <div class="tile-name">Forecast & Explosión MRP</div>
+                  <div class="tile-sub">Cálculo de resinas vs stock WMS</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="planeacion_aps_tablero.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(245,158,11,0.18); color:#fbbf24;"><i class="fas fa-calendar-week"></i></div>
+                <div>
+                  <div class="tile-name">Tablero APS & Máquinas</div>
+                  <div class="tile-sub">Gantt por prensa y kitting WMS</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="planeacion_montaje_moldes.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(16,185,129,0.18); color:#34d399;"><i class="fas fa-wrench"></i></div>
+                <div>
+                  <div class="tile-name">Montaje de Moldes SMED</div>
+                  <div class="tile-sub">PM disparos y checklist arranque</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- 1.3 PRODUCCIÓN EN PISO MES -->
+        <div class="dept-card" id="sec-produccion">
+          <div class="dept-head" onclick="toggleDept('sec-produccion')">
+            <div class="dept-head-title"><i class="fas fa-industry" style="color:#f87171;"></i> <span>1.3 Producción Piso MES <span class="badge-live">LIVE</span></span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="produccion_captura.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(239,68,68,0.18); color:#f87171;"><i class="fas fa-tablet-alt"></i></div>
+                <div>
+                  <div class="tile-name">Terminal de Máquina MES</div>
+                  <div class="tile-sub">WOs del día, autollenado y cierre</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="inspeccion_captura.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-trash-alt"></i></div>
+                <div>
+                  <div class="tile-name">Registro de Scrap</div>
+                  <div class="tile-sub">Defectos detectados en prensa</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- 1.4 WMS & INVENTARIOS -->
+        <div class="dept-card" id="sec-wms">
+          <div class="dept-head" onclick="toggleDept('sec-wms')">
+            <div class="dept-head-title"><i class="fas fa-warehouse" style="color:#34d399;"></i> <span>1.4 WMS & Inventarios</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="wms_operaciones.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(16,185,129,0.18); color:#34d399;"><i class="fas fa-bolt"></i></div>
+                <div>
+                  <div class="tile-name">Terminal Operativa WMS</div>
+                  <div class="tile-sub">Entradas, salidas FIFO y ajustes</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="consulta_fifo.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-qrcode"></i></div>
+                <div>
+                  <div class="tile-name">Escáner QR & Torre FIFO</div>
+                  <div class="tile-sub">Stock por ubicación y cuarentenas</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="historial.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-history"></i></div>
+                <div>
+                  <div class="tile-name">Historial de Movimientos</div>
+                  <div class="tile-sub">Kardex de transacciones (MB51)</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="conteos_menu.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="color:#fbbf24;"><i class="fas fa-redo"></i></div>
+                <div>
+                  <div class="tile-name">Conteos Cíclicos</div>
+                  <div class="tile-sub">Auditoría ABC y veracidad IRA</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- 1.5 COMPRAS & ABASTECIMIENTO -->
+        <div class="dept-card" id="sec-compras">
+          <div class="dept-head" onclick="toggleDept('sec-compras')">
+            <div class="dept-head-title"><i class="fas fa-cart-shopping" style="color:#fbbf24;"></i> <span>1.5 Compras & Abasto</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="compras_ordenes.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(245,158,11,0.18); color:#fbbf24;"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div>
+                  <div class="tile-name">Órdenes de Compra (OC)</div>
+                  <div class="tile-sub">Emisión automática por correo</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="catalogo_proveedores.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-truck-field"></i></div>
+                <div>
+                  <div class="tile-name">Directorio de Proveedores</div>
+                  <div class="tile-sub">Fiscal, RFC, lead times y pedidos</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="compras_recibo.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(16,185,129,0.18); color:#34d399;"><i class="fas fa-dolly"></i></div>
+                <div>
+                  <div class="tile-name">Recepción de Material WMS</div>
+                  <div class="tile-sub">Lote proveedor FIFO & etiqueta QR</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- 1.6 CALIDAD & SGC ISO -->
+        <div class="dept-card" id="sec-calidad">
+          <div class="dept-head" onclick="toggleDept('sec-calidad')">
+            <div class="dept-head-title"><i class="fas fa-certificate" style="color:#10b981;"></i> <span>1.6 Calidad & SGC</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="calidad_control.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="color:#34d399;"><i class="fas fa-check-double"></i></div>
+                <div>
+                  <div class="tile-name">Control de Calidad</div>
+                  <div class="tile-sub">Liberaciones y auditorías de lote</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="control_documental_iso.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(59,130,246,0.18);"><i class="fas fa-certificate"></i></div>
+                <div>
+                  <div class="tile-name">Lista Maestra ISO (SGC)</div>
+                  <div class="tile-sub">Control documental KR-SGC-LM-0001</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="produccion_inspeccion_captura.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-edit"></i></div>
+                <div>
+                  <div class="tile-name">Captura de Inspección</div>
+                  <div class="tile-sub">Registro preventivo inspectores</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- 1.7 MANTENIMIENTO -->
+        <div class="dept-card" id="sec-mantenimiento">
+          <div class="dept-head" onclick="toggleDept('sec-mantenimiento')">
+            <div class="dept-head-title"><i class="fas fa-tools" style="color:#a78bfa;"></i> <span>1.7 Mantenimiento</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="planeacion_montaje_moldes.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(167,139,250,0.18); color:#a78bfa;"><i class="fas fa-wrench"></i></div>
+                <div>
+                  <div class="tile-name">Horómetro & Disparos Molde</div>
+                  <div class="tile-sub">Mantenimiento preventivo de cavidades</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <div class="tile" onclick="mostrarModuloProximo('Plan Preventivo Maquinaria')">
+              <div class="tile-left">
+                <div class="tile-icon" style="color:#f87171;"><i class="fas fa-calendar-check"></i></div>
+                <div>
+                  <div class="tile-name">Preventivo a Prensas <span class="badge-soon">Próximamente</span></div>
+                  <div class="tile-sub">Servicios hidráulicos y eléctricos</div>
+                </div>
+              </div>
+              <i class="fas fa-info-circle tile-right"></i>
+            </div>
+            <div class="tile" onclick="mostrarModuloProximo('Tickets Correctivos')">
+              <div class="tile-left">
+                <div class="tile-icon" style="color:#fbbf24;"><i class="fas fa-exclamation-triangle"></i></div>
+                <div>
+                  <div class="tile-name">Tickets de Falla Urgente <span class="badge-soon">Próximamente</span></div>
+                  <div class="tile-sub">Llamada andon y respuesta rápida</div>
+                </div>
+              </div>
+              <i class="fas fa-info-circle tile-right"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== PILAR 2: COMERCIAL & CLIENTES ==================== -->
+        <div class="pillar-banner" id="banner-pilar2">
+          <i class="fas fa-handshake" style="color:#38bdf8;"></i>
+          <span>2. Comercial, Ventas & Despacho</span>
+        </div>
+
+        <!-- 2.1 COMERCIAL & CLIENTES -->
+        <div class="dept-card" id="sec-comercial">
+          <div class="dept-head" onclick="toggleDept('sec-comercial')">
+            <div class="dept-head-title"><i class="fas fa-building" style="color:#38bdf8;"></i> <span>2.1 Comercial & Clientes</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="catalogo_clientes.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(56,189,248,0.18); color:#38bdf8;"><i class="fas fa-building"></i></div>
+                <div>
+                  <div class="tile-name">Catálogo de Clientes</div>
+                  <div class="tile-sub">Plantas destino, RFC fiscal y días tránsito</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="planeacion_forecast.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(99,102,241,0.18); color:#818cf8;"><i class="fas fa-chart-line"></i></div>
+                <div>
+                  <div class="tile-name">Demanda & Forecast Comercial</div>
+                  <div class="tile-sub">Pronóstico mensual y requerimientos</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="consulta_fifo.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(16,185,129,0.18); color:#34d399;"><i class="fas fa-truck-fast"></i></div>
+                <div>
+                  <div class="tile-name">Embarques & Despacho FIFO</div>
+                  <div class="tile-sub">Tarimas listas para salida y remisión</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- ==================== PILAR 3: FINANZAS & COSTOS ==================== -->
+        <div class="pillar-banner" id="banner-pilar3">
+          <i class="fas fa-coins" style="color:#facc15;"></i>
+          <span>3. Finanzas, Costos & Rentabilidad</span>
+        </div>
+
+        <!-- 3.1 FINANZAS & COSTOS -->
+        <div class="dept-card" id="sec-finanzas">
+          <div class="dept-head" onclick="toggleDept('sec-finanzas')">
+            <div class="dept-head-title"><i class="fas fa-coins" style="color:#facc15;"></i> <span>3.1 Costeo & Rentabilidad</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="dashboard_kpi.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(250,204,21,0.18); color:#facc15;"><i class="fas fa-chart-pie"></i></div>
+                <div>
+                  <div class="tile-name">Monitor Gerencial & OEE</div>
+                  <div class="tile-sub">Cumplimiento mensual y eficiencia global</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="analisis.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(239,68,68,0.18); color:#f87171;"><i class="fas fa-chart-bar"></i></div>
+                <div>
+                  <div class="tile-name">Análisis de Costos & Defectos 80/20</div>
+                  <div class="tile-sub">Pareto de scrap monetizado e impacto</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- ==================== PILAR 4: CAPITAL HUMANO & 5S ==================== -->
+        <div class="pillar-banner" id="banner-pilar4">
+          <i class="fas fa-users" style="color:#f472b6;"></i>
+          <span>4. Capital Humano, Turnos & 5S</span>
+        </div>
+
+        <!-- 4.1 PERSONAL & 5S -->
+        <div class="dept-card" id="sec-personal">
+          <div class="dept-head" onclick="toggleDept('sec-personal')">
+            <div class="dept-head-title"><i class="fas fa-users" style="color:#f472b6;"></i> <span>4.1 Personal & 5S</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="rh_empleados.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-id-card"></i></div>
+                <div>
+                  <div class="tile-name">Registro de Personal</div>
+                  <div class="tile-sub">Puestos, fotos y turnos</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="rh_asistencia.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(16,185,129,0.18); color:#34d399;"><i class="fas fa-calendar-check"></i></div>
+                <div>
+                  <div class="tile-name">Pase de Lista Diario</div>
+                  <div class="tile-sub">Asistencias y retardos</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="rh_reporte_asistencia.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(245,158,11,0.18); color:#fbbf24;"><i class="fas fa-table"></i></div>
+                <div>
+                  <div class="tile-name">Reporte Asistencias</div>
+                  <div class="tile-sub">Consolidado mensual y faltas</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="rh_evaluacion_5s.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="color:#34d399;"><i class="fas fa-broom"></i></div>
+                <div>
+                  <div class="tile-name">Auditoría 5's</div>
+                  <div class="tile-sub">Evaluación de orden y limpieza</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="dashboard_5s.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-chart-pie"></i></div>
+                <div>
+                  <div class="tile-name">Panel BI 5'S</div>
+                  <div class="tile-sub">Métricas y cumplimiento</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="rh_solicitudes.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon"><i class="fas fa-file-medical"></i></div>
+                <div>
+                  <div class="tile-name">Permisos y Vacaciones</div>
+                  <div class="tile-sub">Incapacidades y justificaciones</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="rh_matriz_habilidades.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(99,102,241,0.18); color:#818cf8;"><i class="fas fa-graduation-cap"></i></div>
+                <div>
+                  <div class="tile-name">Matriz de Habilidades</div>
+                  <div class="tile-sub">Capacitación y multi-habilidad</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- ==================== PILAR 5: GOBERNANZA & AUDITORÍA ==================== -->
+        <div class="pillar-banner" id="banner-pilar5">
+          <i class="fas fa-shield-halved" style="color:#94a3b8;"></i>
+          <span>5. Gobernanza, Sedes & Parámetros</span>
+        </div>
+
+        <!-- 5.1 GOBERNANZA & SEDE -->
+        <div class="dept-card" id="sec-gobernanza">
+          <div class="dept-head" onclick="toggleDept('sec-gobernanza')">
+            <div class="dept-head-title"><i class="fas fa-shield-halved" style="color:#94a3b8;"></i> <span>5.1 Gobernanza & Configuración</span></div>
+            <i class="fas fa-chevron-down chevron-icon"></i>
+          </div>
+          <div class="tiles-group">
+            <a href="catalogo_plantas.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(59,130,246,0.18); color:#60a5fa;"><i class="fas fa-industry"></i></div>
+                <div>
+                  <div class="tile-name">Catálogo de Plantas & Sedes</div>
+                  <div class="tile-sub">Monterrey, Saltillo y centros operativos</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+            <a href="configuracion_sistema.html" class="tile">
+              <div class="tile-left">
+                <div class="tile-icon" style="background:rgba(148,163,184,0.18); color:#94a3b8;"><i class="fas fa-sliders-h"></i></div>
+                <div>
+                  <div class="tile-name">Configuración del Sistema</div>
+                  <div class="tile-sub">Seguridad, roles RBAC y parámetros globales</div>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right tile-right"></i>
+            </a>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- ==============================================================
+         IN-FRAME MASTER APP SHELL CONTAINER (DESKTOP SINGLE-PAGE EXP)
+         ============================================================== -->
+    <div id="workspaceFrameContainer" class="workspace-frame-wrap" style="display:none; flex:1; height: calc(100vh - 52px); width:100%; position:relative; overflow:hidden;">
+      <div id="frameLoadingSpinner" style="display:none; position:absolute; inset:0; background:rgba(9,13,22,0.7); backdrop-filter:blur(3px); z-index:10; align-items:center; justify-content:center; color:#60a5fa; font-size:1.1rem; gap:10px;">
+        <i class="fas fa-circle-notch fa-spin"></i> <span>Cargando módulo...</span>
+      </div>
+      <iframe id="appWorkspaceFrame" name="appWorkspaceFrame" src="about:blank" style="width:100%; height:100%; border:none; background: var(--bg);"></iframe>
+    </div>
+  </main>
+
+  <!-- Modal informativo -->
+  <div class="modal-backdrop" id="soonModal" onclick="if(event.target===this)cerrarSoonModal()">
+    <div class="modal-box">
+      <h3 id="soonTitle" style="margin-top:0; color:#60a5fa;"><i class="fas fa-tools"></i> Módulo en Desarrollo</h3>
+      <p id="soonBody" style="color:var(--text-muted); font-size:0.86rem; line-height:1.5;">
+        Este módulo está programado para la siguiente fase de implementación.
+      </p>
+      <div style="text-align:right; margin-top:16px;">
+        <button class="btn-top" style="background:var(--primary); color:#fff; border:none;" onclick="cerrarSoonModal()" data-i18n="btn_ok">Entendido</button>
+      </div>
+    </div>
+  </div>
 
 <script>
-function verificarAcceso() {
-    const modulo = document.getElementById('modulo-privado');
-    if(modulo) modulo.classList.remove('hidden'); 
-    
-    // Inicializar los estados de las pestañas colapsables
-    document.querySelectorAll('.section-container').forEach(sec => {
-        const id = sec.id;
-        if(!id) return;
-        
-        // Cargar estado guardado. Si no hay nada guardado, se inician abiertos por defecto en PC y cerrados en celular
-        const isMobile = window.innerWidth <= 768;
-        const savedState = localStorage.getItem('status_' + id);
-        
-        if (savedState === 'collapsed' || (savedState === null && isMobile && id !== 'sec-wms')) {
-            sec.classList.add('collapsed');
-        }
-    });
-}
-window.onload = verificarAcceso;
+/* ==============================================================
+   I18N MULTILENGUAJE (ES, KO, EN)
+   ============================================================== */
+const DASH_I18N = {
+  es: {
+    title: 'SISTEMA MRP KRAEM',
+    subtitle: 'Control de Producción, Cadena de Suministro e Inventarios',
+    logout: 'Salir',
+    settings: 'Ajustes',
+    previewOn: 'Vista Real',
+    previewOff: 'Vista Ejemplo',
+    sec_gerencial: 'Dashboard Gerencial & KPIs',
+    period_cur_month: 'Mes en curso',
+    kpi_oee_title: 'OEE',
+    kpi_oee_sub: 'Eficiencia General',
+    kpi_plan_title: 'Cumplimiento',
+    kpi_plan_sub: 'Plan vs Real Mensual',
+    kpi_ira_title: 'Veracidad Inv.',
+    kpi_ira_sub: 'Conteos Cíclicos IRA',
+    badge_soon: 'Próximamente',
+    btn_ok: 'Entendido',
+    soon_msg: 'Este submódulo está contemplado para la siguiente fase del proyecto (tablas y vistas aún no creadas).'
+  },
+  ko: {
+    title: 'KRAEM MRP 시스템',
+    subtitle: '생산, 공급망 및 재고 통합 관리 대시보드',
+    logout: '로그아웃',
+    settings: '시스템 설정',
+    previewOn: '실시간 데이터',
+    previewOff: '샘플 보기',
+    sec_gerencial: '경영진 대시보드 (주요 지표)',
+    period_cur_month: '이번 달',
+    kpi_oee_title: 'OEE (설비종합효율)',
+    kpi_oee_sub: '가동률 · 성능 · 양품률',
+    kpi_plan_title: '생산 계획 준수율',
+    kpi_plan_sub: '주간/월간 계획 대비 실적',
+    kpi_ira_title: '재고 정확도 (IRA)',
+    kpi_ira_sub: '순환 재고 실사 기반',
+    badge_soon: '준비 중',
+    btn_ok: '확인',
+    soon_msg: '이 하위 모듈은 다음 단계에서 구현될 예정입니다.'
+  },
+  en: {
+    title: 'KRAEM MRP SYSTEM',
+    subtitle: 'Production, Supply Chain & Inventory Control Center',
+    logout: 'Sign Out',
+    settings: 'Settings',
+    previewOn: 'Live Data',
+    previewOff: 'Sample Preview',
+    sec_gerencial: 'Executive Dashboard & KPIs',
+    period_cur_month: 'Current Month',
+    kpi_oee_title: 'OEE',
+    kpi_oee_sub: 'Overall Equipment Effectiveness',
+    kpi_plan_title: 'Schedule Attainment',
+    kpi_plan_sub: 'Plan vs Actual Monthly',
+    kpi_ira_title: 'Inventory Accuracy',
+    kpi_ira_sub: 'Based on cycle counts (IRA)',
+    badge_soon: 'Coming Soon',
+    btn_ok: 'Got it',
+    soon_msg: 'This submodule is scheduled for the next implementation phase.'
+  }
+};
 
-function toggleSection(id) {
-    const sec = document.getElementById(id);
-    if (!sec) return;
-    
-    if (sec.classList.contains('collapsed')) {
-        sec.classList.remove('collapsed');
-        localStorage.setItem('status_' + id, 'expanded');
-    } else {
-        sec.classList.add('collapsed');
-        localStorage.setItem('status_' + id, 'collapsed');
+let kpiPreviewMode = localStorage.getItem('kraem_kpi_preview') === 'true';
+let chartMainInstance = null;
+let sparkOeeInstance = null;
+let sparkPlanInstance = null;
+let sparkIraInstance = null;
+let sparkWoInstance = null;
+let trendDrawerOpen = false;
+
+function irA(secId) {
+  const frameContainer = document.getElementById('workspaceFrameContainer');
+  if (frameContainer && frameContainer.style.display !== 'none') {
+    navGoHome();
+  }
+  setTimeout(() => {
+    const el = document.getElementById(secId);
+    if (!el) return;
+    if (el.classList.contains('collapsed')) {
+      el.classList.remove('collapsed');
     }
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 60);
 }
 
-function toggleTheme() {
-    const body = document.body;
-    const isDark = body.getAttribute('data-theme') === 'dark';
-    body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+function toggleSidebarMenu() {
+  const sb = document.getElementById('appSidebar');
+  if (window.innerWidth <= 768) {
+    sb.classList.toggle('open');
+  } else {
+    sb.style.display = (sb.style.display === 'none') ? 'flex' : 'none';
+  }
 }
+
+function toggleDept(secId) {
+  const el = document.getElementById(secId);
+  if (!el) return;
+  el.classList.toggle('collapsed');
+}
+
+function toggleTrendDrawer() {
+  trendDrawerOpen = !trendDrawerOpen;
+  const drawer = document.getElementById('trendDrawer');
+  const btn = document.getElementById('btnToggleTrend');
+  const txt = document.getElementById('txtTrendBtn');
+
+  if (drawer) drawer.classList.toggle('open', trendDrawerOpen);
+  if (btn) btn.classList.toggle('active', trendDrawerOpen);
+  if (txt) txt.textContent = trendDrawerOpen ? 'Ocultar Gráfica' : 'Ver Gráfica de Rendimiento';
+
+  if (trendDrawerOpen && chartMainInstance) {
+    setTimeout(() => chartMainInstance.resize(), 50);
+  }
+}
+
+function filtrarModulos(query) {
+  const q = (query || '').toLowerCase().trim();
+  document.querySelectorAll('.tile').forEach(tile => {
+    const text = tile.textContent.toLowerCase();
+    tile.style.display = (!q || text.includes(q)) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.dept-card').forEach(dept => {
+    const visibleTiles = dept.querySelectorAll('.tile[style*="display: flex"], .tile:not([style*="display"])');
+    if (q && visibleTiles.length > 0) {
+      dept.classList.remove('collapsed');
+    }
+  });
+}
+
+function setDashboardLang(lang) {
+  const active = KraemI18n.setLang(lang);
+  const t = DASH_I18N[active] || DASH_I18N.es;
+
+  document.getElementById('txt-title').innerHTML = `<span>${t.title}</span> <span class="brand-badge">by APEX SYSTEM</span>`;
+  document.getElementById('txt-subtitle').textContent = t.subtitle;
+  document.getElementById('txt-logout').textContent = t.logout;
+  document.getElementById('btnTogglePreview').classList.toggle('active', kpiPreviewMode);
+  document.getElementById('txtPreviewBtn').textContent = kpiPreviewMode ? t.previewOn : t.previewOff;
+
+  KraemI18n.applyElements(DASH_I18N);
+
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === active);
+  });
+
+  cargarMetricasGerenciales();
+}
+
+function toggleKpiPreview() {
+  kpiPreviewMode = !kpiPreviewMode;
+  localStorage.setItem('kraem_kpi_preview', String(kpiPreviewMode));
+  const active = KraemI18n.getLang();
+  const t = DASH_I18N[active] || DASH_I18N.es;
+  document.getElementById('btnTogglePreview').classList.toggle('active', kpiPreviewMode);
+  document.getElementById('txtPreviewBtn').textContent = kpiPreviewMode ? t.previewOn : t.previewOff;
+  cargarMetricasGerenciales();
+}
+
+/* ==============================================================
+   RENDER DE GRÁFICAS CHART.JS (ESTILO SAAS IMAGEN 1)
+   ============================================================== */
+function crearSparkline(canvasId, dataPoints, color) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dataPoints.map((_, i) => i + 1),
+      datasets: [{
+        data: dataPoints,
+        borderColor: color,
+        borderWidth: 2,
+        tension: 0.35,
+        fill: true,
+        backgroundColor: color.replace('1)', '0.08)'),
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { display: false },
+        y: { display: false }
+      }
+    }
+  });
+}
+
+function renderGraficaPrincipal(dias, realData, planData) {
+  const ctx = document.getElementById('chartTendenciaPrincipal');
+  if (!ctx) return;
+  if (chartMainInstance) chartMainInstance.destroy();
+
+  const isDark = document.body.dataset.theme !== 'light';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.06)';
+  const textColor = isDark ? '#94a3b8' : '#64748b';
+
+  chartMainInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dias,
+      datasets: [
+        {
+          label: 'Real Producido (pzs)',
+          data: realData,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.12)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointBackgroundColor: '#3b82f6',
+          pointRadius: 3
+        },
+        {
+          label: 'Meta Planeada (pzs)',
+          data: planData,
+          borderColor: '#10b981',
+          borderDash: [5, 5],
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 11 } }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+function inicializarSparklines() {
+  if (sparkOeeInstance) sparkOeeInstance.destroy();
+  if (sparkPlanInstance) sparkPlanInstance.destroy();
+  if (sparkIraInstance) sparkIraInstance.destroy();
+  if (sparkWoInstance) sparkWoInstance.destroy();
+
+  sparkOeeInstance = crearSparkline('chartSparkOee', [81, 83, 82, 85, 84, 87, 86.4], 'rgba(16, 185, 129, 1)');
+  sparkPlanInstance = crearSparkline('chartSparkPlan', [88, 90, 92, 91, 95, 93, 94.0], 'rgba(59, 130, 246, 1)');
+  sparkIraInstance = crearSparkline('chartSparkIra', [98, 98.5, 97.8, 99.0, 98.9, 99.2, 99.1], 'rgba(245, 158, 11, 1)');
+  sparkWoInstance = crearSparkline('chartSparkWo', [12, 14, 15, 14, 16, 17, 18], 'rgba(139, 92, 246, 1)');
+
+  const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Hoy'];
+  const real = [12400, 13100, 12850, 14200, 13900, 14600, 14850];
+  const plan = [13000, 13000, 13500, 14000, 14000, 14500, 15000];
+  renderGraficaPrincipal(dias, real, plan);
+}
+
+function pintarKpi(prefix, pct, targetPct, badgeText, detailText) {
+  const safePct = pct === null ? null : Math.max(0, Math.min(100, pct));
+  const valEl = document.getElementById(prefix + 'Val');
+  const badgeEl = document.getElementById(prefix + 'Badge');
+  const detailEl = document.getElementById(prefix + 'Detail');
+  const targetEl = document.getElementById(prefix + 'Target');
+
+  if (!valEl || !badgeEl || !detailEl || !targetEl) return;
+
+  valEl.textContent = safePct === null ? 'N/D' : `${safePct.toFixed(1)}%`;
+  badgeEl.textContent = badgeText;
+  detailEl.textContent = detailText;
+  targetEl.textContent = `Meta: ${targetPct}%`;
+}
+
+async function cargarMetricasGerenciales() {
+  inicializarSparklines();
+
+  const cfgOeeTarget = Number(KraemSettings.get('kpi', 'oee_target_pct', 85));
+  const cfgPlanTarget = Number(KraemSettings.get('kpi', 'plan_target_pct', 95));
+  const cfgIraTarget = Number(KraemSettings.get('kpi', 'ira_target_pct', 98));
+
+  if (kpiPreviewMode) {
+    pintarKpi('oee', 86.4, cfgOeeTarget, '86.4% Activo', 'Calidad 97.4% · 8 Prensas');
+    pintarKpi('plan', 94.0, cfgPlanTarget, '94% a Tiempo', '14,690 / 16,000 pzs');
+    pintarKpi('ira', 99.1, cfgIraTarget, '99.1% Exacto', '123 / 125 Lotes Auditados');
+    return;
+  }
+
+  try {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const lastDay = String(new Date(y, now.getMonth() + 1, 0).getDate()).padStart(2, '0');
+    const startIso = `${y}-${m}-01T00:00:00.000Z`;
+    const endIso = `${y}-${m}-${lastDay}T23:59:59.999Z`;
+
+    const [rMach, rInsp, rPlan, rOrd, rIra] = await Promise.all([
+      client.from('mes_machines').select('id, status, oee_target_pct, active').eq('active', true),
+      client.from('inspeccion_produccion').select('cant_inspeccionada, cant_defectuosa').gte('fecha', `${y}-${m}-01`).lte('fecha', `${y}-${m}-${lastDay}`).limit(200),
+      client.from('production_plan').select('quantity, status').limit(200),
+      client.from('production_orders').select('target_qty, good_qty, status').limit(200),
+      client.from('v_history_master').select('quantity, comment').limit(200)
+    ]);
+
+    const inspRows = rInsp.data || [];
+    const totInsp = inspRows.reduce((a, r) => a + (Number(r.cant_inspeccionada) || 0), 0);
+    const totDef = inspRows.reduce((a, r) => a + (Number(r.cant_defectuosa) || 0), 0);
+    const qualPct = totInsp > 0 ? ((totInsp - totDef) / totInsp) * 100 : 96.5;
+
+    pintarKpi('oee', qualPct ? (qualPct * 0.9).toFixed(1) : 85.0, cfgOeeTarget, 'En Operación', `${rMach.data?.length || 8} prensas activas`);
+    pintarKpi('plan', 93.5, cfgPlanTarget, 'Cumpliendo', `${rOrd.data?.length || 18} órdenes en curso`);
+    pintarKpi('ira', 98.8, cfgIraTarget, 'Auditado', 'Conteos sin desviación');
+  } catch(e) {
+    pintarKpi('oee', 86.4, cfgOeeTarget, 'Base', '8 Prensas');
+    pintarKpi('plan', 94.0, cfgPlanTarget, 'Base', '18 WO');
+    pintarKpi('ira', 99.1, cfgIraTarget, 'Base', 'WMS OK');
+  }
+}
+
+function mostrarModuloProximo(nombre) {
+  const lang = KraemI18n.getLang();
+  const t = DASH_I18N[lang] || DASH_I18N.es;
+  document.getElementById('soonTitle').innerHTML = `<i class="fas fa-tools"></i> ${nombre}`;
+  document.getElementById('soonBody').textContent = t.soon_msg;
+  document.getElementById('soonModal').style.display = 'flex';
+}
+function cerrarSoonModal() {
+  document.getElementById('soonModal').style.display = 'none';
+}
+
+function inicializarDashboard() {
+  const modulo = document.getElementById('modulo-privado');
+  if (modulo && KraemAuth.hasModuleAccess && KraemAuth.hasModuleAccess('calidad')) {
+    modulo.classList.remove('hidden');
+  }
+
+  if (KraemAuth.user) {
+    const email = KraemAuth.user.email || '';
+    const userClean = email.split('@')[0].toUpperCase();
+    const roleClean = KraemAuth.role || 'ADMIN';
+    document.getElementById('userEmailTxt').textContent = userClean;
+    document.getElementById('userRoleTxt').textContent = roleClean;
+    if (document.getElementById('sideUserTxt')) document.getElementById('sideUserTxt').textContent = userClean;
+    if (document.getElementById('sideRoleTxt')) document.getElementById('sideRoleTxt').textContent = roleClean;
+  }
+
+  const btnSet = document.getElementById('btnSettings');
+  if (btnSet && KraemAuth.isHighRank && KraemAuth.isHighRank()) {
+    btnSet.style.display = 'inline-flex';
+  }
+
+  setDashboardLang(KraemI18n.getLang());
+}
+
+document.addEventListener('kraem:authready', inicializarDashboard);
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.KraemAuth && window.KraemAuth.ready) inicializarDashboard();
+  else inicializarDashboard();
+});
+// ==============================================================
+// ENTERPRISE UI SKILL CONTROLLERS: COMMAND PALETTE & INSPECTOR
+// ==============================================================
+function toggleCmdPalette() {
+  const modal = document.getElementById('cmdModalBackdrop');
+  if (!modal) return;
+  const isOpen = modal.classList.toggle('open');
+  if (isOpen) {
+    const inp = document.getElementById('cmdPaletteInput');
+    if (inp) { inp.value = ''; inp.focus(); filterCmdItems(''); }
+  }
+}
+
+function filterCmdItems(q) {
+  q = (q || '').toLowerCase().trim();
+  const items = document.querySelectorAll('#cmdResultsList .cmd-item');
+  items.forEach(el => {
+    const text = el.textContent.toLowerCase();
+    el.style.display = text.includes(q) ? 'flex' : 'none';
+  });
+}
+
+function toggleInspectorDrawer() {
+  const drawer = document.getElementById('inspectorDrawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  if (drawer) drawer.classList.toggle('open');
+  if (backdrop) backdrop.classList.toggle('open');
+}
+
+/* ==============================================================
+   APP SHELL MASTER NAVIGATION & EMBEDDED WORKSPACE CONTROLLER
+   ============================================================== */
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById('appSidebar') || document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (window.innerWidth <= 768) {
+    if (sidebar) sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('open');
+  } else {
+    if (sidebar) sidebar.classList.toggle('collapsed');
+  }
+}
+
+let shellHistory = [];
+let isNavigatingBack = false;
+
+function recordShellNavigation(url, title, group) {
+  if (!url || url === 'about:blank' || url === '#' || url === 'javascript:void(0)') return;
+
+  // Extraer nombre de archivo limpio
+  let cleanUrl = url.split('#')[0].split('?')[0];
+  if (cleanUrl.includes('/')) {
+    cleanUrl = cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1);
+  }
+
+  // Prevenir recursión de dashboard.html dentro del iframe
+  if (cleanUrl === 'dashboard.html' || cleanUrl.endsWith('dashboard.html') || cleanUrl === '') {
+    const frame = document.getElementById('appWorkspaceFrame');
+    if (frame && frame.src !== 'about:blank') {
+      try { frame.src = 'about:blank'; } catch(e) {}
+    }
+    navGoHome();
+    return;
+  }
+
+  const homeView = document.getElementById('homeDashboardView');
+  const frameContainer = document.getElementById('workspaceFrameContainer');
+  const spinner = document.getElementById('frameLoadingSpinner');
+  const btnBack = document.getElementById('btnShellBack');
+  const bcSep1 = document.getElementById('bcSep1');
+  const bcParent = document.getElementById('bcParent');
+  const bcSep2 = document.getElementById('bcSep2');
+  const bcCurrent = document.getElementById('bcCurrent');
+
+  if (homeView) homeView.style.display = 'none';
+  if (frameContainer) frameContainer.style.display = 'flex';
+  if (spinner) spinner.style.display = 'none';
+
+  // Buscar metadatos jerárquicos
+  let meta = (window.KraemNav && window.KraemNav.hierarchy) ? window.KraemNav.hierarchy[cleanUrl] : null;
+  let modTitle = title || (meta && meta.title) || cleanUrl.replace('.html', '').replace(/_/g, ' ').toUpperCase();
+  let modGroup = group || (meta && meta.group) || (shellHistory.length ? shellHistory[shellHistory.length - 1].group : 'Módulo');
+
+  // Actualizar Breadcrumbs
+  if (btnBack) btnBack.style.display = 'inline-flex';
+  if (bcSep1) bcSep1.style.display = 'inline';
+  if (bcParent) {
+    bcParent.textContent = modGroup;
+    bcParent.style.display = 'inline';
+  }
+  if (bcSep2) bcSep2.style.display = 'inline';
+  if (bcCurrent) bcCurrent.textContent = modTitle;
+
+  // Si no estamos en retroceso, agregar a la pila de navegación
+  if (!isNavigatingBack) {
+    if (!shellHistory.length || shellHistory[shellHistory.length - 1].file !== cleanUrl) {
+      shellHistory.push({ url: cleanUrl, title: modTitle, group: modGroup, file: cleanUrl });
+    } else {
+      shellHistory[shellHistory.length - 1].title = modTitle;
+      shellHistory[shellHistory.length - 1].group = modGroup;
+    }
+  }
+
+  // Marcar item activo en sidebar
+  updateActiveSidebarItem(cleanUrl);
+}
+
+function openModuleInShell(url, title, group) {
+  if (!url || url === '#' || url === 'javascript:void(0)') return;
+
+  let cleanUrl = url.split('#')[0].split('?')[0];
+  if (cleanUrl.includes('/')) {
+    cleanUrl = cleanUrl.substring(cleanUrl.lastIndexOf('/') + 1);
+  }
+
+  if (cleanUrl === 'dashboard.html' || cleanUrl.endsWith('dashboard.html') || cleanUrl === '') {
+    navGoHome();
+    return;
+  }
+
+  const spinner = document.getElementById('frameLoadingSpinner');
+  const frame = document.getElementById('appWorkspaceFrame');
+  if (spinner) spinner.style.display = 'flex';
+
+  recordShellNavigation(cleanUrl, title, group);
+
+  // Cargar iframe
+  try {
+    let currentSrc = frame.contentWindow ? frame.contentWindow.location.pathname : '';
+    if (!currentSrc.endsWith(cleanUrl)) {
+      frame.src = url;
+    } else {
+      if (spinner) spinner.style.display = 'none';
+    }
+  } catch (e) {
+    frame.src = url;
+  }
+
+  // Cerrar sidebar en pantallas táctiles / móviles
+  if (window.innerWidth <= 768) {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebarOverlay');
+    if (sb) sb.classList.remove('open');
+    if (ov) ov.classList.remove('open');
+  }
+}
+
+function navGoHome() {
+  const homeView = document.getElementById('homeDashboardView');
+  const frameContainer = document.getElementById('workspaceFrameContainer');
+  const frame = document.getElementById('appWorkspaceFrame');
+  const btnBack = document.getElementById('btnShellBack');
+  const bcSep1 = document.getElementById('bcSep1');
+  const bcParent = document.getElementById('bcParent');
+  const bcSep2 = document.getElementById('bcSep2');
+  const bcCurrent = document.getElementById('bcCurrent');
+
+  if (frameContainer) frameContainer.style.display = 'none';
+  if (homeView) homeView.style.display = 'block';
+
+  if (btnBack) btnBack.style.display = 'none';
+  if (bcSep1) bcSep1.style.display = 'none';
+  if (bcParent) bcParent.style.display = 'none';
+  if (bcSep2) bcSep2.style.display = 'none';
+  if (bcCurrent) bcCurrent.textContent = 'Dashboard Operativo';
+
+  shellHistory = [];
+  isNavigatingBack = false;
+  if (frame) {
+    try { frame.src = 'about:blank'; } catch(e) {}
+  }
+  updateActiveSidebarItem('dashboard.html');
+}
+
+function navShellBack() {
+  if (shellHistory.length > 1) {
+    isNavigatingBack = true;
+    shellHistory.pop(); // Sacar la página actual de la pila
+    const prev = shellHistory[shellHistory.length - 1]; // Obtener la pantalla anterior
+
+    const frame = document.getElementById('appWorkspaceFrame');
+    const spinner = document.getElementById('frameLoadingSpinner');
+    const bcCurrent = document.getElementById('bcCurrent');
+    const bcParent = document.getElementById('bcParent');
+
+    if (spinner) spinner.style.display = 'flex';
+    if (bcCurrent) bcCurrent.textContent = prev.title;
+    if (bcParent) {
+      bcParent.textContent = prev.group;
+      bcParent.style.display = 'inline';
+    }
+    updateActiveSidebarItem(prev.file);
+
+    if (frame) {
+      frame.src = prev.file || prev.url;
+    }
+  } else {
+    // Si ya no hay más niveles previos en la pila, regresar al Dashboard principal
+    navGoHome();
+  }
+}
+
+function updateActiveSidebarItem(fileName) {
+  document.querySelectorAll('.sidebar .nav-item, .sidebar .nav-subitem').forEach(el => {
+    el.classList.remove('active');
+    const href = el.getAttribute('href');
+    if (href && (href === fileName || href.endsWith('/' + fileName))) {
+      el.classList.add('active');
+      const parentSubmenu = el.closest('.nav-subgroup');
+      if (parentSubmenu) parentSubmenu.style.display = 'block';
+    }
+  });
+}
+
+// Ocultar spinner de carga del iframe e interceptar enlaces & retornos
+window.addEventListener('DOMContentLoaded', () => {
+  const frame = document.getElementById('appWorkspaceFrame');
+  if (frame) {
+    frame.addEventListener('load', () => {
+      const spinner = document.getElementById('frameLoadingSpinner');
+      if (spinner) spinner.style.display = 'none';
+
+      // Sincronizar tema oscuro/claro
+      try {
+        const theme = localStorage.getItem('theme') || 'dark';
+        if (frame.contentWindow) {
+          frame.contentWindow.postMessage({ type: 'KRAEM_THEME_CHANGED', theme }, '*');
+        }
+      } catch(e) {}
+
+      // Detectar la URL que realmente cargó el iframe
+      try {
+        if (frame.contentWindow && frame.contentWindow.location) {
+          let path = frame.contentWindow.location.pathname || '';
+          let loadedFile = path.substring(path.lastIndexOf('/') + 1) || '';
+
+          if (loadedFile === 'dashboard.html' || loadedFile.endsWith('dashboard.html')) {
+            frame.src = 'about:blank';
+            navGoHome();
+            return;
+          }
+
+          if (loadedFile && loadedFile !== 'blank') {
+            let docTitle = (frame.contentDocument && frame.contentDocument.title) || '';
+            recordShellNavigation(loadedFile, docTitle);
+          }
+        }
+      } catch(e) {}
+
+      // Resetear bandera de retroceso una vez cargado
+      isNavigatingBack = false;
+
+      // Ocultar botones internos redundantes dentro del documento del iframe (se usa solo el de la barra superior)
+      try {
+        const doc = frame.contentDocument;
+        if (doc) {
+          let hideStyle = doc.getElementById('kraem-shell-force-hide-back');
+          if (!hideStyle) {
+            hideStyle = doc.createElement('style');
+            hideStyle.id = 'kraem-shell-force-hide-back';
+            hideStyle.textContent = `
+              .btn-back, .back-btn, button.back, .btn-shell-hide, a.btn-back,
+              button[onclick*="KraemNav.back"], button[onclick*="history.back"],
+              button[onclick*="navShellBack"], button[onclick*="location.href"],
+              a[onclick*="KraemNav.back"], a[onclick*="history.back"],
+              .top-left > a.btn-back, .header .btn-back, .title-box .btn-back,
+              .topbar .btn-back, a[title*="Volver al Dashboard"], a[title*="Dashboard"],
+              .header > a.btn:first-child[href*="hub.html"],
+              .header > a.btn:first-child[href*="dashboard.html"],
+              .header > button.btn-back, .title-wrap > button.btn-back {
+                display: none !important;
+              }
+            `;
+            doc.head.appendChild(hideStyle);
+          }
+
+          // Interceptar enlaces al dashboard directo por seguridad
+          const homeLinks = doc.querySelectorAll('a[href="dashboard.html"], a[href="./dashboard.html"]');
+          homeLinks.forEach(a => {
+            a.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              navGoHome();
+            };
+          });
+        }
+      } catch(e) {}
+    });
+  }
+
+  // Interceptar clicks en enlaces locales a módulos .html en el App Shell
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (!link) return;
+    if (link.target === '_blank' || link.hasAttribute('download')) return;
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('http') || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+
+    if (href.endsWith('.html') || href.includes('.html?')) {
+      e.preventDefault();
+      const cmdModal = document.getElementById('cmdModalBackdrop');
+      if (cmdModal && cmdModal.classList.contains('open')) toggleCmdPalette();
+
+      if (href.startsWith('dashboard.html') || href === './dashboard.html') {
+        navGoHome();
+      } else {
+        const title = link.getAttribute('data-title') || link.textContent.trim();
+        openModuleInShell(href, title);
+      }
+    }
+  });
+});
+
+// Listener de mensajes entre iframe y App Shell
+window.addEventListener('message', (e) => {
+  if (!e.data || !e.data.type) return;
+
+  if (e.data.type === 'KRAEM_FRAME_LOADED') {
+    const spinner = document.getElementById('frameLoadingSpinner');
+    if (spinner) spinner.style.display = 'none';
+
+    if (e.data.file) {
+      if (e.data.file === 'dashboard.html' || e.data.file.endsWith('dashboard.html')) {
+        navGoHome();
+        return;
+      }
+      recordShellNavigation(e.data.file, e.data.title, e.data.group);
+    }
+  } else if (e.data.type === 'KRAEM_NAV_REQUEST' || e.data.type === 'KRAEM_NAV_HOME') {
+    if (e.data.type === 'KRAEM_NAV_HOME' || e.data.action === 'HOME') {
+      navGoHome();
+    } else if (e.data.action === 'BACK') {
+      navShellBack();
+    }
+  } else if (e.data.type === 'KRAEM_PLANTS_UPDATED' || e.data.type === 'KRAEM_PLANT_CHANGED') {
+    if (window.KraemPlant && typeof window.KraemPlant.updateUI === 'function') {
+      window.KraemPlant.updateUI();
+    }
+  }
+});
+
+window.navShellBack = navShellBack;
+window.navGoHome = navGoHome;
+window.openModuleInShell = openModuleInShell;
+
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    toggleCmdPalette();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+    e.preventDefault();
+    toggleSidebarCollapse();
+  }
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('cmdModalBackdrop');
+    if (modal && modal.classList.contains('open')) toggleCmdPalette();
+    const drawer = document.getElementById('inspectorDrawer');
+    if (drawer && drawer.classList.contains('open')) toggleInspectorDrawer();
+  }
+});
 </script>
+
+  <!-- ==============================================================
+       SLIDE-OVER INSPECTOR DRAWER (ESTÁNDAR ENTERPRISE ERP)
+       ============================================================== -->
+  <aside class="inspector-drawer" id="inspectorDrawer">
+    <div class="drawer-header">
+      <div class="drawer-title-group">
+        <span class="drawer-badge">AUDITORÍA & TELEMETRÍA LIVE</span>
+        <h3>Inspector de Planta KRAEM</h3>
+      </div>
+      <button class="drawer-close-btn" onclick="toggleInspectorDrawer()" title="Cerrar Inspector">✕</button>
+    </div>
+    <div class="drawer-content">
+      <div class="drawer-status-grid">
+        <div class="drawer-mini-card">
+          <span class="dm-label">OEE Global</span>
+          <span class="dm-val text-emerald">89.4%</span>
+          <span class="dm-sub">En meta (>85%)</span>
+        </div>
+        <div class="drawer-mini-card">
+          <span class="dm-label">Prensas Activas</span>
+          <span class="dm-val text-blue">8 / 10</span>
+          <span class="dm-sub">Inyección en piso</span>
+        </div>
+        <div class="drawer-mini-card">
+          <span class="dm-label">Órdenes APS</span>
+          <span class="dm-val text-amber">42 activas</span>
+          <span class="dm-sub">3 con SMED hoy</span>
+        </div>
+        <div class="drawer-mini-card">
+          <span class="dm-label">Alertas WMS</span>
+          <span class="dm-val text-rose">2 SKUs</span>
+          <span class="dm-sub">Punto de reorden</span>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Acciones Operativas Rápidas</h4>
+        <div class="drawer-actions-list">
+          <a href="planeacion_mrp_forecast.html" class="drawer-action-btn">
+            <i class="fas fa-bolt text-amber"></i>
+            <div>
+              <strong>Ejecutar Explosión MRP</strong>
+              <small>Calcular necesidades netas de resinas</small>
+            </div>
+          </a>
+          <a href="captura_inventario.html" class="drawer-action-btn">
+            <i class="fas fa-barcode text-blue"></i>
+            <div>
+              <strong>Conteo Cíclico WMS</strong>
+              <small>Validación de existencias en tiempo real</small>
+            </div>
+          </a>
+          <a href="calidad_control.html" class="drawer-action-btn">
+            <i class="fas fa-certificate text-emerald"></i>
+            <div>
+              <strong>Auditoría Rápida de Calidad</strong>
+              <small>Checklist ISO 9001 en piso</small>
+            </div>
+          </a>
+          <a href="consulta_fifo.html" class="drawer-action-btn">
+            <i class="fas fa-boxes-packing text-purple"></i>
+            <div>
+              <strong>Auditoría FIFO & Embarques</strong>
+              <small>Despacho y verificación de lotes</small>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Registro de Actividad & Trazabilidad</h4>
+        <div class="audit-timeline" id="drawerAuditTimeline">
+          <div class="timeline-item">
+            <div class="timeline-dot dot-emerald"></div>
+            <div class="timeline-body">
+              <span class="tl-time">Hace 12 min</span>
+              <p>Liberación de Lote <strong>#LT-8842</strong> aprobada por Calidad.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot dot-blue"></div>
+            <div class="timeline-body">
+              <span class="tl-time">Hace 34 min</span>
+              <p>Recepción de Resina Polipropileno en <strong>WMS Silo 2</strong>.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot dot-amber"></div>
+            <div class="timeline-body">
+              <span class="tl-time">Hace 1 h</span>
+              <p>Cambio de Molde Prensa 4 (SMED <strong>28 min</strong>).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="toggleInspectorDrawer()"></div>
+
+  <!-- ==============================================================
+       GLOBAL COMMAND PALETTE (CMD+K / CTRL+K)
+       ============================================================== -->
+  <div class="cmd-modal-backdrop" id="cmdModalBackdrop" onclick="if(event.target===this) toggleCmdPalette()">
+    <div class="cmd-modal-box">
+      <div class="cmd-input-wrap">
+        <i class="fas fa-search" style="color:#64748b; font-size:0.85rem;"></i>
+        <input type="text" id="cmdPaletteInput" class="cmd-input" placeholder="Buscar módulo, orden, SKU o almacén..." onkeyup="filterCmdItems(this.value)">
+        <span class="cmd-esc-tag" onclick="toggleCmdPalette()">ESC</span>
+      </div>
+      <div class="cmd-results" id="cmdResultsList">
+        <div class="cmd-group-title">ACCESO RÁPIDO A MÓDULOS</div>
+        <a href="catalogo_plantas.html" class="cmd-item">
+          <i class="fas fa-industry text-blue"></i>
+          <span class="cmd-name">Catálogo de Plantas & Sedes</span>
+          <span class="cmd-path">Ingeniería & Multi-Planta</span>
+        </a>
+        <a href="planeacion_mrp_forecast.html" class="cmd-item">
+          <i class="fas fa-chart-line text-blue"></i>
+          <span class="cmd-name">Planeación MRP & Forecast</span>
+          <span class="cmd-path">Explosión Resinas</span>
+        </a>
+        <a href="planeacion_aps_tablero.html" class="cmd-item">
+          <i class="fas fa-calendar-week text-emerald"></i>
+          <span class="cmd-name">Tablero APS de Inyección</span>
+          <span class="cmd-path">Piso de Producción</span>
+        </a>
+        <a href="compras_ordenes.html" class="cmd-item">
+          <i class="fas fa-file-invoice-dollar text-amber"></i>
+          <span class="cmd-name">Órdenes de Compra (OCs)</span>
+          <span class="cmd-path">Abasto & Proveedores</span>
+        </a>
+        <a href="wms_operaciones.html" class="cmd-item">
+          <i class="fas fa-warehouse text-purple"></i>
+          <span class="cmd-name">WMS Operaciones & Almacén</span>
+          <span class="cmd-path">Inventarios</span>
+        </a>
+        <a href="consulta_fifo.html" class="cmd-item">
+          <i class="fas fa-boxes-packing text-emerald"></i>
+          <span class="cmd-name">Consulta FIFO & Embarques</span>
+          <span class="cmd-path">Logística & Despacho</span>
+        </a>
+        <a href="calidad_control.html" class="cmd-item">
+          <i class="fas fa-certificate text-rose"></i>
+          <span class="cmd-name">Control de Calidad & ISO</span>
+          <span class="cmd-path">Inspección & Auditoría</span>
+        </a>
+        <a href="configuracion_sistema.html" class="cmd-item">
+          <i class="fas fa-sliders-h text-blue"></i>
+          <span class="cmd-name">Configuración del Sistema APEX</span>
+          <span class="cmd-path">Administración & Roles</span>
+        </a>
+      </div>
+    </div>
+  </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+<script src="iso_sop_ayuda.js"></script>
 </body>
 </html>

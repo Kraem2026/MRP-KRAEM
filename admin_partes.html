@@ -2,11 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catálogo de Ingeniería - KRAEM</title>
+    <title>Catálogo de Ingeniería - KRAEM by APEX SYSTEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
+    <script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
@@ -49,8 +51,12 @@
 
 <header>
     <div style="display: flex; align-items: center; gap: 15px;">
-        <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
-        <h2 style="margin:0;" id="txt_title">Catálogo Maestro</h2>
+        <button class="btn btn-back" onclick="KraemNav.back('ingenieria_catalogos.html')" title="Volver a Catálogos"><i class="fas fa-arrow-left"></i></button>
+        <button class="btn" onclick="KraemNav.home()" title="Inicio"><i class="fas fa-home"></i></button>
+        <h2 style="margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap" id="txt_title">
+            <span>Catálogo Maestro</span>
+            <span style="font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        </h2>
     </div>
     <div class="controls">
         <a href="ingenieria_nuevo_np.html" class="btn btn-primary" id="btn_new">
@@ -58,6 +64,7 @@
         </a>
         <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
         <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+        <button class="lang-btn" onclick="setLang('en')" title="English"><img src="https://flagcdn.com/w80/us.png" alt="US"></button>
         <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
@@ -125,6 +132,13 @@
             optAll: "모든 상태", optActive: "활성", optObs: "단종",
             thPart: "부품 번호", thDesc: "설명", thProj: "프로젝트", thType: "유형", thStatus: "상태",
             act: "활성", obs: "단종", noRes: "결과가 없습니다."
+        },
+        en: {
+            title: "Master Engineering Catalog", new: "New Part",
+            pPart: "Part # or Name...", pProj: "Filter Project...",
+            optAll: "All statuses", optActive: "Active", optObs: "Obsolete",
+            thPart: "Part Number", thDesc: "Description", thProj: "Project", thType: "Type", thStatus: "Status",
+            act: "Active", obs: "Obsolete", noRes: "No results."
         }
     };
 
@@ -167,7 +181,7 @@
 
     function renderTable(list) {
         const body = document.getElementById('partsBody');
-        const l = translations[currentLang];
+        const l = translations[currentLang] || translations.es;
         
         if (!list || list.length === 0) {
             body.innerHTML = `<tr><td colspan="7" style="text-align:center;">${l.noRes}</td></tr>`;
@@ -238,9 +252,9 @@
     }
 
     function setLang(lang) {
-        currentLang = lang;
-        localStorage.setItem('lang', lang);
-        const l = translations[lang];
+        currentLang = translations[lang] ? lang : 'es';
+        localStorage.setItem('lang', currentLang);
+        const l = translations[currentLang];
         
         document.getElementById('txt_title').innerText = l.title;
         document.getElementById('btn_new').innerHTML = `<i class="fas fa-plus"></i> ${l.new}`;

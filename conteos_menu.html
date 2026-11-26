@@ -1,34 +1,1557 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Módulo de Inventarios</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .menu-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 90%; max-width: 800px; }
-        .card-option { background: white; padding: 40px 20px; border-radius: 15px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); cursor: pointer; transition: 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; }
-        .card-option:hover { transform: translateY(-5px); border-color: #007bff; }
-        .icon { font-size: 50px; margin-bottom: 15px; display: block; }
-        h2 { margin: 0; color: #2c3e50; }
-        p { color: #666; font-size: 14px; }
-    </style>
+<meta charset="UTF-8">
+<title>KRAEM | Estación de Conteos Cíclicos, Auditoría QR y Veracidad IRA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #8b5cf6;
+  --orange: #f97316;
+}
+
+[data-theme="dark"] {
+  --bg: #020617;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; transition: 0.3s; }
+.container { max-width: 1220px; margin: auto; position: relative; }
+
+/* Header Moderno (Idéntico a wms_operaciones.html) */
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:var(--card); padding:12px 20px; border-radius:14px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.03); flex-wrap:wrap; gap:10px; }
+.top-left { display:flex; align-items:center; gap:12px; }
+.btn-back { width:40px; height:40px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--primary); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+.btn-back:hover { background:var(--primary); color:white; }
+.title-box h1 { margin:0; font-size:18px; font-weight:800; }
+.title-box p { margin:2px 0 0; color:var(--text-secondary); font-size:11px; }
+
+.controls { display:flex; gap:8px; align-items:center; }
+.btn-ctrl { background:var(--bg); border:1px solid var(--border); color:var(--text); padding:7px 12px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px; }
+.btn-ctrl:hover { border-color:var(--primary); color:var(--primary); }
+.lang-btn { width:28px; height:28px; border-radius:50%; cursor:pointer; border:1px solid var(--border); overflow:hidden; padding:0; }
+.lang-btn img { width:100%; height:100%; object-fit:cover; }
+
+/* User Badge */
+.user-badge { display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; background:var(--card); border:1px solid var(--border); padding:10px 16px; border-radius:12px; margin-bottom:15px; }
+.badge-online { background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:8px; font-size:11px; display:inline-flex; align-items:center; gap:5px; }
+.badge-offline { background:#fee2e2; color:#b91c1c; padding:4px 10px; border-radius:8px; font-size:11px; display:inline-flex; align-items:center; gap:5px; }
+
+/* KPI Grid Superior */
+.kpi-grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; margin-bottom:15px; }
+@media (max-width: 900px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.kpi-card { background:var(--card); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; cursor:pointer; transition:0.2s; }
+.kpi-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+.kpi-card.active-kpi { outline:2px solid var(--primary); background:rgba(37,99,235,0.05); }
+.kpi-title { font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-secondary); display:flex; justify-content:space-between; align-items:center; }
+.kpi-val { font-size:21px; font-weight:900; margin-top:4px; }
+.kpi-sub { font-size:10px; color:var(--text-secondary); margin-top:2px; font-weight:600; }
+
+/* Navigation Tabs (4 Modos con íconos, idéntico a wms_operaciones.html) */
+.tabs { display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-bottom:15px; background:var(--card); padding:6px; border-radius:14px; border:1px solid var(--border); }
+@media (max-width: 680px) {
+  .tabs { grid-template-columns: repeat(2, 1fr); }
+}
+.tabs button { background:transparent; border:none; padding:10px 6px; cursor:pointer; font-size:11px; font-weight:700; border-radius:8px; color:var(--text-secondary); transition:0.2s; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.tabs button i { font-size:15px; }
+.tabs button.active { background:var(--primary); color:white; box-shadow:0 4px 10px rgba(37,99,235,0.3); }
+
+/* Main Card */
+.main-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:0 8px 24px rgba(0,0,0,0.03); }
+
+/* Bloques de Sección */
+.section-block { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:14px; }
+.section-block-title { font-size:11px; font-weight:800; text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.block-origen { border-left:4px solid var(--warning); }
+.block-destino { border-left:4px solid var(--success); }
+.block-info { border-left:4px solid var(--primary); }
+
+/* Form Fields */
+.form-group { margin-bottom:12px; position:relative; }
+label { font-size:11px; font-weight:800; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:5px; }
+input, select, textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:13px; outline:none; transition:0.2s; font-family: inherit; }
+input:focus, select:focus, textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+
+.input-with-btn { display:flex; gap:6px; }
+.btn-qr { background:var(--primary); color:white; border:none; width:46px; border-radius:10px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+/* Autobox Dropdown */
+.autobox { background:var(--card); border:1px solid var(--border); position:absolute; width:100%; z-index:1000; max-height:220px; overflow-y:auto; display:none; border-radius:0 0 10px 10px; box-shadow:0 12px 24px rgba(0,0,0,0.15); top:100%; }
+.autobox div { padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; }
+.autobox div:hover { background:var(--bg); color:var(--primary); }
+
+/* Tablas */
+.filter-bar-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+.table-wrap { overflow-x:auto; margin-top:10px; border:1px solid var(--border); border-radius:12px; max-height:62vh; }
+table { width:100%; border-collapse:collapse; font-size:12px; min-width:850px; }
+th, td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; vertical-align:middle; }
+th { background:var(--bg); font-weight:800; color:var(--text-secondary); text-transform:uppercase; font-size:10px; position:sticky; top:0; z-index:5; }
+tr:hover { background:rgba(37,99,235,0.03); }
+
+/* Badges ABC y Estados */
+.abc-badge { padding:3px 8px; border-radius:6px; font-weight:800; font-size:10px; display:inline-block; }
+.abc-A { background:rgba(239,68,68,0.15); color:var(--danger); border:1px solid rgba(239,68,68,0.35); }
+.abc-B { background:rgba(245,158,11,0.15); color:#d97706; border:1px solid rgba(245,158,11,0.35); }
+.abc-C { background:rgba(37,99,235,0.15); color:var(--primary); border:1px solid rgba(37,99,235,0.35); }
+
+.due-badge { padding:3px 8px; border-radius:6px; font-weight:800; font-size:10px; display:inline-flex; align-items:center; gap:4px; }
+.due-overdue { background:#fee2e2; color:#b91c1c; }
+.due-ok { background:#dcfce7; color:#15803d; }
+.due-never { background:#f1f5f9; color:#475569; }
+
+.btn-audit { background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+.btn-audit:hover { background:var(--primary-dark); }
+
+.btn-action { width:100%; height:48px; border-radius:12px; border:none; color:white; font-size:14px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:0.2s; }
+.btn-action:hover { filter:brightness(1.08); transform:translateY(-1px); }
+
+/* Filas de Conteo Ciego por Ubicación + Carrito + Lote */
+.blind-banner { background:rgba(245,158,11,0.1); border:1px dashed var(--warning); padding:10px 14px; border-radius:10px; font-size:12px; font-weight:700; color:#b45309; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
+[data-theme="dark"] .blind-banner { color:#fbbf24; }
+
+.input-fisico { width:110px !important; text-align:right; font-weight:900; font-size:14px; border:2px solid var(--primary); background:var(--card); }
+.sis-hidden { background:rgba(100,116,139,0.15); color:var(--text-secondary); padding:4px 8px; border-radius:6px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; gap:4px; }
+.diff-zero { color:var(--success); font-weight:900; }
+.diff-pos { color:var(--primary); font-weight:900; }
+.diff-neg { color:var(--danger); font-weight:900; }
+
+/* Modales */
+.modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); display:none; justify-content:center; align-items:center; z-index:3000; padding:15px; }
+.modal-content { background:var(--card); border:1px solid var(--border); padding:22px; border-radius:16px; width:100%; max-width:920px; color:var(--text); max-height:90vh; overflow-y:auto; }
+#reader { width:100%; background:black; border-radius:10px; overflow:hidden; margin-top:10px; }
+
+/* Adaptación Responsiva para Tablets y Celulares */
+@media (max-width: 768px) {
+  body { padding: 10px; }
+  .topbar { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+  .controls { justify-content: space-between; flex-wrap: wrap; }
+  .user-badge { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .main-card { padding: 15px; }
+  .modal-content { padding: 15px; }
+  input, select, textarea { font-size: 16px; }
+}
+</style>
 </head>
-<body>
+<body data-theme="light">
 
-<div class="menu-container">
-    <a href="ciclicos_lista.html" class="card-option">
-        <span class="icon">🔁</span>
-        <h2>Conteo Cíclico</h2>
-        <p>Programado por importancia (ABC). Solo piezas seleccionadas hoy.</p>
-    </a>
+<div class="container">
+  <!-- Header idéntico a wms_operaciones.html -->
+  <div class="topbar">
+    <div class="top-left">
+      <a href="wms_operaciones.html" class="btn-back" onclick="KraemNav.back('wms_operaciones.html'); return false;" title="Volver"><i class="fas fa-arrow-left"></i></a>
+      <div class="title-box">
+        <h1 id="txtTitle">🔄 WMS Estación de Conteos Cíclicos y Auditoría IRA</h1>
+        <p id="txtSub">Programación ABC, Conteo Ciego por Ubicación + Carrito + Lote, Barrido QR y Veracidad de Stock</p>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="lang-btn" onclick="setLang('es')" title="Español (MX)"><img src="https://flagcdn.com/w80/mx.png"></button>
+      <button class="lang-btn" onclick="setLang('ko')" title="한국어 (KO)"><img src="https://flagcdn.com/w80/kr.png"></button>
+      <button class="lang-btn" onclick="setLang('en')" title="English (US)"><img src="https://flagcdn.com/w80/us.png"></button>
+      <button class="btn-ctrl" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
 
-    <a href="inventario_anual.html" class="card-option">
-        <span class="icon">🏢</span>
-        <h2>Inventario Anual</h2>
-        <p>Barrido total por ubicaciones. Auditoría completa de planta.</p>
-    </a>
+  <!-- Barra de Operador Logueado -->
+  <div class="user-badge">
+    <span id="userDisplay"><i class="fas fa-spinner fa-spin"></i> Verificando sesión...</span>
+    <span id="userStatusTag"></span>
+  </div>
+
+  <!-- 5 Tarjetas KPI Interactivas -->
+  <div class="kpi-grid">
+    <div class="kpi-card" style="border-left-color:var(--success);" onclick="setTab('IRA')">
+      <div class="kpi-title"><span id="kpiIraTit">🎯 VERACIDAD IRA %</span> <i class="fas fa-bullseye" style="color:var(--success);"></i></div>
+      <div class="kpi-val" id="kpiIraVal" style="color:var(--success);">100%</div>
+      <div class="kpi-sub" id="kpiIraSub">Exactitud de registro en sistema</div>
+    </div>
+    <div class="kpi-card" id="kpiCardVencidos" style="border-left-color:var(--danger);" onclick="filtrarRapidoABC('', 'VENCIDOS')">
+      <div class="kpi-title"><span id="kpiUrgTit">🔴 VENCIDOS / CONTAR HOY</span> <i class="fas fa-bell" style="color:var(--danger);"></i></div>
+      <div class="kpi-val" id="kpiUrgVal" style="color:var(--danger);">0</div>
+      <div class="kpi-sub" id="kpiUrgSub">Prioridad inmediata de auditoría</div>
+    </div>
+    <div class="kpi-card" id="kpiCardA" style="border-left-color:var(--warning);" onclick="filtrarRapidoABC('A', 'TODOS')">
+      <div class="kpi-title"><span id="kpiATit">🅰️ CLASE A (CADA 30 DÍAS)</span></div>
+      <div class="kpi-val" id="kpiAVal">0</div>
+      <div class="kpi-sub" id="kpiASub">Alta rotación / Críticos</div>
+    </div>
+    <div class="kpi-card" id="kpiCardB" style="border-left-color:var(--primary);" onclick="filtrarRapidoABC('B', 'TODOS')">
+      <div class="kpi-title"><span id="kpiBTit">🅱️ CLASE B (CADA 90 DÍAS)</span></div>
+      <div class="kpi-val" id="kpiBVal">0</div>
+      <div class="kpi-sub" id="kpiBSub">Rotación intermedia</div>
+    </div>
+    <div class="kpi-card" id="kpiCardC" style="border-left-color:var(--purple);" onclick="filtrarRapidoABC('C', 'TODOS')">
+      <div class="kpi-title"><span id="kpiCTit">🅲 CLASE C (CADA 180 DÍAS)</span></div>
+      <div class="kpi-val" id="kpiCVal">0</div>
+      <div class="kpi-sub" id="kpiCSub">Baja rotación</div>
+    </div>
+  </div>
+
+  <!-- 4 Pestañas Principales -->
+  <div class="tabs">
+    <button id="tabABC" class="active" onclick="setTab('ABC')">
+      <i class="fas fa-calendar-check"></i> <span id="tabTxtAbc">1. CONTEO ABC DEL DÍA</span>
+    </button>
+    <button id="tabBARRIDO" onclick="setTab('BARRIDO')">
+      <i class="fas fa-qrcode"></i> <span id="tabTxtBarrido">2. BARRIDO POR UBICACIÓN / QR</span>
+    </button>
+    <button id="tabPDF" onclick="setTab('PDF')">
+      <i class="fas fa-file-pdf"></i> <span id="tabTxtPdf">3. HOJA IMPRIMIBLE (CIEGA)</span>
+    </button>
+    <button id="tabIRA" onclick="setTab('IRA')">
+      <i class="fas fa-chart-line"></i> <span id="tabTxtIra">4. KPI VERACIDAD E HISTORIAL</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CARD PRINCIPAL                                                        -->
+  <!-- ===================================================================== -->
+  <div class="main-card">
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 1: CONTEO CÍCLICO ABC (POR NÚMERO DE PARTE)                 -->
+    <!-- =================================================================== -->
+    <div id="viewABC">
+      <div class="section-block block-info">
+        <div class="section-block-title" style="color:var(--primary);">
+          <span><i class="fas fa-filter"></i> <span id="lblFiltroAbcTit">FILTROS DE PROGRAMACIÓN ABC Y SELECCIÓN DE AUDITORÍA</span></span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="btn-ctrl" onclick="exportarSeleccionExcel()" style="background:#16a34a; color:white; border:none;">
+              <i class="fas fa-file-excel"></i> Excel
+            </button>
+            <button class="btn-ctrl" onclick="generarHojaConteoPDF(true)" style="background:var(--danger); color:white; border:none;">
+              <i class="fas fa-file-pdf"></i> <span id="btnPdfCiegoTop">Imprimir Hoja Ciega (Seleccionados)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-bar-grid">
+          <div>
+            <label id="flSearch">🔍 Buscar N° Parte / Descripción</label>
+            <input type="text" id="fGeneral" oninput="filterDataABC()" placeholder="Ej: KRM-1023...">
+          </div>
+          <div>
+            <label id="flProj">📁 Proyecto</label>
+            <input type="text" id="fProy" oninput="filterDataABC()" placeholder="Filtrar proyecto...">
+          </div>
+          <div>
+            <label id="flClase">🏷️ Clasificación ABC</label>
+            <select id="fABC" onchange="filterDataABC()">
+              <option value="">TODAS LAS CLASES (A, B, C)</option>
+              <option value="A">🅰️ Clase A (Mensual - 30 días)</option>
+              <option value="B">🅱️ Clase B (Trimestral - 90 días)</option>
+              <option value="C">🅲 Clase C (Semestral - 180 días)</option>
+            </select>
+          </div>
+          <div>
+            <label id="flEstadoProg">⏰ Estado de Conteo</label>
+            <select id="fEstadoConteo" onchange="filterDataABC()">
+              <option value="TODOS">TODOS LOS ESTADOS</option>
+              <option value="VENCIDOS">🔴 Vencidos / Toca Contar Hoy</option>
+              <option value="SIN_CONTAR">⚪ Nunca Auditados</option>
+              <option value="AL_DIA">🟢 Al Día (Vigentes)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:36px; text-align:center;"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
+              <th id="thPart">N° Parte</th>
+              <th id="thDesc">Descripción</th>
+              <th id="thProj">Proyecto</th>
+              <th id="thClase" style="text-align:center;">Clase ABC</th>
+              <th id="thLast">Último Conteo</th>
+              <th id="thNext">Próximo Conteo</th>
+              <th id="thStatus">Estado</th>
+              <th id="thAction" style="text-align:center;">Ejecutar Conteo</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyABC"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 2: BARRIDO POR UBICACIÓN FIJA / CARRITO / ANUAL CON QR      -->
+    <!-- =================================================================== -->
+    <div id="viewBARRIDO" style="display:none;">
+      <div class="section-block block-origen">
+        <div class="section-block-title" style="color:#d97706;">
+          <span><i class="fas fa-qrcode"></i> <span id="lblTitBarrido">AUDITORÍA EN PISO POR UBICACIÓN FIJA, CARRITO O ÁREA COMPLETA</span></span>
+        </div>
+
+        <div class="filter-bar-grid" style="align-items:end;">
+          <div>
+            <label>1. Tipo de Barrido a Realizar</label>
+            <select id="selTipoBarrido" onchange="cambiarTipoBarrido()">
+              <option value="UBICACION">📍 Auditar una Ubicación Fija (Rack / Hilera)</option>
+              <option value="CARRITO">🛒 Auditar un Carrito Móvil Completo</option>
+              <option value="AREA">🏭 Auditar un Área Completa (Inventario Anual)</option>
+            </select>
+          </div>
+
+          <div id="divInputBarridoCodigo" style="position:relative;">
+            <label id="lblCodigoBarrido">2. Escribe o Escanea Ubicación / Carrito *</label>
+            <div class="input-with-btn">
+              <input id="inpBarridoSearch" placeholder="Ej: RACK-A1 o escanea QR..." autocomplete="off">
+              <button class="btn-qr" onclick="abrirEscanerBarrido()"><i class="fas fa-camera"></i></button>
+            </div>
+            <div id="barridoResults" class="autobox"></div>
+          </div>
+
+          <div id="divSelectBarridoArea" style="display:none;">
+            <label>2. Selecciona el Área a Auditar *</label>
+            <select id="selBarridoArea" onchange="cargarBarridoPorArea()"></select>
+          </div>
+
+          <div>
+            <button class="btn-action" style="background:var(--primary); height:42px;" onclick="ejecutarCargaBarrido()">
+              <i class="fas fa-clipboard-list"></i> Cargar Hoja de Conteo Ciego
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zona de captura del Barrido -->
+      <div id="zonaCapturaBarrido" style="display:none;">
+        <div class="blind-banner">
+          <div>
+            <i class="fas fa-eye-slash"></i>
+            <span id="txtBannerBarrido">MODO CONTEO CIEGO ACTIVO: Captura las piezas físicas reales por cada Ubicación + Carrito + Lote. Luego presiona "Validar y Revelar Diferencias".</span>
+          </div>
+          <button class="btn-ctrl" onclick="abrirModalHallazgo('BARRIDO')" style="background:var(--card); color:var(--primary); border-color:var(--primary);">
+            <i class="fas fa-plus-circle"></i> Agregar Material Hallado en Piso
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>N° Parte</th>
+                <th>Área / Ubicación Fija</th>
+                <th>Carrito / Contenedor</th>
+                <th>Lote FIFO</th>
+                <th style="text-align:right;">Stock Sistema</th>
+                <th style="text-align:right; width:130px;">Conteo Físico *</th>
+                <th style="text-align:center;">Diferencia</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyBarridoLineas"></tbody>
+          </table>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:10px; margin-top:14px;">
+          <div>
+            <label>Motivo / Referencia de Auditoría *</label>
+            <select id="motivoBarrido">
+              <option value="CONTEO_CICLICO_RUTINA">Conteo Cíclico / Barrido de Ubicación</option>
+              <option value="INVENTARIO_ANUAL">Auditoría de Inventario Anual / Mensual</option>
+              <option value="AUDITORIA_DISCREPANCIA">Investigación por Discrepancia Reportada</option>
+            </select>
+          </div>
+          <div>
+            <label>Observaciones del Auditor</label>
+            <input id="obsBarrido" placeholder="Ej: Conteo realizado en turno matutino...">
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:15px; flex-wrap:wrap;">
+          <button id="btnRevelarBarrido" class="btn-action" style="flex:1; background:var(--warning); color:#000;" onclick="revelarDiferencias('BARRIDO')">
+            <i class="fas fa-search-plus"></i> Paso 1: Validar y Revelar Diferencias
+          </button>
+          <button id="btnAplicarBarrido" class="btn-action" style="flex:1.3; background:var(--success); display:none;" onclick="aplicarAjustesConteo('BARRIDO')">
+            <i class="fas fa-check-double"></i> Paso 2: Confirmar y Cuadrar Inventario en Sistema
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 3: GENERADOR DE HOJA IMPRIMIBLE PDF CIEGA                   -->
+    <!-- =================================================================== -->
+    <div id="viewPDF" style="display:none;">
+      <div class="section-block block-destino">
+        <div class="section-block-title" style="color:var(--success);">
+          <span><i class="fas fa-print"></i> GENERADOR DE FORMATOS OFICIALES DE CONTEO EN PISO (PDF)</span>
+        </div>
+
+        <div class="filter-bar-grid">
+          <div>
+            <label>1. ¿Qué materiales deseas incluir en el PDF?</label>
+            <select id="selAlcancePDF">
+              <option value="VENCIDOS">🔴 Todos los Materiales Vencidos / Toca Contar Hoy</option>
+              <option value="SELECCIONADOS">☑️ Los Materiales Seleccionados con Palomita en la Pestaña 1</option>
+              <option value="CLASE_A">🅰️ Todos los Materiales Clase A (Críticos)</option>
+              <option value="TODO_CON_STOCK">📦 Todo el Inventario Actual con Existencia > 0</option>
+            </select>
+          </div>
+          <div>
+            <label>2. Modalidad de la Hoja Impresa</label>
+            <select id="selModoPDF">
+              <option value="CIEGO">🙈 Hoja de Conteo CIEGO (Oculta la cantidad del sistema para el contador)</option>
+              <option value="SUPERVISOR">👁️ Hoja de SUPERVISOR (Muestra la cantidad del sistema como referencia)</option>
+            </select>
+          </div>
+          <div>
+            <label>3. Nombre del Auditor Asignado (Opcional)</label>
+            <input id="inpAuditorPDF" placeholder="Ej: Juan Pérez - Almacén">
+          </div>
+        </div>
+
+        <button class="btn-action" style="background:var(--danger); margin-top:15px;" onclick="generarPDFDesdePestana3()">
+          <i class="fas fa-file-pdf"></i> Descargar Formato PDF Oficial de Auditoría (Desglosado por Ubicación, Carrito y Lote)
+        </button>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 4: KPI DE VERACIDAD (IRA %) E HISTORIAL DE CONTEOS          -->
+    <!-- =================================================================== -->
+    <div id="viewIRA" style="display:none;">
+      <div class="section-block block-info">
+        <div class="section-block-title" style="color:var(--primary);">
+          <span><i class="fas fa-chart-pie"></i> BITÁCORA DE AUDITORÍAS DE CONTEO CÍCLICO Y VERACIDAD IRA %</span>
+          <button class="btn-ctrl" onclick="cargarHistorialIRA()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+        </div>
+        <p style="font-size:12px; color:var(--text-secondary);">
+          Cada vez que se ejecuta un conteo cíclico (con o sin diferencia), el sistema registra cuántos lotes cuadraron al 100% (<b>Exactos</b>) vs. cuántos requirieron ajuste (<b>Con Discrepancia</b>) para calcular el <b>IRA % (Inventory Record Accuracy)</b> oficial de la planta.
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>N° Parte</th>
+              <th>Área / Ubicación</th>
+              <th>Lote</th>
+              <th style="text-align:right;">Stock Sistema</th>
+              <th style="text-align:right;">Conteo Físico</th>
+              <th style="text-align:right;">Ajuste Aplicado</th>
+              <th>Resultado IRA</th>
+              <th>Auditor / Nota</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyHistorialIRA"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
 </div>
 
+<!-- ======================================================================= -->
+<!-- MODAL DE AUDITORÍA CIEGA POR PARTE (DESGLOSADO POR UBIC + CARRO + LOTE) -->
+<!-- ======================================================================= -->
+<div id="modalConteo" class="modal" onclick="if(event.target==this)cerrarModalConteo()">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+      <div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h3 id="mParte" style="color:var(--primary); margin:0; font-size:20px;"></h3>
+          <span id="mAbcBadge" class="abc-badge abc-A">CLASE A</span>
+        </div>
+        <p id="mDesc" style="color:var(--text-secondary); margin:4px 0 0; font-size:12px;"></p>
+      </div>
+      <button onclick="cerrarModalConteo()" style="background:transparent; border:none; font-size:20px; color:var(--text-secondary); cursor:pointer;">&times;</button>
+    </div>
+
+    <div class="blind-banner" id="modalBlindBanner">
+      <span><i class="fas fa-user-secret"></i> <b>CONTEO CIEGO:</b> Ingresa la cantidad física encontrada en cada Ubicación, Carrito y Lote.</span>
+      <button class="btn-ctrl" onclick="abrirModalHallazgo('MODAL')" style="background:var(--card); color:var(--primary); border-color:var(--primary);">
+        <i class="fas fa-plus-circle"></i> + Agregar Ubicación / Carrito Hallado
+      </button>
+    </div>
+
+    <div class="table-wrap" style="max-height:45vh;">
+      <table style="min-width:680px;">
+        <thead>
+          <tr>
+            <th>Área</th>
+            <th>📍 Ubicación Fija</th>
+            <th>🛒 Carrito / Contenedor</th>
+            <th>🔢 Lote FIFO</th>
+            <th style="text-align:right;">Sistema</th>
+            <th style="text-align:right; width:125px;">Físico Contado *</th>
+            <th style="text-align:center;">Diferencia</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyModalLineas"></tbody>
+      </table>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1.5fr; gap:10px; margin-top:14px;">
+      <div>
+        <label>Clasificación ABC de este N/P</label>
+        <select id="mSelectABC">
+          <option value="A">🅰️ Clase A (Contar cada 30 días)</option>
+          <option value="B">🅱️ Clase B (Contar cada 90 días)</option>
+          <option value="C">🅲 Clase C (Contar cada 180 días)</option>
+        </select>
+      </div>
+      <div>
+        <label>Observación / Causa de Diferencia</label>
+        <input id="mInputObs" placeholder="Ej: Conteo cíclico conforme / Diferencia por caja incompleta...">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;">
+      <button onclick="cerrarModalConteo()" style="padding:12px 18px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:800; cursor:pointer;">
+        Cancelar
+      </button>
+      <button id="btnRevelarModal" class="btn-action" style="flex:1; margin:0; background:var(--warning); color:#000;" onclick="revelarDiferencias('MODAL')">
+        <i class="fas fa-eye"></i> Paso 1: Validar y Revelar Diferencias
+      </button>
+      <button id="btnGuardarModal" class="btn-action" style="flex:1.3; margin:0; background:var(--success); display:none;" onclick="aplicarAjustesConteo('MODAL')">
+        <i class="fas fa-save"></i> Paso 2: Guardar Conteo y Actualizar Próxima Fecha ABC
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- SUB-MODAL PARA AGREGAR UN HALLAZGO (UBICACIÓN / CARRITO / LOTE EXTRA)   -->
+<!-- ======================================================================= -->
+<div id="modalHallazgo" class="modal" style="z-index:3500;" onclick="if(event.target==this)cerrarModalHallazgo()">
+  <div class="modal-content" style="max-width:460px;">
+    <h3 style="margin:0 0 10px; color:var(--primary);"><i class="fas fa-plus-circle"></i> Registrar Hallazgo Físico en Piso</h3>
+    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">
+      Usa esta opción si encontraste material físicamente en una ubicación o carrito que no aparecía en la lista del sistema.
+    </p>
+
+    <div class="form-group" id="divHallazgoParte">
+      <label>Número de Parte *</label>
+      <select id="hallazgoPartId"></select>
+    </div>
+
+    <div class="form-group">
+      <label>Área *</label>
+      <select id="hallazgoArea" onchange="filtrarUbicacionesHallazgo()"></select>
+    </div>
+
+    <div class="form-group">
+      <label>📍 Ubicación Fija donde se encontró *</label>
+      <select id="hallazgoLocId"></select>
+    </div>
+
+    <div class="form-group">
+      <label>🛒 Carrito / Contenedor (Opcional)</label>
+      <select id="hallazgoContId"></select>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <div class="form-group">
+        <label>🔢 Lote (YYYYMMDD) *</label>
+        <input id="hallazgoLote" placeholder="Ej: 20261110">
+      </div>
+      <div class="form-group">
+        <label>Cantidad Física Hallada *</label>
+        <input type="number" id="hallazgoCant" placeholder="0" min="1">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <button onclick="cerrarModalHallazgo()" style="flex:1; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:800; cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarAgregarHallazgo()" style="flex:1.3; padding:11px; border-radius:10px; border:none; background:var(--primary); color:white; font-weight:800; cursor:pointer;">Agregar a la Tabla</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL DE CÁMARA QR                                                      -->
+<!-- ======================================================================= -->
+<div id="modalQR" class="modal" style="z-index:4000;" onclick="if(event.target==this)cerrarEscaner()">
+  <div class="modal-content" style="max-width:440px;">
+    <h3 style="margin:0; text-align:center;">📷 Escaneando Código QR</h3>
+    <div id="reader"></div>
+    <button onclick="cerrarEscaner()" style="margin-top:15px; width:100%; background:var(--danger); color:white; border:none; padding:12px; cursor:pointer; font-weight:800; border-radius:10px;">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const _client = (typeof client !== 'undefined') ? client : supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+
+let currentUser = null;
+let currentLang = localStorage.getItem('kraem_lang') || 'es';
+let activeTab = 'ABC';
+
+let fullInventory = [];
+let allParts = [];
+let allAreas = [];
+let fixedLocations = [];
+let mobileContainers = [];
+
+// Estado activo de conteo (en Modal o en Barrido)
+let currentMasterPart = null;
+let lineasModal = [];
+let lineasBarrido = [];
+let reveladoModal = false;
+let reveladoBarrido = false;
+let origenHallazgo = 'MODAL';
+let html5QrcodeScanner = null;
+
+const i18n = {
+  es: {
+    title: "🔄 WMS Estación de Conteos Cíclicos y Auditoría IRA",
+    sub: "Programación ABC, Conteo Ciego por Ubicación + Carrito + Lote, Barrido QR y Veracidad de Stock",
+    tabAbc: "1. CONTEO ABC DEL DÍA",
+    tabBarrido: "2. BARRIDO POR UBICACIÓN / QR",
+    tabPdf: "3. HOJA IMPRIMIBLE (CIEGA)",
+    tabIra: "4. KPI VERACIDAD E HISTORIAL",
+    kpiIraTit: "🎯 VERACIDAD IRA %",
+    kpiUrgTit: "🔴 VENCIDOS / CONTAR HOY",
+    kpiATit: "🅰️ CLASE A (CADA 30 DÍAS)",
+    kpiBTit: "🅱️ CLASE B (CADA 90 DÍAS)",
+    kpiCTit: "🅲 CLASE C (CADA 180 DÍAS)"
+  },
+  ko: {
+    title: "🔄 WMS 순환 재고 조사(Cycle Count) 및 재고 정확도(IRA) 관리",
+    sub: "ABC 주기별 일정, 위치+대차+로트별 블라인드 실사, QR 스캔 및 재고 정확도",
+    tabAbc: "1. 일일 ABC 순환 실사",
+    tabBarrido: "2. 위치 / 대차 QR 전수 실사",
+    tabPdf: "3. 블라인드 실사표 출력 (PDF)",
+    tabIra: "4. 재고 정확도(IRA %) 및 이력",
+    kpiIraTit: "🎯 재고 정확도 (IRA %)",
+    kpiUrgTit: "🔴 기한 경과 / 금일 실사 대상",
+    kpiATit: "🅰️ A등급 (30일 주기)",
+    kpiBTit: "🅱️ B등급 (90일 주기)",
+    kpiCTit: "🅲 C등급 (180일 주기)"
+  },
+  en: {
+    title: "🔄 WMS Cycle Count Station & IRA Accuracy Control",
+    sub: "ABC Scheduling, Blind Count by Location + Cart + Lot, QR Sweep & Inventory Record Accuracy",
+    tabAbc: "1. DAILY ABC CYCLE COUNT",
+    tabBarrido: "2. LOCATION / QR SWEEP",
+    tabPdf: "3. BLIND COUNT SHEET (PDF)",
+    tabIra: "4. IRA ACCURACY KPI & LOG",
+    kpiIraTit: "🎯 IRA ACCURACY %",
+    kpiUrgTit: "🔴 OVERDUE / COUNT TODAY",
+    kpiATit: "🅰️ CLASS A (EVERY 30 DAYS)",
+    kpiBTit: "🅱️ CLASS B (EVERY 90 DAYS)",
+    kpiCTit: "🅲 CLASS C (EVERY 180 DAYS)"
+  }
+};
+
+function setLang(lang) {
+  if (window.KraemI18n) { window.KraemI18n.setLang(lang); } else { localStorage.setItem('lang', lang); localStorage.setItem('kraem_lang', lang); }
+  currentLang = lang;
+  localStorage.setItem('kraem_lang', lang);
+  const t = i18n[lang] || i18n.es;
+  document.getElementById('txtTitle').innerText = t.title;
+  document.getElementById('txtSub').innerText = t.sub;
+  document.getElementById('tabTxtAbc').innerText = t.tabAbc;
+  document.getElementById('tabTxtBarrido').innerText = t.tabBarrido;
+  document.getElementById('tabTxtPdf').innerText = t.tabPdf;
+  document.getElementById('tabTxtIra').innerText = t.tabIra;
+  document.getElementById('kpiIraTit').innerText = t.kpiIraTit;
+  document.getElementById('kpiUrgTit').innerText = t.kpiUrgTit;
+  document.getElementById('kpiATit').innerText = t.kpiATit;
+  document.getElementById('kpiBTit').innerText = t.kpiBTit;
+  document.getElementById('kpiCTit').innerText = t.kpiCTit;
+}
+
+_client.auth.onAuthStateChange((event, session) => {
+  const userDisplay = document.getElementById('userDisplay');
+  const userStatusTag = document.getElementById('userStatusTag');
+  if (session && session.user) {
+    currentUser = session.user;
+    const userShort = session.user.email.split('@')[0].toUpperCase();
+    userDisplay.innerHTML = `<i class="fas fa-id-badge" style="color:var(--primary);"></i> AUDITOR ACTIVO: <b>${userShort}</b> (${session.user.email})`;
+    userStatusTag.innerHTML = `<span class="badge-online"><i class="fas fa-shield-alt"></i> Autorizado para Ajustes</span>`;
+  } else {
+    currentUser = null;
+    userDisplay.innerHTML = `⚠️ MODO CONSULTA (Inicia sesión para guardar conteos y ajustes)`;
+    userStatusTag.innerHTML = `<a href="index.html" class="badge-offline" style="text-decoration:none;"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a>`;
+  }
+});
+
+// =========================================================================
+// INICIALIZACIÓN Y CARGA DE DATOS MAESTROS
+// =========================================================================
+async function init() {
+  setLang(currentLang);
+  if (window.KraemSettings) {
+    const dA = Number(KraemSettings.get('wms', 'abc_days_a', 30));
+    const dB = Number(KraemSettings.get('wms', 'abc_days_b', 90));
+    const dC = Number(KraemSettings.get('wms', 'abc_days_c', 180));
+    const fAbc = document.getElementById('fABC');
+    if (fAbc && fAbc.options.length >= 4) {
+      fAbc.options[1].textContent = `🅰️ Clase A (${dA} días)`;
+      fAbc.options[2].textContent = `🅱️ Clase B (${dB} días)`;
+      fAbc.options[3].textContent = `🅲 Clase C (${dC} días)`;
+    }
+    const mAbc = document.getElementById('mSelectABC');
+    if (mAbc && mAbc.options.length >= 3) {
+      mAbc.options[0].textContent = `🅰️ Clase A (Contar cada ${dA} días)`;
+      mAbc.options[1].textContent = `🅱️ Clase B (Contar cada ${dB} días)`;
+      mAbc.options[2].textContent = `🅲 Clase C (Contar cada ${dC} días)`;
+    }
+    const kA = document.getElementById('kpiATit'); if (kA) kA.textContent = `🅰️ CLASE A (CADA ${dA} DÍAS)`;
+    const kB = document.getElementById('kpiBTit'); if (kB) kB.textContent = `🅱️ CLASE B (CADA ${dB} DÍAS)`;
+    const kC = document.getElementById('kpiCTit'); if (kC) kC.textContent = `🅲 CLASE C (CADA ${dC} DÍAS)`;
+  }
+
+  const [resInvGen, resParts, resAreas, resLocs] = await Promise.all([
+    _client.from('v_inventory_general').select('*'),
+    window.fetchAllRows ? window.fetchAllRows('parts', { client: _client, select: 'id, part_number, description, abc, last_count, next_count', orderBy: 'id' }) : _client.from('parts').select('id, part_number, description, abc, last_count, next_count'),
+    _client.from('areas').select('*').order('area_name'),
+    _client.from('locations').select('*').order('location_code')
+  ]);
+
+  allAreas = resAreas.data || [];
+  allParts = Array.isArray(resParts) ? resParts : (resParts.data || []);
+  const rawLocs = resLocs.data || [];
+  fixedLocations = rawLocs.filter(l => l.type !== 'Móvil' && l.type !== 'Contenedor');
+  mobileContainers = rawLocs.filter(l => (l.type === 'Móvil' || l.type === 'Contenedor') && l.status_operativo !== 'BAJA');
+
+  // Cruzar v_inventory_general con metadatos ABC / fechas de parts
+  const mapPartsMeta = {};
+  allParts.forEach(p => { mapPartsMeta[p.id] = p; mapPartsMeta[p.part_number] = p; });
+
+  const hoyStr = new Date().toISOString().split('T')[0];
+
+  fullInventory = (resInvGen.data || []).map(item => {
+    const meta = mapPartsMeta[item.part_id || item.id] || mapPartsMeta[item.part_number] || {};
+    const abc = item.abc || meta.abc || 'C';
+    const lastC = item.last_count || meta.last_count || null;
+    const nextC = item.next_count || meta.next_count || null;
+    const dispLast = lastC ? lastC.split('T')[0] : '---';
+    const dispNext = nextC ? nextC.split('T')[0] : '---';
+
+    let estado = 'SIN_CONTAR';
+    if (nextC) {
+      estado = (dispNext <= hoyStr) ? 'VENCIDOS' : 'AL_DIA';
+    } else {
+      estado = 'VENCIDOS'; // Si nunca se ha contado, requiere conteo
+    }
+
+    return {
+      ...item,
+      part_id: item.part_id || item.id || meta.id,
+      abc,
+      last_count: lastC,
+      next_count: nextC,
+      display_last: dispLast,
+      display_next: dispNext,
+      estado_prog: estado
+    };
+  });
+
+  // Poblar combos de Áreas
+  const selBarridoArea = document.getElementById('selBarridoArea');
+  const selHallazgoArea = document.getElementById('hallazgoArea');
+  selBarridoArea.innerHTML = `<option value="">-- Selecciona un Área --</option>` + allAreas.map(a => `<option value="${a.area_name}">${a.area_name}</option>`).join('');
+  selHallazgoArea.innerHTML = allAreas.map(a => `<option value="${a.id}" data-name="${a.area_name}">${a.area_name}</option>`).join('');
+
+  // Poblar combo de Partes y Carritos en modal Hallazgo
+  document.getElementById('hallazgoPartId').innerHTML = allParts.map(p => `<option value="${p.id}" data-np="${p.part_number}" data-desc="${p.description || ''}">${p.part_number} - ${p.description || ''}</option>`).join('');
+  document.getElementById('hallazgoContId').innerHTML = `<option value="">📦 N/A - Sin Contenedor (Suelto)</option>` + mobileContainers.map(c => `<option value="${c.id}" data-code="${c.location_code}">🛒 ${c.location_code}</option>`).join('');
+  filtrarUbicacionesHallazgo();
+
+  actualizarKPIsSuperiores();
+  filterDataABC();
+  await cargarHistorialIRA();
+}
+
+function actualizarKPIsSuperiores() {
+  let vencidos = 0, cA = 0, cB = 0, cC = 0;
+  fullInventory.forEach(r => {
+    if (r.estado_prog === 'VENCIDOS') vencidos++;
+    if (r.abc === 'A') cA++;
+    else if (r.abc === 'B') cB++;
+    else cC++;
+  });
+  document.getElementById('kpiUrgVal').innerText = vencidos.toLocaleString();
+  document.getElementById('kpiAVal').innerText = cA.toLocaleString();
+  document.getElementById('kpiBVal').innerText = cB.toLocaleString();
+  document.getElementById('kpiCVal').innerText = cC.toLocaleString();
+}
+
+function setTab(tab) {
+  activeTab = tab;
+  ['ABC', 'BARRIDO', 'PDF', 'IRA'].forEach(t => {
+    document.getElementById('tab' + t).classList.toggle('active', t === tab);
+    document.getElementById('view' + t).style.display = (t === tab) ? 'block' : 'none';
+  });
+  if (tab === 'IRA') cargarHistorialIRA();
+}
+
+function filtrarRapidoABC(clase, estado) {
+  setTab('ABC');
+  document.getElementById('fABC').value = clase;
+  document.getElementById('fEstadoConteo').value = estado;
+  filterDataABC();
+}
+
+// =========================================================================
+// PESTAÑA 1: TABLA DE PROGRAMACIÓN ABC Y MODAL DE CONTEO CIEGO POR PARTE
+// =========================================================================
+function obtenerFiltradosABC() {
+  const q = (document.getElementById('fGeneral').value || '').toLowerCase();
+  const p = (document.getElementById('fProy').value || '').toLowerCase();
+  const a = document.getElementById('fABC').value;
+  const est = document.getElementById('fEstadoConteo').value;
+
+  return fullInventory.filter(r => {
+    const tM = (r.part_number || '').toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q);
+    const pM = !p || (r.project || '').toLowerCase().includes(p);
+    const aM = !a || r.abc === a;
+    let eM = true;
+    if (est === 'VENCIDOS') eM = (r.estado_prog === 'VENCIDOS');
+    else if (est === 'SIN_CONTAR') eM = (r.display_last === '---');
+    else if (est === 'AL_DIA') eM = (r.estado_prog === 'AL_DIA');
+    return tM && pM && aM && eM;
+  });
+}
+
+function filterDataABC() {
+  const data = obtenerFiltradosABC();
+  const tbody = document.getElementById('tbodyABC');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:25px; color:var(--text-secondary);">No hay números de parte que coincidan con el filtro actual.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(r => {
+    let statusBadge = `<span class="due-badge due-ok"><i class="fas fa-check-circle"></i> AL DÍA</span>`;
+    if (r.display_last === '---') {
+      statusBadge = `<span class="due-badge due-never"><i class="fas fa-clock"></i> SIN CONTAR</span>`;
+    } else if (r.estado_prog === 'VENCIDOS') {
+      statusBadge = `<span class="due-badge due-overdue"><i class="fas fa-exclamation-circle"></i> CONTAR HOY</span>`;
+    }
+
+    const rEncoded = encodeURIComponent(JSON.stringify(r));
+    return `
+      <tr>
+        <td style="text-align:center;"><input type="checkbox" class="row-checkbox" data-id="${r.part_id}"></td>
+        <td><b style="font-size:13px;">${r.part_number}</b></td>
+        <td style="font-size:11px; color:var(--text-secondary);">${r.description || ''}</td>
+        <td><span style="font-weight:700;">${r.project || '-'}</span></td>
+        <td style="text-align:center;"><span class="abc-badge abc-${r.abc || 'C'}">CLASE ${r.abc || 'C'}</span></td>
+        <td>${r.display_last}</td>
+        <td style="font-weight:700; color:${r.estado_prog === 'VENCIDOS' ? 'var(--danger)' : 'inherit'};">${r.display_next}</td>
+        <td>${statusBadge}</td>
+        <td style="text-align:center;">
+          <button class="btn-audit" onclick="abrirAuditoriaParte('${rEncoded}')">
+            <i class="fas fa-clipboard-check"></i> Contar (Ciego)
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function toggleSelectAll() {
+  const m = document.getElementById('selectAll').checked;
+  document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = m);
+}
+
+async function abrirAuditoriaParte(rEncoded) {
+  const masterItem = JSON.parse(decodeURIComponent(rEncoded));
+  currentMasterPart = masterItem;
+  reveladoModal = false;
+
+  document.getElementById('mParte').innerText = masterItem.part_number;
+  document.getElementById('mDesc').innerText = masterItem.description || '';
+  const badge = document.getElementById('mAbcBadge');
+  badge.className = `abc-badge abc-${masterItem.abc || 'C'}`;
+  badge.innerText = `CLASE ${masterItem.abc || 'C'}`;
+  document.getElementById('mSelectABC').value = masterItem.abc || 'C';
+  document.getElementById('mInputObs').value = '';
+
+  document.getElementById('btnRevelarModal').style.display = 'flex';
+  document.getElementById('btnGuardarModal').style.display = 'none';
+
+  const { data: details } = await _client
+    .from('v_inventory_by_location')
+    .select('*')
+    .eq('part_id', masterItem.part_id)
+    .gt('quantity', 0)
+    .order('lot_number', { ascending: true });
+
+  lineasModal = (details || []).map(d => ({
+    part_id: masterItem.part_id,
+    part_number: masterItem.part_number,
+    area: d.area_name || d.area || 'ALMACEN PT',
+    location_id: d.location_id,
+    location: d.location_code || d.location || 'SIN UBICACIÓN',
+    container_id: d.container_id || null,
+    container_code: d.container_code || '',
+    lot_number: d.lot_number || 'S/L',
+    sis_qty: Number(d.quantity) || 0,
+    fis_qty: ''
+  }));
+
+  renderizarLineasConteo('MODAL');
+  document.getElementById('modalConteo').style.display = 'flex';
+}
+
+function cerrarModalConteo() {
+  document.getElementById('modalConteo').style.display = 'none';
+  currentMasterPart = null;
+}
+
+// =========================================================================
+// RENDERIZADO Y VALIDACIÓN DE LÍNEAS DE CONTEO CIEGO (MODAL Y BARRIDO)
+// =========================================================================
+function renderizarLineasConteo(contexto) {
+  const esModal = (contexto === 'MODAL');
+  const lista = esModal ? lineasModal : lineasBarrido;
+  const revelado = esModal ? reveladoModal : reveladoBarrido;
+  const tbody = document.getElementById(esModal ? 'tbodyModalLineas' : 'tbodyBarridoLineas');
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-secondary);">El sistema registra 0 existencias actuales. Puedes usar el botón "+ Agregar Hallazgo" si encontraste material físicamente.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map((item, idx) => {
+    const sisDisplay = revelado
+      ? `<b>${item.sis_qty.toLocaleString()}</b>`
+      : `<span class="sis-hidden"><i class="fas fa-lock"></i> CIEGO</span>`;
+
+    let diffDisplay = `<span style="color:var(--text-secondary);">---</span>`;
+    if (revelado && item.fis_qty !== '') {
+      const d = Number(item.fis_qty) - item.sis_qty;
+      if (d === 0) diffDisplay = `<span class="diff-zero">✅ 0 (Exacto)</span>`;
+      else if (d > 0) diffDisplay = `<span class="diff-pos">+${d} (Sobra)</span>`;
+      else diffDisplay = `<span class="diff-neg">${d} (Falta)</span>`;
+    }
+
+    const colInicial = esModal
+      ? `<td><b>${item.area}</b></td><td>📍 <b>${item.location}</b></td>`
+      : `<td><b>${item.part_number}</b></td><td><b>${item.area}</b> • 📍 <b>${item.location}</b></td>`;
+
+    return `
+      <tr>
+        ${colInicial}
+        <td>${item.container_code ? `<b style="color:#d97706;">🛒 ${item.container_code}</b>` : '<span style="color:var(--text-secondary);">📦 Suelto</span>'}</td>
+        <td><b>${item.lot_number || 'S/L'}</b></td>
+        <td style="text-align:right;">${sisDisplay}</td>
+        <td style="text-align:right;">
+          <input type="number" class="input-fisico" value="${item.fis_qty}" placeholder="Cant..." min="0" oninput="actualizarFisicoLinea('${contexto}', ${idx}, this.value)">
+        </td>
+        <td style="text-align:center;" id="diff-${contexto}-${idx}">${diffDisplay}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function actualizarFisicoLinea(contexto, idx, val) {
+  const lista = (contexto === 'MODAL') ? lineasModal : lineasBarrido;
+  const revelado = (contexto === 'MODAL') ? reveladoModal : reveladoBarrido;
+  lista[idx].fis_qty = val === '' ? '' : parseInt(val, 10);
+
+  if (revelado) {
+    const cell = document.getElementById(`diff-${contexto}-${idx}`);
+    if (!cell) return;
+    if (val === '') {
+      cell.innerHTML = `---`;
+      return;
+    }
+    const d = Number(val) - lista[idx].sis_qty;
+    if (d === 0) cell.innerHTML = `<span class="diff-zero">✅ 0 (Exacto)</span>`;
+    else if (d > 0) cell.innerHTML = `<span class="diff-pos">+${d} (Sobra)</span>`;
+    else cell.innerHTML = `<span class="diff-neg">${d} (Falta)</span>`;
+  }
+}
+
+function revelarDiferencias(contexto) {
+  const lista = (contexto === 'MODAL') ? lineasModal : lineasBarrido;
+  const sinCapturar = lista.some(l => l.fis_qty === '' || isNaN(l.fis_qty));
+  if (sinCapturar) {
+    return alert("⚠️ CONTEO CIEGO INCOMPLETO: Debes capturar la cantidad física contada en todas las filas (pon 0 si no encontraste nada en esa ubicación) antes de revelar las diferencias del sistema.");
+  }
+
+  if (contexto === 'MODAL') {
+    reveladoModal = true;
+    document.getElementById('btnGuardarModal').style.display = 'flex';
+  } else {
+    reveladoBarrido = true;
+    document.getElementById('btnAplicarBarrido').style.display = 'flex';
+  }
+  renderizarLineasConteo(contexto);
+}
+
+// =========================================================================
+// APLICAR AJUSTES POR UBICACIÓN + CARRITO + LOTE Y REGISTRAR IRA %
+// =========================================================================
+async function aplicarAjustesConteo(contexto) {
+  if (!currentUser) {
+    return alert("🔒 Debes iniciar sesión para aplicar ajustes de auditoría.");
+  }
+
+  const esModal = (contexto === 'MODAL');
+  const lista = esModal ? lineasModal : lineasBarrido;
+  if (!lista.length) return alert("No hay líneas para procesar.");
+
+  const obs = esModal
+    ? (document.getElementById('mInputObs').value.trim() || 'Conteo Cíclico ABC')
+    : `[${document.getElementById('motivoBarrido').value}] ${document.getElementById('obsBarrido').value.trim()}`;
+
+  const btn = document.getElementById(esModal ? 'btnGuardarModal' : 'btnAplicarBarrido');
+  btn.disabled = true;
+
+  try {
+    let ajustesRealizados = 0;
+    let exactosCount = 0;
+    const partesAuditadasIds = new Set();
+
+    for (const item of lista) {
+      if (item.fis_qty === '' || isNaN(item.fis_qty)) continue;
+      const sis = Number(item.sis_qty) || 0;
+      const fis = Number(item.fis_qty);
+      const diff = fis - sis;
+      const esExacto = (diff === 0) ? 1 : 0;
+      if (esExacto) exactosCount++;
+      else ajustesRealizados++;
+
+      partesAuditadasIds.add(item.part_id);
+
+      const tagIRA = `[AUDIT_IRA:SIS=${sis}|FIS=${fis}|DIF=${diff}|EXACTO=${esExacto}|LOC=${item.location}|CONT=${item.container_code || 'SUELTO'}] ${obs}`;
+
+      // Si hubo diferencia, insertamos el AJUSTE real (+ o -) respetando Ubicación + Carrito + Lote.
+      // Si fue exacto (diff === 0), insertamos registro de auditoría con quantity = 0 para que quede constancia del conteo y sume al IRA %.
+      const payload = {
+        part_id: item.part_id,
+        area: item.area || 'ALMACEN PT',
+        quantity: diff,
+        from_location_id: diff < 0 ? item.location_id : (diff === 0 ? item.location_id : null),
+        to_location_id: diff > 0 ? item.location_id : (diff === 0 ? item.location_id : null),
+        from_container_id: diff < 0 ? (item.container_id || null) : null,
+        to_container_id: diff > 0 ? (item.container_id || null) : null,
+        movement_type: 'AJUSTE',
+        comment: tagIRA,
+        user_id: currentUser.id,
+        lot_number: (item.lot_number && item.lot_number !== 'S/L' && item.lot_number.trim() !== '') ? item.lot_number.trim() : null,
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await _client.from('inventory_movements').insert([payload]);
+      if (error) throw error;
+    }
+
+    // Actualizar last_count y next_count en la tabla parts según Clase ABC configurada en Settings
+    const hoy = new Date();
+    const dA = Number(KraemSettings.get('wms', 'abc_days_a', 30));
+    const dB = Number(KraemSettings.get('wms', 'abc_days_b', 90));
+    const dC = Number(KraemSettings.get('wms', 'abc_days_c', 180));
+    for (const pId of partesAuditadasIds) {
+      const nuevaClase = esModal ? document.getElementById('mSelectABC').value : (allParts.find(x => x.id === pId)?.abc || 'C');
+      const dias = { 'A': dA, 'B': dB, 'C': dC }[nuevaClase] || dC;
+      const prox = new Date();
+      prox.setDate(hoy.getDate() + dias);
+
+      await _client.from('parts').update({
+        abc: nuevaClase,
+        last_count: hoy.toISOString(),
+        next_count: prox.toISOString()
+      }).eq('id', pId);
+    }
+
+    alert(`✅ AUDITORÍA GUARDADA CON ÉXITO:\n• Lotes 100% Exactos: ${exactosCount}\n• Ajustes Automáticos Aplicados: ${ajustesRealizados}\n• Fechas de próximo conteo ABC actualizadas.`);
+
+    if (esModal) cerrarModalConteo();
+    else document.getElementById('zonaCapturaBarrido').style.display = 'none';
+
+    await init();
+  } catch (err) {
+    alert("❌ Error al guardar el conteo: " + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// =========================================================================
+// PESTAÑA 2: BARRIDO POR UBICACIÓN / CARRITO / ÁREA CON ESCÁNER QR
+// =========================================================================
+function cambiarTipoBarrido() {
+  const tipo = document.getElementById('selTipoBarrido').value;
+  document.getElementById('divInputBarridoCodigo').style.display = (tipo === 'AREA') ? 'none' : 'block';
+  document.getElementById('divSelectBarridoArea').style.display = (tipo === 'AREA') ? 'block' : 'none';
+  document.getElementById('inpBarridoSearch').value = '';
+  document.getElementById('zonaCapturaBarrido').style.display = 'none';
+}
+
+const inpBarrido = document.getElementById('inpBarridoSearch');
+const boxBarrido = document.getElementById('barridoResults');
+
+inpBarrido.oninput = () => {
+  const tipo = document.getElementById('selTipoBarrido').value;
+  const v = inpBarrido.value.toUpperCase();
+  boxBarrido.innerHTML = '';
+  if (!v) { boxBarrido.style.display = 'none'; return; }
+
+  const fuente = (tipo === 'CARRITO') ? mobileContainers : fixedLocations;
+  const m = fuente.filter(x => x.location_code.toUpperCase().includes(v)).slice(0, 10);
+  m.forEach(item => {
+    const d = document.createElement('div');
+    d.innerHTML = `${tipo === 'CARRITO' ? '🛒' : '📍'} <b>${item.location_code}</b>`;
+    d.onclick = () => {
+      inpBarrido.value = item.location_code;
+      boxBarrido.style.display = 'none';
+      ejecutarCargaBarrido();
+    };
+    boxBarrido.appendChild(d);
+  });
+  boxBarrido.style.display = m.length ? 'block' : 'none';
+};
+
+async function ejecutarCargaBarrido() {
+  const tipo = document.getElementById('selTipoBarrido').value;
+  reveladoBarrido = false;
+  document.getElementById('btnAplicarBarrido').style.display = 'none';
+
+  let query = _client.from('v_inventory_by_location').select('*').gt('quantity', 0).order('part_number', { ascending: true });
+
+  if (tipo === 'UBICACION') {
+    const code = inpBarrido.value.trim().toUpperCase();
+    if (!code) return alert("Escribe o escanea la Ubicación Fija a auditar.");
+    query = query.eq('location', code);
+  } else if (tipo === 'CARRITO') {
+    const code = inpBarrido.value.trim().toUpperCase();
+    const contObj = mobileContainers.find(c => c.location_code.toUpperCase() === code);
+    if (!contObj) return alert(`El carrito "${code}" no existe en el catálogo.`);
+    query = query.eq('container_id', contObj.id);
+  } else if (tipo === 'AREA') {
+    const areaName = document.getElementById('selBarridoArea').value;
+    if (!areaName) return alert("Selecciona un Área.");
+    query = query.eq('area', areaName);
+  }
+
+  const { data } = await query;
+  lineasBarrido = (data || []).map(d => ({
+    part_id: d.part_id,
+    part_number: d.part_number,
+    area: d.area_name || d.area || 'ALMACEN PT',
+    location_id: d.location_id,
+    location: d.location_code || d.location || 'SIN UBICACIÓN',
+    container_id: d.container_id || null,
+    container_code: d.container_code || '',
+    lot_number: d.lot_number || 'S/L',
+    sis_qty: Number(d.quantity) || 0,
+    fis_qty: ''
+  }));
+
+  document.getElementById('zonaCapturaBarrido').style.display = 'block';
+  renderizarLineasConteo('BARRIDO');
+}
+
+function cargarBarridoPorArea() {
+  ejecutarCargaBarrido();
+}
+
+// =========================================================================
+// MODAL DE HALLAZGO (AGREGAR MATERIAL ENCONTRADO EN PISO)
+// =========================================================================
+function filtrarUbicacionesHallazgo() {
+  const aId = document.getElementById('hallazgoArea').value;
+  const selLoc = document.getElementById('hallazgoLocId');
+  const locs = fixedLocations.filter(l => String(l.area_id) === String(aId));
+  selLoc.innerHTML = locs.map(l => `<option value="${l.id}" data-code="${l.location_code}">📍 ${l.location_code}</option>`).join('');
+}
+
+function abrirModalHallazgo(contexto) {
+  origenHallazgo = contexto;
+  document.getElementById('divHallazgoParte').style.display = (contexto === 'MODAL') ? 'none' : 'block';
+  document.getElementById('hallazgoLote').value = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  document.getElementById('hallazgoCant').value = '';
+  document.getElementById('modalHallazgo').style.display = 'flex';
+}
+
+function cerrarModalHallazgo() {
+  document.getElementById('modalHallazgo').style.display = 'none';
+}
+
+function confirmarAgregarHallazgo() {
+  const selArea = document.getElementById('hallazgoArea');
+  const areaName = selArea.options[selArea.selectedIndex]?.getAttribute('data-name') || 'ALMACEN PT';
+  const selLoc = document.getElementById('hallazgoLocId');
+  const locId = parseInt(selLoc.value, 10);
+  const locCode = selLoc.options[selLoc.selectedIndex]?.getAttribute('data-code') || '';
+
+  const selCont = document.getElementById('hallazgoContId');
+  const contId = selCont.value ? parseInt(selCont.value, 10) : null;
+  const contCode = selCont.value ? (selCont.options[selCont.selectedIndex]?.getAttribute('data-code') || '') : '';
+
+  const lote = document.getElementById('hallazgoLote').value.trim().toUpperCase() || 'S/L';
+  const cant = parseInt(document.getElementById('hallazgoCant').value, 10);
+
+  if (!locId || isNaN(cant) || cant < 0) {
+    return alert("Selecciona una ubicación fija y escribe la cantidad física hallada.");
+  }
+
+  let partId, partNum;
+  if (origenHallazgo === 'MODAL' && currentMasterPart) {
+    partId = currentMasterPart.part_id;
+    partNum = currentMasterPart.part_number;
+  } else {
+    const selP = document.getElementById('hallazgoPartId');
+    partId = parseInt(selP.value, 10);
+    partNum = selP.options[selP.selectedIndex]?.getAttribute('data-np') || '';
+  }
+
+  const nuevaFila = {
+    part_id: partId,
+    part_number: partNum,
+    area: areaName,
+    location_id: locId,
+    location: locCode,
+    container_id: contId,
+    container_code: contCode,
+    lot_number: lote,
+    sis_qty: 0,
+    fis_qty: cant
+  };
+
+  if (origenHallazgo === 'MODAL') lineasModal.push(nuevaFila);
+  else lineasBarrido.push(nuevaFila);
+
+  cerrarModalHallazgo();
+  renderizarLineasConteo(origenHallazgo);
+}
+
+// =========================================================================
+// PESTAÑA 3: GENERACIÓN DE HOJA PDF DE CONTEO CIEGO (DESGLOSADO)
+// =========================================================================
+async function generarHojaConteoPDF(desdeSeleccionPestana1 = false) {
+  let targetPartIds = [];
+  let esCiego = true;
+  let auditorNombre = '';
+
+  if (desdeSeleccionPestana1) {
+    targetPartIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => String(cb.dataset.id));
+    if (!targetPartIds.length) {
+      return alert("Selecciona al menos una fila con la casilla (checkbox) o ve a la Pestaña 3 para imprimir todas las vencidas del día.");
+    }
+  } else {
+    const alcance = document.getElementById('selAlcancePDF').value;
+    esCiego = (document.getElementById('selModoPDF').value === 'CIEGO');
+    auditorNombre = document.getElementById('inpAuditorPDF').value.trim();
+
+    if (alcance === 'SELECCIONADOS') {
+      targetPartIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => String(cb.dataset.id));
+      if (!targetPartIds.length) return alert("No hay filas seleccionadas en la Pestaña 1.");
+    } else if (alcance === 'VENCIDOS') {
+      targetPartIds = fullInventory.filter(r => r.estado_prog === 'VENCIDOS').map(r => String(r.part_id));
+    } else if (alcance === 'CLASE_A') {
+      targetPartIds = fullInventory.filter(r => r.abc === 'A').map(r => String(r.part_id));
+    } else {
+      targetPartIds = fullInventory.filter(r => (Number(r.total_quantity) || 0) > 0).map(r => String(r.part_id));
+    }
+  }
+
+  if (!targetPartIds.length) return alert("No se encontraron números de parte para incluir en el PDF.");
+
+  const { data: locData } = await _client.from('v_inventory_by_location').select('*').in('part_id', targetPartIds).gt('quantity', 0);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'pt', 'a4');
+
+  // Logo oficial de KRAEM embebido en Base64 (extraído de favicon.ico / logo-kraem) para que siempre aparezca en el PDF
+  const KRAEM_LOGO_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAdOSURBVGhDvVjbb5RFFOc/UYnQG7SBaikQuSjYlnu5JgrGaGLCpfggUhKkAiqXAImIDybEVwVLIOKLMYIJvrUJFx9q0CbQ7hIotIZ2od12uz2eMzNn9sx8833dlsLDLzNzzpkzv9/cvtmdls1mYWhoyAHZslksPbv2sT8AjkmMk7lCfoLwc6wp/b5BAQxFxLcZYrquB1A29otS+5iUSyYi0NjJz3B9Lk+dI0EAJ5R+tkXiPFGOjyFEFvppcmyTIMLjxqAvUUBc6feRg4TyqT6eLcmufCYnCQ/5CRQzLeSQ4EF4IJ0Uk/MAwsd+rksbx0ftrs2HiolpU9/EM+DD6Uwwg7Nd27Q42Y9jxrP5YnQ+N47z81hKQCi5ChalHyNt0qcH8GyiHkKcn3NFbWYMLMc9A0koJHtGBHLL/I7Nq0cExCUkG6keGRmB0dFRyOfzUwrKSbmZjx6vIJBXVfIl2zQmG3F69+4w+miQsbGx5woSMzw8rIkbaD4BjiSAGxwk29aOnShxaMDnARYR4aG4UFkQoQRYdcbI0B1ezMz7IBGSi8+J2/YWUqVwsKBcLhcc4EWAzgTz8cFnwm4hargBWpC/dajd19cH6VQK0uk09PX2xq5Qf3+/iuHYnp6eCW3F/Gg+wsvyIyA/ewvJQHbSPvQHHHz6FI4dOQLLly5VONjSAplMxokhPHr4CD764ENYtmQpYokqf7l8ORKXBBpbHmjJTa0Als41Grl5hqMr8OTJE2jeswfKZ8yAMkTTjp1qpmXMwMAAHDxwAGaXlqq4qvIKOH70qBNTDFiA5WeJE9eAAB+hFSgImAllr86A3Tt2OAJo33596hTMnT1bxVSWlcP+ffug//FjJ08x8FfAEhcc9SEmCCMHJQqYiQJwdqUAOgvffnMGqioqlI9m//2tW+Eh7n2Zo1g4Ajx+XNpbiJ3KYWzxAj6FCitAbyG6rS60tkLN3GpFnARuWLtOHfg8rkoORYzcuStwx0HuUS+MeWNZAZKbrOOKxG6hZAF6CxFRPgN/XL2qDisJq0Dflg0b4J/btyGPOTKXfob76zZBqnoBpObWQhqhyjlYKsyDvi+OQB7HlGPR2HH8COSbtAAiSiKacAv9ee0aLJo/X8882hYvXAjtbW14DeL7pqsb7r3xFnS/XGIws1B/iYBtRG/zZ5AfHHTGkgL8C4Y5RraQrCfdQixgdUMDLJw3D9slql1b/ZpaDRv/62/Q/UopdFkBiPI5kK58HdJVNQgssf7foS+DK0BvMOIkJ1pxNgc6eIhVECJuBfZ+YrYQiTBCuDzc8rkTnzl/QQkg4iks07WLYOCHc/D09yuIqwZXINvxN4x5H0RnBUICsIwVQIgVYM6A2u8swGBBTQ3cuH7dxmfOtyoBRD6FIh6s3aQOtMwZBxbAKxCpI+wZYKcjAG0hAXyIadusX7MGVrxdZwTgxw2/DQ3Ll0Pnv52qb+ZcK6Sml8K96WVaQONmFPDQyRkHKyAB+BaKF0C2OAFEnm4buoXa29ph7cpVdhVmlZRA0/bt0IvvpMyPP+Hs0/YpgTSuQs8kBFh+pq7axlZYAeOQSL6F9KHdvVNfozeu34A3Fy3Wq4CoKi9Xz4lM60W9fYyISa9AgB/BCpBgdYmH2Ox9FkBf4UsXL6pbiK9TKr87eAi666bZc/CgccvEBXjcJNegAEKSgGa+hRDyMUd9vj97Firx8UY+Wola/DJf2LMXuqrnT1qAw0vUCbECCIkCzA3EK8B+ynfm9Gm1xfg9VI/P7pvHT0LXFK2AbI8jIPkWmlVSCh/v2uUIIAxgm95Ls9RzWm+ljY2N0Nm8H+5v3johAcQhxFEJQTsKcB0S4wmgVfBXgHEXH2jvvfOuFUBo2rYNOo+dgBzeTn58CLwCxMX+2Wu4qZXRAsIrQIHx3wF6jZpbKPCDhpHq7oa6ZctUHH0fKkvL4OThwzCEOULxPliAguHktLEMCrA/HNDnCxjEB9epEydgdX0DrKqrh6+QUOgnJaOjowO2bNwIK+vqYAViPT6x/7p1KxjrwwrwHnLEjcuwAEZAAIGuzNxITv0GKOYvF4pj0C+2UM4Q6DXLZOM4KgHcsE6yGTsNGEr+IiD/VpH8JLQAQThUFjtjUwlaWSbNPHzy9heZhiFtbiXVyQSGvgfPE7z3LQ/iZbj4MAJ0Qwb6HdSNVMR+f1bQzNNYzEEKkSUjcojlDSQFKR/eBrQvaRCapakE5aTcelzDQYwdh6gAUUYEiLYeaIpA+bz8zEHWZVvZUKjeQsrpJyN4CZXNSyLqjp36MlTb7avthcmzMabNMY7f1KXNroAfwMnYZktvEAnfHhdHIB/DsVk+7uSxX7YJKCBqJCiiLIJmS82Y8RlE+nh1HzLWxoncMiYu3kfkDDDiEjq2gDAu/bqMk0jyFYNYAcWABYR8BElKrqiMeRZQvsQVCNkZauY8WzGYSL+kOJWHBfizI2eWB5TJdLyO4UQE6zdlHGR+axN2WZcxKo5jFLLwP+8MXwWI80HSAAAAAElFTkSuQmCC';
+
+  try {
+    doc.addImage(KRAEM_LOGO_B64, 'PNG', 38, 26, 38, 38);
+  } catch (e) {}
+
+  doc.setFontSize(15);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(15, 23, 42);
+  doc.text("KRAEM", 82, 43);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 116, 139);
+  doc.text("SISTEMA WMS / MRP", 82, 54);
+  doc.setTextColor(0, 0, 0);
+
+  const headerX = 165;
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text(esCiego ? "HOJA OFICIAL DE CONTEO CICLICO CIEGO - KRAEM" : "HOJA DE AUDITORIA DE INVENTARIO (SUPERVISOR) - KRAEM", headerX, 42);
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  const fecha = new Date().toLocaleDateString();
+  doc.text(`Fecha: ${fecha}   |   Modalidad: ${esCiego ? 'CONTEO CIEGO (Sin cantidad de sistema)' : 'SUPERVISOR'}   |   Auditor: ${auditorNombre || '___________________'}`, headerX, 57);
+
+  const tableBody = [];
+  targetPartIds.forEach(id => {
+    const master = fullInventory.find(f => String(f.part_id) === String(id));
+    if (!master) return;
+    const rowsUbic = (locData || []).filter(l => String(l.part_id) === String(id));
+    if (rowsUbic.length > 0) {
+      rowsUbic.forEach(l => {
+        tableBody.push([
+          master.part_number,
+          master.abc || 'C',
+          l.area_name || l.area || '',
+          l.location_code || l.location || '',
+          l.container_code || 'Suelto',
+          l.lot_number || 'S/L',
+          esCiego ? '[CIEGO]' : String(l.quantity),
+          '',
+          ''
+        ]);
+      });
+    } else {
+      tableBody.push([master.part_number, master.abc || 'C', 'N/A', 'SIN STOCK EN SISTEMA', '-', '-', esCiego ? '[CIEGO]' : '0', '', '']);
+    }
+  });
+
+  doc.autoTable({
+    startY: 75,
+    head: [['No. Parte', 'ABC', 'Area', 'Ubicacion Fija', 'Carrito / Cont.', 'Lote FIFO', 'Sistema', 'Conteo Fisico', 'Observacion']],
+    body: tableBody,
+    theme: 'grid',
+    styles: { fontSize: 7.5, cellPadding: 4 },
+    headStyles: { fillColor: [37, 99, 235] }
+  });
+
+  let finalY = doc.lastAutoTable.finalY + 25;
+  if (finalY > 620) { doc.addPage(); finalY = 50; }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.text("HALLAZGOS EN PISO (MATERIAL ENCONTRADO EN UBICACIONES / CARRITOS NO REGISTRADOS)", 40, finalY);
+
+  doc.autoTable({
+    startY: finalY + 8,
+    head: [['N° Parte', 'Área', 'Ubicación Fija', 'Carrito / Contenedor', 'Lote (YYYYMMDD)', 'Cantidad Física', 'Motivo / Nota']],
+    body: [['', '', '', '', '', '', ''], ['', '', '', '', '', '', ''], ['', '', '', '', '', '', '']],
+    theme: 'grid',
+    styles: { fontSize: 7.5, minCellHeight: 18 },
+    headStyles: { fillColor: [100, 116, 139] }
+  });
+
+  finalY = doc.lastAutoTable.finalY + 55;
+  if (finalY > 750) { doc.addPage(); finalY = 90; }
+
+  doc.line(40, finalY, 240, finalY);
+  doc.text("NOMBRE Y FIRMA DEL AUDITOR", 40, finalY + 14);
+  doc.line(320, finalY, 520, finalY);
+  doc.text("NOMBRE Y FIRMA SUPERVISOR WMS", 320, finalY + 14);
+
+  // =======================================================
+  // PIE DE PÁGINA ISO 9001 / IATF 16949: CONTROL DOCUMENTAL
+  // =======================================================
+  const totalPages = doc.getNumberOfPages();
+  const fechaImpresion = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(40, 810, 555, 810);
+
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+
+    doc.text("DOCUMENTO CONTROLADO SGC ISO 9001 | CODIGO: KR-SYS-CC-0001 | REV 01", 40, 822);
+    doc.text(`Fecha de Emision: ${fechaImpresion}`, 270, 822);
+    doc.text(`Pagina ${i} de ${totalPages}`, 500, 822);
+  }
+
+  doc.save(`KR-SYS-CC-0001_Conteo_Ciclico_${esCiego ? 'CIEGO' : 'SUPERVISOR'}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+function generarPDFDesdePestana3() {
+  generarHojaConteoPDF(false);
+}
+
+function exportarSeleccionExcel() {
+  const filtrados = obtenerFiltradosABC();
+  if (!filtrados.length) return alert("No hay datos para exportar.");
+  const fechaEmision = new Date().toLocaleString('es-MX');
+  const rows = [
+    ["KRAEM S.A. DE C.V. - SISTEMA DE GESTIÓN DE CALIDAD ISO 9001 / IATF 16949"],
+    ["DOCUMENTO CONTROLADO:", "KR-SYS-CC-0002", "REVISIÓN:", "REV 01", "FECHA EMISIÓN:", fechaEmision],
+    ["TÍTULO DEL REPORTE:", "PROGRAMACIÓN MAESTRA Y ESTADO DE CONTEOS CÍCLICOS ABC"],
+    [],
+    ["N° Parte", "Descripción", "Proyecto", "Clase ABC", "Stock Total", "Último Conteo", "Próximo Conteo", "Estado"]
+  ];
+  filtrados.forEach(r => {
+    rows.push([
+      r.part_number,
+      r.description || '',
+      r.project || '',
+      r.abc || 'C',
+      r.total_quantity || 0,
+      r.display_last,
+      r.display_next,
+      r.estado_prog
+    ]);
+  });
+  rows.push([]);
+  rows.push(["PIE DE CONTROL ISO:", "DOCUMENTO CONTROLADO | CÓDIGO: KR-SYS-CC-0002 | REV 01 | AVALADO EN LISTA MAESTRA KR-SGC-LM-0001"]);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "KR-SYS-CC-0002");
+  XLSX.writeFile(wb, `KR-SYS-CC-0002_Programacion_Conteos_ABC_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// =========================================================================
+// PESTAÑA 4: KPI DE VERACIDAD (IRA %) E HISTORIAL DE CONTEOS
+// =========================================================================
+async function cargarHistorialIRA() {
+  const { data: movs } = await _client
+    .from('v_history_master')
+    .select('*')
+    .or('comment.ilike.%[AUDIT_IRA:%,comment.ilike.%Audit: Sis%')
+    .order('created_at', { ascending: false })
+    .limit(300);
+
+  const lista = movs || [];
+  let totalAuditados = 0;
+  let totalExactos = 0;
+
+  const tbody = document.getElementById('tbodyHistorialIRA');
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:25px; color:var(--text-secondary);">Aún no hay conteos cíclicos registrados con indicador IRA.</td></tr>`;
+    document.getElementById('kpiIraVal').innerText = '100%';
+    document.getElementById('kpiIraSub').innerText = 'Sin discrepancias registradas';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(r => {
+    totalAuditados++;
+    let sis = '-', fis = '-', diff = Number(r.quantity) || 0, loc = r.to_location || r.from_location || '-', nota = r.comment || '';
+    let esExacto = (diff === 0);
+
+    if (nota.includes('[AUDIT_IRA:')) {
+      const ini = nota.indexOf('[AUDIT_IRA:') + 11;
+      const fin = nota.indexOf(']', ini);
+      if (fin !== -1) {
+        const meta = nota.substring(ini, fin).split('|');
+        nota = nota.substring(fin + 1).trim();
+        meta.forEach(kv => {
+          const [k, v] = kv.split('=');
+          if (k === 'SIS') sis = v;
+          if (k === 'FIS') fis = v;
+          if (k === 'DIF') diff = Number(v) || 0;
+          if (k === 'EXACTO') esExacto = (v === '1');
+          if (k === 'LOC' && v) loc = v;
+        });
+      }
+    }
+
+    if (esExacto) totalExactos++;
+
+    const fechaStr = r.created_at ? new Date(r.created_at).toLocaleString() : 'Reciente';
+    const userStr = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'AUDITOR';
+
+    return `
+      <tr>
+        <td style="font-size:11px; color:var(--text-secondary);">${fechaStr}</td>
+        <td><b>${r.part_number || ''}</b></td>
+        <td><b>${r.area || ''}</b> • 📍 ${loc}</td>
+        <td><b>${r.lot_number || 'S/L'}</b></td>
+        <td style="text-align:right; font-weight:700;">${sis}</td>
+        <td style="text-align:right; font-weight:800;">${fis}</td>
+        <td style="text-align:right; font-weight:900; color:${diff === 0 ? 'var(--success)' : (diff > 0 ? 'var(--primary)' : 'var(--danger)')};">
+          ${diff > 0 ? '+' + diff : diff}
+        </td>
+        <td>
+          ${esExacto
+            ? '<span class="due-badge due-ok"><i class="fas fa-check"></i> 100% EXACTO</span>'
+            : '<span class="due-badge due-overdue"><i class="fas fa-sliders-h"></i> AJUSTADO</span>'}
+        </td>
+        <td style="font-size:11px;">👤 <b>${userStr}</b>: ${nota}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const iraPct = totalAuditados > 0 ? ((totalExactos / totalAuditados) * 100).toFixed(1) : '100.0';
+  document.getElementById('kpiIraVal').innerText = `${iraPct}%`;
+  document.getElementById('kpiIraSub').innerText = `${totalExactos} exactos de ${totalAuditados} lotes auditados`;
+}
+
+// =========================================================================
+// CÁMARA QR PARA BARRIDO EN PISO
+// =========================================================================
+function abrirEscanerBarrido() {
+  document.getElementById('modalQR').style.display = 'flex';
+  html5QrcodeScanner = new Html5Qrcode("reader");
+  html5QrcodeScanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    (decodedText) => {
+      cerrarEscaner();
+      const code = decodedText.trim().toUpperCase().split('|')[0].trim();
+
+      const esCarro = mobileContainers.find(c => c.location_code.toUpperCase() === code || c.qr_code === code);
+      const esUbic = fixedLocations.find(l => l.location_code.toUpperCase() === code || l.qr_code === code);
+
+      if (esCarro) {
+        document.getElementById('selTipoBarrido').value = 'CARRITO';
+        cambiarTipoBarrido();
+        inpBarrido.value = esCarro.location_code;
+        ejecutarCargaBarrido();
+      } else if (esUbic) {
+        document.getElementById('selTipoBarrido').value = 'UBICACION';
+        cambiarTipoBarrido();
+        inpBarrido.value = esUbic.location_code;
+        ejecutarCargaBarrido();
+      } else {
+        inpBarrido.value = code;
+        ejecutarCargaBarrido();
+      }
+    }
+  ).catch(err => {
+    alert("Error al abrir cámara: " + err);
+    cerrarEscaner();
+  });
+}
+
+function cerrarEscaner() {
+  document.getElementById('modalQR').style.display = 'none';
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.stop().then(() => { html5QrcodeScanner = null; }).catch(() => {});
+  }
+}
+
+init();
+</script>
+<script src="iso_sop_ayuda.js"></script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
+</script>
 </body>
 </html>
+

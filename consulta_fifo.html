@@ -1,436 +1,1489 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>KRAEM | Despacho Sugerido FIFO</title>
+<title>KRAEM | Buscador QR, FIFO y Torre de Control de Inventarios</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 <style>
-    :root { 
-        --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
-        --border: #e2e8f0; --primary: #007bff; --success: #27ae60; --warning: #f39c12; --danger: #dc3545;
-        --info: #17a2b8;
-    }
-    [data-theme="dark"] { 
-        --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
-        --border: #334155; 
-    }
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding:15px; margin:0; color: var(--text); }
-    
-    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background: var(--card); padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border); max-width:500px; margin: 0 auto 15px auto; }
-    .btn-nav { background:#6c757d; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:8px; font-weight:bold; font-size:12px; }
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --purple: #8b5cf6;
+  --orange: #f97316;
+}
 
-    .container { max-width:500px; margin:auto; background:var(--card); padding:20px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.1); border: 1px solid var(--border); margin-top: 20px; }
-    h2 { text-align:center; margin-top:0; color: var(--text); }
-    
-    .tabs { display:flex; gap:5px; margin-bottom:15px; background: var(--bg); padding: 5px; border-radius: 10px; }
-    .tabs button { flex:1; background: transparent; border:none; padding:10px 5px; cursor:pointer; font-size:10px; font-weight:bold; border-radius:8px; color: var(--text-secondary); transition: 0.2s; white-space: nowrap; }
-    .tabs button.active { background:var(--primary); color:white; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+[data-theme="dark"] {
+  --bg: #020617;
+  --card: #1e293b;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+}
 
-    label { font-weight:800; display:block; margin-top:15px; font-size:11px; color: var(--text-secondary); text-transform: uppercase; }
-    
-    .input-with-btn { display: flex; gap: 5px; align-items: center; }
-    input { width:100%; padding:12px; margin-top:5px; border-radius:8px; border:1px solid var(--border); font-size:15px; box-sizing:border-box; background: var(--bg); color: var(--text); }
-    .btn-qr { background: var(--primary); color: white; border: none; padding: 12px 15px; border-radius: 8px; cursor: pointer; font-size: 16px; margin-top: 5px; height: 47px; box-sizing: border-box; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; transition: 0.3s; }
+.container { max-width: 900px; margin: auto; position: relative; transition: max-width 0.25s; }
+.container.wide-mode { max-width: 1220px; }
 
-    .autobox { background:var(--card); border:1px solid var(--border); position:absolute; width:100%; z-index:1000; max-height:200px; overflow-y:auto; display:none; border-radius:0 0 8px 8px; box-shadow:0 10px 20px rgba(0,0,0,0.1); }
-    .autobox div { padding:12px; cursor:pointer; border-bottom:1px solid var(--border); font-size:14px; }
-    .autobox div:hover { background: var(--bg); color: var(--primary); }
-    
-    .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; margin-top: 15px; }
-    .btn-excel { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
-    .btn-excel:hover { background: #219653; transform: translateY(-1px); }
+/* Header Moderno (Idéntico a wms_operaciones.html) */
+.topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:var(--card); padding:12px 20px; border-radius:14px; border:1px solid var(--border); box-shadow:0 4px 12px rgba(0,0,0,0.03); }
+.top-left { display:flex; align-items:center; gap:12px; }
+.btn-back { width:40px; height:40px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--primary); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+.btn-back:hover { background:var(--primary); color:white; }
+.title-box h1 { margin:0; font-size:18px; font-weight:800; }
+.title-box p { margin:2px 0 0; color:var(--text-secondary); font-size:11px; }
 
-    .fifo-card { background: var(--bg); border: 1px solid var(--border); padding: 15px; border-radius: 10px; margin-top: 10px; position: relative; border-left: 5px solid var(--primary); }
-    .fifo-card.oldest { border-left: 5px solid var(--warning); background: rgba(243, 156, 18, 0.05); border: 1px solid var(--warning); border-left: 6px solid var(--warning); }
-    .badge-status { position: absolute; top: 10px; right: 10px; background: var(--warning); color: white; padding: 4px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-    .part-title { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
-    .part-desc { font-size: 12px; color: var(--text-secondary); font-style: italic; margin-bottom: 8px; }
-    
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
-    .info-block { display: flex; flex-direction: column; }
-    .info-label { font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: bold; }
-    .info-value { font-size: 14px; font-weight: bold; margin-top: 2px; }
+.controls { display:flex; gap:8px; align-items:center; }
+.btn-ctrl { background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:8px; cursor:pointer; font-size:13px; }
+.lang-btn { width:28px; height:28px; border-radius:50%; cursor:pointer; border:1px solid var(--border); overflow:hidden; padding:0; }
+.lang-btn img { width:100%; height:100%; object-fit:cover; }
 
-    .loc-info { color: var(--primary); font-weight: bold; }
-    .qty-info { font-size: 22px; font-weight: bold; color: var(--success); text-align: right; grid-column: 2; margin-top: -5px; }
+/* User Badge con indicador de seguridad (Idéntico a wms_operaciones.html) */
+.user-badge { display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:700; background:var(--card); border:1px solid var(--border); padding:10px 16px; border-radius:12px; margin-bottom:15px; }
+.badge-online { background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:8px; font-size:11px; display:inline-flex; align-items:center; gap:5px; }
+.badge-offline { background:#fee2e2; color:#b91c1c; padding:4px 10px; border-radius:8px; font-size:11px; display:inline-flex; align-items:center; gap:5px; }
 
-    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(4px); }
-    .modal-content { background:var(--card); padding:25px; border-radius:15px; width:90%; max-width:400px; color: var(--text); border: 1px solid var(--border); }
-    #reader { width: 100%; background: black; border-radius: 8px; overflow: hidden; margin-top: 10px; }
+/* Navigation Tabs (4 Modos con íconos, idéntico a wms_operaciones.html) */
+.tabs { display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; margin-bottom:15px; background:var(--card); padding:6px; border-radius:14px; border:1px solid var(--border); }
+@media (max-width: 640px) {
+  .tabs { grid-template-columns: repeat(2, 1fr); }
+}
+.tabs button { background:transparent; border:none; padding:10px 4px; cursor:pointer; font-size:11px; font-weight:700; border-radius:8px; color:var(--text-secondary); transition:0.2s; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.tabs button i { font-size:15px; }
+.tabs button.active { background:var(--primary); color:white; box-shadow:0 4px 10px rgba(37,99,235,0.3); }
+
+/* Main Card */
+.main-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:0 8px 24px rgba(0,0,0,0.03); }
+
+/* Form Fields */
+.form-group { margin-bottom:14px; position:relative; }
+label { font-size:11px; font-weight:800; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:5px; }
+input, select, textarea { width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; outline:none; transition:0.2s; font-family: inherit; }
+input:focus, select:focus, textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+
+.input-with-btn { display:flex; gap:6px; }
+.btn-qr { background:var(--primary); color:white; border:none; width:48px; border-radius:10px; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.btn-qr:hover { background:var(--primary-dark); }
+
+/* Bloques con bordes de color (Idéntico a wms_operaciones.html) */
+.section-block { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:14px; }
+.section-block-title { font-size:11px; font-weight:800; text-transform:uppercase; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.block-origen { border-left:4px solid var(--warning); }
+.block-destino { border-left:4px solid var(--success); }
+.block-info { border-left:4px solid var(--primary); }
+
+/* Autobox Dropdown */
+.autobox { background:var(--card); border:1px solid var(--border); position:absolute; width:100%; z-index:1000; max-height:220px; overflow-y:auto; display:none; border-radius:0 0 10px 10px; box-shadow:0 12px 24px rgba(0,0,0,0.15); top:100%; }
+.autobox div { padding:12px 15px; cursor:pointer; border-bottom:1px solid var(--border); font-size:13px; }
+.autobox div:hover { background:var(--bg); color:var(--primary); }
+
+/* Tarjetas de Resultados FIFO / Ubicación / Carrito */
+.results-header { display:flex; justify-content:space-between; align-items:center; margin:16px 0 10px; flex-wrap:wrap; gap:8px; }
+.btn-excel { background:var(--success); color:white; border:none; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:0.2s; }
+.btn-excel:hover { filter:brightness(1.08); transform:translateY(-1px); }
+
+.fifo-result-card { background:var(--bg); border:1px solid var(--border); border-left:5px solid var(--primary); border-radius:12px; padding:16px; margin-bottom:12px; transition:0.2s; position:relative; }
+.fifo-result-card.oldest { border-color:var(--warning); border-left:6px solid var(--warning); background:rgba(245,158,11,0.06); }
+.fifo-result-card.blocked-lot { border-color:var(--danger); border-left:6px solid var(--danger); background:rgba(239,68,68,0.05); }
+
+.badge-fifo-top { background:var(--warning); color:#000; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; text-transform:uppercase; display:inline-flex; align-items:center; gap:5px; }
+.badge-blocked-top { background:var(--danger); color:#fff; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; text-transform:uppercase; display:inline-flex; align-items:center; gap:5px; }
+
+/* Semáforos de Estatus de Inventario */
+.st-pill { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; text-transform:uppercase; }
+.st-DISPONIBLE { background:rgba(34,197,94,0.14); color:#16a34a; border:1px solid rgba(34,197,94,0.35); }
+.st-CALIDAD { background:rgba(245,158,11,0.16); color:#d97706; border:1px solid rgba(245,158,11,0.4); }
+.st-RETRABAJO { background:rgba(249,115,22,0.16); color:#ea580c; border:1px solid rgba(249,115,22,0.4); }
+.st-ASIGNADO { background:rgba(37,99,235,0.14); color:#2563eb; border:1px solid rgba(37,99,235,0.35); }
+
+.info-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-top:12px; background:var(--card); padding:12px; border-radius:10px; border:1px solid var(--border); }
+.info-block { display:flex; flex-direction:column; }
+.info-label { font-size:10px; text-transform:uppercase; color:var(--text-secondary); font-weight:800; }
+.info-value { font-size:14px; font-weight:800; margin-top:3px; }
+.loc-link { color:var(--primary); cursor:pointer; text-decoration:underline; }
+
+.btn-status-card { background:var(--card); color:var(--primary); border:1px solid var(--primary); padding:7px 12px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:0.2s; }
+.btn-status-card:hover { background:var(--primary); color:white; }
+
+/* KPIs de Torre de Control */
+.kpi-grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:10px; margin-bottom:15px; }
+@media (max-width: 850px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.kpi-card { background:var(--bg); border:1px solid var(--border); border-left:4px solid var(--primary); border-radius:12px; padding:12px 14px; cursor:pointer; transition:0.2s; }
+.kpi-card:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+.kpi-card.active-kpi { outline:2px solid var(--primary); background:rgba(37,99,235,0.06); }
+.kpi-title { font-size:10px; font-weight:800; text-transform:uppercase; color:var(--text-secondary); }
+.kpi-val { font-size:20px; font-weight:900; margin-top:4px; }
+
+/* Tabla estilo wms_operaciones.html */
+.filter-bar-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:14px; }
+.filter-bar-grid input, .filter-bar-grid select { padding:9px 12px; font-size:13px; }
+
+.table-wrap { overflow-x:auto; margin-top:10px; border:1px solid var(--border); border-radius:12px; max-height:62vh; }
+table { width:100%; border-collapse:collapse; font-size:12px; min-width:880px; }
+th, td { padding:10px 12px; border-bottom:1px solid var(--border); text-align:left; vertical-align:middle; }
+th { background:var(--bg); font-weight:800; color:var(--text-secondary); text-transform:uppercase; font-size:10px; position:sticky; top:0; z-index:5; }
+tr:hover { background:rgba(37,99,235,0.03); }
+
+.tag-project { background:rgba(37,99,235,0.1); color:var(--primary); padding:3px 7px; border-radius:5px; font-size:11px; font-weight:800; }
+.qty-pill { background:rgba(34,197,94,0.15); color:#16a34a; padding:4px 10px; border-radius:20px; font-weight:800; font-size:12px; }
+
+/* Opción de Estatus en Modal */
+.status-selector-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+.status-opt { border:2px solid var(--border); background:var(--bg); border-radius:10px; padding:10px; cursor:pointer; transition:0.15s; }
+.status-opt.active-DISPONIBLE { border-color:var(--success); background:rgba(34,197,94,0.1); }
+.status-opt.active-CALIDAD { border-color:var(--warning); background:rgba(245,158,11,0.12); }
+.status-opt.active-RETRABAJO { border-color:var(--orange); background:rgba(249,115,22,0.12); }
+.status-opt.active-ASIGNADO { border-color:var(--primary); background:rgba(37,99,235,0.1); }
+
+/* Modales (Idéntico a wms_operaciones.html) */
+.modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); display:none; justify-content:center; align-items:center; z-index:3000; padding:15px; }
+.modal-content { background:var(--card); border:1px solid var(--border); padding:22px; border-radius:16px; width:100%; max-width:480px; color:var(--text); max-height:88vh; overflow-y:auto; }
+#reader { width:100%; background:black; border-radius:10px; overflow:hidden; margin-top:10px; }
+
+/* Adaptación Responsiva para Tablets y Celulares */
+@media (max-width: 768px) {
+  body { padding: 10px; }
+  .topbar { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; }
+  .controls { justify-content: space-between; flex-wrap: wrap; }
+  .user-badge { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .main-card { padding: 15px; }
+  .status-selector-grid { grid-template-columns: 1fr; }
+  input, select, textarea { font-size: 16px; }
+}
 </style>
 </head>
-<body>
+<body data-theme="light">
 
-<header>
-    <button class="btn-nav" onclick="location.href='dashboard.html'">⬅ <span>Volver</span></button>
-    <div style="font-weight: bold; font-size: 13px; color: var(--text-secondary);">KRAEM MRP</div>
-</header>
-
-<div class="container">
-    <h2><i class="fas fa-boxes"></i> Consulta de Inventario</h2>
-    
-    <div class="tabs">
-        <button id="tabPARTE" class="active" onclick="cambiarModo('PARTE')"><i class="fas fa-barcode"></i> P/N FIFO</button>
-        <button id="tabUBICACION" onclick="cambiarModo('UBICACION')"><i class="fas fa-map-marker-alt"></i> UBICACIÓN FIJA</button>
-        <button id="tabCARRITO" onclick="cambiarModo('CARRITO')"><i class="fas fa-truck-loading"></i> CARRITO MÓVIL</button>
+<div class="container" id="mainContainer">
+  <!-- Header idéntico a wms_operaciones.html -->
+  <div class="topbar">
+    <div class="top-left">
+      <a href="wms_operaciones.html" class="btn-back" onclick="KraemNav.back('wms_operaciones.html'); return false;" title="Volver"><i class="fas fa-arrow-left"></i></a>
+      <div class="title-box">
+        <h1 id="txtTitle">🔍 WMS Buscador QR, FIFO y Control de Stock</h1>
+        <p id="txtSub">Ruta sugerida FIFO, rastreo de ubicaciones/carritos, cuarentenas y órdenes de embarque</p>
+      </div>
     </div>
-    
-    <!-- MODO 1: NÚMERO DE PARTE -->
-    <div id="divBusquedaParte" style="position:relative;">
-        <label>Escribe o Escanea Número de Parte</label>
+    <div class="controls">
+      <button class="lang-btn" onclick="setLang('es')" title="Español (MX)"><img src="https://flagcdn.com/w80/mx.png"></button>
+      <button class="lang-btn" onclick="setLang('ko')" title="한국어 (KO)"><img src="https://flagcdn.com/w80/kr.png"></button>
+      <button class="lang-btn" onclick="setLang('en')" title="English (US)"><img src="https://flagcdn.com/w80/us.png"></button>
+      <button class="btn-ctrl" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- Barra de Operador Logueado idéntica a wms_operaciones.html -->
+  <div class="user-badge">
+    <span id="userDisplay"><i class="fas fa-spinner fa-spin"></i> Verificando sesión...</span>
+    <span id="userStatusTag"></span>
+  </div>
+
+  <!-- 4 Pestañas con el mismo estilo de wms_operaciones.html -->
+  <div class="tabs">
+    <button id="tabPARTE" class="active" onclick="cambiarModo('PARTE')">
+      <i class="fas fa-barcode"></i> <span id="tabTxtParte">1. P/N RUTA FIFO</span>
+    </button>
+    <button id="tabUBICACION" onclick="cambiarModo('UBICACION')">
+      <i class="fas fa-map-marker-alt"></i> <span id="tabTxtUbic">2. UBICACIÓN FIJA</span>
+    </button>
+    <button id="tabCARRITO" onclick="cambiarModo('CARRITO')">
+      <i class="fas fa-truck-loading"></i> <span id="tabTxtCarrito">3. CARRITO MÓVIL</span>
+    </button>
+    <button id="tabTORRE" onclick="cambiarModo('TORRE')">
+      <i class="fas fa-layer-group"></i> <span id="tabTxtTorre">4. INVENTARIO Y ESTATUS</span>
+    </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CARD PRINCIPAL DE CONSULTA                                            -->
+  <!-- ===================================================================== -->
+  <div class="main-card">
+
+    <!-- MODO 1: NÚMERO DE PARTE (FIFO) -->
+    <div id="divBusquedaParte" class="section-block block-info">
+      <div class="section-block-title" style="color:var(--primary);">
+        <span><i class="fas fa-barcode"></i> <span id="lblTitParte">BUSCADOR DE LOTE MÁS ANTIGUO (RUTA FIFO)</span></span>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label id="lblInputParte">Escribe o Escanea Número de Parte *</label>
         <div class="input-with-btn">
-            <input id="partSearch" placeholder="Ej: KRM-1023..." autocomplete="off">
-            <button class="btn-qr" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
+          <input id="partSearch" placeholder="Ej: KRM-1023 o escanea cualquier etiqueta QR..." autocomplete="off">
+          <button class="btn-qr" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
         </div>
         <div id="partResults" class="autobox"></div>
+      </div>
     </div>
 
-    <!-- MODO 2: UBICACIÓN FIJA (NUEVO) -->
-    <div id="divBusquedaUbicacion" style="position:relative; display:none;">
-        <label>Escribe o Escanea Localidad Fija</label>
+    <!-- MODO 2: UBICACIÓN FIJA -->
+    <div id="divBusquedaUbicacion" class="section-block block-origen" style="display:none;">
+      <div class="section-block-title" style="color:#d97706;">
+        <span><i class="fas fa-map-marker-alt"></i> <span id="lblTitUbic">CONSULTA DE MATERIALES EN UBICACIÓN FIJA</span></span>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label id="lblInputUbic">Escribe o Escanea Localidad Fija / Hilera *</label>
         <div class="input-with-btn">
-            <input id="locSearch" placeholder="Ej: RACK-A1, ESTANTE-02..." autocomplete="off">
-            <button class="btn-qr" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
+          <input id="locSearch" placeholder="Ej: RACK-A1, ESTANTE-02..." autocomplete="off">
+          <button class="btn-qr" style="background:var(--warning); color:#000;" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
         </div>
         <div id="locResults" class="autobox"></div>
+      </div>
     </div>
 
     <!-- MODO 3: CARRITO MÓVIL -->
-    <div id="divBusquedaCarrito" style="position:relative; display:none;">
-        <label>Escribe o Escanea Código de Carrito / Contenedor</label>
+    <div id="divBusquedaCarrito" class="section-block block-destino" style="display:none;">
+      <div class="section-block-title" style="color:var(--success);">
+        <span><i class="fas fa-truck-loading"></i> <span id="lblTitCarrito">CONSULTA DE CONTENIDO EN CARRITO / CONTENEDOR</span></span>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label id="lblInputCarrito">Escribe o Escanea Código de Carrito / Contenedor *</label>
         <div class="input-with-btn">
-            <input id="cartSearch" placeholder="Ej: CART-01..." autocomplete="off">
-            <button class="btn-qr" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
+          <input id="cartSearch" placeholder="Ej: CARRO-01..." autocomplete="off">
+          <button class="btn-qr" style="background:var(--success);" onclick="abrirEscaner()"><i class="fas fa-camera"></i></button>
         </div>
         <div id="cartResults" class="autobox"></div>
+      </div>
     </div>
 
-    <div id="resultadoDespacho" style="margin-top: 20px;"></div>
+    <!-- CONTENEDOR DE TARJETAS DE RESULTADO (MODOS 1, 2 Y 3) -->
+    <div id="resultadoDespacho"></div>
+
+    <!-- ===================================================================== -->
+    <!-- MODO 4: INVENTARIO GENERAL / UBICACIONES Y CONTROL DE ESTATUS         -->
+    <!-- ===================================================================== -->
+    <div id="divTorreInventario" style="display:none;">
+
+      <!-- 5 KPIs Interactivos por Estatus -->
+      <div class="kpi-grid">
+        <div class="kpi-card" id="kpi-TODOS" style="border-left-color:var(--purple);" onclick="filtrarPorKPI('TODOS')">
+          <div class="kpi-title" id="kpiTxtTotal">📦 STOCK FÍSICO TOTAL</div>
+          <div class="kpi-val" id="kpiValTotal">0</div>
+        </div>
+        <div class="kpi-card" id="kpi-DISPONIBLE" style="border-left-color:var(--success);" onclick="filtrarPorKPI('DISPONIBLE')">
+          <div class="kpi-title" id="kpiTxtDisp">🟢 HÁBIL / DISPONIBLE</div>
+          <div class="kpi-val" id="kpiValDisp" style="color:var(--success);">0</div>
+        </div>
+        <div class="kpi-card" id="kpi-CALIDAD" style="border-left-color:var(--warning);" onclick="filtrarPorKPI('CALIDAD')">
+          <div class="kpi-title" id="kpiTxtCal">🟡 EN CUARENTENA / CALIDAD</div>
+          <div class="kpi-val" id="kpiValCal" style="color:var(--warning);">0</div>
+        </div>
+        <div class="kpi-card" id="kpi-RETRABAJO" style="border-left-color:var(--orange);" onclick="filtrarPorKPI('RETRABAJO')">
+          <div class="kpi-title" id="kpiTxtRet">🟠 EN RETRABAJO</div>
+          <div class="kpi-val" id="kpiValRet" style="color:var(--orange);">0</div>
+        </div>
+        <div class="kpi-card" id="kpi-ASIGNADO" style="border-left-color:var(--primary);" onclick="filtrarPorKPI('ASIGNADO')">
+          <div class="kpi-title" id="kpiTxtAsig">🔵 ASIGNADO A EMBARQUE</div>
+          <div class="kpi-val" id="kpiValAsig" style="color:var(--primary);">0</div>
+        </div>
+      </div>
+
+      <!-- Barra de Sub-vista (Por Ubicación vs Consolidado por Área) y Excel -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; gap:6px;">
+          <button id="btnVistaUbic" class="btn-ctrl" style="background:var(--primary); color:white; font-weight:800; padding:8px 14px;" onclick="cambiarSubVista('UBICACION')">
+            <i class="fas fa-map-marker-alt"></i> <span id="txtBtnVistaUbic">Detalle por Ubicación / Lote</span>
+          </button>
+          <button id="btnVistaCons" class="btn-ctrl" style="font-weight:800; padding:8px 14px;" onclick="cambiarSubVista('CONSOLIDADO')">
+            <i class="fas fa-boxes"></i> <span id="txtBtnVistaCons">Consolidado por N/P y Área</span>
+          </button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-ctrl" onclick="cargarInventarioTorre()" style="font-weight:700;">
+            <i class="fas fa-sync-alt"></i> <span id="txtBtnRefresh">Actualizar</span>
+          </button>
+          <button class="btn-excel" onclick="exportarTorreExcel()">
+            <i class="fas fa-file-excel"></i> <span id="txtBtnExcel">Exportar Excel</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros -->
+      <div class="section-block" style="padding:12px;">
+        <div class="filter-bar-grid">
+          <div>
+            <label id="flPart">🔍 N° Parte / Descripción / Lote</label>
+            <input type="text" id="fPart" placeholder="Buscar..." oninput="renderizarTablaTorre()">
+          </div>
+          <div>
+            <label id="flProj">📁 Proyecto</label>
+            <input type="text" id="fProj" placeholder="Filtrar proyecto..." oninput="renderizarTablaTorre()">
+          </div>
+          <div>
+            <label id="flArea">🏭 Área</label>
+            <input type="text" id="fArea" placeholder="Filtrar área..." oninput="renderizarTablaTorre()">
+          </div>
+          <div>
+            <label id="flLoc">📍 Ubicación / Carrito / Orden</label>
+            <input type="text" id="fLoc" placeholder="Rack, carro o folio..." oninput="renderizarTablaTorre()">
+          </div>
+          <div>
+            <label id="flEst">🛡️ Estatus de Stock</label>
+            <select id="fStatus" onchange="renderizarTablaTorre()">
+              <option value="TODOS">TODOS LOS ESTATUS</option>
+              <option value="DISPONIBLE">🟢 HÁBIL / DISPONIBLE</option>
+              <option value="CALIDAD">🟡 CUARENTENA / CALIDAD</option>
+              <option value="RETRABAJO">🟠 EN RETRABAJO</option>
+              <option value="ASIGNADO">🔵 ASIGNADO A EMBARQUE</option>
+            </select>
+          </div>
+          <div>
+            <label id="flExcl" style="color:var(--danger);">🚫 Excluir</label>
+            <input type="text" id="fExclude" placeholder="Excluir texto..." oninput="renderizarTablaTorre()" style="border-left:3px solid var(--danger);">
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Resultados -->
+      <div class="table-wrap">
+        <table>
+          <thead id="theadTorre"></thead>
+          <tbody id="tbodyTorre"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
 </div>
 
+<!-- ======================================================================= -->
+<!-- MODAL DE ESCÁNER QR (IDÉNTICO A WMS_OPERACIONES)                        -->
+<!-- ======================================================================= -->
 <div id="modalQR" class="modal" onclick="if(event.target==this)cerrarEscaner()">
-    <div class="modal-content">
-        <h3 style="margin-top:0; text-align:center;">Escaneando Código QR</h3>
-        <div id="reader"></div>
-        <button onclick="cerrarEscaner()" style="margin-top:15px; width:100%; background:var(--danger); color:white; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:8px;">Cancelar</button>
+  <div class="modal-content">
+    <h3 id="txtModalQrTitle" style="margin:0; text-align:center;">📷 Escaneando Código QR</h3>
+    <div id="reader"></div>
+    <button onclick="cerrarEscaner()" style="margin-top:15px; width:100%; background:var(--danger); color:white; border:none; padding:12px; cursor:pointer; font-weight:800; border-radius:10px;">Cancelar</button>
+  </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- MODAL DE CAMBIO DE ESTATUS (CALIDAD / RETRABAJO / ASIGNADO A EMBARQUE)  -->
+<!-- ======================================================================= -->
+<div id="modalEstatus" class="modal" onclick="if(event.target==this)cerrarModalEstatus()">
+  <div class="modal-content">
+    <h3 style="margin:0 0 8px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+      <i class="fas fa-shield-alt"></i> <span id="mdlEstTitle">Control de Estatus y Embarque</span>
+    </h3>
+    <div id="mdlInfoMaterial" style="background:var(--bg); border:1px solid var(--border); padding:12px; border-radius:10px; font-size:12px; margin-bottom:14px; line-height:1.6;"></div>
+
+    <label id="lblSelEstatus">Selecciona el Estatus del Lote / Material *</label>
+    <div class="status-selector-grid">
+      <div class="status-opt" id="optSt-DISPONIBLE" onclick="seleccionarEstatusModal('DISPONIBLE')">
+        <div style="font-weight:800; font-size:12px; color:var(--success);">🟢 DISPONIBLE (HÁBIL)</div>
+        <div style="font-size:10px; color:var(--text-secondary);">Libre para FIFO y Embarque</div>
+      </div>
+      <div class="status-opt" id="optSt-CALIDAD" onclick="seleccionarEstatusModal('CALIDAD')">
+        <div style="font-weight:800; font-size:12px; color:var(--warning);">🟡 CUARENTENA / CALIDAD</div>
+        <div style="font-size:10px; color:var(--text-secondary);">Detenido (Bloquea salida FIFO)</div>
+      </div>
+      <div class="status-opt" id="optSt-RETRABAJO" onclick="seleccionarEstatusModal('RETRABAJO')">
+        <div style="font-weight:800; font-size:12px; color:var(--orange);">🟠 EN RETRABAJO</div>
+        <div style="font-size:10px; color:var(--text-secondary);">En sorteo o reproceso</div>
+      </div>
+      <div class="status-opt" id="optSt-ASIGNADO" onclick="seleccionarEstatusModal('ASIGNADO')">
+        <div style="font-weight:800; font-size:12px; color:var(--primary);">🔵 ASIGNADO EMBARQUE</div>
+        <div style="font-size:10px; color:var(--text-secondary);">Apartado con Orden de Embarque</div>
+      </div>
     </div>
+
+    <div id="divDatosEmbarque" class="section-block block-info" style="display:none; padding:12px; margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
+        <label style="color:var(--primary);">Folio Orden de Embarque *</label>
+        <input id="inpOrdenEmbarque" placeholder="Ej: EMB-2026-045">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label style="color:var(--primary);">Cliente / Destino</label>
+        <input id="inpClienteEmbarque" placeholder="Ej: HYUNDAI MOBIS / KIA">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label id="lblMotivoEst">Motivo / Nota de Auditoría (Obligatorio) *</label>
+      <textarea id="inpMotivoEstatus" rows="2" placeholder="Describe por qué cambia de estatus (ej. Detenido por porosidad, Liberado por Calidad, Asignado a embarque...)"></textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button onclick="cerrarModalEstatus()" style="flex:1; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-weight:800; cursor:pointer;">Cancelar</button>
+      <button id="btnGuardarEst" onclick="guardarEstatusInventario()" style="flex:1.4; padding:12px; border-radius:10px; border:none; background:var(--primary); color:white; font-weight:800; cursor:pointer;">
+        <i class="fas fa-save"></i> Guardar Estatus
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
-const _client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+const _client = (typeof client !== 'undefined') ? client : supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
 
 let parts = [];
 let containers = [];
-let fixedLocations = []; // Catálogo de ubicaciones fijas
-let modoConsulta = 'PARTE'; 
+let fixedLocations = [];
+let modoConsulta = 'PARTE';
+let subVistaTorre = 'UBICACION';
 let html5QrcodeScanner = null;
 let ultimoInventarioBuscado = [];
 let ultimoCriterioBuscado = '';
+let currentUser = null;
+let currentLang = localStorage.getItem('kraem_lang') || 'es';
 
+let mapaEstatus = {};
+let inventarioTorreAll = [];
+let itemSeleccionadoModal = null;
+let estatusElegidoModal = 'DISPONIBLE';
+
+const i18n = {
+  es: {
+    title: "🔍 WMS Buscador QR, FIFO y Control de Stock",
+    sub: "Ruta sugerida FIFO, rastreo de ubicaciones/carritos, cuarentenas y órdenes de embarque",
+    userOperator: "OPERADOR",
+    userTraceActive: "Sesión Activa",
+    userReadOnly: "⚠️ MODO CONSULTA (Inicia sesión para cambiar estatus)",
+    tabParte: "1. P/N RUTA FIFO",
+    tabUbic: "2. UBICACIÓN FIJA",
+    tabCarrito: "3. CARRITO MÓVIL",
+    tabTorre: "4. INVENTARIO Y ESTATUS",
+    lblTitParte: "BUSCADOR DE LOTE MÁS ANTIGUO (RUTA FIFO)",
+    lblInputParte: "Escribe o Escanea Número de Parte *",
+    lblTitUbic: "CONSULTA DE MATERIALES EN UBICACIÓN FIJA",
+    lblInputUbic: "Escribe o Escanea Localidad Fija / Hilera *",
+    lblTitCarrito: "CONSULTA DE CONTENIDO EN CARRITO / CONTENEDOR",
+    lblInputCarrito: "Escribe o Escanea Código de Carrito / Contenedor *",
+    kpiTxtTotal: "📦 STOCK FÍSICO TOTAL",
+    kpiTxtDisp: "🟢 HÁBIL / DISPONIBLE",
+    kpiTxtCal: "🟡 EN CUARENTENA / CALIDAD",
+    kpiTxtRet: "🟠 EN RETRABAJO",
+    kpiTxtAsig: "🔵 ASIGNADO A EMBARQUE",
+    txtBtnVistaUbic: "Detalle por Ubicación / Lote",
+    txtBtnVistaCons: "Consolidado por N/P y Área",
+    txtBtnRefresh: "Actualizar",
+    txtBtnExcel: "Exportar Excel"
+  },
+  ko: {
+    title: "🔍 WMS QR 스캐너, FIFO 및 재고 상태 관리",
+    sub: "권장 선입선출(FIFO) 경로, 위치/대차 추적, 품질보류(검역) 및 출하오더 배정",
+    userOperator: "작업자",
+    userTraceActive: "세션 활성화됨",
+    userReadOnly: "⚠️ 조회 전용 모드 (상태 변경은 로그인 필요)",
+    tabParte: "1. 품번 FIFO 경로",
+    tabUbic: "2. 고정 로케이션",
+    tabCarrito: "3. 이동 대차(카트)",
+    tabTorre: "4. 전체 재고 및 상태",
+    lblTitParte: "가장 오래된 로트 검색 (FIFO 경로)",
+    lblInputParte: "부품 번호 입력 또는 QR 스캔 *",
+    lblTitUbic: "고정 로케이션 내 자재 조회",
+    lblInputUbic: "고정 로케이션 / 열 입력 또는 스캔 *",
+    lblTitCarrito: "대차 / 컨테이너 적재물 조회",
+    lblInputCarrito: "대차 / 컨테이너 코드 입력 또는 스캔 *",
+    kpiTxtTotal: "📦 총 실물 재고",
+    kpiTxtDisp: "🟢 가용 재고 (정상)",
+    kpiTxtCal: "🟡 품질 보류 (검역)",
+    kpiTxtRet: "🟠 재작업 (Rework)",
+    kpiTxtAsig: "🔵 출하 할당됨",
+    txtBtnVistaUbic: "위치 / 로트별 상세",
+    txtBtnVistaCons: "품번 및 구역별 집계",
+    txtBtnRefresh: "새로고침",
+    txtBtnExcel: "엑셀 다운로드"
+  },
+  en: {
+    title: "🔍 WMS QR Finder, FIFO & Stock Status Control",
+    sub: "Suggested FIFO route, location/cart tracking, quarantine holds & shipping orders",
+    userOperator: "OPERATOR",
+    userTraceActive: "Active Session",
+    userReadOnly: "⚠️ READ-ONLY MODE (Sign in to change stock status)",
+    tabParte: "1. P/N FIFO ROUTE",
+    tabUbic: "2. FIXED LOCATION",
+    tabCarrito: "3. MOBILE CART",
+    tabTorre: "4. INVENTORY & STATUS",
+    lblTitParte: "OLDEST LOT FINDER (FIFO ROUTE)",
+    lblInputParte: "Type or Scan Part Number *",
+    lblTitUbic: "FIXED LOCATION MATERIAL INQUIRY",
+    lblInputUbic: "Type or Scan Fixed Location / Lane *",
+    lblTitCarrito: "CART / CONTAINER CONTENT INQUIRY",
+    lblInputCarrito: "Type or Scan Cart / Container Code *",
+    kpiTxtTotal: "📦 TOTAL PHYSICAL STOCK",
+    kpiTxtDisp: "🟢 AVAILABLE (UNRESTRICTED)",
+    kpiTxtCal: "🟡 QUARANTINE / QUALITY HOLD",
+    kpiTxtRet: "🟠 IN REWORK",
+    kpiTxtAsig: "🔵 ASSIGNED TO SHIPMENT",
+    txtBtnVistaUbic: "Detail by Location / Lot",
+    txtBtnVistaCons: "Consolidated by P/N & Area",
+    txtBtnRefresh: "Refresh",
+    txtBtnExcel: "Export Excel"
+  }
+};
+
+function setLang(lang) {
+  if (window.KraemI18n) { window.KraemI18n.setLang(lang); } else { localStorage.setItem('lang', lang); localStorage.setItem('kraem_lang', lang); }
+  currentLang = lang;
+  localStorage.setItem('kraem_lang', lang);
+  const t = i18n[lang] || i18n.es;
+  document.getElementById('txtTitle').innerText = t.title;
+  document.getElementById('txtSub').innerText = t.sub;
+  document.getElementById('tabTxtParte').innerText = t.tabParte;
+  document.getElementById('tabTxtUbic').innerText = t.tabUbic;
+  document.getElementById('tabTxtCarrito').innerText = t.tabCarrito;
+  document.getElementById('tabTxtTorre').innerText = t.tabTorre;
+  document.getElementById('lblTitParte').innerText = t.lblTitParte;
+  document.getElementById('lblInputParte').innerText = t.lblInputParte;
+  document.getElementById('lblTitUbic').innerText = t.lblTitUbic;
+  document.getElementById('lblInputUbic').innerText = t.lblInputUbic;
+  document.getElementById('lblTitCarrito').innerText = t.lblTitCarrito;
+  document.getElementById('lblInputCarrito').innerText = t.lblInputCarrito;
+  document.getElementById('kpiTxtTotal').innerText = t.kpiTxtTotal;
+  document.getElementById('kpiTxtDisp').innerText = t.kpiTxtDisp;
+  document.getElementById('kpiTxtCal').innerText = t.kpiTxtCal;
+  document.getElementById('kpiTxtRet').innerText = t.kpiTxtRet;
+  document.getElementById('kpiTxtAsig').innerText = t.kpiTxtAsig;
+  document.getElementById('txtBtnVistaUbic').innerText = t.txtBtnVistaUbic;
+  document.getElementById('txtBtnVistaCons').innerText = t.txtBtnVistaCons;
+  document.getElementById('txtBtnRefresh').innerText = t.txtBtnRefresh;
+  document.getElementById('txtBtnExcel').innerText = t.txtBtnExcel;
+}
+
+_client.auth.onAuthStateChange((event, session) => {
+  const userDisplay = document.getElementById('userDisplay');
+  const userStatusTag = document.getElementById('userStatusTag');
+  const t = i18n[currentLang] || i18n.es;
+
+  if (session && session.user) {
+    currentUser = session.user;
+    const userShort = session.user.email.split('@')[0].toUpperCase();
+    userDisplay.innerHTML = `<i class="fas fa-id-badge" style="color:var(--primary);"></i> ${t.userOperator}: <b>${userShort}</b> (${session.user.email})`;
+    userStatusTag.innerHTML = `<span class="badge-online"><i class="fas fa-shield-alt"></i> ${t.userTraceActive}</span>`;
+  } else {
+    currentUser = null;
+    userDisplay.innerHTML = t.userReadOnly;
+    userStatusTag.innerHTML = `<a href="index.html" class="badge-offline" style="text-decoration:none;"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a>`;
+  }
+});
+
+// =========================================================================
+// MAPA DE ESTATUS DE STOCK (DISPONIBLE, CALIDAD, RETRABAJO, ASIGNADO)
+// =========================================================================
+function generarKeyEstatus(partNumOrId, locationCode, containerCode, lotNumber) {
+  const loc = (locationCode || 'SIN UBICACION').toString().trim().toUpperCase();
+  const cont = (containerCode || 'SIN CONTENEDOR').toString().trim().toUpperCase();
+  const lot = (lotNumber || 'S/L').toString().trim().toUpperCase();
+  return `${String(partNumOrId).trim().toUpperCase()}||${loc}||${cont}||${lot}`;
+}
+
+async function cargarMapaEstatus() {
+  mapaEstatus = {};
+  const { data: movs } = await _client
+    .from('inventory_movements')
+    .select('part_id, lot_number, comment, created_at, status_stock, orden_embarque_folio, cliente_destino')
+    .ilike('comment', '%[KRAEM_STATUS:%')
+    .order('created_at', { ascending: true });
+
+  if (movs) {
+    movs.forEach(m => {
+      if (!m.comment || !m.comment.includes('[KRAEM_STATUS:')) return;
+      const ini = m.comment.indexOf('[KRAEM_STATUS:') + 14;
+      const fin = m.comment.indexOf(']', ini);
+      if (fin === -1) return;
+      const partes = m.comment.substring(ini, fin).split('|');
+      const motivo = m.comment.substring(fin + 1).trim();
+      const st = m.status_stock || partes[0] || 'DISPONIBLE';
+      let loc = '', cont = '', oe = m.orden_embarque_folio || '', cli = m.cliente_destino || '', np = '';
+      partes.slice(1).forEach(kv => {
+        const idx = kv.indexOf(':');
+        if (idx !== -1) {
+          const k = kv.substring(0, idx).toUpperCase();
+          const v = kv.substring(idx + 1);
+          if (k === 'LOC') loc = v;
+          if (k === 'CONT') cont = v;
+          if (k === 'OE' && !oe) oe = v;
+          if (k === 'CLI' && !cli) cli = v;
+          if (k === 'NP') np = v;
+        }
+      });
+      const info = { status: st, oe, cli, motivo };
+      if (m.part_id) mapaEstatus[generarKeyEstatus(m.part_id, loc, cont, m.lot_number)] = info;
+      if (np) mapaEstatus[generarKeyEstatus(np, loc, cont, m.lot_number)] = info;
+    });
+  }
+}
+
+function obtenerInfoEstatusItem(item) {
+  const loc = item.location || 'SIN UBICACION';
+  const cont = item.container_code || 'SIN CONTENEDOR';
+  const lot = item.lot_number || 'S/L';
+  if (item.part_id) {
+    const k1 = generarKeyEstatus(item.part_id, loc, cont, lot);
+    if (mapaEstatus[k1]) return mapaEstatus[k1];
+  }
+  if (item.part_number) {
+    const k2 = generarKeyEstatus(item.part_number, loc, cont, lot);
+    if (mapaEstatus[k2]) return mapaEstatus[k2];
+  }
+  return { status: 'DISPONIBLE', oe: '', cli: '', motivo: '' };
+}
+
+function renderPillEstatus(stInfo) {
+  const st = stInfo.status || 'DISPONIBLE';
+  if (st === 'CALIDAD') return `<span class="st-pill st-CALIDAD"><i class="fas fa-exclamation-triangle"></i> CUARENTENA / CALIDAD</span>`;
+  if (st === 'RETRABAJO') return `<span class="st-pill st-RETRABAJO"><i class="fas fa-tools"></i> EN RETRABAJO</span>`;
+  if (st === 'ASIGNADO') return `<span class="st-pill st-ASIGNADO"><i class="fas fa-truck"></i> ASIGNADO ${stInfo.oe ? '(' + stInfo.oe + ')' : ''}</span>`;
+  return `<span class="st-pill st-DISPONIBLE"><i class="fas fa-check-circle"></i> DISPONIBLE (HÁBIL)</span>`;
+}
+
+// =========================================================================
+// CARGA DE CATÁLOGOS
+// =========================================================================
 async function cargarCatalogos() {
-    const {data: p} = await _client.from('parts').select('id, part_number, description').limit(2000);
-    if(p) parts = p;
+  setLang(currentLang);
+  await cargarMapaEstatus();
 
-    // 1. Carritos Móviles o Contenedores
-    const {data: c} = await _client.from('locations').select('id, location_code, type').or('type.eq.Móvil,type.eq.Contenedor');
-    if(c) containers = c;
+  const pParts = window.fetchAllRows 
+    ? await window.fetchAllRows('parts', { client: _client, select: 'id, part_number, description', orderBy: 'part_number' })
+    : ((await _client.from('parts').select('id, part_number, description')).data || []);
+  if(pParts) parts = pParts;
 
-    // 2. Ubicaciones Fijas (Se excluyen las de tipo Móvil o Contenedor)
-    const {data: l} = await _client.from('locations').select('id, location_code, type').not('type', 'in', '("Móvil","Contenedor")');
-    if(l) fixedLocations = l;
+  const {data: c} = await _client.from('locations').select('id, location_code, type').or('type.eq.Móvil,type.eq.Contenedor');
+  if(c) containers = c;
+
+  const {data: l} = await _client.from('locations').select('id, location_code, type').not('type', 'in', '("Móvil","Contenedor")');
+  if(l) fixedLocations = l;
 }
 cargarCatalogos();
 
 function cambiarModo(modo) {
-    modoConsulta = modo;
-    document.getElementById('tabPARTE').classList.toggle('active', modo === 'PARTE');
-    document.getElementById('tabUBICACION').classList.toggle('active', modo === 'UBICACION');
-    document.getElementById('tabCARRITO').classList.toggle('active', modo === 'CARRITO');
-    
-    document.getElementById('divBusquedaParte').style.display = modo === 'PARTE' ? 'block' : 'none';
-    document.getElementById('divBusquedaUbicacion').style.display = modo === 'UBICACION' ? 'block' : 'none';
-    document.getElementById('divBusquedaCarrito').style.display = modo === 'CARRITO' ? 'block' : 'none';
-    
+  modoConsulta = modo;
+  document.getElementById('tabPARTE').classList.toggle('active', modo === 'PARTE');
+  document.getElementById('tabUBICACION').classList.toggle('active', modo === 'UBICACION');
+  document.getElementById('tabCARRITO').classList.toggle('active', modo === 'CARRITO');
+  document.getElementById('tabTORRE').classList.toggle('active', modo === 'TORRE');
+  
+  document.getElementById('divBusquedaParte').style.display = modo === 'PARTE' ? 'block' : 'none';
+  document.getElementById('divBusquedaUbicacion').style.display = modo === 'UBICACION' ? 'block' : 'none';
+  document.getElementById('divBusquedaCarrito').style.display = modo === 'CARRITO' ? 'block' : 'none';
+  document.getElementById('resultadoDespacho').style.display = modo === 'TORRE' ? 'none' : 'block';
+  document.getElementById('divTorreInventario').style.display = modo === 'TORRE' ? 'block' : 'none';
+
+  document.getElementById('mainContainer').classList.toggle('wide-mode', modo === 'TORRE');
+
+  if (modo === 'TORRE') {
+    cargarInventarioTorre();
+  } else {
     document.getElementById('resultadoDespacho').innerHTML = '';
+  }
 }
 
 // Autocompletado Número de Parte
 partSearch.oninput = () => {
-    const v = partSearch.value.toUpperCase();
-    partResults.innerHTML = '';
-    if(!v) { partResults.style.display = 'none'; return; }
-    
-    const m = parts.filter(p => p.part_number.toUpperCase().includes(v) || (p.description && p.description.toUpperCase().includes(v))).slice(0,8);
-    m.forEach(p => {
-        const d = document.createElement('div');
-        d.innerHTML = `<b>${p.part_number}</b> <span style="font-size:11px; color:var(--text-secondary)">- ${p.description || 'Sin descripción'}</span>`;
-        d.onclick = () => {
-            partSearch.value = p.part_number;
-            partResults.style.display = 'none';
-            buscarEstrategiaFIFO(p.id, p.part_number, p.description);
-        };
-        partResults.appendChild(d);
-    });
-    partResults.style.display = m.length ? 'block' : 'none';
+  const v = partSearch.value.toUpperCase();
+  partResults.innerHTML = '';
+  if(!v) { partResults.style.display = 'none'; return; }
+  
+  const m = parts.filter(p => p.part_number.toUpperCase().includes(v) || (p.description && p.description.toUpperCase().includes(v))).slice(0,10);
+  m.forEach(p => {
+    const d = document.createElement('div');
+    d.innerHTML = `<b>${p.part_number}</b> <span style="font-size:11px; color:var(--text-secondary)">- ${p.description || 'Sin descripción'}</span>`;
+    d.onclick = () => {
+      partSearch.value = p.part_number;
+      partResults.style.display = 'none';
+      buscarEstrategiaFIFO(p.id, p.part_number, p.description);
+    };
+    partResults.appendChild(d);
+  });
+  partResults.style.display = m.length ? 'block' : 'none';
 };
 
-// Autocompletado Ubicaciones Fijas (Nuevo)
+// Autocompletado Ubicaciones Fijas
 locSearch.oninput = () => {
-    const v = locSearch.value.toUpperCase();
-    locResults.innerHTML = '';
-    if(!v) { locResults.style.display = 'none'; return; }
-    const m = fixedLocations.filter(l => l.location_code.toUpperCase().includes(v)).slice(0,8);
-    m.forEach(l => {
-        const d = document.createElement('div');
-        d.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${l.location_code}`;
-        d.onclick = () => {
-            locSearch.value = l.location_code;
-            locResults.style.display = 'none';
-            buscarContenidoUbicacion(l.location_code);
-        };
-        locResults.appendChild(d);
-    });
-    locResults.style.display = m.length ? 'block' : 'none';
+  const v = locSearch.value.toUpperCase();
+  locResults.innerHTML = '';
+  if(!v) { locResults.style.display = 'none'; return; }
+  const m = fixedLocations.filter(l => l.location_code.toUpperCase().includes(v)).slice(0,10);
+  m.forEach(l => {
+    const d = document.createElement('div');
+    d.innerHTML = `📍 <b>${l.location_code}</b>`;
+    d.onclick = () => {
+      locSearch.value = l.location_code;
+      locResults.style.display = 'none';
+      buscarContenidoUbicacion(l.location_code);
+    };
+    locResults.appendChild(d);
+  });
+  locResults.style.display = m.length ? 'block' : 'none';
 };
 
 // Autocompletado Carritos
 cartSearch.oninput = () => {
-    const v = cartSearch.value.toUpperCase();
-    cartResults.innerHTML = '';
-    if(!v) { cartResults.style.display = 'none'; return; }
-    const m = containers.filter(c => c.location_code.includes(v)).slice(0,8);
-    m.forEach(c => {
-        const d = document.createElement('div');
-        d.innerHTML = `<i class="fas fa-truck-loading"></i> ${c.location_code}`;
-        d.onclick = () => {
-            cartSearch.value = c.location_code;
-            cartResults.style.display = 'none';
-            buscarContenidoCarrito(c.id, c.location_code);
-        };
-        cartResults.appendChild(d);
-    });
-    cartResults.style.display = m.length ? 'block' : 'none';
+  const v = cartSearch.value.toUpperCase();
+  cartResults.innerHTML = '';
+  if(!v) { cartResults.style.display = 'none'; return; }
+  const m = containers.filter(c => c.location_code.toUpperCase().includes(v)).slice(0,10);
+  m.forEach(c => {
+    const d = document.createElement('div');
+    d.innerHTML = `🛒 <b>${c.location_code}</b>`;
+    d.onclick = () => {
+      cartSearch.value = c.location_code;
+      cartResults.style.display = 'none';
+      buscarContenidoCarrito(c.id, c.location_code);
+    };
+    cartResults.appendChild(d);
+  });
+  cartResults.style.display = m.length ? 'block' : 'none';
 };
 
 document.addEventListener('click', function(e) {
-    if (e.target.id !== 'partSearch') partResults.style.display = 'none';
-    if (e.target.id !== 'locSearch') locResults.style.display = 'none';
-    if (e.target.id !== 'cartSearch') cartResults.style.display = 'none';
+  if (e.target.id !== 'partSearch') partResults.style.display = 'none';
+  if (e.target.id !== 'locSearch') locResults.style.display = 'none';
+  if (e.target.id !== 'cartSearch') cartResults.style.display = 'none';
 });
 
+// =========================================================================
 // CONSULTA 1: ESTRATEGIA FIFO POR PARTE
+// =========================================================================
 async function buscarEstrategiaFIFO(partId, partNumber, partDesc) {
-    const divResultados = document.getElementById('resultadoDespacho');
-    divResultados.innerHTML = '<p style="text-align:center;">Buscando en almacenes y carritos...</p>';
-    
-    ultimoCriterioBuscado = partNumber;
-    const { data: inventario, error } = await _client
-        .from('v_inventory_by_location')
-        .select('*')
-        .eq('part_id', partId)
-        .gt('quantity', 0)
-        .order('lot_number', { ascending: true });
+  const divResultados = document.getElementById('resultadoDespacho');
+  divResultados.innerHTML = '<p style="text-align:center; padding:15px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Buscando en almacenes y carritos...</p>';
+  
+  await cargarMapaEstatus();
+  ultimoCriterioBuscado = partNumber;
+  const { data: inventario, error } = await _client
+    .from('v_inventory_by_location')
+    .select('*')
+    .eq('part_id', partId)
+    .gt('quantity', 0)
+    .order('lot_number', { ascending: true });
 
-    if (error || !inventario || inventario.length === 0) {
-        divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--danger); font-weight: bold;">❌ No hay existencias de la parte ${partNumber}.</div>`;
-        return;
+  if (error || !inventario || inventario.length === 0) {
+    divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--danger); font-weight: 800; background:rgba(239,68,68,0.08); border-radius:12px;">❌ No hay existencias de la parte ${partNumber}.</div>`;
+    return;
+  }
+
+  const descripcionFinal = partDesc || inventario[0].part_name || 'Sin descripción disponible';
+  ultimoInventarioBuscado = inventario;
+  
+  const totalFisico = inventario.reduce((acc, r) => acc + (Number(r.quantity) || 0), 0);
+
+  divResultados.innerHTML = `
+    <div class="results-header">
+      <div>
+        <span style="font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-weight:800;">Ruta FIFO Sugerida (${inventario.length} lotes • Total: ${totalFisico.toLocaleString()} pzas):</span>
+      </div>
+      <button class="btn-excel" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+    </div>
+  `;
+
+  let primerFifoHabilAsignado = false;
+
+  inventario.forEach((item) => {
+    item.part_number = partNumber;
+    item.part_name = descripcionFinal;
+    const stInfo = obtenerInfoEstatusItem(item);
+    const esBloqueado = (stInfo.status === 'CALIDAD' || stInfo.status === 'RETRABAJO');
+
+    let esPrimero = false;
+    if (!esBloqueado && !primerFifoHabilAsignado) {
+      esPrimero = true;
+      primerFifoHabilAsignado = true;
     }
 
-    const descripcionFinal = partDesc || inventario[0].part_name || 'Sin descripción disponible';
-    ultimoInventarioBuscado = inventario;
-    
-    divResultados.innerHTML = `
-        <div class="results-header">
-            <h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin:0;">Ruta FIFO sugerida:</h3>
-            <button class="btn-excel" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
-        </div>
-    `;
+    const card = document.createElement('div');
+    card.className = `fifo-result-card ${esPrimero ? 'oldest' : ''} ${esBloqueado ? 'blocked-lot' : ''}`;
+    const itemEncoded = encodeURIComponent(JSON.stringify(item));
 
-    inventario.forEach((item, index) => {
-        const esPrimero = index === 0;
-        const card = document.createElement('div');
-        card.className = `fifo-card ${esPrimero ? 'oldest' : ''}`;
-        card.innerHTML = `
-            ${esPrimero ? '<span class="badge-status"><i class="fas fa-exclamation-triangle"></i> ¡TOMAR PRIMERO (FIFO)!</span>' : ''}
-            <div class="part-title">${partNumber}</div>
-            <div class="part-desc">${descripcionFinal}</div>
-            <div class="info-grid">
-                <div class="info-block"><span class="info-label">📍 Ubicación Fija</span><span class="info-value loc-info">${item.location || 'Área Común'}</span></div>
-                <div class="info-block"><span class="info-label">🛒 Contenedor / Carro</span><span class="info-value" style="color:#e67e22;"><i class="fas fa-truck-loading"></i> ${item.container_code || 'N/A (Suelto)'}</span></div>
-                <div class="info-block"><span class="info-label">🔢 Número de Lote</span><span class="info-value">${item.lot_number || 'Sin Lote'}</span></div>
-                <div class="qty-info"><span class="info-label" style="display:block; font-size:9px; text-align:right;">CANTIDAD</span>${item.quantity.toLocaleString()} pzas</div>
-            </div>
-        `;
-        divResultados.appendChild(card);
-    });
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+        <div>
+          ${esPrimero ? '<span class="badge-fifo-top"><i class="fas fa-star"></i> ¡TOMAR PRIMERO (FIFO)!</span>' : ''}
+          ${esBloqueado ? '<span class="badge-blocked-top"><i class="fas fa-ban"></i> BLOQUEADO PARA SALIDA</span>' : ''}
+        </div>
+        ${renderPillEstatus(stInfo)}
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:18px; font-weight:900;">${partNumber}</div>
+          <div style="font-size:12px; color:var(--text-secondary);">${descripcionFinal} • 🏭 Área: <b>${item.area || 'N/A'}</b></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:22px; font-weight:900; color:var(--success);">${item.quantity.toLocaleString()} <span style="font-size:12px;">pzas</span></div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-block">
+          <span class="info-label">📍 Ubicación Fija</span>
+          <span class="info-value loc-link" onclick="irAUbicacion('${item.location || ''}')">${item.location || 'Área Común'}</span>
+        </div>
+        <div class="info-block">
+          <span class="info-label">🛒 Contenedor / Carro</span>
+          <span class="info-value" style="color:#d97706;"><i class="fas fa-truck-loading"></i> ${item.container_code || 'N/A (Suelto)'}</span>
+        </div>
+        <div class="info-block">
+          <span class="info-label">🔢 Número de Lote</span>
+          <span class="info-value">${item.lot_number || 'Sin Lote'}</span>
+        </div>
+      </div>
+
+      ${stInfo.oe ? `<div style="margin-top:8px; font-size:12px; color:var(--primary); font-weight:800;"><i class="fas fa-truck-Moving"></i> Orden de Embarque: ${stInfo.oe} ${stInfo.cli ? '• Cliente: ' + stInfo.cli : ''}</div>` : ''}
+      ${stInfo.motivo ? `<div style="margin-top:4px; font-size:11px; color:var(--text-secondary); font-style:italic;">💬 Nota: "${stInfo.motivo}"</div>` : ''}
+
+      <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+        <button class="btn-status-card" onclick="abrirModalEstatus('${itemEncoded}')">
+          <i class="fas fa-shield-alt"></i> Cambiar Estatus / Embarque
+        </button>
+      </div>
+    `;
+    divResultados.appendChild(card);
+  });
 }
 
-// CONSULTA 2: CONTENIDO ESPECÍFICO DE UNA UBICACIÓN FIJA (NUEVO)
+// =========================================================================
+// CONSULTA 2: CONTENIDO DE UNA UBICACIÓN FIJA
+// =========================================================================
 async function buscarContenidoUbicacion(locationCode) {
-    const divResultados = document.getElementById('resultadoDespacho');
-    divResultados.innerHTML = '<p style="text-align:center;">Verificando materiales en la ubicación fija...</p>';
-    
-    ultimoCriterioBuscado = locationCode;
-    const { data: inventario, error } = await _client
-        .from('v_inventory_by_location')
-        .select('*')
-        .eq('location', locationCode)
-        .gt('quantity', 0)
-        .order('part_number', { ascending: true });
+  const divResultados = document.getElementById('resultadoDespacho');
+  divResultados.innerHTML = '<p style="text-align:center; padding:15px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Verificando materiales en la ubicación fija...</p>';
+  
+  await cargarMapaEstatus();
+  ultimoCriterioBuscado = locationCode;
+  const { data: inventario, error } = await _client
+    .from('v_inventory_by_location')
+    .select('*')
+    .eq('location', locationCode)
+    .gt('quantity', 0)
+    .order('part_number', { ascending: true });
 
-    if (error || !inventario || inventario.length === 0) {
-        divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--warning); font-weight: bold;">📍 La ubicación fija [${locationCode}] está VACÍA actualmente en sistema.</div>`;
-        return;
-    }
+  if (error || !inventario || inventario.length === 0) {
+    divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--warning); font-weight: 800; background:rgba(245,158,11,0.08); border-radius:12px;">📍 La ubicación fija [${locationCode}] está VACÍA actualmente en sistema.</div>`;
+    return;
+  }
 
-    ultimoInventarioBuscado = inventario;
-    divResultados.innerHTML = `
-        <div class="results-header">
-            <h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin:0;">Materiales en esta Ubicación:</h3>
-            <button class="btn-excel" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+  ultimoInventarioBuscado = inventario;
+  divResultados.innerHTML = `
+    <div class="results-header">
+      <span style="font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-weight:800;">Materiales en Ubicación [${locationCode}]:</span>
+      <button class="btn-excel" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+    </div>
+  `;
+
+  inventario.forEach((item) => {
+    const stInfo = obtenerInfoEstatusItem(item);
+    const itemEncoded = encodeURIComponent(JSON.stringify(item));
+    const card = document.createElement('div');
+    card.className = 'fifo-result-card';
+    card.style.borderLeftColor = 'var(--warning)';
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-size:17px; font-weight:900; color:var(--primary); cursor:pointer;" onclick="irAParte('${item.part_number}')">
+          <i class="fas fa-cube"></i> P/N: ${item.part_number}
         </div>
+        ${renderPillEstatus(stInfo)}
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:12px; color:var(--text-secondary);">${item.part_name || 'Sin descripción disponible'}</div>
+        <div style="font-size:20px; font-weight:900; color:var(--success);">${item.quantity.toLocaleString()} pzas</div>
+      </div>
+      <div class="info-grid">
+        <div class="info-block"><span class="info-label">🛒 Contenedor / Carro</span><span class="info-value" style="color:#d97706;">${item.container_code || 'N/A (Suelto)'}</span></div>
+        <div class="info-block"><span class="info-label">🔢 Lote del Material</span><span class="info-value">${item.lot_number || 'Sin Lote'}</span></div>
+        <div class="info-block"><span class="info-label">🏭 Área</span><span class="info-value">${item.area || 'N/A'}</span></div>
+      </div>
+      ${stInfo.oe ? `<div style="margin-top:8px; font-size:12px; color:var(--primary); font-weight:800;">🚚 Orden de Embarque: ${stInfo.oe} ${stInfo.cli ? '• Cliente: ' + stInfo.cli : ''}</div>` : ''}
+      ${stInfo.motivo ? `<div style="margin-top:4px; font-size:11px; color:var(--text-secondary); font-style:italic;">💬 Nota: "${stInfo.motivo}"</div>` : ''}
+      <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+        <button class="btn-status-card" onclick="abrirModalEstatus('${itemEncoded}')">
+          <i class="fas fa-shield-alt"></i> Cambiar Estatus / Embarque
+        </button>
+      </div>
     `;
-
-    inventario.forEach((item) => {
-        const card = document.createElement('div');
-        card.className = 'fifo-card';
-        card.style.borderLeft = '5px solid var(--info)';
-        card.innerHTML = `
-            <div class="part-title"><i class="fas fa-cube"></i> P/N: ${item.part_number}</div>
-            <div class="part-desc">${item.part_name || 'Sin descripción disponible'}</div>
-            <div class="info-grid">
-                <div class="info-block"><span class="info-label">🛒 Contenedor / Carro</span><span class="info-value" style="color:#e67e22;"><i class="fas fa-truck-loading"></i> ${item.container_code || 'N/A (Suelto)'}</span></div>
-                <div class="info-block"><span class="info-label">🔢 Lote del Material</span><span class="info-value">${item.lot_number || 'Sin Lote'}</span></div>
-                <div class="info-block"><span class="info-label">🏭 Área</span><span class="info-value" style="font-size:12px;">${item.area || 'N/A'}</span></div>
-                <div class="qty-info"><span class="info-label" style="display:block; font-size:9px; text-align:right;">CANTIDAD</span>${item.quantity.toLocaleString()} pzas</div>
-            </div>
-        `;
-        divResultados.appendChild(card);
-    });
+    divResultados.appendChild(card);
+  });
 }
 
-// CONSULTA 3: CONTENIDO ESPECÍFICO DE UN CARRITO
+// =========================================================================
+// CONSULTA 3: CONTENIDO DE UN CARRITO
+// =========================================================================
 async function buscarContenidoCarrito(containerId, containerCode) {
-    const divResultados = document.getElementById('resultadoDespacho');
-    divResultados.innerHTML = '<p style="text-align:center;">Verificando carga del carrito...</p>';
-    
-    ultimoCriterioBuscado = containerCode;
-    const { data: inventario, error } = await _client
-        .from('v_inventory_by_location')
-        .select('*')
-        .eq('container_id', containerId)
-        .gt('quantity', 0)
-        .order('lot_number', { ascending: true });
+  const divResultados = document.getElementById('resultadoDespacho');
+  divResultados.innerHTML = '<p style="text-align:center; padding:15px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Verificando carga del carrito...</p>';
+  
+  await cargarMapaEstatus();
+  ultimoCriterioBuscado = containerCode;
+  const { data: inventario, error } = await _client
+    .from('v_inventory_by_location')
+    .select('*')
+    .eq('container_id', containerId)
+    .gt('quantity', 0)
+    .order('lot_number', { ascending: true });
 
-    if (error || !inventario || inventario.length === 0) {
-        divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--warning); font-weight: bold;">🛒 El carrito [${containerCode}] está VACÍO actualmente en sistema.</div>`;
-        return;
-    }
+  if (error || !inventario || inventario.length === 0) {
+    divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--warning); font-weight: 800; background:rgba(245,158,11,0.08); border-radius:12px;">🛒 El carrito [${containerCode}] está VACÍO actualmente en sistema.</div>`;
+    return;
+  }
 
-    ultimoInventarioBuscado = inventario;
-    divResultados.innerHTML = `
-        <div class="results-header">
-            <h3 style="font-size:12px; text-transform:uppercase; color: var(--text-secondary); margin:0;">Materiales en este Carrito:</h3>
-            <button class="btn-excel" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+  ultimoInventarioBuscado = inventario;
+  divResultados.innerHTML = `
+    <div class="results-header">
+      <span style="font-size:11px; text-transform:uppercase; color:var(--text-secondary); font-weight:800;">Materiales en Carrito [${containerCode}]:</span>
+      <button class="btn-excel" onclick="descargarExcel()"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+    </div>
+  `;
+
+  inventario.forEach((item) => {
+    const stInfo = obtenerInfoEstatusItem(item);
+    const itemEncoded = encodeURIComponent(JSON.stringify(item));
+    const card = document.createElement('div');
+    card.className = 'fifo-result-card';
+    card.style.borderLeftColor = 'var(--success)';
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-size:17px; font-weight:900; color:var(--primary); cursor:pointer;" onclick="irAParte('${item.part_number}')">
+          <i class="fas fa-cube"></i> P/N: ${item.part_number}
         </div>
+        ${renderPillEstatus(stInfo)}
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:12px; color:var(--text-secondary);">${item.part_name || 'Sin descripción disponible'}</div>
+        <div style="font-size:20px; font-weight:900; color:var(--success);">${item.quantity.toLocaleString()} pzas</div>
+      </div>
+      <div class="info-grid">
+        <div class="info-block"><span class="info-label">📍 Estacionado en Ubicación</span><span class="info-value loc-link" onclick="irAUbicacion('${item.location || ''}')">${item.location || 'En Movimiento'}</span></div>
+        <div class="info-block"><span class="info-label">🔢 Lote del Material</span><span class="info-value">${item.lot_number || 'Sin Lote'}</span></div>
+        <div class="info-block"><span class="info-label">🏭 Área</span><span class="info-value">${item.area || 'N/A'}</span></div>
+      </div>
+      ${stInfo.oe ? `<div style="margin-top:8px; font-size:12px; color:var(--primary); font-weight:800;">🚚 Orden de Embarque: ${stInfo.oe} ${stInfo.cli ? '• Cliente: ' + stInfo.cli : ''}</div>` : ''}
+      ${stInfo.motivo ? `<div style="margin-top:4px; font-size:11px; color:var(--text-secondary); font-style:italic;">💬 Nota: "${stInfo.motivo}"</div>` : ''}
+      <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+        <button class="btn-status-card" onclick="abrirModalEstatus('${itemEncoded}')">
+          <i class="fas fa-shield-alt"></i> Cambiar Estatus / Embarque
+        </button>
+      </div>
     `;
-
-    inventario.forEach((item) => {
-        const card = document.createElement('div');
-        card.className = 'fifo-card';
-        card.style.borderLeft = '5px solid #e67e22';
-        card.innerHTML = `
-            <div class="part-title"><i class="fas fa-cube"></i> P/N: ${item.part_number}</div>
-            <div class="part-desc">${item.part_name || 'Sin descripción disponible'}</div>
-            <div class="info-grid">
-                <div class="info-block"><span class="info-label">📍 Estacionado en Ubicación</span><span class="info-value loc-info">${item.location || 'En Movimiento'}</span></div>
-                <div class="info-block"><span class="info-label">🔢 Lote del Material</span><span class="info-value">${item.lot_number || 'Sin Lote'}</span></div>
-                <div class="info-block"><span class="info-label">🏭 Área</span><span class="info-value" style="font-size:12px;">${item.area || 'N/A'}</span></div>
-                <div class="qty-info"><span class="info-label" style="display:block; font-size:9px; text-align:right;">CANTIDAD</span>${item.quantity.toLocaleString()} pzas</div>
-            </div>
-        `;
-        divResultados.appendChild(card);
-    });
+    divResultados.appendChild(card);
+  });
 }
 
+function irAParte(partNumber) {
+  const p = parts.find(x => x.part_number === partNumber);
+  if (p) {
+    cambiarModo('PARTE');
+    partSearch.value = p.part_number;
+    buscarEstrategiaFIFO(p.id, p.part_number, p.description);
+  }
+}
+
+function irAUbicacion(locCode) {
+  if (!locCode) return;
+  cambiarModo('UBICACION');
+  locSearch.value = locCode;
+  buscarContenidoUbicacion(locCode);
+}
+
+// =========================================================================
+// MODO 4: INVENTARIO GENERAL / UBICACIONES Y CONTROL DE ESTATUS
+// =========================================================================
+async function cargarInventarioTorre() {
+  const tbody = document.getElementById('tbodyTorre');
+  tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:25px;"><i class="fas fa-spinner fa-spin"></i> Cargando inventario...</td></tr>`;
+
+  await cargarMapaEstatus();
+  const [resProy, resLotes] = await Promise.all([
+    _client.from('v_inventory_by_location_proyectos').select('*'),
+    _client.from('v_inventory_by_location').select('*').gt('quantity', 0)
+  ]);
+
+  const mapaProyecto = {};
+  if (resProy.data) {
+    resProy.data.forEach(r => {
+      if (r.part_number) mapaProyecto[r.part_number] = r.project || '-';
+    });
+  }
+
+  const baseList = (resLotes.data && resLotes.data.length > 0) ? resLotes.data : (resProy.data || []);
+  inventarioTorreAll = baseList.map(r => {
+    const stInfo = obtenerInfoEstatusItem(r);
+    return {
+      ...r,
+      project: r.project || mapaProyecto[r.part_number] || '-',
+      status_stock: stInfo.status || 'DISPONIBLE',
+      oe: stInfo.oe || '',
+      cli: stInfo.cli || '',
+      motivo: stInfo.motivo || ''
+    };
+  });
+
+  actualizarKPIsTorre();
+  renderizarTablaTorre();
+}
+
+function actualizarKPIsTorre() {
+  let tot = 0, disp = 0, cal = 0, ret = 0, asig = 0;
+  inventarioTorreAll.forEach(r => {
+    const q = Number(r.quantity) || 0;
+    tot += q;
+    if (r.status_stock === 'CALIDAD') cal += q;
+    else if (r.status_stock === 'RETRABAJO') ret += q;
+    else if (r.status_stock === 'ASIGNADO') asig += q;
+    else disp += q;
+  });
+  document.getElementById('kpiValTotal').innerText = tot.toLocaleString();
+  document.getElementById('kpiValDisp').innerText = disp.toLocaleString();
+  document.getElementById('kpiValCal').innerText = cal.toLocaleString();
+  document.getElementById('kpiValRet').innerText = ret.toLocaleString();
+  document.getElementById('kpiValAsig').innerText = asig.toLocaleString();
+}
+
+function filtrarPorKPI(estatus) {
+  document.querySelectorAll('.kpi-card').forEach(b => b.classList.remove('active-kpi'));
+  const box = document.getElementById('kpi-' + estatus);
+  if (box) box.classList.add('active-kpi');
+  document.getElementById('fStatus').value = estatus;
+  cambiarSubVista('UBICACION');
+}
+
+function cambiarSubVista(vista) {
+  subVistaTorre = vista;
+  const bUbic = document.getElementById('btnVistaUbic');
+  const bCons = document.getElementById('btnVistaCons');
+  if (vista === 'UBICACION') {
+    bUbic.style.background = 'var(--primary)'; bUbic.style.color = '#fff';
+    bCons.style.background = 'var(--bg)'; bCons.style.color = 'var(--text)';
+  } else {
+    bCons.style.background = 'var(--primary)'; bCons.style.color = '#fff';
+    bUbic.style.background = 'var(--bg)'; bUbic.style.color = 'var(--text)';
+  }
+  renderizarTablaTorre();
+}
+
+function obtenerFiltradosTorre() {
+  const p = (document.getElementById('fPart').value || '').toLowerCase();
+  const pr = (document.getElementById('fProj').value || '').toLowerCase();
+  const a = (document.getElementById('fArea').value || '').toLowerCase();
+  const l = (document.getElementById('fLoc').value || '').toLowerCase();
+  const st = document.getElementById('fStatus').value;
+  const ex = (document.getElementById('fExclude').value || '').toLowerCase();
+
+  return inventarioTorreAll.filter(r => {
+    if (st !== 'TODOS' && r.status_stock !== st) return false;
+    const partStr = `${r.part_number || ''} ${r.part_name || ''} ${r.lot_number || ''}`.toLowerCase();
+    const projStr = (r.project || '').toLowerCase();
+    const areaStr = (r.area || '').toLowerCase();
+    const locStr = `${r.location || ''} ${r.container_code || 'suelto'} ${r.oe || ''} ${r.cli || ''}`.toLowerCase();
+    const fullStr = `${partStr} ${projStr} ${areaStr} ${locStr}`;
+
+    if (p && !partStr.includes(p)) return false;
+    if (pr && !projStr.includes(pr)) return false;
+    if (a && !areaStr.includes(a)) return false;
+    if (l && !locStr.includes(l)) return false;
+    if (ex && fullStr.includes(ex)) return false;
+    return true;
+  });
+}
+
+function renderizarTablaTorre() {
+  const thead = document.getElementById('theadTorre');
+  const tbody = document.getElementById('tbodyTorre');
+  const filtrados = obtenerFiltradosTorre();
+
+  if (subVistaTorre === 'UBICACION') {
+    thead.innerHTML = `
+      <tr>
+        <th>N° Parte</th>
+        <th>Descripción</th>
+        <th>Proyecto</th>
+        <th>Área</th>
+        <th>Ubicación Fija</th>
+        <th>Carrito / Contenedor</th>
+        <th>Lote</th>
+        <th>Estatus / Embarque</th>
+        <th style="text-align:right;">Cantidad</th>
+        <th style="text-align:center;">Control</th>
+      </tr>
+    `;
+    if (!filtrados.length) {
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:25px; color:var(--text-secondary);">Sin registros con los filtros actuales.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = filtrados.map(r => {
+      const itemEncoded = encodeURIComponent(JSON.stringify(r));
+      const stInfo = { status: r.status_stock, oe: r.oe, cli: r.cli, motivo: r.motivo };
+      return `
+        <tr>
+          <td><b style="color:var(--primary); cursor:pointer;" onclick="irAParte('${r.part_number}')">${r.part_number}</b></td>
+          <td style="color:var(--text-secondary); font-size:11px;">${r.part_name || ''}</td>
+          <td><span class="tag-project">${r.project || '-'}</span></td>
+          <td><b>${r.area || ''}</b></td>
+          <td style="color:var(--primary); font-weight:700; cursor:pointer;" onclick="irAUbicacion('${r.location}')">📍 ${r.location}</td>
+          <td>${r.container_code ? `<b style="color:#d97706;">🛒 ${r.container_code}</b>` : '<span style="color:var(--text-secondary);">📦 Suelto</span>'}</td>
+          <td><b>${r.lot_number || 'S/L'}</b></td>
+          <td>
+            ${renderPillEstatus(stInfo)}
+            ${r.oe ? `<div style="font-size:11px; color:var(--primary); font-weight:800; margin-top:2px;">🚚 ${r.oe} ${r.cli ? '('+r.cli+')' : ''}</div>` : ''}
+            ${r.motivo ? `<div style="font-size:10px; color:var(--text-secondary); font-style:italic;">"${r.motivo}"</div>` : ''}
+          </td>
+          <td style="text-align:right;"><span class="qty-pill">${Number(r.quantity).toLocaleString()}</span></td>
+          <td style="text-align:center;">
+            <button class="btn-status-card" onclick="abrirModalEstatus('${itemEncoded}')"><i class="fas fa-shield-alt"></i> Estatus</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    thead.innerHTML = `
+      <tr>
+        <th>N° Parte</th>
+        <th>Descripción</th>
+        <th>Proyecto</th>
+        <th>Área</th>
+        <th style="text-align:right;">🟢 Hábil</th>
+        <th style="text-align:right;">🟡 Cuarentena</th>
+        <th style="text-align:right;">🟠 Retrabajo</th>
+        <th style="text-align:right;">🔵 Asignado</th>
+        <th style="text-align:right;">📦 Total Físico</th>
+      </tr>
+    `;
+    const mapCons = {};
+    filtrados.forEach(r => {
+      const k = `${r.part_number}||${r.area || 'N/A'}`;
+      if (!mapCons[k]) {
+        mapCons[k] = { part_number: r.part_number, part_name: r.part_name || '', project: r.project || '-', area: r.area || 'N/A', disp: 0, cal: 0, ret: 0, asig: 0, total: 0 };
+      }
+      const q = Number(r.quantity) || 0;
+      mapCons[k].total += q;
+      if (r.status_stock === 'CALIDAD') mapCons[k].cal += q;
+      else if (r.status_stock === 'RETRABAJO') mapCons[k].ret += q;
+      else if (r.status_stock === 'ASIGNADO') mapCons[k].asig += q;
+      else mapCons[k].disp += q;
+    });
+    const listCons = Object.values(mapCons);
+    if (!listCons.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:25px; color:var(--text-secondary);">Sin resultados consolidados.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = listCons.map(c => `
+      <tr>
+        <td><b style="color:var(--primary); cursor:pointer;" onclick="irAParte('${c.part_number}')">${c.part_number}</b></td>
+        <td style="color:var(--text-secondary); font-size:11px;">${c.part_name}</td>
+        <td><span class="tag-project">${c.project}</span></td>
+        <td><b>${c.area}</b></td>
+        <td style="text-align:right; color:var(--success); font-weight:800;">${c.disp.toLocaleString()}</td>
+        <td style="text-align:right; color:var(--warning); font-weight:800;">${c.cal.toLocaleString()}</td>
+        <td style="text-align:right; color:var(--orange); font-weight:800;">${c.ret.toLocaleString()}</td>
+        <td style="text-align:right; color:var(--primary); font-weight:800;">${c.asig.toLocaleString()}</td>
+        <td style="text-align:right; font-weight:900; font-size:13px;">${c.total.toLocaleString()}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+// =========================================================================
+// MODAL DE ESTATUS Y ASIGNACIÓN DE EMBARQUE
+// =========================================================================
+function abrirModalEstatus(itemEncoded) {
+  if (!currentUser) {
+    alert("🔒 CANDADO DE SEGURIDAD: Debes iniciar sesión para cambiar el estatus de calidad/cuarentena o asignar órdenes de embarque.");
+    return;
+  }
+  const item = JSON.parse(decodeURIComponent(itemEncoded));
+  itemSeleccionadoModal = item;
+  const stInfo = obtenerInfoEstatusItem(item);
+
+  document.getElementById('mdlInfoMaterial').innerHTML = `
+    <div>📦 <b>Parte:</b> ${item.part_number} — <b>${item.quantity} pzas</b></div>
+    <div>📍 <b>Ubicación:</b> ${item.location || 'N/A'} | 🛒 <b>Carrito:</b> ${item.container_code || 'Suelto'}</div>
+    <div>🔢 <b>Lote:</b> ${item.lot_number || 'S/L'} | 🏭 <b>Área:</b> ${item.area || 'N/A'}</div>
+  `;
+  document.getElementById('inpOrdenEmbarque').value = stInfo.oe || '';
+  document.getElementById('inpClienteEmbarque').value = stInfo.cli || '';
+  document.getElementById('inpMotivoEstatus').value = '';
+  seleccionarEstatusModal(stInfo.status || 'DISPONIBLE');
+  document.getElementById('modalEstatus').style.display = 'flex';
+}
+
+function seleccionarEstatusModal(st) {
+  estatusElegidoModal = st;
+  ['DISPONIBLE', 'CALIDAD', 'RETRABAJO', 'ASIGNADO'].forEach(k => {
+    const el = document.getElementById('optSt-' + k);
+    el.className = 'status-opt' + (k === st ? ' active-' + k : '');
+  });
+  document.getElementById('divDatosEmbarque').style.display = (st === 'ASIGNADO') ? 'block' : 'none';
+}
+
+function cerrarModalEstatus() {
+  document.getElementById('modalEstatus').style.display = 'none';
+  itemSeleccionadoModal = null;
+}
+
+async function guardarEstatusInventario() {
+  if (!itemSeleccionadoModal || !currentUser) return;
+  const oe = document.getElementById('inpOrdenEmbarque').value.trim().toUpperCase();
+  const cli = document.getElementById('inpClienteEmbarque').value.trim().toUpperCase();
+  const motivo = document.getElementById('inpMotivoEstatus').value.trim();
+
+  if (!motivo) return alert("⚠️ Por favor escribe el motivo o nota de auditoría.");
+  if (estatusElegidoModal === 'ASIGNADO' && !oe) return alert("⚠️ Indica el Folio de la Orden de Embarque.");
+
+  const locCode = (itemSeleccionadoModal.location || 'SIN UBICACION').toUpperCase();
+  const contCode = (itemSeleccionadoModal.container_code || 'SIN CONTENEDOR').toUpperCase();
+  const partId = itemSeleccionadoModal.part_id || (parts.find(p => p.part_number === itemSeleccionadoModal.part_number)?.id);
+
+  const tag = `[KRAEM_STATUS:${estatusElegidoModal}|NP:${itemSeleccionadoModal.part_number || ''}|LOC:${locCode}|CONT:${contCode}|OE:${estatusElegidoModal === 'ASIGNADO' ? oe : ''}|CLI:${estatusElegidoModal === 'ASIGNADO' ? cli : ''}] ${motivo}`;
+
+  const payload = {
+    part_id: partId,
+    area: itemSeleccionadoModal.area || 'ALMACEN PT',
+    quantity: 0,
+    from_location_id: itemSeleccionadoModal.location_id || null,
+    to_location_id: itemSeleccionadoModal.location_id || null,
+    from_container_id: itemSeleccionadoModal.container_id || null,
+    to_container_id: itemSeleccionadoModal.container_id || null,
+    movement_type: 'AJUSTE',
+    comment: tag,
+    user_id: currentUser.id,
+    lot_number: itemSeleccionadoModal.lot_number || null,
+    created_at: new Date().toISOString()
+  };
+
+  const { error } = await _client.from('inventory_movements').insert([payload]);
+  if (error) {
+    alert("❌ Error al guardar estatus: " + error.message);
+    return;
+  }
+
+  cerrarModalEstatus();
+
+  if (modoConsulta === 'PARTE') {
+    buscarEstrategiaFIFO(partId, itemSeleccionadoModal.part_number, itemSeleccionadoModal.part_name);
+  } else if (modoConsulta === 'UBICACION') {
+    buscarContenidoUbicacion(itemSeleccionadoModal.location);
+  } else if (modoConsulta === 'CARRITO') {
+    buscarContenidoCarrito(itemSeleccionadoModal.container_id, itemSeleccionadoModal.container_code);
+  } else {
+    cargarInventarioTorre();
+  }
+}
+
+// =========================================================================
+// EXPORTACIÓN A EXCEL Y ESCÁNER QR DE 3 VÍAS
+// =========================================================================
 function descargarExcel() {
-    if (!ultimoInventarioBuscado || ultimoInventarioBuscado.length === 0) return alert("No hay datos para exportar.");
+  if (!ultimoInventarioBuscado || ultimoInventarioBuscado.length === 0) return alert("No hay datos para exportar.");
+  const fechaEmision = new Date().toLocaleString('es-MX');
+  const rows = [
+    ["KRAEM S.A. DE C.V. - SISTEMA DE GESTIÓN DE CALIDAD ISO 9001 / IATF 16949"],
+    ["DOCUMENTO CONTROLADO:", "KR-SYS-WMS-0001", "REVISIÓN:", "REV 01", "FECHA EMISIÓN:", fechaEmision],
+    ["TÍTULO DEL REPORTE:", `REPORTE DE RUTA FIFO Y TRAZABILIDAD (${modoConsulta}: ${ultimoCriterioBuscado})`],
+    [],
+    ["Orden/Prioridad", "Número de Parte", "Descripción", "Área", "Ubicación Fija", "Contenedor / Carrito", "Número de Lote", "Estatus", "Orden Embarque", "Cantidad (Pzas)"]
+  ];
+  ultimoInventarioBuscado.forEach((item, index) => {
+    const stInfo = obtenerInfoEstatusItem(item);
+    rows.push([
+      index + 1,
+      item.part_number || 'N/A',
+      item.part_name || 'N/A',
+      item.area || 'N/A',
+      item.location || 'Área Común',
+      item.container_code || 'N/A (Suelto)',
+      item.lot_number || 'Sin Lote',
+      stInfo.status || 'DISPONIBLE',
+      stInfo.oe || '',
+      item.quantity
+    ]);
+  });
+  rows.push([]);
+  rows.push(["PIE DE CONTROL ISO:", "DOCUMENTO CONTROLADO | CÓDIGO: KR-SYS-WMS-0001 | REV 01 | AVALADO EN LISTA MAESTRA KR-SGC-LM-0001"]);
+  const hoja = XLSX.utils.aoa_to_sheet(rows);
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, "KR-SYS-WMS-0001");
+  XLSX.writeFile(libro, `KR-SYS-WMS-0001_Consulta_${modoConsulta}_${ultimoCriterioBuscado}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
 
-    const datosExcel = ultimoInventarioBuscado.map((item, index) => ({
-        "Orden/Prioridad": index + 1,
-        "Número de Parte": item.part_number || 'N/A',
-        "Descripción": item.part_name || 'N/A',
-        "Área": item.area || 'N/A',
-        "Ubicación Fija": item.location || 'Área Común',
-        "Contenedor / Carrito": item.container_code || 'N/A (Suelto)',
-        "Número de Lote": item.lot_number || 'Sin Lote',
-        "Cantidad (Pzas)": item.quantity,
-        "Fecha Registro": item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A'
-    }));
-
-    const hoja = XLSX.utils.json_to_sheet(datosExcel);
-    const libro = XLSX.utils.book_new();
-    XXLSX.utils.book_append_sheet(libro, hoja, "Consulta");
-    
-    const max_widths = Object.keys(datosExcel[0]).map(key => Math.max(...datosExcel.map(row => row[key] ? row[key].toString().length : 0), key.length) + 3);
-    hoja['!cols'] = max_widths.map(w => ({ w: w }));
-
-    const nombreArchivo = `Consulta_${modoConsulta}_${ultimoCriterioBuscado}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(libro, nombreArchivo);
+function exportarTorreExcel() {
+  const filtrados = obtenerFiltradosTorre();
+  if (!filtrados.length) return alert("No hay datos para exportar.");
+  const fechaEmision = new Date().toLocaleString('es-MX');
+  const rows = [
+    ["KRAEM S.A. DE C.V. - SISTEMA DE GESTIÓN DE CALIDAD ISO 9001 / IATF 16949"],
+    ["DOCUMENTO CONTROLADO:", "KR-SYS-WMS-0002", "REVISIÓN:", "REV 01", "FECHA EMISIÓN:", fechaEmision],
+    ["TÍTULO DEL REPORTE:", "REPORTE MAESTRO DE INVENTARIO Y TORRE DE CONTROL DE ESTATUS (DISPONIBLE / CUARENTENA / RETRABAJO / EMBARQUE)"],
+    [],
+    ["N° Parte", "Descripción", "Proyecto", "Área", "Ubicación", "Contenedor / Carro", "Lote", "Estatus", "Orden Embarque", "Cliente", "Nota", "Cantidad"]
+  ];
+  filtrados.forEach(r => {
+    rows.push([
+      r.part_number || '',
+      r.part_name || '',
+      r.project || '',
+      r.area || '',
+      r.location || '',
+      r.container_code || 'Suelto',
+      r.lot_number || 'S/L',
+      r.status_stock || 'DISPONIBLE',
+      r.oe || '',
+      r.cli || '',
+      r.motivo || '',
+      r.quantity
+    ]);
+  });
+  rows.push([]);
+  rows.push(["PIE DE CONTROL ISO:", "DOCUMENTO CONTROLADO | CÓDIGO: KR-SYS-WMS-0002 | REV 01 | AVALADO EN LISTA MAESTRA KR-SGC-LM-0001"]);
+  const hoja = XLSX.utils.aoa_to_sheet(rows);
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, "KR-SYS-WMS-0002");
+  XLSX.writeFile(libro, `KR-SYS-WMS-0002_Inventario_Estatus_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 function abrirEscaner() {
-    document.getElementById('modalQR').style.display = 'flex';
-    html5QrcodeScanner = new Html5Qrcode("reader");
-    html5QrcodeScanner.start(
-        { facingMode: "environment" }, 
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-            cerrarEscaner();
-            const cleanCode = decodedText.trim().toUpperCase();
-            
-            let codigoABuscar = cleanCode;
-            if (cleanCode.includes('|')) {
-                codigoABuscar = cleanCode.split('|')[0].trim();
-            }
+  document.getElementById('modalQR').style.display = 'flex';
+  html5QrcodeScanner = new Html5Qrcode("reader");
+  html5QrcodeScanner.start(
+    { facingMode: "environment" }, 
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    async (decodedText) => {
+      cerrarEscaner();
+      const rawText = decodedText.trim();
+      let codigoABuscar = '';
+      let loteABuscar = '';
+      let locABuscar = '';
+      let qtyABuscar = null;
 
-            // Lógica inteligente de detección de 3 vías:
-            const carritoEncontrado = containers.find(c => c.location_code === codigoABuscar);
-            const ubicacionFijaEncontrada = fixedLocations.find(l => l.location_code === codigoABuscar);
-            const parteEncontrada = parts.find(p => p.part_number === codigoABuscar);
-
-            if (carritoEncontrado) {
-                cambiarModo('CARRITO');
-                cartSearch.value = carritoEncontrado.location_code;
-                buscarContenidoCarrito(carritoEncontrado.id, carritoEncontrado.location_code);
-            } else if (ubicacionFijaEncontrada) {
-                cambiarModo('UBICACION');
-                locSearch.value = ubicacionFijaEncontrada.location_code;
-                buscarContenidoUbicacion(ubicacionFijaEncontrada.location_code);
-            } else if (parteEncontrada) {
-                cambiarModo('PARTE');
-                partSearch.value = parteEncontrada.part_number;
-                buscarEstrategiaFIFO(parteEncontrada.id, parteEncontrada.part_number, parteEncontrada.description);
-            } else {
-                alert(`El código "${codigoABuscar}" no coincide con ningún Número de Parte, Ubicación Fija o Carrito registrado.`);
-            }
+      // 1. Decodificar si es JSON (Etiquetas Zebra / WMS Recibo / Pallet)
+      if (rawText.startsWith('{') && rawText.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(rawText);
+          codigoABuscar = (parsed.np || parsed.part_number || parsed.p || '').trim().toUpperCase();
+          loteABuscar = (parsed.lote || parsed.lot || parsed.lot_number || '').trim().toUpperCase();
+          locABuscar = (parsed.loc || parsed.location || '').trim().toUpperCase();
+          qtyABuscar = parsed.qty || parsed.cantidad || null;
+        } catch (e) {
+          console.warn("Error al parsear JSON del QR:", e);
         }
-    ).catch(err => {
-        alert("Error al abrir cámara: " + err);
-        cerrarEscaner();
-    });
+      }
+
+      // 2. Decodificar si es formato industrial con pipes 'P:NP|L:LOTE|LOC:UBIC' o 'NP|LOTE'
+      if (!codigoABuscar && rawText.includes('|')) {
+        const segments = rawText.split('|');
+        for (const seg of segments) {
+          const s = seg.trim();
+          if (/^P[:=]/i.test(s)) codigoABuscar = s.replace(/^P[:=]/i, '').trim().toUpperCase();
+          else if (/^L[:=]/i.test(s)) loteABuscar = s.replace(/^L[:=]/i, '').trim().toUpperCase();
+          else if (/^LOC[:=]/i.test(s)) locABuscar = s.replace(/^LOC[:=]/i, '').trim().toUpperCase();
+          else if (!codigoABuscar) codigoABuscar = s.toUpperCase();
+          else if (!loteABuscar) loteABuscar = s.toUpperCase();
+        }
+      }
+
+      // 3. Fallback a texto limpio directo
+      if (!codigoABuscar) {
+        codigoABuscar = rawText.toUpperCase();
+      }
+
+      // Buscar en carritos
+      const carritoEncontrado = containers.find(c => c.location_code === codigoABuscar || (locABuscar && c.location_code === locABuscar));
+      if (carritoEncontrado) {
+        cambiarModo('CARRITO');
+        cartSearch.value = carritoEncontrado.location_code;
+        buscarContenidoCarrito(carritoEncontrado.id, carritoEncontrado.location_code);
+        return;
+      }
+
+      // Buscar en ubicaciones fijas (racks / tolvas)
+      const ubicacionFijaEncontrada = fixedLocations.find(l => l.location_code === codigoABuscar || (locABuscar && l.location_code === locABuscar));
+      if (ubicacionFijaEncontrada && !codigoABuscar.includes('-') && !parts.some(p => p.part_number === codigoABuscar)) {
+        cambiarModo('UBICACION');
+        locSearch.value = ubicacionFijaEncontrada.location_code;
+        buscarContenidoUbicacion(ubicacionFijaEncontrada.location_code);
+        return;
+      }
+
+      // Buscar en catálogo de partes
+      let parteEncontrada = parts.find(p => p.part_number === codigoABuscar);
+
+      // Si no está en memoria, consultar directamente a Supabase (por si se acaba de crear en compras o recibo)
+      if (!parteEncontrada && typeof _client !== 'undefined' && _client) {
+        try {
+          const { data: dbParts } = await _client
+            .from('parts')
+            .select('id, part_number, description, part_name, product_type')
+            .ilike('part_number', codigoABuscar)
+            .limit(1);
+
+          if (dbParts && dbParts.length > 0) {
+            parteEncontrada = dbParts[0];
+            parts.push(parteEncontrada);
+          }
+        } catch (e) {
+          console.warn("Error en búsqueda remota de parte:", e);
+        }
+      }
+
+      if (parteEncontrada) {
+        cambiarModo('PARTE');
+        partSearch.value = parteEncontrada.part_number;
+        await buscarEstrategiaFIFO(parteEncontrada.id, parteEncontrada.part_number, parteEncontrada.description || parteEncontrada.part_name);
+
+        if (loteABuscar) {
+          // Resaltar lote escaneado si existe en el resultado
+          setTimeout(() => {
+            const rows = document.querySelectorAll('#resultadoDespacho tr, #resultadoDespacho .card-stock');
+            rows.forEach(r => {
+              if (r.textContent.includes(loteABuscar)) {
+                r.style.outline = '3px solid #16a34a';
+                r.style.backgroundColor = 'rgba(22,163,74,0.12)';
+                r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            });
+          }, 300);
+        }
+        return;
+      }
+
+      // Si no es parte pero coincidió con ubicación fija:
+      if (ubicacionFijaEncontrada) {
+        cambiarModo('UBICACION');
+        locSearch.value = ubicacionFijaEncontrada.location_code;
+        buscarContenidoUbicacion(ubicacionFijaEncontrada.location_code);
+        return;
+      }
+
+      alert(`El código escaneado "${codigoABuscar}" no coincide con ningún Número de Parte (PT, Resina, Componente), Ubicación Fija o Carrito registrado.`);
+    }
+  ).catch(err => {
+    alert("Error al abrir cámara: " + err);
+    cerrarEscaner();
+  });
 }
 
 function cerrarEscaner() {
-    document.getElementById('modalQR').style.display = 'none';
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.stop().then(() => { html5QrcodeScanner = null; }).catch(err => console.error(err));
-    }
+  document.getElementById('modalQR').style.display = 'none';
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.stop().then(() => { html5QrcodeScanner = null; }).catch(err => console.error(err));
+  }
 }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+<script src="iso_sop_ayuda.js"></script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
 </script>
 </body>
 </html>
+

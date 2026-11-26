@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <title>Panel Estratégico 5S | KRAEM</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -55,11 +56,12 @@
         <p style="margin:5px 0 0; color: var(--text-secondary); font-size: 14px;">Panel de Control Inteligente (Filtros de Máquina e Indicador de Jigs)</p>
     </div>
     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <button onclick="generatePDF()" class="btn-action" style="background: #2563eb;"><i class="fas fa-file-pdf"></i> Reporte Semanal</button>
-        <button onclick="exportToExcel()" class="btn-action" style="background: #15803d;"><i class="fas fa-file-excel"></i> Resumen CSV</button>
-        <button onclick="exportarMatrizDetallada()" class="btn-action" style="background: #6b21a8;"><i class="fas fa-table"></i> Exportar Matriz Completa</button>
+        <button onclick="generatePDF()" class="btn-action" style="background: #2563eb;" data-i18n="reporte_semanal"><i class="fas fa-file-pdf"></i> Reporte Semanal</button>
+        <button onclick="generateAuditableQuestionsPDF()" class="btn-action" style="background: #0284c7;" data-i18n="reporte_auditable_detallado"><i class="fas fa-clipboard-check"></i> Reporte Auditable (Preguntas)</button>
+        <button onclick="exportToExcel()" class="btn-action" style="background: #15803d;" data-i18n="resumen_csv"><i class="fas fa-file-excel"></i> Resumen CSV</button>
+        <button onclick="exportarMatrizDetallada()" class="btn-action" style="background: #6b21a8;" data-i18n="exportar_matriz_completa"><i class="fas fa-table"></i> Exportar Matriz Completa</button>
         <button onclick="loadData()" class="btn-action" style="background: #4f46e5;"><i class="fas fa-sync-alt"></i></button>
-        <a href="dashboard.html" class="btn-action" style="background: #64748b;"><i class="fas fa-home"></i> Inicio</a>
+        <a href="dashboard.html" class="btn-action" style="background: #64748b;" data-i18n="btn_inicio"><i class="fas fa-home"></i> Inicio</a>
     </div>
 </div>
 
@@ -139,7 +141,56 @@ const preguntasTexto = [
     ["S5_P1_Habito_de_limpieza", "S5_P2_Sigue_instrucciones", "S5_P3_Respeta_ubicacion", "S5_P4_Reporta_anomalias", "S5_P5_Conoce_5S"]
 ];
 
+// 1. MATRIZ: Estación de Trabajo (Diaria)
+let preguntasEstacion = [
+    ["¿Solo material necesario?", "¿Scrap identificado?", "¿Sin objetos innecesarios?", "¿Herramientas en uso?", "¿Mesa despejada?"],
+    ["¿Herramientas en su lugar?", "¿Material en su lugar?", "¿Área libre de obstáculos?", "¿Contenedores correctamente identificados?", "¿Instrucciones visibles?"],
+    ["¿Área libre de polvo?", "¿Piso limpio?", "¿Contenedores limpios?", "¿Máquina limpia?", "¿Mesa limpia?"],
+    ["¿Instrucciones actualizadas?", "¿Uso de uniforme?", "¿Etiquetas correctas?", "¿Área delimitada?", "¿Cumple estándar?"],
+    ["¿Hábito de limpieza?", "¿Sigue instrucciones?", "¿Respeta ubicación?", "¿Reporta anomalías?", "¿Conoce 5S?"]
+];
+
+let preguntasJigs = [
+    "¿Solo Jigs de producción actual en uso? (Sin Jigs obsoletos/ajenos)",
+    "¿Jigs guardados en su ubicación asignada o soporte correcto?",
+    "¿Jigs limpios de residuos, y conectores/sensores libres de grasa/polvo?",
+    "¿Jigs identificados/etiquetados y con cables/conexiones en buen estado?",
+    "¿El operador reporta fallas en sensores de Jigs y los maneja con cuidado?"
+];
+
+// 2. MATRIZ: Máquinas de Inyección (Diaria)
+let preguntasMaquina = [
+    ["¿Área de máquina libre de refacciones viejas, moldes o mangueras sin usar?", "¿Purga de plástico retirada del área de goteo?", "¿Herramientas de cambio de molde ausentes si no está en Setup?", "¿Herramientas del operador guardadas?", "¿Sin documentos obsoletos en tablero?"],
+    ["¿Mangueras de agua/aceite ordenadas y sin riesgo de tropiezo?", "¿Contenedores de materia prima (Tolva/Alimentador) bien ubicados?", "¿Hieleras, racks de producto y tarimas alineados en su delimitación?", "¿Pistolas de aire y herramientas colgadas en su sitio?", "¿Paros de emergencia accesibles y sin obstrucción?"],
+    ["¿Piso e interior de la máquina libres de fugas de aceite o agua?", "¿Estructura, tolva y guardas libres de polvo o residuos de resina?", "¿Unidad de inyección, pistón y husillo limpios de purgas quemadas?", "¿Bandejas de goteo limpias y sin desborde?", "¿Tablero eléctrico y pantallas limpios y cerrados?"],
+    ["¿Hojas de parámetros y ayudas visuales legibles y vigentes en la máquina?", "¿Puntos de lubricación identificados y con niveles correctos?", "¿Código de colores visible en mangueras de enfriamiento?", "¿Delimitación de seguridad del perímetro de la máquina en buen estado?", "¿Checklist diario de máquina liberado por operador/mtto?"],
+    ["¿El personal limpia la máquina al terminar el turno?", "¿Se respetan los accesos de mantenimiento sin dejar obstrucciones?", "¿Se reportan y atienden fugas críticas de inmediato?", "¿Se usan los botes de basura correctos para purgas/residuos?", "¿El equipo de mtto/producción sigue el estándar de orden de la máquina?"]
+];
+
+// 3. MATRIZ: Auditoría de Supervisores / Liderazgo (Semanal)
+let preguntasSupervisor = [
+    ["¿Aplica correctamente el proceso de Tarjetas Rojas en su área asignada?", "¿Gestiona el retiro de sobrantes de material al cierre de lote/turno?", "¿Mantiene tableros técnicos y de KPI sin hojas viejas o no vigentes?", "¿Asegura que no haya equipo descompuesto/obsoleto acumulado en pasillos?", "¿Coordina el retorno de contenedores y tarimas vacías a su almacén?"],
+    ["¿Verifica que las líneas/estaciones tengan demarcación de piso completa?", "¿Asegura que el herramental y Jigs tengan un lugar asignado y etiquetado?", "¿Garantiza que el material en proceso (WIP) esté en áreas autorizadas?", "¿Valida el orden y fácil acceso a los equipos de seguridad (EPP/Extintores)?", "¿Mantiene el escritorio/mesa de supervisión ordenada y sin exceso de papel?"],
+    ["¿Programa y supervisa rutinas de limpieza profunda en sus líneas?", "¿Asegura que el personal cuente con insumos de limpieza adecuados?", "¿Da seguimiento al reporte y reparación de fugas de aire, agua o aceite?", "¿Verifica la limpieza de contenedores y racks antes de enviar a empaque?", "¿Promueve el hábito de 'limpiar durante y al final del turno' con su equipo?"],
+    ["¿Realiza y registra sus auditorías capas (LPA/5S) en tiempo y forma?", "¿Asegura que las ayudas visuales y hojas de instrucción estén publicadas?", "¿Verifica el uso correcto y completo de EPP del personal a su cargo?", "¿Mantiene al día la matriz de habilidades y estandarización del área?", "¿Asegura que las desviaciones detectadas tengan responsable y fecha límite?"],
+    ["¿Retroalimenta a su personal cuando detecta incumplimientos de 5S?", "¿Participa activamente en recorridos de seguimiento y juntas de hallazgos?", "¿Aplica disciplina operativa de forma justa y constante en su turno?", "¿Reconoce y motiva a las estaciones o equipos con mejor desempeño 5S?", "¿Demuestra compromiso personal manteniendo el ejemplo en su área y conducta?"]
+];
+
+// Sincronizar con KraemSettings si hay preguntas configuradas dinámicamente
+function cargarPreguntasConfiguradas() {
+    if (window.KraemSettings) {
+        const q5s = KraemSettings.get('rh_5s', 'preguntas_5s');
+        if (q5s) {
+            if (Array.isArray(q5s.estacion) && q5s.estacion.length) preguntasEstacion = q5s.estacion;
+            if (Array.isArray(q5s.jigs) && q5s.jigs.length) preguntasJigs = q5s.jigs;
+            if (Array.isArray(q5s.maquina) && q5s.maquina.length) preguntasMaquina = q5s.maquina;
+            if (Array.isArray(q5s.supervisor) && q5s.supervisor.length) preguntasSupervisor = q5s.supervisor;
+        }
+    }
+}
+
 async function init() {
+    cargarPreguntasConfiguradas();
     const hoy = new Date();
     const primero = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     document.getElementById('f-inicio').value = primero.toISOString().split('T')[0];
@@ -602,7 +653,7 @@ async function generatePDF() {
         doc.setTextColor(100);
 
         // Izquierda: Código de documento + Revisión
-        doc.text("DOCUMENTO CONTROLADO | CÓDIGO: KRMX-5S-0001 | REV 00", margin, 822);
+        doc.text("DOCUMENTO CONTROLADO SGC ISO 9001 | CODIGO: KR-SYS-5S-0001 | REV 01", margin, 822);
 
         // Centro: Fecha de generación
         doc.text(`Fecha de Emisión: ${fechaImpresion}`, 265, 822);
@@ -611,10 +662,359 @@ async function generatePDF() {
         doc.text(`Página ${i} de ${totalPages}`, 595 - margin - 50, 822);
     }
 
-    doc.save(`BI_Reporte_5S_KRAEM_${new Date().getTime()}.pdf`);
+    doc.save(`KR-SYS-5S-0001_Reporte_5S_KRAEM_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+async function generateAuditableQuestionsPDF() {
+    if (!lastFetchedData || lastFetchedData.length === 0) {
+        alert("No hay auditorías registradas en el periodo o filtros seleccionados para generar el reporte auditable.");
+        return;
+    }
+
+    cargarPreguntasConfiguradas();
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    const margin = 30;
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const contentWidth = pageWidth - (margin * 2); // 535.28 pt
+
+    const titulosSecciones = [
+        "1. SEIRI (Clasificar)",
+        "2. SEITON (Ordenar)",
+        "3. SEISO (Limpiar)",
+        "4. SEIKETSU (Estandarizar)",
+        "5. SHITSUKE (Disciplina)"
+    ];
+
+    const fInicio = document.getElementById('f-inicio')?.value || 'N/A';
+    const fFin = document.getElementById('f-fin')?.value || 'N/A';
+
+    function renderAuditableHeader(pageNum, auditIndex, totalAudits) {
+        try { 
+            doc.addImage('logo-kraem.jpg', 'JPEG', margin, 24, 85, 34); 
+        } catch (e) { 
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(15); 
+            doc.setTextColor(30, 58, 138);
+            doc.text("KRAEM", margin, 46); 
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text("KRAEM AUTOMOTIVE - REPORTE AUDITABLE DETALLADO 5'S", 125, 36);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text("EVALUACIÓN SISTÉMICA POR REACTIVO Y DISPOSITIVOS (ISO 9001:2015 / IATF 16949)", 125, 48);
+        doc.text(`Periodo: ${fInicio} al ${fFin}  |  Evaluación ${auditIndex + 1} de ${totalAudits}`, 125, 59);
+
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.8);
+        doc.line(margin, 66, pageWidth - margin, 66);
+    }
+
+    for (let idx = 0; idx < lastFetchedData.length; idx++) {
+        if (idx > 0) {
+            doc.addPage();
+        }
+
+        let yPos = 76;
+        renderAuditableHeader(doc.getNumberOfPages(), idx, lastFetchedData.length);
+
+        const audit = lastFetchedData[idx];
+        const res = audit.respuestas_json || {};
+        const tipo = audit.tipo_auditoria || 'estacion';
+
+        let matrizPreguntas = preguntasEstacion;
+        let tipoNombre = "Estación de Trabajo";
+        if (tipo === 'maquina') {
+            matrizPreguntas = preguntasMaquina;
+            tipoNombre = "Máquina de Inyección";
+        } else if (tipo === 'supervisor' || tipo === 'liderazgo') {
+            matrizPreguntas = preguntasSupervisor;
+            tipoNombre = "Supervisor / Liderazgo";
+        }
+
+        const fechaAudit = new Date(audit.created_at).toLocaleString('es-MX', { 
+            year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' 
+        });
+        const operador = audit.rh_empleados?.nombre_completo || 'No especificado';
+        const maquina = audit.mes_machines?.machine_code || 'N/A';
+        const area = audit.areas_generales?.nombre || 'General';
+        const turno = audit.rh_turnos?.nombre || 'N/A';
+        const auditor = audit.auditor?.nombre_completo || 'Auditor SGC';
+        const puntuacionTotal = audit.puntuacion || 0;
+
+        let jSum = 0, jCount = 0;
+        Object.entries(res).forEach(([k, v]) => {
+            if (k.includes('_jig')) { jSum += v; jCount++; }
+        });
+        const tieneJigs = (tipo !== 'maquina') && (jCount > 0);
+        const jigsPct = tieneJigs ? Math.round((jSum / jCount) * 100) : null;
+
+        // Tarjeta resumen de la auditoría
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(margin, yPos, contentWidth, 54, 4, 4, 'F');
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.6);
+        doc.roundedRect(margin, yPos, contentWidth, 54, 4, 4, 'S');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text(`TIPO: ${tipoNombre.toUpperCase()}   |   FECHA: ${fechaAudit}`, margin + 8, yPos + 14);
+
+        let scoreColor = [22, 101, 52];
+        if (puntuacionTotal < 70) scoreColor = [185, 28, 28];
+        else if (puntuacionTotal < 90) scoreColor = [180, 83, 9];
+
+        doc.setFillColor(scoreColor[0], scoreColor[1], scoreColor[2]);
+        doc.roundedRect(pageWidth - margin - 120, yPos + 6, 112, 18, 3, 3, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(`TOTAL: ${puntuacionTotal}%`, pageWidth - margin - 64, yPos + 18, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(51, 65, 85);
+        doc.text(`Auditado / Operador: ${operador}     |     Máquina: ${maquina}`, margin + 8, yPos + 28);
+        doc.text(`Área: ${area}     |     Turno: ${turno}     |     Auditor: ${auditor}`, margin + 8, yPos + 39);
+
+        let jigsBadgeText = "N/A (Auditoría de Máquina)";
+        if (tipo !== 'maquina') {
+            jigsBadgeText = tieneJigs ? `Evaluado (${jigsPct}% - ${jSum}/${jCount} Cumplen)` : "No evaluado en esta estación";
+        }
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(7);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Estatus Jigs / Fixtures: ${jigsBadgeText}`, margin + 8, yPos + 49);
+
+        yPos += 62;
+
+        // Renderizar las 5 Secciones S1 - S5
+        for (let s = 0; s < 5; s++) {
+            if (yPos > 720) {
+                doc.addPage();
+                yPos = 76;
+                renderAuditableHeader(doc.getNumberOfPages(), idx, lastFetchedData.length);
+            }
+
+            let secSum = 0, secCount = 0;
+            for (let p = 0; p < 5; p++) {
+                const val = res[`${s}_${p}`];
+                if (val !== undefined && val !== null) {
+                    secSum += val;
+                    secCount++;
+                }
+            }
+            const secAvg = secCount > 0 ? Math.round((secSum / secCount) * 100) : 0;
+
+            doc.setFillColor(30, 58, 138);
+            doc.rect(margin, yPos, contentWidth, 15, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.text(titulosSecciones[s].toUpperCase(), margin + 6, yPos + 10.5);
+            doc.text(`Cumplimiento Sección: ${secAvg}% (${secSum}/${secCount || 5})`, pageWidth - margin - 8, yPos + 10.5, { align: 'right' });
+            yPos += 15;
+
+            const preguntasArray = matrizPreguntas[s] || [];
+            for (let p = 0; p < 5; p++) {
+                if (yPos > 770) {
+                    doc.addPage();
+                    yPos = 76;
+                    renderAuditableHeader(doc.getNumberOfPages(), idx, lastFetchedData.length);
+                }
+
+                if (p % 2 === 1) {
+                    doc.setFillColor(248, 250, 252);
+                    doc.rect(margin, yPos, contentWidth, 13, 'F');
+                }
+                doc.setDrawColor(226, 232, 240);
+                doc.setLineWidth(0.4);
+                doc.line(margin, yPos + 13, pageWidth - margin, yPos + 13);
+
+                const textoPregunta = preguntasArray[p] || `Reactivo ${s+1}.${p+1}`;
+                const valRes = res[`${s}_${p}`];
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7);
+                doc.setTextColor(30, 41, 59);
+
+                const wrapped = doc.splitTextToSize(`${s+1}.${p+1}  ${textoPregunta}`, 440);
+                doc.text(wrapped[0], margin + 6, yPos + 9.5);
+
+                if (valRes === 1) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(22, 101, 52);
+                    doc.text("CUMPLE (100%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
+                } else if (valRes === 0) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(185, 28, 28);
+                    doc.text("NO CUMPLE (0%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
+                } else {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(148, 163, 184);
+                    doc.text("N/A", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
+                }
+
+                yPos += 13;
+            }
+
+            let obsS = "";
+            if (audit.observaciones) {
+                if (audit.observaciones[s]) obsS = audit.observaciones[s];
+                else if (audit.observaciones[titulosSecciones[s]]) obsS = audit.observaciones[titulosSecciones[s]];
+            }
+            if (obsS && obsS.trim()) {
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(6.5);
+                doc.setTextColor(180, 83, 9);
+                const obsWrap = doc.splitTextToSize(`* Hallazgo S${s+1}: ${obsS.trim()}`, contentWidth - 16);
+                doc.text(obsWrap, margin + 6, yPos + 8);
+                yPos += (obsWrap.length * 8) + 4;
+            } else {
+                yPos += 2;
+            }
+        }
+
+        // ==========================================
+        // SECCIÓN DE JIGS Y DISPOSITIVOS
+        // ==========================================
+        if (yPos > 700) {
+            doc.addPage();
+            yPos = 76;
+            renderAuditableHeader(doc.getNumberOfPages(), idx, lastFetchedData.length);
+        }
+
+        if (tipo !== 'maquina' && tieneJigs) {
+            doc.setFillColor(15, 118, 110);
+            doc.rect(margin, yPos, contentWidth, 15, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.text("EVALUACIÓN DE JIGS Y DISPOSITIVOS DE PRODUCCIÓN", margin + 6, yPos + 10.5);
+            doc.text(`Cumplimiento Jigs: ${jigsPct}% (${jSum}/${jCount})`, pageWidth - margin - 8, yPos + 10.5, { align: 'right' });
+            yPos += 15;
+
+            for (let j = 0; j < 5; j++) {
+                if (yPos > 770) {
+                    doc.addPage();
+                    yPos = 76;
+                    renderAuditableHeader(doc.getNumberOfPages(), idx, lastFetchedData.length);
+                }
+
+                if (j % 2 === 1) {
+                    doc.setFillColor(248, 250, 252);
+                    doc.rect(margin, yPos, contentWidth, 13, 'F');
+                }
+                doc.setDrawColor(226, 232, 240);
+                doc.setLineWidth(0.4);
+                doc.line(margin, yPos + 13, pageWidth - margin, yPos + 13);
+
+                const txtJig = preguntasJigs[j] || `Reactivo J.${j+1}`;
+                const valJig = res[`${j}_jig`];
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7);
+                doc.setTextColor(30, 41, 59);
+
+                const wrappedJig = doc.splitTextToSize(`J.${j+1}  ${txtJig}`, 440);
+                doc.text(wrappedJig[0], margin + 6, yPos + 9.5);
+
+                if (valJig === 1) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(22, 101, 52);
+                    doc.text("CUMPLE (100%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
+                } else if (valJig === 0) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(185, 28, 28);
+                    doc.text("NO CUMPLE (0%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
+                } else {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(148, 163, 184);
+                    doc.text("N/A", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
+                }
+
+                yPos += 13;
+            }
+            yPos += 4;
+        } else {
+            doc.setFillColor(241, 245, 249);
+            doc.rect(margin, yPos, contentWidth, 14, 'F');
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(7);
+            doc.setTextColor(100, 116, 139);
+            const notaJigs = (tipo === 'maquina') 
+                ? "Jigs / Fixtures: No aplica para auditoría de Máquinas de Inyección."
+                : "Jigs / Fixtures: No evaluado / No aplica para esta estación.";
+            doc.text(notaJigs, margin + 6, yPos + 9.5);
+            yPos += 18;
+        }
+
+        // ==========================================
+        // FIRMAS DE AUDITORÍA
+        // ==========================================
+        if (yPos > 720) {
+            doc.addPage();
+            yPos = 76;
+            renderAuditableHeader(doc.getNumberOfPages(), idx, lastFetchedData.length);
+        }
+
+        yPos += 18;
+        doc.setDrawColor(71, 85, 105);
+        doc.setLineWidth(0.8);
+
+        doc.line(margin + 15, yPos + 22, margin + 145, yPos + 22);
+        doc.line(margin + 195, yPos + 22, margin + 325, yPos + 22);
+        doc.line(margin + 375, yPos + 22, margin + 505, yPos + 22);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(30, 41, 59);
+        doc.text("AUDITOR / EVALUADOR", margin + 80, yPos + 32, { align: 'center' });
+        doc.text("SUPERVISOR DE ÁREA", margin + 260, yPos + 32, { align: 'center' });
+        doc.text("GERENTE DE PRODUCCIÓN", margin + 440, yPos + 32, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text(auditor, margin + 80, yPos + 41, { align: 'center' });
+        doc.text(operador, margin + 260, yPos + 41, { align: 'center' });
+        doc.text("KRAEM Automotive Plant", margin + 440, yPos + 41, { align: 'center' });
+    }
+
+    // ==========================================
+    // CONTROL DOCUMENTAL Y PIE DE PÁGINA
+    // ==========================================
+    const totalPages = doc.getNumberOfPages();
+    const fechaImpresion = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.5);
+        doc.line(margin, 812, pageWidth - margin, 812);
+
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 116, 139);
+
+        doc.text("DOCUMENTO CONTROLADO SGC ISO 9001 | CODIGO: KR-SYS-5S-0002 | REV 01", margin, 824);
+        doc.text(`Fecha de Emisión: ${fechaImpresion}`, 260, 824);
+        doc.text(`Página ${i} de ${totalPages}`, pageWidth - margin - 45, 824);
+    }
+
+    doc.save(`KR-SYS-5S-0002_Auditoria_Detallada_5S_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 window.onload = init;
 </script>
 </body>
 </html>
+

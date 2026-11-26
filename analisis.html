@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <title>KRAEM | BI Analytics 80/20</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -121,9 +122,33 @@
     let db_parts = [], db_personal = [], db_machines = [], rawData = [], myChart = null, trendChart = null;
 
     async function init() {
-        const { data: areas } = await client.from('rh_areas').select('nombre').order('nombre');
+        // Áreas desde catálogo maestro `areas` (admin_areas) + áreas ya registradas históricamente
+        const [rAreas, rTurnos, rHistAreas] = await Promise.all([
+            client.from('areas').select('area_name').eq('active', true).order('area_name'),
+            client.from('rh_turnos').select('id, nombre').order('nombre'),
+            client.from('inspeccion_produccion').select('area').limit(500)
+        ]);
+        const areaSet = new Set((rAreas.data || []).map(a => a.area_name).filter(Boolean));
+        (rHistAreas.data || []).forEach(r => { if (r.area) areaSet.add(r.area); });
         const sArea = document.getElementById('f_area');
-        areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+        [...areaSet].sort().forEach(nombre => {
+            sArea.innerHTML += `<option value="${nombre}">${nombre}</option>`;
+        });
+
+        const sTurno = document.getElementById('f_turno');
+        if (sTurno && rTurnos.data && rTurnos.data.length) {
+            sTurno.innerHTML = '<option value="">Todos</option>' + rTurnos.data.map((t, i) => {
+                const m = String(t.nombre || '').match(/\d+/);
+                const val = m ? Number(m[0]) : (i + 1);
+                return `<option value="${val}">${t.nombre}</option>`;
+            }).join('');
+        }
+
+        const dests = window.KraemSettings && KraemSettings.get('produccion_calidad', 'destinos_inspeccion');
+        const sDest = document.getElementById('f_destino');
+        if (sDest && Array.isArray(dests) && dests.length) {
+            sDest.innerHTML = '<option value="">Todas</option>' + dests.map(d => `<option value="${d}">${d}</option>`).join('');
+        }
 
         const { data: defs } = await client.from('defects').select('*').order('Defect_name');
         const sDef = document.getElementById('f_defecto');
@@ -133,7 +158,7 @@
         });
 
         // NOTA: Usamos 'part_name' para coincidir con tu pantalla de captura
-        const { data: parts } = await client.from('parts').select('part_number, part_name');
+        const parts = window.fetchAllRows ? await window.fetchAllRows('parts', { select: 'part_number, part_name', orderBy: 'part_number' }) : ((await client.from('parts').select('part_number, part_name')).data || []);
         db_parts = parts || [];
         
         const { data: pers } = await client.from('rh_empleados').select('nombre_completo');
@@ -328,18 +353,30 @@
 
     function exportExcel() {
         if(rawData.length === 0) return alert("No hay datos para exportar");
-        const excelData = rawData.map(r => ({
-            Fecha: r.fecha, Hora: r.hora, Turno: r.turno, Area: r.area, Maquina: r.maquina, 
-            Num_Parte: r.num_parte, Descripcion: r.part_description, Operador: r.operador, Inspector: r.inspector, 
-            Inspeccionado: r.cant_inspeccionada, Rechazado: r.cant_defectuosa,
-            OK: r.cant_inspeccionada - r.cant_defectuosa, 
-            Yield: r.cant_inspeccionada > 0 ? (((r.cant_inspeccionada-r.cant_defectuosa)/r.cant_inspeccionada)*100).toFixed(2)+"%" : "0%",
-            Defecto: r.tipo_defecto, Disposicion: r.destino, Comentarios: r.comentarios
-        }));
-        const ws = XLSX.utils.json_to_sheet(excelData);
+        const fechaEmision = new Date().toLocaleString('es-MX');
+        const rows = [
+            ["KRAEM S.A. DE C.V. - SISTEMA DE GESTIÓN DE CALIDAD ISO 9001 / IATF 16949"],
+            ["DOCUMENTO CONTROLADO:", "KR-SYS-QMS-0001", "REVISIÓN:", "REV 01", "FECHA EMISIÓN:", fechaEmision],
+            ["TÍTULO DEL REPORTE:", "REPORTE DE INSPECCIÓN DE CALIDAD, YIELD Y ANÁLISIS PARETO"],
+            [],
+            ["Fecha", "Hora", "Turno", "Area", "Maquina", "Num_Parte", "Descripcion", "Operador", "Inspector", "Inspeccionado", "Rechazado", "OK", "Yield", "Defecto", "Disposicion", "Comentarios"]
+        ];
+        rawData.forEach(r => {
+            rows.push([
+                r.fecha, r.hora, r.turno, r.area, r.maquina,
+                r.num_parte, r.part_description, r.operador, r.inspector,
+                r.cant_inspeccionada, r.cant_defectuosa,
+                r.cant_inspeccionada - r.cant_defectuosa,
+                r.cant_inspeccionada > 0 ? (((r.cant_inspeccionada-r.cant_defectuosa)/r.cant_inspeccionada)*100).toFixed(2)+"%" : "0%",
+                r.tipo_defecto, r.destino, r.comentarios
+            ]);
+        });
+        rows.push([]);
+        rows.push(["PIE DE CONTROL ISO:", "DOCUMENTO CONTROLADO | CÓDIGO: KR-SYS-QMS-0001 | REV 01 | AVALADO EN LISTA MAESTRA KR-SGC-LM-0001"]);
+        const ws = XLSX.utils.aoa_to_sheet(rows);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Calidad_BI");
-        XLSX.writeFile(wb, `Reporte_Calidad_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "KR-SYS-QMS-0001");
+        XLSX.writeFile(wb, `KR-SYS-QMS-0001_Reporte_Calidad_${new Date().toISOString().split('T')[0]}.xlsx`);
     }
 
     window.onload = init;
@@ -347,3 +384,4 @@
 </script>
 </body>
 </html>
+

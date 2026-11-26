@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -11,6 +11,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
 
     <style>
         :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --secondary: #64748b; --success: #22c55e; --warning: #f59e0b; }
@@ -143,6 +145,7 @@
     let selectedPTId = null;
     let allBomData = [];
     let partsCache = {};
+    let ptListCache = {};
 
     const translations = {
         es: {
@@ -152,8 +155,14 @@
         ko: {
             title: "자재 명세서 (BOM) 관리", selectPT: "완제품 / 서브 조립품 선택",
             thComp: "부품 / 원자재", thType: "유형 / 사출 원자재 스펙"
+        },
+        en: {
+            title: "Bill of Materials (BOM)", selectPT: "Select Finished Good / Sub-assembly",
+            thComp: "Component / Raw Material", thType: "Type / Resin Grade"
         }
     };
+
+    const escHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     async function init() {
         applyTheme();
@@ -163,7 +172,10 @@
     }
 
     async function preloadPartsCache() {
-        const { data, error } = await client.from('parts').select('id, part_number');
+        const parts = window.fetchAllRows 
+            ? await window.fetchAllRows('parts', { select: 'id, part_number', orderBy: 'id' })
+            : ((await client.from('parts').select('id, part_number')).data || []);
+        const data = parts;
         if (data) {
             partsCache = {};
             data.forEach(p => {
@@ -193,13 +205,22 @@
             return;
         }
 
+        ptListCache = {};
+        data.forEach(pt => { ptListCache[pt.id] = pt; });
+
         list.innerHTML = data.map(pt => `
-            <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="loadBOM(${pt.id}, '${pt.part_number}', '${pt.part_name || ''}')">
-                <strong>${pt.part_number}</strong> 
-                <span class="badge ${pt.product_type === 'PT' ? 'badge-level' : 'badge-resin'}">${pt.product_type || 'PT'}</span><br>
-                <small>${pt.part_name || ''} ${pt.project ? '| ' + pt.project : ''}</small>
+            <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="selectPT(${pt.id})">
+                <strong>${escHtml(pt.part_number)}</strong> 
+                <span class="badge ${pt.product_type === 'PT' ? 'badge-level' : 'badge-resin'}">${escHtml(pt.product_type || 'PT')}</span><br>
+                <small>${escHtml(pt.part_name || '')} ${pt.project ? '| ' + escHtml(pt.project) : ''}</small>
             </div>
         `).join('');
+    }
+
+    function selectPT(id) {
+        const pt = ptListCache[id];
+        if (!pt) return;
+        loadBOM(pt.id, pt.part_number, pt.part_name || '');
     }
 
     async function loadBOM(id, number, name) {
@@ -207,21 +228,49 @@
         document.getElementById('selectedPTName').innerText = name || number;
         document.getElementById('selectedPTNumber').innerText = number;
         document.getElementById('calcBox').style.display = 'flex';
-        
-        const { data, error } = await client
-            .from('bom_structures') 
-            .select(`
-                *,
-                child:parts!bom_structures_child_id_fkey(part_number, part_name, product_type, project, client, cycle_time_seg, cavities, part_weight_gr, runner_weight_gr, resin_grade)
-            `)
-            .eq('parent_id', id)
-            .order('bom_level', { ascending: true });
+        fetchPTs();
 
-        if (error) {
-            console.error("Error al cargar BOM:", error);
-            alert("Error consultando la base de datos: " + error.message);
+        // Explosión multinivel recursiva (máx. 5 niveles, con protección contra ciclos)
+        const exploded = [];
+        const visited = new Set([String(id)]);
+
+        async function expandLevel(parentId, depth, parentUsage) {
+            if (depth > 5) return;
+            const { data, error } = await client
+                .from('bom_structures')
+                .select(`
+                    *,
+                    child:parts!bom_structures_child_id_fkey(id, part_number, part_name, product_type, project, client, cycle_time_seg, cavities, part_weight_gr, runner_weight_gr, resin_grade, unit_of_measure)
+                `)
+                .eq('parent_id', parentId)
+                .order('bom_level', { ascending: true });
+
+            if (error) {
+                console.error("Error al cargar BOM:", error);
+                alert("Error consultando la base de datos: " + error.message);
+                return;
+            }
+
+            for (const row of (data || [])) {
+                const localUsage = parseFloat(row.usage_qty) || parseFloat(row.quantity) || 1;
+                const effectiveUsage = parentUsage * localUsage;
+                exploded.push({
+                    ...row,
+                    _display_level: depth === 1 ? (row.bom_level || 1) : depth,
+                    _depth: depth,
+                    _effective_usage: effectiveUsage
+                });
+
+                const childType = (row.child?.product_type || '').toUpperCase();
+                if (row.child_id && !visited.has(String(row.child_id)) && (childType.includes('SUB') || childType.includes('ASSY') || childType === 'PT')) {
+                    visited.add(String(row.child_id));
+                    await expandLevel(row.child_id, depth + 1, effectiveUsage);
+                }
+            }
         }
-        allBomData = data || [];
+
+        await expandLevel(id, 1, 1);
+        allBomData = exploded;
         renderBOM();
     }
 
@@ -239,49 +288,41 @@
 
             const cycleTime = child.cycle_time_seg ?? '-';
             const cavities = child.cavities ?? '-';
-            
-            let rawPartWeight = parseFloat(child.part_weight_gr ?? 0);
-            let rawRunnerWeight = parseFloat(child.runner_weight_gr ?? 0);
 
-            // Normalización a Gramos reales (en la interfaz) si vienen guardados como decimales en KG (<10)
-            const partWeightGrams = (rawPartWeight > 0 && rawPartWeight < 10) ? rawPartWeight * 1000 : rawPartWeight;
-            const runnerWeightGrams = (rawRunnerWeight > 0 && rawRunnerWeight < 10) ? rawRunnerWeight * 1000 : rawRunnerWeight;
+            // Los pesos en DB (`parts.part_weight_gr`, `runner_weight_gr`) se almacenan en GRAMOS.
+            const partWeightGrams = parseFloat(child.part_weight_gr ?? 0);
+            const runnerWeightGrams = parseFloat(child.runner_weight_gr ?? 0);
 
             const totalGrPerPiece = partWeightGrams + runnerWeightGrams;
-            const usage = parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1;
-            const unitUpper = (item.unit || '').toUpperCase();
+            const usage = item._effective_usage ?? (parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1);
+            const unitUpper = (item.unit || child.unit_of_measure || '').toUpperCase();
+            const indent = item._depth > 1 ? `padding-left:${(item._depth - 1) * 18}px;` : '';
 
             let reqWmsText = '';
 
             // CÁLCULO DE REQUERIDO WMS EN KG EXACTO
             if (child.product_type === 'RESINA' || unitUpper === 'KG') {
-                let weightInKgPerPiece = 0;
-
-                if (totalGrPerPiece > 0) {
-                    weightInKgPerPiece = totalGrPerPiece / 1000;
-                } else if (rawPartWeight > 0) {
-                    weightInKgPerPiece = rawPartWeight < 10 ? rawPartWeight : rawPartWeight / 1000;
-                }
-
-                // Multiplicación exacta: (Ejemplo: 0.5 KG * 1000 Pcs = 500.00 KG)
-                let totalKgNeeded = weightInKgPerPiece * batchQty * usage;
+                const weightInKgPerPiece = totalGrPerPiece > 0 ? (totalGrPerPiece / 1000) : 0;
+                const totalKgNeeded = weightInKgPerPiece > 0
+                    ? weightInKgPerPiece * batchQty * usage
+                    : batchQty * usage;
                 reqWmsText = `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`;
             } else {
                 const totalPcsNeeded = (usage * batchQty).toFixed(0);
-                reqWmsText = `<strong>${totalPcsNeeded} ${item.unit || 'EA'}</strong>`;
+                reqWmsText = `<strong>${totalPcsNeeded} ${escHtml(item.unit || child.unit_of_measure || 'EA')}</strong>`;
             }
 
             return `
                 <tr>
-                    <td><span class="badge badge-level">Lvl ${item.bom_level || 1}</span></td>
-                    <td>
-                        <strong>${child.part_number || 'N/A'}</strong><br>
-                        <small style="color:var(--secondary)">${child.part_name || ''}</small>
+                    <td><span class="badge badge-level">Lvl ${item._display_level || item.bom_level || 1}</span></td>
+                    <td style="${indent}">
+                        ${item._depth > 1 ? '<span style="color:var(--secondary);">↳ </span>' : ''}<strong>${escHtml(child.part_number || 'N/A')}</strong><br>
+                        <small style="color:var(--secondary)">${escHtml(child.part_name || '')}</small>
                     </td>
-                    <td>${item.car_model || child.project || '---'}</td>
+                    <td>${escHtml(item.car_model || child.project || '---')}</td>
                     <td>
-                        <span class="badge ${child.product_type === 'RESINA' ? 'badge-resin' : ''}">${child.product_type || 'COMPONENTE'}</span><br>
-                        <small>${child.resin_grade || item.material_grade || ''}</small>
+                        <span class="badge ${child.product_type === 'RESINA' ? 'badge-resin' : ''}">${escHtml(child.product_type || 'COMPONENTE')}</span><br>
+                        <small>${escHtml(child.resin_grade || item.material_grade || '')}</small>
                     </td>
                     <td>${cycleTime}</td>
                     <td>${cavities}</td>
@@ -359,7 +400,8 @@
                 statusText.innerText = "Cargando catálogo existente de piezas...";
                 await preloadPartsCache();
 
-                let bomBatch = [];
+                const bomMap = new Map();
+                const affectedParents = new Set();
                 let totalRows = rows.length;
                 let totalInsertedCount = 0;
 
@@ -390,10 +432,13 @@
                     const cycleTime = parseFloat(row["TIEMPO_CICLO_SEG"]) || 0;
                     const cavities = parseInt(row["CAVIDADES"]) || 1;
                     
-                    const weightKg = parseFloat(row["PESO_PIEZA_KG"]) || 0;
-                    const runnerKg = parseFloat(row["PESO_COLADA_KG"]) || 0;
-                    const weightGr = weightKg < 10 ? weightKg * 1000 : weightKg;
-                    const runnerGr = runnerKg < 10 ? runnerKg * 1000 : runnerKg;
+                    // Conversión explícita a gramos (acepta PESO_PIEZA_GR directo o PESO_PIEZA_KG * 1000)
+                    const weightGr = row["PESO_PIEZA_GR"] !== undefined
+                        ? (parseFloat(row["PESO_PIEZA_GR"]) || 0)
+                        : ((parseFloat(row["PESO_PIEZA_KG"]) || 0) * 1000);
+                    const runnerGr = row["PESO_COLADA_GR"] !== undefined
+                        ? (parseFloat(row["PESO_COLADA_GR"]) || 0)
+                        : ((parseFloat(row["PESO_COLADA_KG"]) || 0) * 1000);
 
                     const unit = row["UNIDAD_MEDIDA"] ? row["UNIDAD_MEDIDA"].toString().trim() : 'EA';
                     const usageQty = parseFloat(row["USO_POR_PIEZA"]) || 1;
@@ -453,7 +498,8 @@
 
                     if (!childId) continue;
 
-                    bomBatch.push({
+                    affectedParents.add(currentParentId);
+                    bomMap.set(`${currentParentId}::${childId}`, {
                         parent_id: currentParentId,
                         child_id: childId,
                         quantity: usageQty,
@@ -464,28 +510,44 @@
                         unit: unit,
                         supplier_name: clientName
                     });
+                }
 
-                    if (bomBatch.length >= 50) {
-                        const { error } = await client.from('bom_structures').insert(bomBatch);
-                        if (!error) totalInsertedCount += bomBatch.length;
-                        bomBatch = [];
+                // Reemplazar limpiamente el BOM anterior de los padres incluidos en el Excel (evita duplicados)
+                const parentIds = Array.from(affectedParents);
+                if (parentIds.length > 0) {
+                    statusText.innerText = "Actualizando estructuras BOM existentes...";
+                    for (let i = 0; i < parentIds.length; i += 50) {
+                        const chunk = parentIds.slice(i, i + 50);
+                        const { error: delErr } = await client.from('bom_structures').delete().in('parent_id', chunk);
+                        if (delErr) throw delErr;
                     }
                 }
 
-                if (bomBatch.length > 0) {
-                    const { error } = await client.from('bom_structures').insert(bomBatch);
-                    if (!error) totalInsertedCount += bomBatch.length;
+                const bomRows = Array.from(bomMap.values());
+                for (let i = 0; i < bomRows.length; i += 50) {
+                    const chunk = bomRows.slice(i, i + 50);
+                    statusText.innerText = `Guardando BOM (${Math.min(i + chunk.length, bomRows.length)} / ${bomRows.length})...`;
+                    const { error: insErr } = await client.from('bom_structures').insert(chunk);
+                    if (insErr) throw insErr;
+                    totalInsertedCount += chunk.length;
                 }
 
+                progressBar.style.width = '100%';
                 modal.style.display = 'none';
-                alert(`¡Proceso completado! Se cargaron ${totalInsertedCount} elementos al BOM.`);
+                alert(`¡Proceso completado! Se actualizaron ${parentIds.length} productos con ${totalInsertedCount} elementos BOM (sin duplicados).`);
                 await preloadPartsCache();
                 fetchPTs();
+                if (selectedPTId && affectedParents.has(selectedPTId)) {
+                    const pt = ptListCache[selectedPTId];
+                    if (pt) loadBOM(pt.id, pt.part_number, pt.part_name || '');
+                }
 
             } catch (err) {
                 console.error("Error al procesar la plantilla:", err);
                 modal.style.display = 'none';
                 alert('Ocurrió un error al procesar el archivo: ' + err.message);
+            } finally {
+                event.target.value = '';
             }
         };
 
@@ -551,9 +613,9 @@
     }
 
     function setLang(lang) {
-        currentLang = lang;
-        localStorage.setItem('lang', lang);
-        const l = translations[lang];
+        currentLang = translations[lang] ? lang : 'es';
+        localStorage.setItem('lang', currentLang);
+        const l = translations[currentLang];
         document.getElementById('txt_title').innerText = l.title;
         document.getElementById('txt_select_pt').innerText = l.selectPT;
         document.getElementById('th_comp').innerText = l.thComp;
@@ -575,3 +637,4 @@
 </script>
 </body>
 </html>
+

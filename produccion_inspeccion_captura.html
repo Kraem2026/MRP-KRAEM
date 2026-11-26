@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,7 @@
     <title>KRAEM | INSPECCION DE PRODUCCION </title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; --danger: #ef4444; --success: #22c55e; }
@@ -103,10 +104,36 @@
     let db_parts = [], db_personal = [];
 
     async function init() {
-        const { data: areas } = await client.from('rh_areas').select('nombre').order('nombre');
+        // Áreas desde catálogo maestro `areas` (admin_areas) con fallback a `areas_generales` / `rh_areas`
+        const { data: areas } = await client.from('areas').select('area_name').eq('active', true).order('area_name');
         const sArea = document.getElementById('area_select');
         sArea.innerHTML = '<option value="">-- Selección --</option>';
-        areas?.forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+        if (areas && areas.length) {
+            areas.forEach(a => sArea.innerHTML += `<option value="${a.area_name}">${a.area_name}</option>`);
+        } else {
+            const { data: ag } = await client.from('areas_generales').select('nombre').eq('active', true).order('nombre');
+            (ag || []).forEach(a => sArea.innerHTML += `<option value="${a.nombre}">${a.nombre}</option>`);
+        }
+
+        // Turnos desde catálogo `rh_turnos` preservando número entero compatible con `inspeccion_produccion.turno`
+        const { data: turnos } = await client.from('rh_turnos').select('id, nombre').order('nombre');
+        const sTurno = document.getElementById('turno');
+        if (sTurno && turnos && turnos.length) {
+            sTurno.innerHTML = turnos.map((t, i) => {
+                const m = String(t.nombre || '').match(/\d+/);
+                const val = m ? Number(m[0]) : (i + 1);
+                return `<option value="${val}">${t.nombre}</option>`;
+            }).join('');
+        }
+
+        // Destinos desde Settings si están personalizados
+        if (window.KraemSettings) {
+            const dests = KraemSettings.get('produccion_calidad', 'destinos_inspeccion');
+            const sDest = document.getElementById('destino');
+            if (sDest && Array.isArray(dests) && dests.length) {
+                sDest.innerHTML = dests.map(d => `<option value="${d}">${d}</option>`).join('');
+            }
+        }
 
         const { data: pers } = await client.from('rh_empleados').select('nombre_completo').eq('estatus', 'ACTIVO').order('nombre_completo');
         db_personal = pers || [];
@@ -119,7 +146,7 @@
             sDef.innerHTML += `<option value="${n}">${n}</option>`;
         });
 
-        const { data: parts } = await client.from('parts').select('part_number, part_name');
+        const parts = window.fetchAllRows ? await window.fetchAllRows('parts', { select: 'part_number, part_name', orderBy: 'part_number' }) : ((await client.from('parts').select('part_number, part_name')).data || []);
         db_parts = parts || [];
     }
 
@@ -183,3 +210,4 @@
 </script>
 </body>
 </html>
+

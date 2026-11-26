@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Planeación Maestra - WO & Carritos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
 <style>
   body{font-family:'Segoe UI',Arial; background:#f0f2f5; padding:20px}
   .card{background:#fff; padding:20px; border-radius:10px; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin-bottom:20px}
@@ -20,6 +22,12 @@
 </style>
 </head>
 <body>
+
+<div style="margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;">
+  <button class="btn-back" onclick="KraemNav.back('planeacion_hub.html')" style="background:#64748b; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:14px;">
+    ⬅ Volver al Cockpit
+  </button>
+</div>
 
 <div class="card">
   <h2>📞 Captura de Requerimiento (Demanda)</h2>
@@ -51,10 +59,12 @@
 </div>
 
 <script>
-const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+// client provisto por config.js
 
 async function iniciar() {
-  const {data: partes} = await client.from('parts').select('id, part_number').eq('obsolete', false).order('part_number');
+  const partes = window.fetchAllRows 
+    ? await window.fetchAllRows('parts', { select: 'id, part_number', filter: q => q.eq('obsolete', false), orderBy: 'part_number' })
+    : ((await client.from('parts').select('id, part_number').eq('obsolete', false).order('part_number')).data || []);
   const select = document.getElementById('select_part');
   select.innerHTML = '<option value="">Selecciona Número de Parte...</option>';
   partes.forEach(p => select.innerHTML += `<option value="${p.id}">${p.part_number}</option>`);
@@ -82,14 +92,14 @@ async function guardarRequerimiento() {
 }
 
 async function cargarTabla() {
-  // Solo traemos los que están 'ABIERTO' (No planeados aún)
-  const {data, error} = await client.from('v_planeacion_maestra').select('*').eq('status', 'ABIERTO');
+  // Traemos los requerimientos abiertos (tanto 'ABIERTO' como 'open')
+  const {data, error} = await client.from('v_planeacion_maestra').select('*').or('status.eq.ABIERTO,status.eq.open');
   const body = document.getElementById('tabla_body');
   
   if(error) return body.innerHTML = '<tr><td colspan="6">Error de conexión.</td></tr>';
-  body.innerHTML = data.length === 0 ? '<tr><td colspan="6">No hay requerimientos pendientes.</td></tr>' : '';
+  body.innerHTML = (!data || data.length === 0) ? '<tr><td colspan="6">No hay requerimientos pendientes.</td></tr>' : '';
 
-  data.forEach(r => {
+  (data || []).forEach(r => {
     let carritosHtml = "N/A";
     if(r.pcs_per_trolley > 0) {
       const isFull = r.carritos_actuales >= r.max_trolleys_inventory;
@@ -99,12 +109,12 @@ async function cargarTabla() {
     body.innerHTML += `
       <tr>
         <td><b>${r.part_number}</b><br><small>${r.part_name || ''}</small></td>
-        <td>${Number(r.demanda_ventas).toLocaleString()}</td>
-        <td>${Number(r.stock_actual).toLocaleString()}</td>
+        <td>${Number(r.demanda_ventas || r.quantity || 0).toLocaleString()}</td>
+        <td>${Number(r.stock_actual || 0).toLocaleString()}</td>
         <td>${carritosHtml}</td>
-        <td>${r.fecha_entrega}</td>
+        <td>${r.fecha_entrega || r.due_date || '-'}</td>
         <td>
-          <button class="btn-plan" onclick="generarWO(${r.requerimiento_id}, ${r.part_id}, ${r.demanda_ventas})">
+          <button class="btn-plan" onclick="generarWO(${r.requerimiento_id || r.id}, ${r.part_id}, ${r.demanda_ventas || r.quantity})">
             Crear WO
           </button>
         </td>
@@ -120,22 +130,22 @@ async function generarWO(reqId, partId, qty) {
   const target = prompt("Cantidad final a producir (Lote sugerido):", qty);
   if(!target) return;
 
-  // 1. Insertamos la WO
+  // Insertamos la WO con el esquema canónico (quantity_planned)
   const { data: wo, error: errWO } = await client.from('production_orders').insert({
     requerimiento_id: reqId,
     part_id: partId,
-    machine_id: machine,
-    target_qty: target,
+    machine_id: parseInt(machine),
+    quantity_planned: parseInt(target),
     status: 'PROGRAMADA'
   }).select();
 
-  if(!errWO) {
-    // 2. Actualizamos el requerimiento para que ya no aparezca en la lista de pendientes
+  if(!errWO && wo && wo.length) {
+    // Actualizamos el requerimiento para cerrar el ciclo
     await client.from('requerimientos').update({ status: 'PLANEADO' }).eq('id', reqId);
-    alert("ORDEN GENERADA: " + wo[0].wo_number);
+    alert("ORDEN DE PRODUCCIÓN GENERADA EXITOSAMENTE: OP-" + wo[0].id);
     cargarTabla();
   } else {
-    alert("Error: " + errWO.message);
+    alert("Error al generar orden: " + (errWO ? errWO.message : 'Verifica los datos'));
   }
 }
 

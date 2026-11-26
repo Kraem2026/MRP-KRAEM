@@ -1,273 +1,749 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Historial Maestro de Movimientos</title>
+<title>KRAEM | Historial Maestro de Movimientos (SAP MB51)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
-    :root { 
-        --bg: #f4f6f8; --card: #ffffff; --text: #333333; --text-secondary: #7f8c8d;
-        --border: #e2e8f0; --tag-bg: #eeeeee; --tag-text: #333333;
-    }
-    [data-theme="dark"] { 
-        --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #cbd5e1;
-        --border: #334155; --tag-bg: #334155; --tag-text: #f8fafc;
-    }
+:root { 
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --purple: #7c3aed;
+  --tag-bg: #f1f5f9;
+}
 
-    body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; background: var(--bg); padding:20px; margin:0; color: var(--text); transition: 0.3s; }
-    
-    header { 
-        display:flex; justify-content:space-between; align-items:center; 
-        margin-bottom:20px; background: var(--card); padding: 15px 25px; 
-        border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-    }
-    
-    .back { background:#6c757d; color:#fff; border:none; padding:10px 20px; cursor:pointer; border-radius:8px; font-weight: bold; transition: 0.3s; }
+[data-theme="dark"] { 
+  --bg: #020617;
+  --card: #1e293b;
+  --text: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+  --tag-bg: #334155;
+}
 
-    .controls { display: flex; gap: 8px; align-items: center; }
-    .btn-ctrl { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; }
-    .lang-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer; overflow: hidden; padding: 0; }
-    .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
-    .btn-excel-top { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); padding: 18px; margin: 0; color: var(--text); transition: 0.25s; }
+.container { max-width: 1650px; margin: auto; }
 
-    .filter-panel { 
-        background: var(--card); padding: 20px; border-radius: 12px; 
-        margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border);
-    }
-    
-    .filter-group { display: flex; flex-direction: column !important; align-items: flex-start; }
-    .filter-group label { 
-        display: block; width: 100%; font-size: 11px; font-weight: 800; 
-        color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; 
-    }
+/* Topbar Estilo SAP Fiori */
+.topbar { 
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+  margin-bottom: 18px; background: var(--card); padding: 14px 22px; 
+  border-radius: 14px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+}
+.top-left { display: flex; align-items: center; gap: 14px; }
+.btn-back { 
+  width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border); 
+  background: var(--bg); color: var(--primary); font-size: 16px; cursor: pointer; 
+  display: flex; align-items: center; justify-content: center; text-decoration: none; transition: 0.2s;
+}
+.btn-back:hover { background: var(--primary); color: white; }
+.title-box h1 { margin: 0; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.title-box p { margin: 2px 0 0; font-size: 12px; color: var(--text-secondary); }
+.sap-code { background: rgba(37,99,235,0.1); color: var(--primary); font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 800; }
 
-    input, select { 
-        width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; 
-        font-size: 13px; outline: none; background: var(--bg); color: var(--text); box-sizing: border-box;
-    }
-    
-    .table-container { 
-        background: var(--card); border-radius: 12px; overflow-x: auto; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; border: 1px solid var(--border);
-    }
-    
-    table { width: 100%; border-collapse: collapse; min-width: 1350px; }
-    th { background: #2d3436; color: white; padding: 15px; text-align: left; font-size: 11px; text-transform: uppercase; border-right: 1px solid #444; }
-    td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); white-space: nowrap; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { 
+  background: var(--bg); border: 1px solid var(--border); color: var(--text); 
+  padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 700; 
+  display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+}
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn-excel { background: #16a34a; color: white; border: none; }
+.btn-excel:hover { background: #15803d; color: white; }
+.btn-wms { background: var(--primary); color: white; border: none; text-decoration: none; }
+.btn-wms:hover { background: var(--primary-dark); color: white; }
+.lang-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer; overflow: hidden; padding: 0; }
+.lang-btn img { width: 100%; height: 100%; object-fit: cover; }
 
-    .tag-area { background: var(--tag-bg); color: var(--tag-text); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-    .tag-project { background: #e0f2f1; color: #00796b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-    [data-theme="dark"] .tag-project { background: #004d40; color: #e0f2f1; }
+/* KPI Summary Cards */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.kpi-card { 
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
+  padding: 14px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: 0.2s;
+}
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.05); }
+.kpi-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.kpi-info h4 { margin: 0; font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 800; }
+.kpi-info .num { font-size: 20px; font-weight: 900; margin-top: 2px; }
+.kpi-info .sub { font-size: 11px; color: var(--text-secondary); }
 
-    .pos { color: #2ecc71; font-weight: bold; }
-    .neg { color: #e74c3c; font-weight: bold; }
-    
-    .tag { padding: 5px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; display: inline-block; }
-    .ENTRADA { background: #27ae60; }
-    .SALIDA { background: #e67e22; }
-    .TRANSFERENCIA { background: #3498db; }
-    .AJUSTE { background: #9b59b6; }
+/* Panel de Filtros Avanzado */
+.filter-panel { 
+  background: var(--card); padding: 18px; border-radius: 14px; 
+  margin-bottom: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--border);
+}
+.filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+.quick-dates { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.btn-qdate { background: var(--bg); border: 1px solid var(--border); color: var(--text-secondary); padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-qdate:hover, .btn-qdate.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-    .col-comm { white-space: normal; min-width: 150px; max-width: 250px; font-style: italic; color: var(--text-secondary); font-size: 12px; }
-    .col-desc { white-space: normal; min-width: 150px; max-width: 200px; font-size: 12px; color: var(--text-secondary); }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.filter-group { display: flex; flex-direction: column; }
+.filter-group label { font-size: 10px; font-weight: 800; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+input, select { 
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; 
+  font-size: 13px; outline: none; background: var(--bg); color: var(--text); transition: 0.2s;
+}
+input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
 
-    .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+/* Tabla SAP MB51 */
+.table-container { 
+  background: var(--card); border-radius: 14px; overflow-x: auto; 
+  box-shadow: 0 4px 15px rgba(0,0,0,0.04); width: 100%; border: 1px solid var(--border);
+}
+table { width: 100%; border-collapse: collapse; min-width: 1450px; }
+th { 
+  background: #1e293b; color: #f8fafc; padding: 13px 14px; text-align: left; 
+  font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.4px;
+  border-right: 1px solid #334155; position: sticky; top: 0; z-index: 10;
+}
+td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 12.5px; color: var(--text); vertical-align: middle; white-space: nowrap; }
+tr:hover td { background: rgba(37,99,235,0.03); }
+tr.row-reversado td { opacity: 0.6; background: rgba(220,38,38,0.03); }
 
-    @media (max-width: 600px) {
-        header { flex-direction: column; gap: 15px; }
-        .filter-grid { grid-template-columns: 1fr 1fr; }
-    }
+/* Badges y Etiquetas */
+.folio-badge { font-family: 'Consolas', monospace; font-weight: 800; color: var(--primary); background: rgba(37,99,235,0.08); padding: 3px 7px; border-radius: 5px; font-size: 11px; }
+.lote-badge { font-family: 'Consolas', monospace; font-weight: 700; background: var(--tag-bg); padding: 3px 7px; border-radius: 5px; font-size: 11.5px; border: 1px solid var(--border); }
+.tag-area { background: var(--tag-bg); color: var(--text); padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; border: 1px solid var(--border); }
+.tag-project { background: rgba(13,148,136,0.12); color: #0d9488; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+
+.pos { color: var(--success); font-weight: 900; font-size: 13.5px; }
+.neg { color: var(--danger); font-weight: 900; font-size: 13.5px; }
+
+.tag-mov { padding: 4px 9px; border-radius: 6px; font-size: 10.5px; font-weight: 800; color: white; display: inline-flex; align-items: center; gap: 4px; }
+.ENTRADA { background: #16a34a; }
+.SALIDA { background: #ea580c; }
+.TRANSFERENCIA { background: #2563eb; }
+.AJUSTE { background: #9333ea; }
+.REVERSA { background: #dc2626; }
+
+.badge-audit-rev { background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 800; margin-left: 5px; }
+.badge-parcial { background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 800; margin-left: 4px; }
+
+.col-comm { white-space: normal; min-width: 180px; max-width: 280px; color: var(--text-secondary); font-size: 11.5px; line-height: 1.35; }
+.col-desc { white-space: normal; min-width: 150px; max-width: 220px; font-size: 11.5px; color: var(--text-secondary); }
+
+@media (max-width: 768px) {
+  .topbar { flex-direction: column; align-items: flex-start; }
+  .filter-grid { grid-template-columns: 1fr 1fr; }
+}
 </style>
 </head>
 <body data-theme="light">
 
-<header>
-    <button class="back" onclick="location.href='dashboard.html'">⬅ Dashboard</button>
-    <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-size: 24px;">📜</span>
-        <h2 id="txtTitle" style="margin:0; color: var(--text);">Historial Maestro de Movimientos</h2>
+<div class="container">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="top-left">
+      <a href="wms_operaciones.html" class="btn-back" onclick="KraemNav.back('wms_operaciones.html'); return false;" title="Volver"><i class="fas fa-arrow-left"></i></a>
+      <div class="title-box">
+        <h1>
+          <span id="txtTitle">📜 Historial Maestro de Movimientos</span>
+          <span class="sap-code">MB51</span>
+        </h1>
+        <p id="txtSub">Auditoría de Trazabilidad Completa: Entradas, Salidas FIFO, Transferencias, Ajustes y Reversas</p>
+      </div>
     </div>
+
     <div class="controls">
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
-        <button class="btn-ctrl" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
-        <button class="btn-excel-top" onclick="exportCSV()"><i class="fas fa-file-excel"></i> CSV</button>
+      <a href="wms_operaciones.html" class="btn btn-wms"><i class="fas fa-bolt"></i> <span id="txtBtnWms">Ir a WMS Operaciones</span></a>
+      <button class="btn" onclick="cargarDatos()"><i class="fas fa-sync-alt"></i> <span id="txtBtnRefresh">Actualizar</span></button>
+      <button class="btn btn-excel" onclick="exportCSV()"><i class="fas fa-file-excel"></i> <span id="txtBtnCsv">Exportar Excel (CSV)</span></button>
+      <button class="lang-btn" onclick="setLang('es')" title="Español (MX)"><img src="https://flagcdn.com/w80/mx.png"></button>
+      <button class="lang-btn" onclick="setLang('ko')" title="한국어 (KO)"><img src="https://flagcdn.com/w80/kr.png"></button>
+      <button class="lang-btn" onclick="setLang('en')" title="English (US)"><img src="https://flagcdn.com/w80/us.png"></button>
+      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
-</header>
+  </div>
 
-<div class="filter-panel">
+  <!-- KPI BAR (RESUMEN EN VIVO SEGÚN FILTROS) -->
+  <div class="kpi-grid">
+    <div class="kpi-card" onclick="filtrarPorTipoRapido('')">
+      <div class="kpi-icon" style="background:rgba(37,99,235,0.1); color:var(--primary);"><i class="fas fa-list-check"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitTotal">Movimientos Filtrados</h4>
+        <div class="num" id="kpiNumTotal">0</div>
+        <div class="sub" id="kpiSubTotal">Registros en pantalla</div>
+      </div>
+    </div>
+
+    <div class="kpi-card" onclick="filtrarPorTipoRapido('ENTRADA')">
+      <div class="kpi-icon" style="background:rgba(22,163,74,0.1); color:var(--success);"><i class="fas fa-arrow-down"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitEnt">Total Entradas (+)</h4>
+        <div class="num" id="kpiNumEnt" style="color:var(--success);">+0</div>
+        <div class="sub" id="kpiSubEnt">Piezas ingresadas</div>
+      </div>
+    </div>
+
+    <div class="kpi-card" onclick="filtrarPorTipoRapido('SALIDA')">
+      <div class="kpi-icon" style="background:rgba(234,88,12,0.1); color:#ea580c;"><i class="fas fa-arrow-up"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitSal">Total Salidas (-)</h4>
+        <div class="num" id="kpiNumSal" style="color:#ea580c;">-0</div>
+        <div class="sub" id="kpiSubSal">Piezas embarcadas</div>
+      </div>
+    </div>
+
+    <div class="kpi-card" onclick="filtrarPorTipoRapido('TRANSFERENCIA')">
+      <div class="kpi-icon" style="background:rgba(37,99,235,0.1); color:var(--primary);"><i class="fas fa-right-left"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitTransf">Transferencias</h4>
+        <div class="num" id="kpiNumTransf" style="color:var(--primary);">0</div>
+        <div class="sub" id="kpiSubTransf">Reubicaciones internas</div>
+      </div>
+    </div>
+
+    <div class="kpi-card" onclick="filtrarPorTipoRapido('REVERSA')">
+      <div class="kpi-icon" style="background:rgba(220,38,38,0.1); color:var(--danger);"><i class="fas fa-rotate-left"></i></div>
+      <div class="kpi-info">
+        <h4 id="kpiTitRev">Ajustes y Reversas</h4>
+        <div class="num" id="kpiNumRev" style="color:var(--danger);">0</div>
+        <div class="sub" id="kpiSubRev">Auditoría de correcciones</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTER PANEL -->
+  <div class="filter-panel">
+    <div class="filter-header">
+      <div class="quick-dates">
+        <span style="font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-right:4px;">
+          <i class="fas fa-calendar-day"></i> <span id="lblQuickDate">Periodo Rápido:</span>
+        </span>
+        <button class="btn-qdate" onclick="aplicarFechaRapida('HOY')" id="btnQHood">Hoy</button>
+        <button class="btn-qdate" onclick="aplicarFechaRapida('7D')" id="btnQ7d">Últimos 7 Días</button>
+        <button class="btn-qdate" onclick="aplicarFechaRapida('MES')" id="btnQMes">Este Mes</button>
+        <button class="btn-qdate active" onclick="aplicarFechaRapida('TODO')" id="btnQTodo">Todo el Historial</button>
+      </div>
+      <button class="btn" onclick="limpiarFiltros()" style="padding:5px 12px; font-size:11px;">
+        <i class="fas fa-eraser"></i> <span id="txtBtnClear">Limpiar Filtros</span>
+      </button>
+    </div>
+
     <div class="filter-grid">
-        <div class="filter-group"><label id="lDesde">Desde</label><input type="date" id="fDesde"></div>
-        <div class="filter-group"><label id="lHasta">Hasta</label><input type="date" id="fHasta"></div>
-        <div class="filter-group"><label id="lPart">N° Parte</label><input type="text" id="fPart" placeholder="Parte o Desc..."></div>
-        <div class="filter-group"><label id="lProj">Proyecto</label><input type="text" id="fProj" placeholder="Filtrar proyecto..."></div>
-        <div class="filter-group"><label id="lLoc">Ubicación / Carro</label><input type="text" id="fLoc" placeholder="Origen, Destino o Carro..."></div>
-        <div class="filter-group"><label id="lTipo">Tipo</label><select id="fType"><option value="">TODOS</option><option value="ENTRADA">ENTRADA</option><option value="SALIDA">SALIDA</option><option value="TRANSFERENCIA">TRANSFERENCIA</option><option value="AJUSTE">AJUSTE</option></select></div>
-        <div class="filter-group"><label id="lArea">Área</label><input type="text" id="fArea" placeholder="Filtrar área..."></div>
-        <div class="filter-group"><label id="lUser">Usuario</label><input type="text" id="fUser" placeholder="Usuario..."></div>
+      <div class="filter-group"><label id="lDesde">Desde</label><input type="date" id="fDesde"></div>
+      <div class="filter-group"><label id="lHasta">Hasta</label><input type="date" id="fHasta"></div>
+      <div class="filter-group"><label id="lPart">N° Parte / Desc.</label><input type="text" id="fPart" placeholder="Buscar N/P o nombre..."></div>
+      <div class="filter-group"><label id="lLote">Lote (FIFO)</label><input type="text" id="fLote" placeholder="Ej: 20261107..."></div>
+      <div class="filter-group"><label id="lProj">Proyecto</label><input type="text" id="fProj" placeholder="Filtrar proyecto..."></div>
+      <div class="filter-group"><label id="lLoc">Ubicación / Carro</label><input type="text" id="fLoc" placeholder="Hilera o CARRO-..."></div>
+      <div class="filter-group">
+        <label id="lTipo">Tipo Movimiento</label>
+        <select id="fType">
+          <option value="" id="optTipoAll">TODOS</option>
+          <option value="ENTRADA" id="optTipoEnt">ENTRADA</option>
+          <option value="SALIDA" id="optTipoSal">SALIDA</option>
+          <option value="TRANSFERENCIA" id="optTipoTra">TRANSFERENCIA</option>
+          <option value="AJUSTE" id="optTipoAju">AJUSTE</option>
+          <option value="REVERSA" id="optTipoRev">REVERSA</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label id="lMatType">Tipo Material</label>
+        <select id="fMatType">
+          <option value="">TODOS (PT, Resina, Comp)</option>
+          <option value="PT">PT (Producto Terminado)</option>
+          <option value="RESINA">RESINA (Materia Prima)</option>
+          <option value="COMPONENTE">COMPONENTE / Inserto</option>
+          <option value="EMPAQUE">EMPAQUE</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label id="lDocRef">Origen / Documento</label>
+        <select id="fDocRef">
+          <option value="">TODOS LOS DOCUMENTOS</option>
+          <option value="OC">ORDEN DE COMPRA (OC / Factura)</option>
+          <option value="OP">ORDEN DE PRODUCCIÓN (OP / WO)</option>
+          <option value="EMBARQUE">EMBARQUE CLIENTE</option>
+        </select>
+      </div>
+      <div class="filter-group"><label id="lArea">Área</label><input type="text" id="fArea" placeholder="LS, NISSEI, Almacén..."></div>
+      <div class="filter-group"><label id="lUser">Operador</label><input type="text" id="fUser" placeholder="Usuario..."></div>
     </div>
-</div>
+  </div>
 
-<div class="table-container">
+  <!-- TABLA DE HISTORIAL MAESTRO -->
+  <div class="table-container">
     <table>
-        <thead>
-            <tr>
-                <th id="thFecha">Fecha y Hora</th>
-                <th id="thParte">N° Parte</th>
-                <th id="thDescHead">Descripción</th>
-                <th id="thProjHead">Proyecto</th>
-                <th id="thOri">Origen</th>
-                <th id="thDes">Destino</th>
-                <th id="thCant" style="text-align:center;">Cant.</th>
-                <th id="thTipoHead">Tipo</th>
-                <th id="thAreaHead">Área</th>
-                <th id="thCom">Comentario</th>
-                <th id="thUser">Usuario</th>
-            </tr>
-        </thead>
-        <tbody id="historialBody"></tbody>
+      <thead>
+        <tr>
+          <th id="thFolio">Folio</th>
+          <th id="thFecha">Fecha y Hora</th>
+          <th id="thParte">N° Parte</th>
+          <th id="thDescHead">Descripción</th>
+          <th id="thProjHead">Proyecto</th>
+          <th id="thLoteHead">Lote</th>
+          <th id="thOri">Origen (Ubicación / Carro)</th>
+          <th id="thDes">Destino (Ubicación / Carro)</th>
+          <th id="thCant" style="text-align:right;">Cant.</th>
+          <th id="thTipoHead">Tipo Mov.</th>
+          <th id="thAreaHead">Área</th>
+          <th id="thCom">Comentario / OP / Auditoría</th>
+          <th id="thUser">Operador</th>
+        </tr>
+      </thead>
+      <tbody id="historialBody">
+        <tr><td colspan="13" style="text-align:center; padding:30px;">Cargando historial maestro...</td></tr>
+      </tbody>
     </table>
+  </div>
+
 </div>
 
 <script>
-const client = supabase.createClient('https://telntsrrschcdxczlape.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlbG50c3Jyc2NoY2R4Y3psYXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjI4MTcsImV4cCI6MjA4MDQzODgxN30.DC2teZ_4gk3wA7UmZJHyeZHjw5aOOEmmKvd3a8jRUyw');
+const _client = (typeof client !== 'undefined') ? client : supabase.createClient(_supabaseUrl, _supabaseKey);
 
 let datosOriginales = [];
+let datosFiltradosActuales = [];
+let currentLang = localStorage.getItem('kraem_lang') || 'es';
 
 const i18n = {
-    es: { title: "Historial de Movimientos", thFecha: "Fecha y Hora", thParte: "N° Parte", thDescHead: "Descripción", thProjHead: "Proyecto", thOri: "Origen", thDes: "Destino", thCant: "Cant.", thTipoHead: "Tipo", thAreaHead: "Área", thCom: "Comentario", thUser: "Usuario", lDesde:"Desde", lHasta:"Hasta", lPart:"N° Parte", lProj:"Proyecto", lLoc:"Ubicación / Carro", lTipo:"Tipo", lArea:"Área", lUser:"Usuario" },
-    ko: { title: "이동 이력", thFecha: "날짜 및 시간", thParte: "부품 번호", thDescHead: "설명", thProjHead: "프로젝트", thOri: "출발지", thDes: "목적지", thCant: "수량", thTipoHead: "유형", thAreaHead: "구역", thCom: "비고", thUser: "사용자", lDesde:"시작일", lHasta:"종료일", lPart:"부품 번호", lProj:"프로젝트", lLoc:"위치 / 대차", lTipo:"유형", lArea:"구역", lUser:"사용자" }
+  es: {
+    title: "📜 Historial Maestro de Movimientos",
+    sub: "Auditoría de Trazabilidad Completa: Entradas, Salidas FIFO, Transferencias, Ajustes y Reversas",
+    btnWms: "Ir a WMS Operaciones",
+    btnRefresh: "Actualizar",
+    btnCsv: "Exportar Excel (CSV)",
+    kpiTitTotal: "Movimientos Filtrados", kpiSubTotal: "Registros en pantalla",
+    kpiTitEnt: "Total Entradas (+)", kpiSubEnt: "Piezas ingresadas",
+    kpiTitSal: "Total Salidas (-)", kpiSubSal: "Piezas embarcadas",
+    kpiTitTransf: "Transferencias", kpiSubTransf: "Reubicaciones internas",
+    kpiTitRev: "Ajustes y Reversas", kpiSubRev: "Auditoría de correcciones",
+    lblQuickDate: "Periodo Rápido:",
+    btnQHood: "Hoy", btnQ7d: "Últimos 7 Días", btnQMes: "Este Mes", btnQTodo: "Todo el Historial",
+    btnClear: "Limpiar Filtros",
+    lDesde: "Desde", lHasta: "Hasta", lPart: "N° Parte / Desc.", lLote: "Lote (FIFO)",
+    lProj: "Proyecto", lLoc: "Ubicación / Carro", lTipo: "Tipo Movimiento", lArea: "Área", lUser: "Operador",
+    optTipoAll: "TODOS", optTipoEnt: "ENTRADA", optTipoSal: "SALIDA", optTipoTra: "TRANSFERENCIA", optTipoAju: "AJUSTE", optTipoRev: "REVERSA",
+    thFolio: "Folio", thFecha: "Fecha y Hora", thParte: "N° Parte", thDescHead: "Descripción",
+    thProjHead: "Proyecto", thLoteHead: "Lote", thOri: "Origen (Ubic / Carro)", thDes: "Destino (Ubic / Carro)",
+    thCant: "Cant.", thTipoHead: "Tipo Mov.", thAreaHead: "Área", thCom: "Comentario / OP / Auditoría", thUser: "Operador",
+    badgeReversado: "REVERSADO", badgeParcial: "PARCIAL", sinFecha: "Fecha por Lote"
+  },
+  ko: {
+    title: "📜 통합 재고 이동 이력 (SAP MB51)",
+    sub: "전체 추적 감사: 입고, 선입선출(FIFO) 출고, 위치 이동, 재고 조정 및 역분개(취소)",
+    btnWms: "WMS 작업 화면으로",
+    btnRefresh: "새로고침",
+    btnCsv: "엑셀 내보내기 (CSV)",
+    kpiTitTotal: "필터링된 이동 건수", kpiSubTotal: "화면 표시 내역",
+    kpiTitEnt: "총 입고 수량 (+)", kpiSubEnt: "입고된 부품 수",
+    kpiTitSal: "총 출고 수량 (-)", kpiSubSal: "출하된 부품 수",
+    kpiTitTransf: "위치 이동 건수", kpiSubTransf: "사내 위치/대차 이동",
+    kpiTitRev: "조정 및 역분개(취소)", kpiSubRev: "수정 감사 내역",
+    lblQuickDate: "빠른 기간 선택:",
+    btnQHood: "오늘", btnQ7d: "최근 7일", btnQMes: "이번 달", btnQTodo: "전체 이력",
+    btnClear: "필터 초기화",
+    lDesde: "시작일", lHasta: "종료일", lPart: "부품 번호 / 품명", lLote: "로트 번호 (FIFO)",
+    lProj: "프로젝트", lLoc: "위치 / 대차", lTipo: "이동 유형", lArea: "구역 (Area)", lUser: "작업자",
+    optTipoAll: "전체 (ALL)", optTipoEnt: "입고 (ENTRADA)", optTipoSal: "출고 (SALIDA)", optTipoTra: "이동 (TRANSFERENCIA)", optTipoAju: "조정 (AJUSTE)", optTipoRev: "역분개 (REVERSA)",
+    thFolio: "번호", thFecha: "날짜 및 시간", thParte: "부품 번호", thDescHead: "품명 (설명)",
+    thProjHead: "프로젝트", thLoteHead: "로트 번호", thOri: "출발지 (위치/대차)", thDes: "도착지 (위치/대차)",
+    thCant: "수량", thTipoHead: "이동 유형", thAreaHead: "구역", thCom: "비고 / 작업지시 / 감사", thUser: "작업자",
+    badgeReversado: "취소됨", badgeParcial: "잔량", sinFecha: "로트 기준일"
+  },
+  en: {
+    title: "📜 Master Movement History",
+    sub: "Full Traceability Audit: Receipts, FIFO Issues, Transfers, Adjustments & Reversals",
+    btnWms: "Go to WMS Operations",
+    btnRefresh: "Refresh",
+    btnCsv: "Export Excel (CSV)",
+    kpiTitTotal: "Filtered Movements", kpiSubTotal: "Records displayed",
+    kpiTitEnt: "Total Receipts (+)", kpiSubEnt: "Pieces received",
+    kpiTitSal: "Total Issues (-)", kpiSubSal: "Pieces shipped",
+    kpiTitTransf: "Transfers", kpiSubTransf: "Internal relocations",
+    kpiTitRev: "Adjustments & Reversals", kpiSubRev: "Correction audit",
+    lblQuickDate: "Quick Period:",
+    btnQHood: "Today", btnQ7d: "Last 7 Days", btnQMes: "This Month", btnQTodo: "All History",
+    btnClear: "Clear Filters",
+    lDesde: "From Date", lHasta: "To Date", lPart: "Part # / Desc.", lLote: "Lot # (FIFO)",
+    lProj: "Project", lLoc: "Location / Cart", lTipo: "Movement Type", lArea: "Area", lUser: "Operator",
+    optTipoAll: "ALL", optTipoEnt: "RECEIPT (IN)", optTipoSal: "ISSUE (OUT)", optTipoTra: "TRANSFER", optTipoAju: "ADJUSTMENT", optTipoRev: "REVERSAL",
+    thFolio: "ID", thFecha: "Date & Time", thParte: "Part Number", thDescHead: "Description",
+    thProjHead: "Project", thLoteHead: "Lot #", thOri: "Origin (Loc / Cart)", thDes: "Destination (Loc / Cart)",
+    thCant: "Qty", thTipoHead: "Type", thAreaHead: "Area", thCom: "Comment / Order / Audit", thUser: "Operator",
+    badgeReversado: "REVERSED", badgeParcial: "PARTIAL", sinFecha: "Date from Lot"
+  }
 };
 
-async function cargarDatos() {
-    const { data, error } = await client
-        .from('v_history_master')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error(error);
-        return;
+// =========================================================================
+// 1. FORMATEADOR INTELIGENTE DE FECHA (ELIMINA EL BUG DEL AÑO 1969)
+// =========================================================================
+function obtenerFechaSegura(r) {
+  const t = i18n[currentLang] || i18n.es;
+  // 1. Verificar si created_at existe y es posterior al año 2000 (evita new Date(null) -> 31/12/1969)
+  if (r.created_at) {
+    const dt = new Date(r.created_at);
+    if (!isNaN(dt.getTime()) && dt.getFullYear() >= 2020) {
+      const iso = dt.toISOString().split('T')[0];
+      const fechaStr = dt.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      const horaStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return {
+        isoDate: iso,
+        html: `<b>${fechaStr}</b> <span style="color:var(--text-secondary); font-size:11px;">${horaStr}</span>`,
+        csv: `${fechaStr} ${horaStr}`
+      };
     }
-    datosOriginales = data || [];
-    aplicarFiltros();
+  }
+
+  // 2. Si el registro antiguo tenía created_at = null, reconstruir fecha desde lot_number (YYYYMMDD)
+  const lote = String(r.lot_number || '').trim();
+  if (/^\d{8}$/.test(lote)) {
+    const yyyy = lote.slice(0, 4);
+    const mm = lote.slice(4, 6);
+    const dd = lote.slice(6, 8);
+    return {
+      isoDate: `${yyyy}-${mm}-${dd}`,
+      html: `<b>${dd}/${mm}/${yyyy}</b> <span style="color:var(--warning); font-size:10px; font-weight:700;">(${t.sinFecha})</span>`,
+      csv: `${dd}/${mm}/${yyyy}`
+    };
+  }
+
+  // 3. Fallback limpio si no tiene ni created_at ni lote fecha
+  return {
+    isoDate: '',
+    html: `<span style="color:var(--text-secondary);">Registro Inicial</span>`,
+    csv: `Registro Inicial`
+  };
 }
 
+// =========================================================================
+// 2. CARGA DE DATOS DESDE SUPABASE
+// =========================================================================
+async function cargarDatos() {
+  const body = document.getElementById('historialBody');
+  body.innerHTML = `<tr><td colspan="13" style="text-align:center; padding:30px;"><i class="fas fa-spinner fa-spin"></i> Consultando movimientos...</td></tr>`;
+
+  const { data, error } = await _client
+    .from('v_history_master')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    body.innerHTML = `<tr><td colspan="13" style="text-align:center; color:var(--danger); padding:30px;">Error al cargar: ${error.message}</td></tr>`;
+    return;
+  }
+
+  datosOriginales = data || [];
+  aplicarFiltros();
+}
+
+// =========================================================================
+// 3. RENDERIZADO DE TABLA Y CÁLCULO DE KPIS EN TIEMPO REAL
+// =========================================================================
 function renderizar(lista) {
-    const body = document.getElementById('historialBody');
-    body.innerHTML = '';
-    
-    lista.forEach(r => {
-        let userDisplay = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'S/U';
-        
-        // Formateo dinámico para incluir los nombres de los carros/contenedores móviles si existen
-        const origenDisplay = r.from_container ? `📍 ${r.from_location} <span style="color:#e67e22; font-weight:bold;">[🛒 ${r.from_container}]</span>` : `📍 ${r.from_location || '-'}`;
-        const destinoDisplay = r.to_container ? `📍 ${r.to_location} <span style="color:#27ae60; font-weight:bold;">[🛒 ${r.to_container}]</span>` : `📍 ${r.to_location || '-'}`;
+  datosFiltradosActuales = lista;
+  const body = document.getElementById('historialBody');
+  const t = i18n[currentLang] || i18n.es;
 
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td style="color:var(--text-secondary); font-size:11px;">${new Date(r.created_at).toLocaleString()}</td>
-            <td><b style="color:var(--text);">${r.part_number || 'N/A'}</b></td>
-            <td class="col-desc">${r.description || '-'}</td>
-            <td><span class="tag-project">${r.project || '-'}</span></td>
-            <td>${origenDisplay}</td>
-            <td>${destinoDisplay}</td>
-            <td style="text-align:center;"><span class="${r.quantity > 0 ? 'pos' : 'neg'}">${r.quantity > 0 ? '+' + r.quantity : r.quantity}</span></td>
-            <td><span class="tag ${r.movement_type}">${r.movement_type}</span></td>
-            <td><span class="tag-area">${r.area || ''}</span></td>
-            <td class="col-comm">${r.comment || ''}</td>
-            <td style="font-weight:bold;">👤 ${userDisplay}</td>
-        `;
-        body.appendChild(row);
-    });
+  // Actualizar KPIs
+  let sumEntradas = 0;
+  let sumSalidas = 0;
+  let countTransf = 0;
+  let countRevAjuste = 0;
+
+  lista.forEach(r => {
+    const q = Number(r.quantity) || 0;
+    if (r.movement_type === 'ENTRADA') sumEntradas += q;
+    else if (r.movement_type === 'SALIDA') sumSalidas += Math.abs(q);
+    else if (r.movement_type === 'TRANSFERENCIA') countTransf++;
+    else if (r.movement_type === 'AJUSTE' || r.movement_type === 'REVERSA') countRevAjuste++;
+  });
+
+  document.getElementById('kpiNumTotal').innerText = lista.length.toLocaleString();
+  document.getElementById('kpiNumEnt').innerText = `+${sumEntradas.toLocaleString()}`;
+  document.getElementById('kpiNumSal').innerText = `-${sumSalidas.toLocaleString()}`;
+  document.getElementById('kpiNumTransf').innerText = countTransf.toLocaleString();
+  document.getElementById('kpiNumRev').innerText = countRevAjuste.toLocaleString();
+
+  if (lista.length === 0) {
+    body.innerHTML = `<tr><td colspan="13" style="text-align:center; padding:35px; color:var(--text-secondary);">No se encontraron movimientos con los filtros seleccionados.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = lista.map(r => {
+    const fInfo = obtenerFechaSegura(r);
+    const userDisplay = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'OPERADOR';
+
+    const origenDisplay = r.from_container 
+      ? `📍 ${r.from_location || 'Piso'} <span style="color:#d97706; font-weight:800;">[🛒 ${r.from_container}]</span>` 
+      : (r.from_location ? `📍 ${r.from_location}` : '<span style="color:var(--text-secondary);">-</span>');
+
+    const destinoDisplay = r.to_container 
+      ? `📍 ${r.to_location || 'Piso'} <span style="color:#16a34a; font-weight:800;">[🛒 ${r.to_container}]</span>` 
+      : (r.to_location ? `📍 ${r.to_location}` : '<span style="color:var(--text-secondary);">-</span>');
+
+    const esReversado = r.reversado === true;
+    const badgeReversado = esReversado ? `<span class="badge-audit-rev">${t.badgeReversado}</span>` : '';
+    const badgeParcial = r.es_parcial ? `<span class="badge-parcial">${t.badgeParcial}</span>` : '';
+
+    // Formatear badges de documento (OC, Factura, OP, Embarque) en Comentario
+    let commFormat = r.comment || '-';
+    if (commFormat.includes('[RECIBO_OC:')) {
+      commFormat = commFormat.replace(/\[RECIBO_OC:\s*([^\]]+)\]/gi, '<span style="background:#dbeafe; color:#1e40af; border:1px solid #93c5fd; padding:1px 6px; border-radius:4px; font-weight:800; font-size:10.5px; display:inline-flex; align-items:center; gap:3px"><i class="fas fa-file-invoice"></i> OC: $1</span>');
+    }
+    if (commFormat.includes('[FACTURA:')) {
+      commFormat = commFormat.replace(/\[FACTURA:\s*([^\]]+)\]/gi, '<span style="background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe; padding:1px 6px; border-radius:4px; font-weight:800; font-size:10.5px; display:inline-flex; align-items:center; gap:3px"><i class="fas fa-receipt"></i> Fact: $1</span>');
+    }
+
+    return `
+      <tr class="${esReversado ? 'row-reversado' : ''}">
+        <td><span class="folio-badge">#${r.id || '-'}</span></td>
+        <td>${fInfo.html}</td>
+        <td><b style="font-size:13.5px;">${r.part_number || 'N/A'}</b>${badgeParcial}</td>
+        <td class="col-desc">${r.description || '-'}</td>
+        <td><span class="tag-project">${r.project || '-'}</span></td>
+        <td><span class="lote-badge">${r.lot_number || 'S/L'}</span></td>
+        <td>${origenDisplay}</td>
+        <td>${destinoDisplay}</td>
+        <td style="text-align:right;"><span class="${r.quantity > 0 ? 'pos' : 'neg'}">${r.quantity > 0 ? '+' + r.quantity : r.quantity}</span></td>
+        <td><span class="tag-mov ${r.movement_type}">${r.movement_type}</span>${badgeReversado}</td>
+        <td><span class="tag-area">${r.area || '-'}</span></td>
+        <td class="col-comm">${commFormat}</td>
+        <td style="font-weight:800; color:var(--primary);">👤 ${userDisplay}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
+// =========================================================================
+// 4. SISTEMA DE FILTROS MULTICRITERIO Y FECHAS RÁPIDAS
+// =========================================================================
 function aplicarFiltros() {
-    const fDesde = document.getElementById('fDesde').value;
-    const fHasta = document.getElementById('fHasta').value;
-    const fPart = document.getElementById('fPart').value.toLowerCase();
-    const fProj = document.getElementById('fProj').value.toLowerCase();
-    const fLoc = document.getElementById('fLoc').value.toLowerCase();
-    const fType = document.getElementById('fType').value;
-    const fArea = document.getElementById('fArea').value.toLowerCase();
-    const fUser = document.getElementById('fUser').value.toLowerCase();
+  const fDesde = document.getElementById('fDesde').value;
+  const fHasta = document.getElementById('fHasta').value;
+  const fPart = document.getElementById('fPart').value.toLowerCase().trim();
+  const fLote = document.getElementById('fLote').value.toLowerCase().trim();
+  const fProj = document.getElementById('fProj').value.toLowerCase().trim();
+  const fLoc = document.getElementById('fLoc').value.toLowerCase().trim();
+  const fType = document.getElementById('fType').value;
+  const fMatType = (document.getElementById('fMatType')?.value || '').toUpperCase();
+  const fDocRef = (document.getElementById('fDocRef')?.value || '').toUpperCase();
+  const fArea = document.getElementById('fArea').value.toLowerCase().trim();
+  const fUser = document.getElementById('fUser').value.toLowerCase().trim();
 
-    const filtrados = datosOriginales.filter(r => {
-        const fechaMov = new Date(r.created_at).toISOString().split('T')[0];
-        const userClean = (r.user_email || '').toLowerCase();
-        const desc = (r.description || '').toLowerCase();
-        const proj = (r.project || '').toLowerCase();
-        
-        // Mapeos para buscar también por el texto del contenedor
-        const lowerFromLoc = (r.from_location || '').toLowerCase();
-        const lowerToLoc = (r.to_location || '').toLowerCase();
-        const lowerFromCont = (r.from_container || '').toLowerCase();
-        const lowerToCont = (r.to_container || '').toLowerCase();
-        
-        return (!fDesde || fechaMov >= fDesde) && (!fHasta || fechaMov <= fHasta) && 
-               (!fPart || r.part_number?.toLowerCase().includes(fPart) || desc.includes(fPart)) && 
-               (!fProj || proj.includes(fProj)) &&
-               (!fLoc || lowerFromLoc.includes(fLoc) || lowerToLoc.includes(fLoc) || lowerFromCont.includes(fLoc) || lowerToCont.includes(fLoc)) &&
-               (!fType || r.movement_type === fType) && (!fArea || r.area?.toLowerCase().includes(fArea)) &&
-               (!fUser || userClean.includes(fUser));
-    });
-    renderizar(filtrados);
+  const filtrados = datosOriginales.filter(r => {
+    const fInfo = obtenerFechaSegura(r);
+    const fechaMov = fInfo.isoDate;
+
+    const userClean = (r.user_email || '').toLowerCase();
+    const npClean = (r.part_number || '').toUpperCase();
+    const desc = (r.description || '').toLowerCase();
+    const proj = (r.project || '').toLowerCase();
+    const lote = String(r.lot_number || '').toLowerCase();
+    const comm = (r.comment || '').toLowerCase();
+
+    const lowerFromLoc = (r.from_location || '').toLowerCase();
+    const lowerToLoc = (r.to_location || '').toLowerCase();
+    const lowerFromCont = (r.from_container || '').toLowerCase();
+    const lowerToCont = (r.to_container || '').toLowerCase();
+
+    const cumpleDesde = !fDesde || (fechaMov && fechaMov >= fDesde);
+    const cumpleHasta = !fHasta || (fechaMov && fechaMov <= fHasta);
+
+    // Filtro por tipo de material (PT, Resina, Componente, Empaque)
+    let matchMat = true;
+    if (fMatType) {
+      if (fMatType === 'RESINA') matchMat = npClean.includes('RES') || desc.includes('resina') || desc.includes('poli') || desc.includes('pp') || desc.includes('abs') || comm.includes('resina');
+      else if (fMatType === 'COMPONENTE') matchMat = npClean.includes('CMP') || npClean.includes('INS') || desc.includes('componente') || desc.includes('inserto') || desc.includes('tornillo');
+      else if (fMatType === 'EMPAQUE') matchMat = npClean.includes('EMP') || desc.includes('caja') || desc.includes('tarima') || desc.includes('bolsa');
+      else if (fMatType === 'PT') matchMat = !npClean.includes('RES-') && !desc.includes('resina') && !desc.includes('inserto');
+    }
+
+    // Filtro por origen de documento (OC, OP, Embarque)
+    let matchDoc = true;
+    if (fDocRef) {
+      if (fDocRef === 'OC') matchDoc = comm.includes('recibo_oc') || comm.includes('factura') || comm.includes('oc-') || lote.includes('lot-') || comm.includes('proveedor');
+      else if (fDocRef === 'OP') matchDoc = comm.includes('op-') || comm.includes('wo-') || comm.includes('producci') || comm.includes('inyecci');
+      else if (fDocRef === 'EMBARQUE') matchDoc = comm.includes('embarque') || comm.includes('cliente') || comm.includes('salida');
+    }
+
+    return cumpleDesde && cumpleHasta &&
+           matchMat && matchDoc &&
+           (!fPart || (r.part_number || '').toLowerCase().includes(fPart) || desc.includes(fPart) || comm.includes(fPart)) &&
+           (!fLote || lote.includes(fLote)) &&
+           (!fProj || proj.includes(fProj)) &&
+           (!fLoc || lowerFromLoc.includes(fLoc) || lowerToLoc.includes(fLoc) || lowerFromCont.includes(fLoc) || lowerToCont.includes(fLoc)) &&
+           (!fType || r.movement_type === fType) &&
+           (!fArea || (r.area || '').toLowerCase().includes(fArea)) &&
+           (!fUser || userClean.includes(fUser));
+  });
+
+  renderizar(filtrados);
+}
+
+function aplicarFechaRapida(modo) {
+  document.querySelectorAll('.btn-qdate').forEach(b => b.classList.remove('active'));
+  const hoy = new Date();
+  const hoyISO = hoy.toISOString().split('T')[0];
+
+  if (modo === 'HOY') {
+    document.getElementById('btnQHood').classList.add('active');
+    document.getElementById('fDesde').value = hoyISO;
+    document.getElementById('fHasta').value = hoyISO;
+  } else if (modo === '7D') {
+    document.getElementById('btnQ7d').classList.add('active');
+    const hace7 = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    document.getElementById('fDesde').value = hace7;
+    document.getElementById('fHasta').value = hoyISO;
+  } else if (modo === 'MES') {
+    document.getElementById('btnQMes').classList.add('active');
+    const inicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+    document.getElementById('fDesde').value = inicioMes;
+    document.getElementById('fHasta').value = hoyISO;
+  } else {
+    document.getElementById('btnQTodo').classList.add('active');
+    document.getElementById('fDesde').value = '';
+    document.getElementById('fHasta').value = '';
+  }
+  aplicarFiltros();
+}
+
+function filtrarPorTipoRapido(tipo) {
+  document.getElementById('fType').value = tipo;
+  aplicarFiltros();
+}
+
+function limpiarFiltros() {
+  document.querySelectorAll('.filter-panel input, .filter-panel select').forEach(el => el.value = '');
+  aplicarFechaRapida('TODO');
 }
 
 document.querySelectorAll('.filter-panel input, .filter-panel select').forEach(el => {
-    el.addEventListener('input', aplicarFiltros);
+  el.addEventListener('input', aplicarFiltros);
 });
 
+// =========================================================================
+// 5. EXPORTACIÓN EXCEL (CSV CON DATOS FILTRADOS Y FECHAS CORREGIDAS)
+// =========================================================================
+function exportCSV() {
+  const fechaEmision = new Date().toLocaleString('es-MX');
+  let csv = '\uFEFF"KRAEM S.A. DE C.V. - SISTEMA DE GESTIÓN DE CALIDAD ISO 9001 / IATF 16949"\n';
+  csv += `"DOCUMENTO CONTROLADO:","KR-SYS-WMS-0003","REVISIÓN:","REV 01","FECHA EMISIÓN:","${fechaEmision}"\n`;
+  csv += '"TÍTULO DEL REPORTE:","KARDEX MAESTRO Y AUDITORÍA DE TRANSACCIONES WMS (MB51)"\n\n';
+  csv += 'Folio,Fecha_Hora,Numero_Parte,Descripcion,Proyecto,Lote,Origen,Destino,Cantidad,Tipo_Movimiento,Area,Comentario,Operador\n';
+  datosFiltradosActuales.forEach(r => {
+    const fInfo = obtenerFechaSegura(r);
+    const userClean = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'OPERADOR';
+    const oriStr = r.from_container ? `${r.from_location || ''} [${r.from_container}]` : (r.from_location || '-');
+    const destStr = r.to_container ? `${r.to_location || ''} [${r.to_container}]` : (r.to_location || '-');
+    const commClean = String(r.comment || '').replace(/"/g, '""');
+    const descClean = String(r.description || '').replace(/"/g, '""');
+
+    csv += `"#${r.id || ''}","${fInfo.csv}","${r.part_number || ''}","${descClean}","${r.project || ''}","${r.lot_number || ''}","${oriStr}","${destStr}",${r.quantity},"${r.movement_type}","${r.area || ''}","${commClean}","${userClean}"\n`;
+  });
+  csv += '\n"PIE DE CONTROL ISO:","DOCUMENTO CONTROLADO | CÓDIGO: KR-SYS-WMS-0003 | REV 01 | AVALADO EN LISTA MAESTRA KR-SGC-LM-0001"\n';
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `KR-SYS-WMS-0003_MB51_Historial_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+}
+
+// =========================================================================
+// 6. TEMA Y 3 IDIOMAS (ES / KO / EN)
+// =========================================================================
 function toggleTheme() {
-    const b = document.body;
-    const isDark = b.getAttribute('data-theme') === 'dark';
-    b.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+  const b = document.body;
+  const isDark = b.getAttribute('data-theme') === 'dark';
+  b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
 }
 
 function setLang(l) {
-    const t = i18n[l];
-    document.getElementById('txtTitle').innerText = t.title;
-    document.getElementById('thFecha').innerText = t.thFecha;
-    document.getElementById('thParte').innerText = t.thParte;
-    document.getElementById('thDescHead').innerText = t.thDescHead;
-    document.getElementById('thProjHead').innerText = t.thProjHead;
-    document.getElementById('thOri').innerText = t.thOri;
-    document.getElementById('thDes').innerText = t.thDes;
-    document.getElementById('thCant').innerText = t.thCant;
-    document.getElementById('thTipoHead').innerText = t.thTipoHead;
-    document.getElementById('thAreaHead').innerText = t.thAreaHead;
-    document.getElementById('thCom').innerText = t.thCom;
-    document.getElementById('thUser').innerText = t.thUser;
-    
-    document.getElementById('lDesde').innerText = t.lDesde;
-    document.getElementById('lHasta').innerText = t.lHasta;
-    document.getElementById('lPart').innerText = t.lPart;
-    document.getElementById('lProj').innerText = t.lProj;
-    document.getElementById('lLoc').innerText = t.lLoc;
-    document.getElementById('lTipo').innerText = t.lTipo;
-    document.getElementById('lArea').innerText = t.lArea;
-    document.getElementById('lUser').innerText = t.lUser;
+  if (window.KraemI18n) { window.KraemI18n.setLang(l); } else { localStorage.setItem('lang', l); localStorage.setItem('kraem_lang', l); }
+  currentLang = l;
+  localStorage.setItem('kraem_lang', l);
+  const t = i18n[l] || i18n.es;
+
+  document.getElementById('txtTitle').innerText = t.title;
+  document.getElementById('txtSub').innerText = t.sub;
+  document.getElementById('txtBtnWms').innerText = t.btnWms;
+  document.getElementById('txtBtnRefresh').innerText = t.btnRefresh;
+  document.getElementById('txtBtnCsv').innerText = t.btnCsv;
+
+  document.getElementById('kpiTitTotal').innerText = t.kpiTitTotal;
+  document.getElementById('kpiSubTotal').innerText = t.kpiSubTotal;
+  document.getElementById('kpiTitEnt').innerText = t.kpiTitEnt;
+  document.getElementById('kpiSubEnt').innerText = t.kpiSubEnt;
+  document.getElementById('kpiTitSal').innerText = t.kpiTitSal;
+  document.getElementById('kpiSubSal').innerText = t.kpiSubSal;
+  document.getElementById('kpiTitTransf').innerText = t.kpiTitTransf;
+  document.getElementById('kpiSubTransf').innerText = t.kpiSubTransf;
+  document.getElementById('kpiTitRev').innerText = t.kpiTitRev;
+  document.getElementById('kpiSubRev').innerText = t.kpiSubRev;
+
+  document.getElementById('lblQuickDate').innerText = t.lblQuickDate;
+  document.getElementById('btnQHood').innerText = t.btnQHood;
+  document.getElementById('btnQ7d').innerText = t.btnQ7d;
+  document.getElementById('btnQMes').innerText = t.btnQMes;
+  document.getElementById('btnQTodo').innerText = t.btnQTodo;
+  document.getElementById('txtBtnClear').innerText = t.btnClear;
+
+  document.getElementById('lDesde').innerText = t.lDesde;
+  document.getElementById('lHasta').innerText = t.lHasta;
+  document.getElementById('lPart').innerText = t.lPart;
+  document.getElementById('lLote').innerText = t.lLote;
+  document.getElementById('lProj').innerText = t.lProj;
+  document.getElementById('lLoc').innerText = t.lLoc;
+  document.getElementById('lTipo').innerText = t.lTipo;
+  document.getElementById('lArea').innerText = t.lArea;
+  document.getElementById('lUser').innerText = t.lUser;
+
+  document.getElementById('optTipoAll').innerText = t.optTipoAll;
+  document.getElementById('optTipoEnt').innerText = t.optTipoEnt;
+  document.getElementById('optTipoSal').innerText = t.optTipoSal;
+  document.getElementById('optTipoTra').innerText = t.optTipoTra;
+  document.getElementById('optTipoAju').innerText = t.optTipoAju;
+  document.getElementById('optTipoRev').innerText = t.optTipoRev;
+
+  document.getElementById('thFolio').innerText = t.thFolio;
+  document.getElementById('thFecha').innerText = t.thFecha;
+  document.getElementById('thParte').innerText = t.thParte;
+  document.getElementById('thDescHead').innerText = t.thDescHead;
+  document.getElementById('thProjHead').innerText = t.thProjHead;
+  document.getElementById('thLoteHead').innerText = t.thLoteHead;
+  document.getElementById('thOri').innerText = t.thOri;
+  document.getElementById('thDes').innerText = t.thDes;
+  document.getElementById('thCant').innerText = t.thCant;
+  document.getElementById('thTipoHead').innerText = t.thTipoHead;
+  document.getElementById('thAreaHead').innerText = t.thAreaHead;
+  document.getElementById('thCom').innerText = t.thCom;
+  document.getElementById('thUser').innerText = t.thUser;
+
+  if (datosOriginales.length > 0) aplicarFiltros();
 }
 
-function exportCSV() {
-    let csv = '\uFEFFFecha,Parte,Descripcion,Proyecto,Origen,Destino,Cantidad,Tipo,Area,Comentario,Usuario\n';
-    datosOriginales.forEach(r => {
-        const userClean = r.user_email ? r.user_email.split('@')[0].toUpperCase() : 'S/U';
-        const oriStr = r.from_container ? `${r.from_location} [${r.from_container}]` : r.from_location || '-';
-        const destStr = r.to_container ? `${r.to_location} [${r.to_container}]` : r.to_location || '-';
-        csv += `"${new Date(r.created_at).toLocaleString()}","${r.part_number}","${r.description || ''}","${r.project || ''}","${oriStr}","${destStr}",${r.quantity},"${r.movement_type}","${r.area || ''}","${r.comment || ''}","${userClean}"\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Historial_Inventario.csv`;
-    link.click();
-}
-
+setLang(currentLang);
 cargarDatos();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+<script src="iso_sop_ayuda.js"></script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
 </script>
 </body>
 </html>
+

@@ -7,6 +7,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="kraem_plantas.js"></script>
+<script src="kraem_nav.js"></script>
+  <script src="ingenieria_i18n.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -418,6 +421,21 @@ tr:hover{
 
       </div>
 
+      <div class="group" id="group_status_op" style="display:none;">
+        <label>Estatus Operativo (Flota)</label>
+        <select id="status_operativo">
+          <option value="OPERATIVO">🟢 Operativo (Disponible)</option>
+          <option value="EN_REPARACION">🟡 En Reparación / Taller</option>
+          <option value="BAJA">🔴 Dado de Baja / Dañado</option>
+        </select>
+      </div>
+
+      <div class="group" id="group_motivo_op" style="display:none;">
+        <label>Motivo de Daño / Falla</label>
+        <input id="motivo_estado" placeholder="Ej: Rueda rota, soldadura pendiente...">
+
+      </div>
+
     </div>
 
     <div style="margin-top:20px;">
@@ -516,7 +534,8 @@ async function cargarAreasGenerales(){
   area_general_id.innerHTML =
     '<option value="">Seleccione...</option>';
 
-  data.forEach(a => {
+  const areasFiltradas = window.KraemPlant ? window.KraemPlant.filterAreasGenerales(data) : data;
+  areasFiltradas.forEach(a => {
 
     area_general_id.innerHTML += `
       <option value="${a.id}">
@@ -572,7 +591,12 @@ async function cargarAreas(){
 
 function alternarCamposTipo() {
   const tipo = reg_type.value;
-  if (tipo === 'Móvil') {
+  const isMovil = (tipo === 'Móvil');
+  if (document.getElementById('group_status_op')) {
+    document.getElementById('group_status_op').style.display = isMovil ? 'flex' : 'none';
+    document.getElementById('group_motivo_op').style.display = isMovil ? 'flex' : 'none';
+  }
+  if (isMovil) {
     area_general_id.value = '';
     area_id.innerHTML = '<option value="">Sin área (Contenedor Móvil)</option>';
     area_general_id.disabled = true;
@@ -632,6 +656,12 @@ async function load(){
     const esMovil = l.type === 'Móvil' || l.type === 'Contenedor';
     const badgeClass = esMovil ? 'badge-movil' : 'badge-fijo';
     const badgeText = esMovil ? '🛒 MÓVIL' : '📍 FIJO';
+    let badgeStOp = '';
+    if (esMovil) {
+      if (l.status_operativo === 'EN_REPARACION') badgeStOp = `<br><span style="background:#fef3c7; color:#b45309; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">🟡 REPARACIÓN</span>`;
+      else if (l.status_operativo === 'BAJA') badgeStOp = `<br><span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">🔴 BAJA</span>`;
+      else badgeStOp = `<br><span style="background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">🟢 OPERATIVO</span>`;
+    }
 
     body.innerHTML += `
 
@@ -651,7 +681,7 @@ async function load(){
           <strong>${l.location_code}</strong>
         </td>
 
-        <td>${l.location_name || '-'}</td>
+        <td>${l.location_name || '-'}${badgeStOp}</td>
 
         <td>
 
@@ -818,7 +848,9 @@ async function crearUbicacion(){
     location_code: location_code.value.toUpperCase().trim(),
     location_name: location_name.value.trim(),
     type: tipoValue,
-    qr_code: location_code.value.toUpperCase().trim()
+    qr_code: location_code.value.toUpperCase().trim(),
+    status_operativo: (tipoValue === 'Móvil' && document.getElementById('status_operativo')) ? document.getElementById('status_operativo').value : 'OPERATIVO',
+    motivo_estado: (tipoValue === 'Móvil' && document.getElementById('motivo_estado')) ? document.getElementById('motivo_estado').value.trim() : null
   };
 
   if(editandoId){
@@ -901,6 +933,7 @@ async function init(){
 }
 
 init();
+document.addEventListener('kraem:plantchange', init);
 
 </script>
 

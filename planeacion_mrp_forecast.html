@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRAEM ERP | Boceto Forecast & Explosión MRP</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="kraem_plantas.js"></script>
+<script src="kraem_nav.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+:root{
+  --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+  --primary:#2563eb; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
+.container{max-width:1580px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff;border:none}
+.btn-success{background:var(--success);color:#fff;border:none}
+.btn-warning{background:var(--warning);color:#fff;border:none}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.banner{background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.25);padding:11px 15px;border-radius:12px;font-size:12.5px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:13px;cursor:pointer}
+.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px}
+.grid-top{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+@media(max-width:1100px){.grid-top{grid-template-columns:1fr}}
+.form-row{display:grid;grid-template-columns:1.2fr 1.2fr 2fr;gap:10px;align-items:end;margin-bottom:10px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+@media(max-width:960px){.form-row,.form-row-2{grid-template-columns:1fr 1fr}}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 11px;border-bottom:1px solid var(--border);text-align:left}
+th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(148,163,184,0.08)}
+.badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-ok{background:#dcfce7;color:#166534}
+.b-warn{background:#fef3c7;color:#92400e}
+.b-bad{background:#fee2e2;color:#991b1b}
+.b-info{background:#e0f2fe;color:#075985}
+.hidden{display:none}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 15px;border-left:4px solid var(--primary)}
+.kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.kpi .v{font-size:21px;font-weight:800;margin-top:3px}
+
+/* Picker filtrable de Número de Parte */
+.picker-wrap{position:relative}
+.picker-input-box{display:flex;align-items:center;gap:6px;position:relative}
+.picker-clear{position:absolute;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px}
+.picker-dropdown{
+  position:absolute;top:100%;left:0;right:0;z-index:200;margin-top:4px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 12px 28px rgba(0,0,0,0.16);max-height:290px;overflow-y:auto;display:none;
+}
+.picker-dropdown.open{display:block}
+.picker-head{padding:7px 11px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(148,163,184,0.06);position:sticky;top:0}
+.picker-item{padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.picker-item:hover{background:rgba(37,99,235,0.08)}
+.picker-item strong{font-size:13px;color:var(--primary)}
+.picker-item small{display:block;font-size:11.5px;color:var(--muted)}
+
+/* Dropzone Excel */
+.dropzone{
+  border:2px dashed var(--border);border-radius:12px;padding:14px;text-align:center;
+  background:var(--bg);cursor:pointer;transition:.2s;margin-top:8px
+}
+.dropzone:hover{border-color:var(--primary);background:rgba(37,99,235,0.04)}
+.excel-preview{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);font-size:12.5px}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html')"><i class="fas fa-arrow-left"></i> Cockpit</button>
+      <div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:18px;font-weight:900">KRAEM</span>
+          <span style="font-size:9.5px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 6px;border-radius:4px;text-transform:uppercase">by APEX SYSTEM</span>
+        </div>
+        <h1 style="margin:2px 0 0;font-size:22px"><i class="fas fa-chart-line" style="color:var(--primary)"></i> Forecast, Demanda & Explosión MRP (Boceto MD01/MD04)</h1>
+        <small style="color:var(--muted)">Captura individual filtrada por Cliente/Proyecto o carga masiva por Excel (800+ NPs) conectada a `parts`, `bom_structures` y WMS.</small>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <div id="mrpPlantBadge" title="Sede activa para el cálculo de MRP" style="display:inline-flex;align-items:center;gap:5px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);padding:5px 9px;border-radius:8px;font-size:11px;font-weight:700;color:var(--primary);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        <i class="fas fa-industry" style="font-size:11px;flex-shrink:0;"></i>
+        <span id="txtMrpPlant" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Planta Monterrey</span>
+      </div>
+      <button class="btn" onclick="cargarDemoReal()"><i class="fas fa-wand-magic-sparkles"></i> Cargar Demo</button>
+      <a href="compras_ordenes.html" class="btn btn-primary"><i class="fas fa-file-invoice-dollar"></i> Módulo de Compras (OC)</a>
+      <a href="planeacion_aps_tablero.html" class="btn btn-success"><i class="fas fa-calendar-week"></i> Tablero APS →</a>
+      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <div class="banner">
+    <span><i class="fas fa-database" style="color:var(--primary)"></i> <strong>Modo Boceto sobre Datos Reales:</strong> Filtra por Proyecto/Cliente, busca cualquier N° Parte por clave o nombre, o sube el Excel masivo del cliente para correr el MRP completo.</span>
+    <span id="dataStatus" class="badge b-info">Conectando a Supabase...</span>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi"><div class="t">Líneas de Demanda</div><div class="v" id="kDem">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t">Total Piezas Demandadas</div><div class="v" id="kPcs">0</div></div>
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t">WO Sugeridas (Netas)</div><div class="v" id="kWo">0</div></div>
+    <div class="kpi" style="border-left-color:var(--danger)"><div class="t">Materiales con Déficit Compra</div><div class="v" id="kShort">0</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="btnTabDem" onclick="switchTab('dem')"><i class="fas fa-inbox"></i> 1. Demanda, Excel Masivo & MPS</button>
+    <button class="tab" id="btnTabMrp" onclick="switchTab('mrp')"><i class="fas fa-sitemap"></i> 2. Explosión MRP de Resinas y Componentes</button>
+  </div>
+
+  <!-- TAB 1: DEMANDA Y NECESIDAD NETA PT -->
+  <div id="tab-dem">
+    <div class="grid-top">
+      <!-- CAPTURA RÁPIDA CON FILTROS Y BUSCADOR -->
+      <div class="card">
+        <h3 style="margin:0 0 12px;font-size:15px"><i class="fas fa-magnifying-glass-plus" style="color:var(--primary)"></i> Captura Rápida (con Filtro de Cliente / Proyecto y Buscador)</h3>
+        <div class="form-row">
+          <div>
+            <label>Cliente (Supabase)</label>
+            <select id="dClient" onchange="onFilterScopeChange()">
+              <option value="">Todos los clientes</option>
+            </select>
+          </div>
+          <div>
+            <label>Proyecto / Vehículo</label>
+            <select id="dProject" onchange="onFilterScopeChange()">
+              <option value="">Todos los proyectos</option>
+            </select>
+          </div>
+          <div class="picker-wrap" id="pickerWrap">
+            <label>N° Parte o Nombre (escribe para filtrar)</label>
+            <div class="picker-input-box">
+              <input type="text" id="dPartSearch" placeholder="Ej. KRM-101 o nombre de pieza..." autocomplete="off"
+                onfocus="openPicker()" oninput="onPartSearchInput()" onkeydown="onPartSearchKey(event)">
+              <button type="button" class="picker-clear" title="Limpiar selección" onclick="clearPartPicker()"><i class="fas fa-times"></i></button>
+            </div>
+            <input type="hidden" id="dPartId">
+            <div class="picker-dropdown" id="partDropdown"></div>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div>
+            <label>Tipo Demanda</label>
+            <select id="dType">
+              <option value="PEDIDO_FIRME">Pedido Firme</option>
+              <option value="FORECAST">Forecast</option>
+            </select>
+          </div>
+          <div>
+            <label>Fecha Requerida</label>
+            <input type="date" id="dDate">
+          </div>
+          <div>
+            <label>Cantidad (PZA)</label>
+            <input type="number" id="dQty" min="1" value="1500">
+          </div>
+          <button class="btn btn-primary" onclick="addDemand()"><i class="fas fa-plus"></i> Agregar</button>
+        </div>
+        <div id="pickedInfo" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
+      </div>
+
+      <!-- CARGA MASIVA EXCEL (800+ FILAS) -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <h3 style="margin:0;font-size:15px"><i class="fas fa-file-excel" style="color:var(--success)"></i> Carga Masiva por Excel (800+ NPs)</h3>
+          <button class="btn btn-sm btn-success" onclick="descargarPlantillaExcel()"><i class="fas fa-download"></i> Plantilla Estándar .xlsx</button>
+        </div>
+        <small style="color:var(--muted)">Columnas estándar: <code>PART_NUMBER</code> (o <code>NP_CLIENTE</code>), <code>FECHA</code>, <code>CANTIDAD</code>, opcionales <code>CLIENTE</code>, <code>PROYECTO</code>, <code>TIPO</code>.</small>
+
+        <div class="dropzone" onclick="document.getElementById('excelFile').click()">
+          <i class="fas fa-cloud-upload-alt fa-lg" style="color:var(--primary)"></i>
+          <div style="font-weight:700;font-size:13px;margin-top:4px">Haz clic para seleccionar archivo Excel (.xlsx / .xls / .csv)</div>
+          <div style="font-size:11.5px;color:var(--muted)">Soporta cientos de filas, fechas Excel y empate por NP interno o NP Cliente</div>
+          <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="procesarExcel(this)">
+        </div>
+
+        <div id="excelPreviewBox" class="excel-preview hidden"></div>
+      </div>
+    </div>
+
+    <!-- TABLA PLAN MAESTRO (MPS) -->
+    <div class="card" style="overflow-x:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px">
+        <h3 style="margin:0;font-size:15px">Plan Maestro (MPS) — Necesidad Bruta vs Stock WMS vs WO Sugerida</h3>
+        <div class="filter-bar" style="margin-bottom:0">
+          <input id="qTable" placeholder="🔍 Filtrar tabla por NP, nombre, cliente o proyecto..." oninput="render()" style="width:260px">
+          <select id="fTableProject" onchange="render()" style="width:180px">
+            <option value="">Todos los proyectos</option>
+          </select>
+          <select id="fTableLimit" onchange="render()" style="width:130px">
+            <option value="100">Ver 100 filas</option>
+            <option value="300">Ver 300 filas</option>
+            <option value="99999">Ver todas</option>
+          </select>
+          <button class="btn btn-sm" onclick="clearDemand()"><i class="fas fa-trash"></i> Limpiar Todo</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente / Proyecto</th><th>N° Parte PT</th><th>Tipo</th><th>Fecha Req.</th>
+            <th>Demanda</th><th>Stock WMS</th><th>Stock Seg.</th><th>Necesidad Neta (WO)</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="demBody"></tbody>
+      </table>
+      <div id="tableFootNote" style="font-size:12px;color:var(--muted);margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: EXPLOSIÓN MRP MATERIALES -->
+  <div id="tab-mrp" class="hidden">
+    <div class="card" style="overflow-x:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin:0;font-size:15px">Explosión de Requerimientos de Materiales (Resinas, Insertos, Componentes)</h3>
+          <small style="color:var(--muted)">Calcula todas las líneas cargadas (aunque sean 800+ filas): Consumo BOM × (1 + Scrap%) × Necesidad Neta PT − Stock WMS + Stock Seg.</small>
+        </div>
+        <input id="qMrp" placeholder="🔍 Buscar material o grado..." oninput="render()" style="width:250px">
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Material / N.P.</th><th>Tipo</th><th>Requerido BOM (+Scrap)</th><th>Stock WMS</th>
+            <th>Stock Seg.</th><th>Déficit Neto</th><th>Compra Sugerida (Lote/Múlt.)</th>
+            <th>Lead Time</th><th>Ubic. WMS</th><th>Estatus MRP</th>
+          </tr>
+        </thead>
+        <tbody id="mrpBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const LS_KEY = 'kraem_boceto_demand_v1';
+let allParts = [], ptParts = [], boms = [], stockMap = {}, locsMap = {}, clientNames = [], projectNames = [];
+let demands = [];
+let pendingExcelRows = [], missingNps = [];
+
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits:2});
+const norm = s => String(s ?? '').trim().toUpperCase();
+
+function switchTab(t){
+  document.getElementById('tab-dem').classList.toggle('hidden', t !== 'dem');
+  document.getElementById('tab-mrp').classList.toggle('hidden', t !== 'mrp');
+  document.getElementById('btnTabDem').classList.toggle('active', t === 'dem');
+  document.getElementById('btnTabMrp').classList.toggle('active', t === 'mrp');
+}
+
+async function init(){
+  document.getElementById('dDate').value = new Date(Date.now() + 7*86400000).toISOString().slice(0,10);
+  if (location.hash === '#tab-mrp') switchTab('mrp');
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('pickerWrap').contains(e.target)) {
+      document.getElementById('partDropdown').classList.remove('open');
+    }
+  });
+
+  try {
+    const [partsData, bomData, rStock, rLocs, rCli] = await Promise.all([
+      window.fetchAllRows ? window.fetchAllRows('parts', { filter: q => q.eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('*').eq('obsolete', false).order('part_number').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('bom_structures', { orderBy: 'id' }) : client.from('bom_structures').select('*').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('v_inventory_by_location', { select: 'part_id, quantity' }) : client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0).then(r => r.data || []),
+      client.from('locations').select('id, location_code'),
+      client.from('clientes').select('id, client_name').eq('active', true).order('client_name')
+    ]);
+
+    allParts = Array.isArray(partsData) ? partsData : (partsData.data || []);
+    boms = Array.isArray(bomData) ? bomData : (bomData.data || []);
+    const stockList = Array.isArray(rStock) ? rStock : (rStock.data || []);
+    stockList.forEach(s => { 
+      const pid = Number(s.part_id);
+      if (pid) stockMap[pid] = (stockMap[pid] || 0) + (parseFloat(s.quantity) || 0); 
+    });
+    (rLocs.data || []).forEach(l => { locsMap[l.id] = l.location_code; });
+
+    ptParts = allParts.filter(p => p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
+
+    // Clientes reales: mezcla de tabla `clientes` + columna `client` de `parts`
+    const cliSet = new Set();
+    (rCli.data || []).forEach(c => { if (c.client_name) cliSet.add(c.client_name.trim()); });
+    allParts.forEach(p => { if (p.client && p.client.trim()) cliSet.add(p.client.trim()); });
+    clientNames = [...cliSet].sort();
+
+    // Proyectos reales desde `parts.project`
+    const projSet = new Set();
+    allParts.forEach(p => { if (p.project && p.project.trim()) projSet.add(p.project.trim()); });
+    projectNames = [...projSet].sort();
+
+    const st = document.getElementById('dataStatus');
+    st.textContent = `Conectado: ${ptParts.length} PT/Sub · ${projectNames.length} proyectos · ${boms.length} BOM`;
+    st.className = 'badge b-ok';
+  } catch (e) { console.warn(e); }
+
+  if (!ptParts.length) {
+    ptParts = [
+      { id: -1, part_number: 'DEMO-PT-100', customer_part_number: '84710-KRM', part_name: 'Carcasa Tablero Demo', product_type: 'PT', client: 'KIA', project: 'NQ5', safety_stock: 200 },
+      { id: -2, part_number: 'DEMO-PT-200', customer_part_number: '84720-KRM', part_name: 'Soporte Consola Demo', product_type: 'PT', client: 'HYUNDAI', project: 'CN7', safety_stock: 100 }
+    ];
+    allParts = [
+      ...ptParts,
+      { id: -10, part_number: 'RES-PP-BLK', part_name: 'Polipropileno Negro Demo', product_type: 'RESINA', unit_of_measure: 'KG', safety_stock: 300, min_lot_size: 500, lot_rounding: 25, lead_time_days: 7, scrap_pct: 3 },
+      { id: -11, part_number: 'CLIP-MET-01', part_name: 'Clip Metálico Demo', product_type: 'COMPONENTE', unit_of_measure: 'PZA', safety_stock: 1000, min_lot_size: 2000, lot_rounding: 500, lead_time_days: 14, scrap_pct: 1 }
+    ];
+    boms = [
+      { parent_id: -1, child_id: -10, usage_qty: 0.24, scrap_pct: 3 },
+      { parent_id: -1, child_id: -11, usage_qty: 2, scrap_pct: 1 },
+      { parent_id: -2, child_id: -10, usage_qty: 0.18, scrap_pct: 2 }
+    ];
+    clientNames = ['KIA', 'HYUNDAI'];
+    projectNames = ['NQ5', 'CN7'];
+    stockMap[-1] = 150; stockMap[-10] = 220; stockMap[-11] = 4500;
+  }
+
+  document.getElementById('dClient').innerHTML = '<option value="">Todos los clientes</option>' +
+    clientNames.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+
+  const projOpts = '<option value="">Todos los proyectos</option>' +
+    projectNames.map(pr => `<option value="${esc(pr)}">${esc(pr)}</option>`).join('');
+  document.getElementById('dProject').innerHTML = projOpts;
+  document.getElementById('fTableProject').innerHTML = projOpts;
+
+  try {
+    if (client && client.from) {
+      const { data: dbDem } = await client.from('system_settings').select('value').eq('key', 'kraem_boceto_demand_v1').maybeSingle();
+      if (dbDem && Array.isArray(dbDem.value) && dbDem.value.length) {
+        demands = dbDem.value;
+        localStorage.setItem(LS_KEY, JSON.stringify(demands));
+      }
+    }
+  } catch (_) {}
+
+  if (!demands.length) {
+    try { demands = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { demands = []; }
+  }
+  if (!demands.length) cargarDemoReal(false);
+  else render();
+}
+
+/* ==================== PICKER BUSCABLE DE PARTES ==================== */
+function getScopedParts(){
+  const cli = document.getElementById('dClient').value;
+  const proj = document.getElementById('dProject').value;
+  return ptParts.filter(p =>
+    (!cli || norm(p.client) === norm(cli)) &&
+    (!proj || norm(p.project) === norm(proj))
+  );
+}
+
+function onFilterScopeChange(){
+  // Si la parte seleccionada ya no pertenece al filtro de cliente/proyecto, limpiar
+  const selId = Number(document.getElementById('dPartId').value);
+  if (selId && !getScopedParts().some(p => p.id === selId)) {
+    clearPartPicker(false);
+  }
+  renderPickerList();
+}
+
+function openPicker(){
+  renderPickerList();
+  document.getElementById('partDropdown').classList.add('open');
+}
+
+function onPartSearchInput(){
+  document.getElementById('dPartId').value = '';
+  document.getElementById('pickedInfo').textContent = '';
+  openPicker();
+}
+
+function onPartSearchKey(e){
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const first = document.querySelector('#partDropdown .picker-item');
+    if (first) first.click();
+  }
+}
+
+function clearPartPicker(focusInput = true){
+  document.getElementById('dPartId').value = '';
+  document.getElementById('dPartSearch').value = '';
+  document.getElementById('pickedInfo').textContent = '';
+  if (focusInput) openPicker();
+}
+
+function renderPickerList(){
+  const q = norm(document.getElementById('dPartSearch').value);
+  const scoped = getScopedParts();
+  const matches = q ? scoped.filter(p =>
+    norm(p.part_number).includes(q) ||
+    norm(p.part_name).includes(q) ||
+    norm(p.customer_part_number).includes(q)
+  ) : scoped;
+
+  const dd = document.getElementById('partDropdown');
+  const shown = matches.slice(0, 60);
+  let html = `<div class="picker-head">Mostrando ${shown.length} de ${matches.length} números de parte disponibles</div>`;
+  if (!shown.length) {
+    html += `<div style="padding:14px;text-align:center;color:var(--muted);font-size:12.5px">Sin coincidencias con los filtros actuales.</div>`;
+  } else {
+    html += shown.map(p => `
+      <div class="picker-item" onclick="selectPart(${p.id})">
+        <div>
+          <strong>${esc(p.part_number)}</strong> ${p.customer_part_number ? `<span class="badge b-info">OEM: ${esc(p.customer_part_number)}</span>` : ''}
+          <small>${esc(p.part_name || '')} · ${esc(p.client || 'Sin cliente')} / ${esc(p.project || 'Sin proyecto')}</small>
+        </div>
+        <span class="badge b-ok">WMS: ${fmt(stockMap[p.id] || 0)}</span>
+      </div>
+    `).join('');
+  }
+  dd.innerHTML = html;
+}
+
+function selectPart(id){
+  const p = ptParts.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('dPartId').value = p.id;
+  document.getElementById('dPartSearch').value = `${p.part_number} — ${p.part_name || ''}`;
+  document.getElementById('partDropdown').classList.remove('open');
+  if (p.client && [...document.getElementById('dClient').options].some(o => o.value === p.client)) {
+    document.getElementById('dClient').value = p.client;
+  }
+  if (p.project && [...document.getElementById('dProject').options].some(o => o.value === p.project)) {
+    document.getElementById('dProject').value = p.project;
+  }
+  document.getElementById('pickedInfo').innerHTML =
+    `<i class="fas fa-check-circle" style="color:var(--success)"></i> Seleccionado: <strong>${esc(p.part_number)}</strong> · Stock WMS: <strong>${fmt(stockMap[p.id] || 0)}</strong> · Safety Stock: <strong>${fmt(p.safety_stock || 0)}</strong>`;
+}
+
+/* ==================== CARGA MASIVA EXCEL ==================== */
+function descargarPlantillaExcel(){
+  const d1 = new Date(Date.now() + 7*86400000).toISOString().slice(0,10);
+  const d2 = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
+  const sampleRows = (ptParts.length ? ptParts.slice(0, 3) : [{ part_number: 'EJEMPLO-NP-01', client: 'KIA', project: 'NQ5' }]).map((p, i) => ({
+    CLIENTE: p.client || 'KIA',
+    PROYECTO: p.project || 'GENERAL',
+    PART_NUMBER: p.part_number,
+    TIPO: i === 0 ? 'PEDIDO_FIRME' : 'FORECAST',
+    FECHA: i === 0 ? d1 : d2,
+    CANTIDAD: 1200 + i * 500
+  }));
+
+  const refRows = ptParts.map(p => ({
+    PART_NUMBER: p.part_number,
+    NP_CLIENTE: p.customer_part_number || '',
+    DESCRIPCION: p.part_name || '',
+    CLIENTE: p.client || '',
+    PROYECTO: p.project || '',
+    TIPO: p.product_type || 'PT'
+  }));
+
+  const wb = XLSX.utils.book_new();
+  const wsReq = XLSX.utils.json_to_sheet(sampleRows);
+  wsReq['!cols'] = [{wch:16},{wch:14},{wch:22},{wch:15},{wch:13},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, wsReq, 'REQUERIMIENTOS');
+
+  const wsRef = XLSX.utils.json_to_sheet(refRows);
+  wsRef['!cols'] = [{wch:22},{wch:18},{wch:32},{wch:16},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsRef, 'CATALOGO_PT');
+
+  XLSX.writeFile(wb, 'Plantilla_Requerimientos_KRAEM.xlsx');
+}
+
+function parseExcelDate(raw){
+  if (raw === undefined || raw === null || raw === '') return null;
+  if (typeof raw === 'number' && raw > 20000) {
+    const dt = new Date(Math.round((raw - 25569) * 86400 * 1000));
+    return isNaN(dt) ? null : dt.toISOString().slice(0, 10);
+  }
+  const s = String(raw).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    const yyyy = m[3].length === 2 ? '20' + m[3] : m[3];
+    return `${yyyy}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+  const dt = new Date(s);
+  return isNaN(dt) ? null : dt.toISOString().slice(0, 10);
+}
+
+function getCol(row, candidates){
+  const keys = Object.keys(row);
+  for (const cand of candidates) {
+    const found = keys.find(k => k.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'_') === cand);
+    if (found !== undefined) return row[found];
+  }
+  return '';
+}
+
+function procesarExcel(input){
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    // Índices rápidos para soportar 800+ filas en milisegundos
+    const byNp = new Map();
+    const byCustNp = new Map();
+    allParts.forEach(p => {
+      if (p.part_number) byNp.set(norm(p.part_number), p);
+      if (p.customer_part_number) byCustNp.set(norm(p.customer_part_number), p);
+    });
+
+    pendingExcelRows = [];
+    missingNps = [];
+    let badRows = 0;
+
+    rawRows.forEach((r, idx) => {
+      const npRaw = norm(getCol(r, ['PART_NUMBER', 'NP', 'NUMERO_PARTE', 'NUMERO_DE_PARTE', 'PARTE', 'NP_CLIENTE', 'MATERIAL']));
+      const qtyVal = Number(String(getCol(r, ['CANTIDAD', 'QTY', 'DEMANDA', 'PIEZA', 'PIEZAS', 'REQUERIMIENTO'])).replace(/,/g, ''));
+      const dateVal = parseExcelDate(getCol(r, ['FECHA', 'DUE_DATE', 'FECHA_ENTREGA', 'FECHA_REQ', 'FECHA_REQUERIDA'])) || new Date().toISOString().slice(0,10);
+      const cliVal = String(getCol(r, ['CLIENTE', 'CLIENT']) || '').trim();
+      const projVal = String(getCol(r, ['PROYECTO', 'PROJECT', 'VEHICULO']) || '').trim();
+      const typeRaw = norm(getCol(r, ['TIPO', 'TYPE', 'TIPO_DEMANDA']));
+
+      if (!npRaw || isNaN(qtyVal) || qtyVal <= 0) { badRows++; return; }
+
+      const part = byNp.get(npRaw) || byCustNp.get(npRaw);
+      if (!part) {
+        if (!missingNps.includes(npRaw)) missingNps.push(npRaw);
+        return;
+      }
+
+      pendingExcelRows.push({
+        id: Date.now() + idx + Math.random(),
+        client: cliVal || part.client || 'SIN CLIENTE',
+        project: projVal || part.project || '',
+        part_id: part.id,
+        type: typeRaw.includes('FORE') ? 'FORECAST' : 'PEDIDO_FIRME',
+        date: dateVal,
+        qty: Math.round(qtyVal)
+      });
+    });
+
+    const box = document.getElementById('excelPreviewBox');
+    box.classList.remove('hidden');
+    box.innerHTML = `
+      <div><strong>Archivo:</strong> ${esc(file.name)} (${rawRows.length} filas leídas)</div>
+      <div style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap">
+        <span class="badge b-ok">${pendingExcelRows.length} válidas para importar</span>
+        ${missingNps.length ? `<span class="badge b-bad">${missingNps.length} NP no encontrados en catálogo</span>` : ''}
+        ${badRows ? `<span class="badge b-warn">${badRows} con cantidad/NP inválido</span>` : ''}
+      </div>
+      ${missingNps.length ? `<div style="font-size:11.5px;color:var(--danger);margin-bottom:8px">Faltan en ` + '`parts`' + `: ${esc(missingNps.slice(0, 8).join(', '))}${missingNps.length > 8 ? ` (+${missingNps.length - 8} más)` : ''}</div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-primary" onclick="confirmarImportExcel(true)" ${!pendingExcelRows.length ? 'disabled' : ''}>
+          <i class="fas fa-arrows-rotate"></i> Reemplazar y Cargar (${pendingExcelRows.length})
+        </button>
+        <button class="btn btn-sm btn-success" onclick="confirmarImportExcel(false)" ${!pendingExcelRows.length ? 'disabled' : ''}>
+          <i class="fas fa-plus"></i> Sumar a la lista actual
+        </button>
+      </div>
+    `;
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function confirmarImportExcel(replace){
+  if (!pendingExcelRows.length) return;
+  demands = replace ? [...pendingExcelRows] : [...demands, ...pendingExcelRows];
+  saveDemands();
+  document.getElementById('excelPreviewBox').innerHTML = `<span class="badge b-ok"><i class="fas fa-check"></i> ${pendingExcelRows.length} requerimientos cargados al simulador MPS/MRP.</span>`;
+  pendingExcelRows = [];
+  render();
+}
+
+/* ==================== CRUD Y CÁLCULO MPS/MRP ==================== */
+function cargarDemoReal(notify = true){
+  const samples = ptParts.slice(0, 3);
+  const d1 = new Date(Date.now() + 5*86400000).toISOString().slice(0,10);
+  const d2 = new Date(Date.now() + 12*86400000).toISOString().slice(0,10);
+  demands = samples.map((p, i) => ({
+    id: Date.now() + i,
+    client: p.client || (clientNames[0] || 'KIA / OEM'),
+    project: p.project || '',
+    part_id: p.id,
+    type: i % 2 === 0 ? 'PEDIDO_FIRME' : 'FORECAST',
+    date: i === 0 ? d1 : d2,
+    qty: 1200 + i * 600
+  }));
+  saveDemands();
+  render();
+  if (notify && !demands.length) alert('No se encontraron PT en parts.');
+}
+
+function addDemand(){
+  const partId = Number(document.getElementById('dPartId').value);
+  const qty = Number(document.getElementById('dQty').value);
+  const date = document.getElementById('dDate').value;
+  if (!partId || qty <= 0 || !date) return alert('Selecciona un N° Parte desde el buscador, fecha y cantidad.');
+  const p = ptParts.find(x => x.id === partId) || {};
+  demands.push({
+    id: Date.now(),
+    client: document.getElementById('dClient').value || p.client || 'SIN CLIENTE',
+    project: document.getElementById('dProject').value || p.project || '',
+    part_id: partId,
+    type: document.getElementById('dType').value,
+    date,
+    qty
+  });
+  saveDemands();
+  render();
+}
+
+function delDemand(id){ demands = demands.filter(d => d.id !== id); saveDemands(); render(); }
+function clearDemand(){ demands = []; saveDemands(); render(); }
+function saveDemands(){
+  localStorage.setItem(LS_KEY, JSON.stringify(demands));
+  try {
+    if (client && client.from) {
+      client.from('system_settings').upsert({
+        key: 'kraem_boceto_demand_v1',
+        category: 'planeacion',
+        value: demands,
+        updated_at: new Date().toISOString()
+      }).then(() => console.log("✅ Demanda MRP sincronizada en Supabase")).catch(e => console.warn(e));
+    }
+  } catch (_) {}
+}
+
+function explodeBomRecursive(partId, parentQty, accMaterials, depth = 0, seen = new Set()){
+  if (depth > 5 || seen.has(partId)) return;
+  const nextSeen = new Set(seen); nextSeen.add(partId);
+  const children = boms.filter(b => b.parent_id === partId && b.is_active !== false);
+
+  for (const rel of children) {
+    const child = allParts.find(p => p.id === rel.child_id);
+    if (!child) continue;
+    const rawQty = Number(rel.usage_qty ?? rel.quantity ?? 1);
+    const scrap = Number(rel.scrap_pct ?? child.scrap_pct ?? 0);
+    const need = parentQty * rawQty * (1 + scrap / 100);
+
+    if (child.product_type === 'SUB-ENSAMBLE') {
+      explodeBomRecursive(child.id, need, accMaterials, depth + 1, nextSeen);
+    } else {
+      accMaterials[child.id] = (accMaterials[child.id] || 0) + need;
+    }
+  }
+}
+
+function render(){
+  const partsById = new Map(allParts.map(p => [p.id, p]));
+  const runningStock = { ...stockMap };
+  let totalPcs = 0, woCount = 0;
+  const matNeeds = {};
+
+  // 1. Calculamos TODAS las líneas en memoria (soporta 800+ sin lag)
+  const computed = [...demands]
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .map(d => {
+      const p = partsById.get(d.part_id) || { part_number: 'N/D', safety_stock: 0 };
+      const stk = runningStock[d.part_id] || 0;
+      const ss = Number(p.safety_stock || 0);
+      const net = Math.max(0, d.qty + ss - stk);
+      runningStock[d.part_id] = Math.max(0, stk - d.qty);
+
+      totalPcs += d.qty;
+      if (net > 0) {
+        woCount++;
+        explodeBomRecursive(p.id, net, matNeeds);
+      }
+      return { d, p, stk, ss, net };
+    });
+
+  // 2. Filtros visuales sobre la tabla MPS
+  const qTbl = norm(document.getElementById('qTable').value);
+  const fProj = norm(document.getElementById('fTableProject').value);
+  const limit = Number(document.getElementById('fTableLimit').value || 100);
+
+  const visible = computed.filter(({ d, p }) => {
+    const proj = norm(d.project || p.project);
+    const txt = norm(`${p.part_number} ${p.part_name} ${p.customer_part_number} ${d.client} ${proj}`);
+    return (!fProj || proj === fProj) && (!qTbl || txt.includes(qTbl));
+  });
+
+  const sliced = visible.slice(0, limit);
+  const demBody = document.getElementById('demBody');
+  if (!sliced.length) {
+    demBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:25px">Sin líneas con los filtros actuales.</td></tr>';
+  } else {
+    demBody.innerHTML = sliced.map(({ d, p, stk, ss, net }) => `<tr>
+      <td><strong>${esc(d.client || p.client || '-')}</strong><div style="font-size:11px;color:var(--muted)">${esc(d.project || p.project || 'Sin proyecto')}</div></td>
+      <td><strong>${esc(p.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(p.part_name || '')}</div></td>
+      <td><span class="badge ${d.type==='PEDIDO_FIRME'?'b-ok':'b-info'}">${d.type==='PEDIDO_FIRME'?'FIRME':'FORECAST'}</span></td>
+      <td>${esc(d.date)}</td>
+      <td><strong>${fmt(d.qty)}</strong></td>
+      <td>${fmt(stk)}</td>
+      <td>${fmt(ss)}</td>
+      <td>${net > 0 ? `<span class="badge b-warn">Producir ${fmt(Math.ceil(net))}</span>` : `<span class="badge b-ok">Cubierto c/ Stock</span>`}</td>
+      <td><button class="btn btn-sm" onclick="delDemand(${d.id})"><i class="fas fa-trash"></i></button></td>
+    </tr>`).join('');
+  }
+  document.getElementById('tableFootNote').textContent =
+    `Mostrando ${sliced.length} de ${visible.length} líneas filtradas (${computed.length} totales en cálculo MRP).`;
+
+  // 3. Render MRP materiales
+  const mrpBody = document.getElementById('mrpBody');
+  const qMrp = norm(document.getElementById('qMrp').value);
+  const matIds = Object.keys(matNeeds).map(Number);
+  let shortCount = 0;
+
+  const mrpRows = matIds.map(id => {
+    const m = partsById.get(id);
+    if (!m) return null;
+    const req = matNeeds[id];
+    const stk = stockMap[id] || 0;
+    const ss = Number(m.safety_stock || 0);
+    const deficit = Math.max(0, req + ss - stk);
+    if (deficit > 0) shortCount++;
+    let suggested = 0;
+    if (deficit > 0) {
+      const minLot = Number(m.min_lot_size || 0);
+      const roundTo = Math.max(1, Number(m.lot_rounding || 1));
+      suggested = Math.ceil(Math.max(deficit, minLot) / roundTo) * roundTo;
+    }
+    return { m, req, stk, ss, deficit, suggested };
+  }).filter(x => x && (!qMrp || norm(`${x.m.part_number} ${x.m.part_name} ${x.m.resin_grade}`).includes(qMrp)));
+
+  if (!mrpRows.length) {
+    mrpBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:25px">Sin requerimientos de materiales (o los PT cargados aún no tienen BOM en `bom_structures`).</td></tr>';
+  } else {
+    mrpBody.innerHTML = mrpRows.map(({ m, req, stk, ss, deficit, suggested }) => {
+      const uom = m.unit_of_measure || (m.product_type === 'RESINA' ? 'KG' : 'PZA');
+      const locCode = m.default_location_id ? (locsMap[m.default_location_id] || ('ID ' + m.default_location_id)) : 'Sin fija';
+      return `<tr>
+        <td><strong>${esc(m.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(m.part_name || '')}</div></td>
+        <td><span class="badge b-info">${esc(m.product_type)}</span></td>
+        <td><strong>${fmt(req)} ${esc(uom)}</strong></td>
+        <td>${fmt(stk)} ${esc(uom)}</td>
+        <td>${fmt(ss)} ${esc(uom)}</td>
+        <td>${deficit > 0 ? `<span style="color:var(--danger);font-weight:700">-${fmt(deficit)} ${esc(uom)}</span>` : '0'}</td>
+        <td>${suggested > 0 ? `<div style="display:flex;flex-direction:column;gap:3px"><span class="badge b-bad">Comprar ${fmt(suggested)} ${esc(uom)}</span><a href="compras_ordenes.html?import_mrp=1" class="btn btn-sm btn-primary" style="padding:2px 6px;font-size:10px;justify-content:center"><i class="fas fa-cart-plus"></i> Emitir OC</a></div>` : `<span class="badge b-ok">Stock suficiente</span>`}</td>
+        <td>${m.lead_time_days || 0} d</td>
+        <td>${esc(locCode)}</td>
+        <td>${deficit > 0 ? '<span class="badge b-bad">REQUISICIÓN</span>' : '<span class="badge b-ok">OK WMS</span>'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('kDem').textContent = computed.length;
+  document.getElementById('kPcs').textContent = fmt(totalPcs);
+  document.getElementById('kWo').textContent = woCount;
+  document.getElementById('kShort').textContent = shortCount;
+}
+
+function updateMrpPlant() {
+  if (window.KraemPlant) {
+    const p = window.KraemPlant.getActivePlant();
+    const el = document.getElementById('txtMrpPlant');
+    if (el && p) el.textContent = p.nombre;
+  }
+}
+document.addEventListener('DOMContentLoaded', () => { init(); updateMrpPlant(); });
+document.addEventListener('kraem:plantchange', updateMrpPlant);
+window.addEventListener('message', (e) => {
+  if (e.data && (e.data.type === 'KRAEM_PLANT_CHANGED' || e.data.type === 'KRAEM_PLANTS_UPDATED')) {
+    updateMrpPlant();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,774 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KRAEM | Lista Maestra de Documentos y Control ISO 9001 / IATF 16949</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+  :root {
+    --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --text-secondary: #64748b;
+    --border: #e2e8f0; --primary: #2563eb; --primary-hover: #1d4ed8;
+    --success: #16a34a; --warning: #d97706; --danger: #dc2626; --accent: #4f46e5;
+    --radius: 12px;
+  }
+  [data-theme="dark"] {
+    --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --text-secondary: #94a3b8;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  body { margin: 0; background: var(--bg); color: var(--text); padding: 15px; transition: 0.3s; }
+  .app-container { max-width: 1250px; margin: auto; }
+
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--card); padding: 12px 18px; border-radius: var(--radius);
+    border: 1px solid var(--border); margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    flex-wrap: wrap; gap: 10px;
+  }
+  .brand-title { display: flex; align-items: center; gap: 12px; }
+  .brand-title h1 { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--primary); }
+  .brand-title p { margin: 2px 0 0; font-size: 0.78rem; color: var(--text-secondary); }
+  .top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn-icon {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-icon:hover { border-color: var(--primary); color: var(--primary); }
+  .lang-btn {
+    background: var(--bg); border: 1px solid var(--border); padding: 5px 8px;
+    border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center;
+  }
+  .lang-btn img { width: 22px; height: 15px; border-radius: 2px; object-fit: cover; }
+
+  .iso-banner {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(79, 70, 229, 0.04));
+    border: 1px solid rgba(37, 99, 235, 0.25); border-left: 5px solid var(--primary);
+    border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+  }
+  .iso-code-pill {
+    background: var(--primary); color: #fff; padding: 6px 14px; border-radius: 20px;
+    font-weight: 900; font-size: 0.85rem; letter-spacing: 0.5px;
+  }
+
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px; margin-bottom: 14px;
+  }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  }
+  .kpi-title { font-size: 11px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; }
+  .kpi-val { font-size: 22px; font-weight: 900; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--text-secondary); }
+
+  .main-card {
+    background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 16px;
+  }
+  .section-block {
+    background: rgba(100,116,139,0.03); border: 1px solid var(--border);
+    border-radius: 10px; padding: 15px; margin-bottom: 14px;
+  }
+  .section-header {
+    font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--primary);
+    margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px dashed var(--border); padding-bottom: 6px; flex-wrap: wrap; gap: 8px;
+  }
+
+  .grid-filters { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  label { display: block; font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; }
+  input, select {
+    width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); font-size: 13px;
+  }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+  table { width: 100%; border-collapse: collapse; min-width: 980px; }
+  th {
+    background: rgba(100,116,139,0.08); color: var(--text-secondary); font-size: 11px;
+    font-weight: 800; text-transform: uppercase; padding: 11px 10px; text-align: left;
+    border-bottom: 2px solid var(--border);
+  }
+  td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 12.5px; vertical-align: middle; }
+  tr:hover td { background: rgba(37, 99, 235, 0.03); }
+
+  .doc-code {
+    background: rgba(37, 99, 235, 0.1); color: var(--primary); font-family: monospace;
+    font-weight: 900; font-size: 12.5px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid rgba(37, 99, 235, 0.25); display: inline-block;
+  }
+  .rev-badge {
+    background: rgba(22, 163, 74, 0.12); color: var(--success); font-weight: 800;
+    font-size: 11px; padding: 3px 8px; border-radius: 12px;
+  }
+  .mod-badge {
+    background: rgba(100, 116, 139, 0.12); color: var(--text); font-weight: 800;
+    font-size: 11px; padding: 3px 8px; border-radius: 6px;
+  }
+  .btn-submit {
+    padding: 10px 14px; border: none; border-radius: 8px; font-size: 12.5px;
+    font-weight: 800; color: white; cursor: pointer; display: inline-flex;
+    align-items: center; gap: 6px; background: var(--primary); text-decoration: none;
+  }
+  .btn-submit:hover { opacity: 0.92; }
+
+  @media (max-width: 768px) {
+    .grid-filters { grid-template-columns: 1fr; }
+  }
+</style>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="kraem_nav.js"></script>
+</head>
+<body data-theme="light">
+
+<div class="app-container">
+  <div class="topbar">
+    <div class="brand-title">
+      <a href="dashboard.html" class="btn-icon" title="Menú Principal"><i class="fas fa-arrow-left"></i></a>
+      <img src="logo-kraem.jpg" alt="KRAEM" style="height:38px; border-radius:6px;">
+      <div>
+        <h1 id="txtTitle">🛡️ Lista Maestra de Control Documental (SGC ISO 9001 / IATF 16949)</h1>
+        <p id="txtSub">Documento Rector que avala todos los Reportes, Formatos, Auditorías y Registros Electrónicos del Sistema MRP/WMS KRAEM</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="lang-btn" onclick="setLang('es')" title="Español (MX)"><img src="https://flagcdn.com/w40/mx.png" alt="MX"></button>
+      <button class="lang-btn" onclick="setLang('ko')" title="한국어 (KO)"><img src="https://flagcdn.com/w40/kr.png" alt="KR"></button>
+      <button class="lang-btn" onclick="setLang('en')" title="English (US)"><img src="https://flagcdn.com/w40/us.png" alt="US"></button>
+      <button class="btn-icon" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
+
+  <!-- BANNER DE DOCUMENTO RECTOR -->
+  <div class="iso-banner">
+    <div>
+      <div style="font-size:11px; font-weight:800; color:var(--primary); text-transform:uppercase; margin-bottom:4px;">
+        <i class="fas fa-certificate"></i> Cláusula 7.5 ISO 9001:2015 / IATF 16949 - Información Documentada
+      </div>
+      <div style="font-size:15px; font-weight:900;" id="txtBannerTit">
+        DOCUMENTO RECTOR DEL SISTEMA: LISTA MAESTRA DE FORMATOS Y REPORTES ELECTRÓNICOS CONTROLADOS
+      </div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-top:3px;" id="txtBannerDesc">
+        Este documento avala oficialmente la validez, codificación, revisión, retención y trazabilidad de cada reporte PDF/Excel emitido por el sistema KRAEM.
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <span class="iso-code-pill">CÓDIGO MAESTRO: KR-SGC-LM-0001 | REV 01</span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-submit" style="background:#dc2626;" onclick="descargarActaMaestraPDF()">
+          <i class="fas fa-file-pdf"></i> Imprimir Acta / Lista Maestra PDF (Firmas ISO)
+        </button>
+        <button class="btn-submit" style="background:var(--success);" onclick="exportarListaMaestraExcel()">
+          <i class="fas fa-file-excel"></i> Exportar Excel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIS -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-title">📋 FORMATOS CONTROLADOS</span>
+      <span class="kpi-val" id="kpiTotalDocs">12</span>
+      <span class="kpi-sub">Registros oficiales del sistema</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">🏛️ NORMATIVA APLICABLE</span>
+      <span class="kpi-val" style="color:var(--primary); font-size:18px;">ISO 9001 / IATF 16949</span>
+      <span class="kpi-sub">Cláusula 7.5 Control Documental</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">🔒 TRAZABILIDAD Y RETENCIÓN</span>
+      <span class="kpi-val" style="color:var(--success); font-size:18px;">5 AÑOS (NUBE + PDF)</span>
+      <span class="kpi-sub">Respaldo electrónico en Supabase</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-title">✅ ESTATUS DE VIGENCIA</span>
+      <span class="kpi-val" style="color:var(--success); font-size:18px;">100% VIGENTE</span>
+      <span class="kpi-sub">Revisión 01 Autorizada</span>
+    </div>
+  </div>
+
+  <div class="main-card">
+    <div class="section-block" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.06), rgba(37, 99, 235, 0.03)); border-color: rgba(79, 70, 229, 0.25);">
+      <div class="section-header">
+        <span><i class="fas fa-book-reader"></i> <span>BIBLIOTECA DE MANUALES DIDÁCTICOS E INSTRUCCIONES DE TRABAJO (ABRIR AQUÍ MISMO SIN CAMBIAR DE PANTALLA)</span></span>
+        <span style="font-size:11px; color:var(--primary); font-weight:800;">Haz clic en cualquier tarjeta para ver el Paso a Paso Ilustrado y para qué sirve cada botón</span>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+        <div style="background:var(--card); border:1px solid var(--border); border-left:4px solid #2563eb; border-radius:10px; padding:12px;">
+          <div style="font-size:11px; font-weight:900; color:#2563eb;">⚡ KR-IT-WMS-0001</div>
+          <div style="font-size:13px; font-weight:800; margin:4px 0;">Terminal Operativa WMS</div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-bottom:10px;">Entradas, Salidas FIFO, Transferencias, Ajustes y Reversas Seguras.</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-submit" style="flex:1; justify-content:center; padding:7px; font-size:11px; background:#4f46e5;" onclick="abrirManualSOP('wms_operaciones.html')">
+              <i class="fas fa-book-open"></i> Ver Manual Aquí
+            </button>
+            <button class="btn-submit" style="padding:7px 10px; font-size:11px; background:#dc2626;" onclick="descargarManualSOP_PDF('wms_operaciones.html')" title="Descargar PDF">
+              <i class="fas fa-file-pdf"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="background:var(--card); border:1px solid var(--border); border-left:4px solid #dc2626; border-radius:10px; padding:12px;">
+          <div style="font-size:11px; font-weight:900; color:#dc2626;">⏱️ KR-IT-WMS-0002</div>
+          <div style="font-size:13px; font-weight:800; margin:4px 0;">Buscador QR, FIFO & Estatus</div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-bottom:10px;">Escáner 3-en-1, Prioridad #1 FIFO, Cuarentena, Retrabajo y Embarques.</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-submit" style="flex:1; justify-content:center; padding:7px; font-size:11px; background:#4f46e5;" onclick="abrirManualSOP('consulta_fifo.html')">
+              <i class="fas fa-book-open"></i> Ver Manual Aquí
+            </button>
+            <button class="btn-submit" style="padding:7px 10px; font-size:11px; background:#dc2626;" onclick="descargarManualSOP_PDF('consulta_fifo.html')" title="Descargar PDF">
+              <i class="fas fa-file-pdf"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="background:var(--card); border:1px solid var(--border); border-left:4px solid #d97706; border-radius:10px; padding:12px;">
+          <div style="font-size:11px; font-weight:900; color:#d97706;">🔄 KR-IT-WMS-0003</div>
+          <div style="font-size:13px; font-weight:800; margin:4px 0;">Conteos Cíclicos & IRA %</div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-bottom:10px;">Programación ABC, Conteo Ciego en 2 pasos, Barrido QR y Hoja PDF.</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-submit" style="flex:1; justify-content:center; padding:7px; font-size:11px; background:#4f46e5;" onclick="abrirManualSOP('conteos_menu.html')">
+              <i class="fas fa-book-open"></i> Ver Manual Aquí
+            </button>
+            <button class="btn-submit" style="padding:7px 10px; font-size:11px; background:#dc2626;" onclick="descargarManualSOP_PDF('conteos_menu.html')" title="Descargar PDF">
+              <i class="fas fa-file-pdf"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="background:var(--card); border:1px solid var(--border); border-left:4px solid #16a34a; border-radius:10px; padding:12px;">
+          <div style="font-size:11px; font-weight:900; color:#16a34a;">🕒 KR-IT-WMS-0004</div>
+          <div style="font-size:13px; font-weight:800; margin:4px 0;">Historial Movimientos (MB51)</div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-bottom:10px;">Kardex auditable, rastreo de lotes/carritos y folios reversados.</div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-submit" style="flex:1; justify-content:center; padding:7px; font-size:11px; background:#4f46e5;" onclick="abrirManualSOP('historial.html')">
+              <i class="fas fa-book-open"></i> Ver Manual Aquí
+            </button>
+            <button class="btn-submit" style="padding:7px 10px; font-size:11px; background:#dc2626;" onclick="descargarManualSOP_PDF('historial.html')" title="Descargar PDF">
+              <i class="fas fa-file-pdf"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <div class="section-header">
+        <span><i class="fas fa-search"></i> <span id="secFiltroTit">Filtro de Documentos Controlados</span></span>
+        <span style="font-size:11px; color:var(--text-secondary);">Estructura de Código: <b>KR-SYS-[PROCESO]-[CONSECUTIVO]</b></span>
+      </div>
+      <div class="grid-filters">
+        <div>
+          <label>Buscar por Código, Nombre o Cláusula ISO</label>
+          <input type="text" id="fSearch" placeholder="Ej: KR-SYS-CC-0001, Conteo Cíclico, FIFO, Kardex..." oninput="renderizarTabla()">
+        </div>
+        <div>
+          <label>Proceso / Departamento</label>
+          <select id="fModulo" onchange="renderizarTabla()">
+            <option value="">TODOS LOS PROCESOS</option>
+            <option value="SGC / CALIDAD">SGC / CALIDAD</option>
+            <option value="WMS / ALMACÉN">WMS / ALMACÉN</option>
+            <option value="INGENIERÍA">INGENIERÍA</option>
+            <option value="RECURSOS HUMANOS / 5S">RECURSOS HUMANOS / 5S</option>
+          </select>
+        </div>
+        <div>
+          <label>Formato de Salida</label>
+          <select id="fTipo" onchange="renderizarTabla()">
+            <option value="">TODOS (PDF / EXCEL / IMPRESO)</option>
+            <option value="PDF">PDF Controlado</option>
+            <option value="EXCEL">Excel / CSV Controlado</option>
+            <option value="ETIQUETA QR">Etiqueta / Impresión</option>
+          </select>
+        </div>
+        <div>
+          <button class="btn-icon" onclick="limpiarFiltros()" style="padding:10px 14px;">
+            <i class="fas fa-eraser"></i> Limpiar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código ISO</th>
+            <th>Rev.</th>
+            <th>Nombre Oficial del Documento / Reporte</th>
+            <th>Proceso / Módulo</th>
+            <th>Cláusula ISO 9001</th>
+            <th>Medio / Formato</th>
+            <th>Tiempo Retención</th>
+            <th>Responsable</th>
+            <th style="text-align:center;">Ir al Módulo</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyDocs"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- REGLAS DE CONTROL DOCUMENTAL PARA EL AUDITOR -->
+  <div class="main-card">
+    <div class="section-header">
+      <span><i class="fas fa-shield-alt"></i> Directrices de Control Documental Electrónico (Evidencia para Auditorías ISO)</span>
+    </div>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:12px; font-size:12.5px; line-height:1.5; color:var(--text);">
+      <div style="padding:12px; border:1px solid var(--border); border-radius:8px;">
+        <b>1. Nomenclatura Estándar (`KR-SYS-XX-0000`)</b><br>
+        <span style="color:var(--text-secondary);">Todo reporte emitido lleva impreso en su pie de página o encabezado su código único (`KR` = KRAEM, `SYS` = Sistema MRP/WMS, `CC/WMS/QMS/ENG/RH/5S` = Proceso, `0001` = Consecutivo).</span>
+      </div>
+      <div style="padding:12px; border:1px solid var(--border); border-radius:8px;">
+        <b>2. Pie de Página Controlado en PDF y Excel</b><br>
+        <span style="color:var(--text-secondary);">Todos los PDFs incluyen: <code>DOCUMENTO CONTROLADO SGC ISO 9001 | CÓDIGO | REV 01 | Fecha de Emisión | Página X de Y</code>, además de líneas de firma autógrafa cuando se usa en piso.</span>
+      </div>
+      <div style="padding:12px; border:1px solid var(--border); border-radius:8px;">
+        <b>3. Inmutabilidad y Bitácora de Auditoría</b><br>
+        <span style="color:var(--text-secondary);">Los movimientos de inventario, conteos cíclicos (IRA %) y reversas quedan grabados en base de datos con usuario autenticado (`user_id`), fecha/hora exacta y folio consecutivo inalterable.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const KRAEM_LOGO_B64 = 'data:image/png;base64,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';
+
+const CATALOGO_DOCUMENTOS_ISO = [
+  {
+    codigo: "KR-SGC-LM-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Lista Maestra de Documentos y Registros Electrónicos del Sistema MRP/WMS",
+    modulo: "SGC / CALIDAD",
+    clausula: "7.5.3 Control de la Información Documentada",
+    formato: "PDF / EXCEL",
+    retencion: "Permanente (Actualización Continua)",
+    responsable: "Aseguramiento de Calidad / SGC",
+    url: "control_documental_iso.html",
+    sopFile: "control_documental_iso.html"
+  },
+  {
+    codigo: "KR-SYS-CC-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Hoja Oficial de Conteo Cíclico Ciego y Auditoría Física de Inventario",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.2 Identificación y Trazabilidad / 8.5.4 Preservación",
+    formato: "PDF Controlado (Con Firmas)",
+    retencion: "3 Años (Físico / Digital)",
+    responsable: "Supervisor WMS / Auditor de Inventarios",
+    url: "conteos_menu.html",
+    sopFile: "conteos_menu.html"
+  },
+  {
+    codigo: "KR-SYS-CC-0002",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Reporte de Programación Maestra ABC e Indicador de Veracidad de Stock (IRA %)",
+    modulo: "WMS / ALMACÉN",
+    clausula: "9.1.1 Seguimiento, Medición, Análisis y Evaluación",
+    formato: "EXCEL Controlado",
+    retencion: "5 Años (Digital)",
+    responsable: "Jefatura de Almacén / Control de Producción",
+    url: "conteos_menu.html",
+    sopFile: "conteos_menu.html"
+  },
+  {
+    codigo: "KR-SYS-WMS-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Reporte de Ruta FIFO y Trazabilidad por Lote / Ubicación / Carrito",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.2 Identificación y Trazabilidad (FIFO)",
+    formato: "EXCEL Controlado",
+    retencion: "5 Años (Digital)",
+    responsable: "Supervisor WMS / Logística",
+    url: "consulta_fifo.html",
+    sopFile: "consulta_fifo.html"
+  },
+  {
+    codigo: "KR-SYS-WMS-0002",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Reporte Maestro de Estatus de Stock (Disponible, Cuarentena, Retrabajo, Embarque)",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.7 Control de las Salidas No Conformes / 8.5.4",
+    formato: "EXCEL Controlado",
+    retencion: "5 Años (Digital)",
+    responsable: "Almacén WMS / Calidad",
+    url: "consulta_fifo.html",
+    sopFile: "consulta_fifo.html"
+  },
+  {
+    codigo: "KR-SYS-WMS-0003",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Kardex Maestro de Movimientos y Bitácora de Reversas (MB51)",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.2 Trazabilidad de Transacciones",
+    formato: "EXCEL / CSV Controlado",
+    retencion: "5 Años (Base de Datos / CSV)",
+    responsable: "Coordinación WMS",
+    url: "historial.html",
+    sopFile: "historial.html"
+  },
+  {
+    codigo: "KR-SYS-WMS-0004",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Etiquetas QR de Identificación de Ubicaciones Fijas y Flota de Carritos Móviles",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.2 Identificación Visual en Planta",
+    formato: "ETIQUETA QR Impresa",
+    retencion: "Mientras la Ubicación/Carrito esté Activo",
+    responsable: "Ingeniería / Almacén WMS",
+    url: "admin_empaques.html"
+  },
+  {
+    codigo: "KR-SYS-QMS-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Reporte de Inspección de Calidad, Yield y Análisis de Pareto de Defectos",
+    modulo: "SGC / CALIDAD",
+    clausula: "9.1.3 Análisis y Evaluación / 10.2 No Conformidad",
+    formato: "EXCEL Controlado",
+    retencion: "5 Años (Digital)",
+    responsable: "Gerencia de Calidad",
+    url: "analisis.html"
+  },
+  {
+    codigo: "KR-SYS-ENG-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Estructura de Materiales Oficial (Bill of Materials - BOM) y Ficha Técnica",
+    modulo: "INGENIERÍA",
+    clausula: "8.3 Diseño y Desarrollo / Especificaciones de Producto",
+    formato: "PDF / EXCEL Controlado",
+    retencion: "Tiempo de Vida del Proyecto + 1 Año",
+    responsable: "Ingeniería de Producto / Procesos",
+    url: "ingenieria_bom.html"
+  },
+  {
+    codigo: "KR-SYS-5S-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Reporte Estratégico de Auditoría 5'S (Estaciones de Trabajo y Máquinas de Inyección)",
+    modulo: "RECURSOS HUMANOS / 5S",
+    clausula: "7.1.4 Ambiente para la Operación de los Procesos",
+    formato: "PDF Controlado",
+    retencion: "3 Años (Digital)",
+    responsable: "Comité 5'S / Mejora Continua",
+    url: "dashboard_5s.html"
+  },
+  {
+    codigo: "KR-SYS-RH-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Consolidado Mensual de Asistencia, Turnos e Incidencias de Personal",
+    modulo: "RECURSOS HUMANOS / 5S",
+    clausula: "7.1.2 Personas",
+    formato: "EXCEL Controlado",
+    retencion: "5 Años (Digital)",
+    responsable: "Recursos Humanos",
+    url: "rh_reporte_asistencia.html"
+  },
+  {
+    codigo: "KR-SYS-RH-0002",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Matriz de Habilidades, Polivalencia y Certificación de Operadores (ILUO)",
+    modulo: "RECURSOS HUMANOS / 5S",
+    clausula: "7.2 Competencia y Capacitación",
+    formato: "EXCEL Controlado",
+    retencion: "5 Años (Digital)",
+    responsable: "Recursos Humanos / Capacitación",
+    url: "rh_matriz_habilidades.html"
+  },
+  {
+    codigo: "KR-IT-WMS-0001",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Instrucción de Trabajo (SOP): Terminal Operativa WMS (Entradas, Salidas FIFO, Transferencias y Reversas)",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.1 Control de la Producción y de la Provisión del Servicio (Instrucciones de Trabajo)",
+    formato: "GUÍA VISUAL + PDF Controlado",
+    retencion: "Permanente (Actualización Continua)",
+    responsable: "Coordinación WMS / Ingeniería Industrial",
+    url: "wms_operaciones.html",
+    sopFile: "wms_operaciones.html"
+  },
+  {
+    codigo: "KR-IT-WMS-0002",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Instrucción de Trabajo (SOP): Buscador QR, Ruta FIFO y Torre de Control de Estatus",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.2 Identificación y Trazabilidad / 8.7 Salidas No Conformes",
+    formato: "GUÍA VISUAL + PDF Controlado",
+    retencion: "Permanente (Actualización Continua)",
+    responsable: "Calidad / Supervisión WMS",
+    url: "consulta_fifo.html",
+    sopFile: "consulta_fifo.html"
+  },
+  {
+    codigo: "KR-IT-WMS-0003",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Instrucción de Trabajo (SOP): Estación de Conteos Cíclicos ABC y Auditoría de Veracidad (IRA %)",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.4 Preservación / 9.1.1 Veracidad de Inventario",
+    formato: "GUÍA VISUAL + PDF Controlado",
+    retencion: "Permanente (Actualización Continua)",
+    responsable: "Auditoría de Inventarios / Contraloría",
+    url: "conteos_menu.html",
+    sopFile: "conteos_menu.html"
+  },
+  {
+    codigo: "KR-IT-WMS-0004",
+    rev: "REV 01",
+    vigencia: "2026-01-01",
+    nombre: "Instrucción de Trabajo (SOP): Historial Maestro de Movimientos (Kardex MB51)",
+    modulo: "WMS / ALMACÉN",
+    clausula: "8.5.2 Trazabilidad de Transacciones / 7.5.3",
+    formato: "GUÍA VISUAL + PDF Controlado",
+    retencion: "Permanente (Actualización Continua)",
+    responsable: "Coordinación WMS / SGC",
+    url: "historial.html",
+    sopFile: "historial.html"
+  }
+];
+
+function obtenerFiltrados() {
+  const q = (document.getElementById('fSearch').value || '').toLowerCase();
+  const mod = document.getElementById('fModulo').value;
+  const tip = document.getElementById('fTipo').value;
+
+  return CATALOGO_DOCUMENTOS_ISO.filter(d => {
+    const matchText = !q ||
+      d.codigo.toLowerCase().includes(q) ||
+      d.nombre.toLowerCase().includes(q) ||
+      d.clausula.toLowerCase().includes(q) ||
+      d.responsable.toLowerCase().includes(q);
+    const matchMod = !mod || d.modulo === mod;
+    const matchTip = !tip || d.formato.toUpperCase().includes(tip);
+    return matchText && matchMod && matchTip;
+  });
+}
+
+function renderizarTabla() {
+  const lista = obtenerFiltrados();
+  document.getElementById('kpiTotalDocs').innerText = lista.length;
+  const tbody = document.getElementById('tbodyDocs');
+
+  tbody.innerHTML = lista.map(d => `
+    <tr>
+      <td><span class="doc-code">${d.codigo}</span></td>
+      <td><span class="rev-badge">${d.rev}</span></td>
+      <td><b>${d.nombre}</b><br><span style="font-size:11px; color:var(--text-secondary);">Vigencia desde: ${d.vigencia}</span></td>
+      <td><span class="mod-badge">${d.modulo}</span></td>
+      <td style="font-size:11.5px; font-weight:700; color:var(--primary);">${d.clausula}</td>
+      <td><b>${d.formato}</b></td>
+      <td style="font-size:11.5px;">${d.retencion}</td>
+      <td style="font-size:11.5px; font-weight:700;">${d.responsable}</td>
+      <td style="text-align:center;">
+        <div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap;">
+          <a href="${d.url}" class="btn-submit" style="padding:6px 10px; font-size:11px;">
+            <i class="fas fa-external-link-alt"></i> Abrir
+          </a>
+          ${d.sopFile ? `
+            <button class="btn-submit" style="padding:6px 10px; font-size:11px; background:#4f46e5;" onclick="abrirManualSOP('${d.sopFile}')">
+              <i class="fas fa-book-open"></i> Ver SOP
+            </button>
+            <button class="btn-submit" style="padding:6px 10px; font-size:11px; background:#dc2626;" onclick="descargarManualSOP_PDF('${d.sopFile}')">
+              <i class="fas fa-file-pdf"></i> PDF
+            </button>
+          ` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function limpiarFiltros() {
+  document.getElementById('fSearch').value = '';
+  document.getElementById('fModulo').value = '';
+  document.getElementById('fTipo').value = '';
+  renderizarTabla();
+}
+
+// =========================================================================
+// GENERAR ACTA OFICIAL PDF DE LA LISTA MAESTRA (CON LOGO, PIE Y FIRMAS ISO)
+// =========================================================================
+function descargarActaMaestraPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('l', 'pt', 'a4');
+
+  try {
+    doc.addImage(KRAEM_LOGO_B64, 'PNG', 38, 22, 38, 38);
+  } catch (e) {}
+
+  doc.setFontSize(15);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(15, 23, 42);
+  doc.text("KRAEM", 82, 39);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 116, 139);
+  doc.text("SISTEMA DE GESTION DE CALIDAD", 82, 50);
+  doc.setTextColor(0, 0, 0);
+
+  doc.setFontSize(12.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("LISTA MAESTRA DE DOCUMENTOS Y REPORTES ELECTRONICOS CONTROLADOS (ISO 9001 / IATF 16949)", 215, 38);
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  const fechaHoy = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  doc.text(`Codigo Maestro: KR-SGC-LM-0001   |   Revision: REV 01   |   Fecha de Emision: ${fechaHoy}   |   Clausula: 7.5 Informacion Documentada`, 215, 53);
+
+  const bodyRows = CATALOGO_DOCUMENTOS_ISO.map(d => [
+    d.codigo,
+    d.rev,
+    d.nombre,
+    d.modulo,
+    d.clausula,
+    d.formato,
+    d.retencion,
+    d.responsable
+  ]);
+
+  doc.autoTable({
+    startY: 68,
+    head: [['Codigo ISO', 'Rev.', 'Nombre Oficial del Reporte / Formato', 'Proceso', 'Clausula ISO 9001', 'Formato', 'Retencion', 'Responsable']],
+    body: bodyRows,
+    theme: 'grid',
+    styles: { fontSize: 7.5, cellPadding: 4.5 },
+    headStyles: { fillColor: [37, 99, 235] }
+  });
+
+  let finalY = doc.lastAutoTable.finalY + 25;
+  if (finalY > 470) { doc.addPage(); finalY = 60; }
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("DECLARACION DE VALIDEZ ELECTRONICA Y CONTROL DE AUDITORIA:", 40, finalY);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text("1. Todos los reportes listados en la presente Lista Maestra son generados en tiempo real desde la base de datos central del Sistema MRP/WMS KRAEM.", 40, finalY + 13);
+  doc.text("2. Cada documento impreso o exportado incluye en su pie de pagina su Codigo Oficial (KR-SYS-XX-0000), numero de revision, fecha de emision y paginacion.", 40, finalY + 25);
+
+  const signY = finalY + 72;
+  doc.line(60, signY, 250, signY);
+  doc.setFont("helvetica", "bold");
+  doc.text("ELABORO: COORDINACION WMS / MRP", 75, signY + 13);
+
+  doc.line(330, signY, 520, signY);
+  doc.text("REVISO: ASEGURAMIENTO DE CALIDAD (SGC)", 338, signY + 13);
+
+  doc.line(600, signY, 790, signY);
+  doc.text("AUTORIZO: DIRECCION DE PLANTA KRAEM", 612, signY + 13);
+
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(40, 560, 800, 560);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text("DOCUMENTO RECTOR CONTROLADO SGC ISO 9001 | CODIGO: KR-SGC-LM-0001 | REV 01", 40, 572);
+    doc.text(`Fecha de Emision: ${fechaHoy}`, 415, 572);
+    doc.text(`Pagina ${i} de ${totalPages}`, 740, 572);
+  }
+
+  doc.save(`KR-SGC-LM-0001_Lista_Maestra_Control_Documental_KRAEM_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+function exportarListaMaestraExcel() {
+  const fechaEmision = new Date().toLocaleString('es-MX');
+  const rows = [
+    ["KRAEM S.A. DE C.V. - SISTEMA DE GESTIÓN DE CALIDAD ISO 9001 / IATF 16949"],
+    ["DOCUMENTO RECTOR:", "KR-SGC-LM-0001", "REVISIÓN:", "REV 01", "FECHA EMISIÓN:", fechaEmision],
+    ["TÍTULO:", "LISTA MAESTRA DE DOCUMENTOS, FORMATOS Y REPORTES ELECTRÓNICOS CONTROLADOS"],
+    [],
+    ["Código ISO", "Revisión", "Vigencia", "Nombre Oficial del Documento / Reporte", "Proceso / Módulo", "Cláusula ISO 9001", "Formato", "Tiempo de Retención", "Responsable"]
+  ];
+  CATALOGO_DOCUMENTOS_ISO.forEach(d => {
+    rows.push([d.codigo, d.rev, d.vigencia, d.nombre, d.modulo, d.clausula, d.formato, d.retencion, d.responsable]);
+  });
+  rows.push([]);
+  rows.push(["PIE DE CONTROL ISO:", "DOCUMENTO RECTOR CONTROLADO | CÓDIGO: KR-SGC-LM-0001 | REV 01 | CLÁUSULA 7.5 ISO 9001:2015"]);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "KR-SGC-LM-0001");
+  XLSX.writeFile(wb, `KR-SGC-LM-0001_Lista_Maestra_ISO_KRAEM_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function toggleTheme() {
+  const b = document.body;
+  const isDark = b.getAttribute('data-theme') === 'dark';
+  b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
+}
+
+const i18n = {
+  es: {
+    title: "🛡️ Lista Maestra de Control Documental (SGC ISO 9001 / IATF 16949)",
+    sub: "Documento Rector que avala todos los Reportes, Formatos, Auditorías y Registros Electrónicos del Sistema MRP/WMS KRAEM",
+    bannerTit: "DOCUMENTO RECTOR DEL SISTEMA: LISTA MAESTRA DE FORMATOS Y REPORTES ELECTRÓNICOS CONTROLADOS",
+    bannerDesc: "Este documento avala oficialmente la validez, codificación, revisión, retención y trazabilidad de cada reporte PDF/Excel emitido por el sistema KRAEM."
+  },
+  ko: {
+    title: "🛡️ ISO 9001 / IATF 16949 문서 관리 마스터 리스트 (KRAEM SGC)",
+    sub: "KRAEM MRP/WMS 시스템의 모든 보고서, 양식, 실사표 및 전자 기록을 보증하는 표준 관리 문서",
+    bannerTit: "시스템 표준 관리 문서: 전자 보고서 및 양식 마스터 리스트 (KR-SGC-LM-0001)",
+    bannerDesc: "본 문서는 KRAEM 시스템에서 발행되는 모든 PDF/Excel 보고서의 코드, 개정번호, 보존기한 및 추적성을 공식 보증합니다."
+  },
+  en: {
+    title: "🛡️ Master Document Control List (ISO 9001 / IATF 16949 QMS)",
+    sub: "Governing Document endorsing all Reports, Forms, Audits, and Electronic Records of the KRAEM MRP/WMS System",
+    bannerTit: "SYSTEM GOVERNING DOCUMENT: MASTER LIST OF CONTROLLED ELECTRONIC FORMS & REPORTS",
+    bannerDesc: "This document officially endorses the validity, document coding, revision, retention, and traceability of every PDF/Excel report issued by KRAEM."
+  }
+};
+
+function setLang(l) {
+  if (window.KraemI18n) { window.KraemI18n.setLang(l); } else { localStorage.setItem('lang', l); localStorage.setItem('kraem_lang', l); }
+  localStorage.setItem('kraem_lang', l);
+  const t = i18n[l] || i18n.es;
+  document.getElementById('txtTitle').innerText = t.title;
+  document.getElementById('txtSub').innerText = t.sub;
+  document.getElementById('txtBannerTit').innerText = t.bannerTit;
+  document.getElementById('txtBannerDesc').innerText = t.bannerDesc;
+}
+
+setLang(localStorage.getItem('kraem_lang') || 'es');
+renderizarTabla();
+</script>
+<script src="iso_sop_ayuda.js"></script>
+<script>
+document.addEventListener('kraem:langchange', function(e) {
+  if (typeof setLang === 'function') {
+    try { setLang(e.detail.lang); } catch(err) {}
+  }
+});
+</script>
+</body>
+</html>
+
