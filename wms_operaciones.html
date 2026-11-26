@@ -292,9 +292,21 @@ th { background:var(--bg); font-weight:800; color:var(--text-secondary); text-tr
         <i class="fas fa-plane-departure"></i> <span id="lblTituloOrigen">ORIGEN DEL MATERIAL</span>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="grpAreaOrig">
         <label id="lAreaOrig">Área Origen *</label>
         <select id="areaSelect" onchange="resetSelection()"></select>
+      </div>
+
+      <!-- ENTRADA: la mercancía de inyección / compra NO tiene origen. La procedencia es solo informativa y opcional -->
+      <div class="form-group" id="grpProcedencia" style="display:none; margin-bottom:0;">
+        <label id="lProcedencia">Procedencia (opcional)</label>
+        <select id="procedenciaSelect">
+          <option value="">🏭 Producción / Inyección (sin origen)</option>
+          <option value="COMPRA">🧾 Compra / Proveedor</option>
+          <option value="DEVOLUCION">↩️ Devolución de cliente</option>
+          <option value="RETRABAJO">🔧 Retorno de retrabajo / inspección</option>
+          <option value="OTRO">📦 Otro</option>
+        </select>
       </div>
 
       <!-- Ubicación y Carrito Origen (Ocultos en ENTRADA, visibles en SALIDA/TRANSF/AJUSTE NEG) -->
@@ -341,7 +353,7 @@ th { background:var(--bg); font-weight:800; color:var(--text-secondary); text-tr
       </div>
 
       <div id="divDestinoContenedor" class="form-group" style="margin-bottom:0;">
-        <label id="lContDest">🛒 Contenedor / Carrito DESTINO *</label>
+        <label id="lContDest">🛒 Contenedor / Carrito DESTINO (opcional)</label>
         <div class="input-with-btn">
           <input id="destContInput" placeholder="Busca o escanea carrito destino..." autocomplete="off">
           <button class="btn-qr" onclick="abrirEscaner('CONT_DESTINO')"><i class="fas fa-camera"></i></button>
@@ -371,7 +383,7 @@ th { background:var(--bg); font-weight:800; color:var(--text-secondary); text-tr
         <input id="ordenFolioInput" placeholder="Opcional (Ej: OP-104)">
       </div>
       <div class="form-group" style="margin-bottom:0;">
-        <label id="lComm">Comentario / Motivo *</label>
+        <label id="lComm">Comentario (opcional)</label>
         <input id="comment" placeholder="Escribe comentario o nota...">
       </div>
     </div>
@@ -476,6 +488,9 @@ const _client = supabase.createClient(_supabaseUrl, _supabaseKey);
 
 let parts=[], locations=[], containers=[], areas=[], empaquesPartes=[], mode='ENTRADA';
 let selPartId=null, selOrigId=null, selOrigContId=null, selDestId=null, selDestContId=null;
+let selOrigItem=null; // fila de stock (v_inventory_by_location) elegida como origen
+// Permite abrir directo una pestaña: wms_operaciones.html?modo=AJUSTE
+(function(){ const q=(new URLSearchParams(location.search).get('modo')||'').toUpperCase(); if(['ENTRADA','SALIDA','TRANSFERENCIA','AJUSTE','REVERSAS'].includes(q)) mode=q; })();
 let currentUserId=null, currentUserEmail=null;
 let selectedMovementToReverse=null;
 let html5QrcodeScanner = null, qrTargetField = '';
@@ -517,7 +532,7 @@ const i18n = {
     lLotFifo: "Número de Lote (Cargado Automáticamente por FIFO)",
     lLotAjuste: "Fecha de Lote (Ajuste) *",
     phLotFifo: "Se carga solo al seleccionar Número de Parte...",
-    titOrigEntrada: "🏭 ORIGEN DE PRODUCCIÓN / PROCESO",
+    titOrigEntrada: "🏭 PROCEDENCIA (opcional · inyección y compras no llevan origen)",
     titOrigSalida: "🛫 ORIGEN DEL MATERIAL (De dónde sale)",
     titOrigTransf: "🛫 ORIGEN (De dónde se toma)",
     titOrigAjuste: "🛫 UBICACIÓN DONDE SE DETECTÓ EL FALTANTE (-)",
@@ -532,13 +547,13 @@ const i18n = {
     lAreaDest: "Área Destino *",
     lLocDest: "📍 Ubicación Fija / Hilera DESTINO *",
     phLocDest: "Busca o escanea hilera destino...",
-    lContDest: "🛒 Contenedor / Carrito DESTINO *",
+    lContDest: "🛒 Contenedor / Carrito DESTINO (opcional)",
     phContDest: "Busca o escanea carrito destino...",
     lQty: "Cantidad de Piezas *",
     lblParcialSwitch: "⚠️ ¿Es Parcial? (Caja/Carro incompleto)",
     lOrdenFolio: "Folio Orden (OP / Embarque)",
     phOrdenFolio: "Opcional (Ej: OP-104)",
-    lComm: "Comentario / Motivo *",
+    lComm: "Comentario (opcional)",
     phComm: "Escribe comentario o nota...",
     btnEntrada: "CONFIRMAR ENTRADA",
     btnSalida: "CONFIRMAR SALIDA (FIFO)",
@@ -600,7 +615,7 @@ const i18n = {
     lLotFifo: "로트 번호 (FIFO 자동 로드됨)",
     lLotAjuste: "로트 날짜 (조정) *",
     phLotFifo: "부품 번호 선택 시 자동으로 입력됩니다...",
-    titOrigEntrada: "🏭 생산 / 공정 출처 (ORIGEN)",
+    titOrigEntrada: "🏭 출처 (선택 사항)",
     titOrigSalida: "🛫 출고 위치 (ORIGEN)",
     titOrigTransf: "🛫 출발 위치 (ORIGEN)",
     titOrigAjuste: "🛫 부족 발생 위치 (-)",
@@ -615,13 +630,13 @@ const i18n = {
     lAreaDest: "도착 구역 (Area Destino) *",
     lLocDest: "📍 도착 고정 위치 / 열 (DESTINO) *",
     phLocDest: "도착 열(Hilera) 검색 또는 스캔...",
-    lContDest: "🛒 도착 대차 / 컨테이너 *",
+    lContDest: "🛒 도착 대차 / 컨테이너 (선택 사항)",
     phContDest: "도착 대차 검색 또는 스캔...",
     lQty: "수량 (Piezas) *",
     lblParcialSwitch: "⚠️ 잔량/부분 포장입니까? (박스/대차 미완성)",
     lOrdenFolio: "작업/출하 지시 번호 (OP)",
     phOrdenFolio: "선택 사항 (예: OP-104)",
-    lComm: "비고 / 사유 *",
+    lComm: "비고 (선택 사항)",
     phComm: "메모 또는 사유 입력...",
     btnEntrada: "입고 확인 (CONFIRMAR ENTRADA)",
     btnSalida: "FIFO 출고 확인",
@@ -683,7 +698,7 @@ const i18n = {
     lLotFifo: "Lot Number (Auto-loaded by FIFO)",
     lLotAjuste: "Lot Date (Adjustment) *",
     phLotFifo: "Auto-filled when selecting Part Number...",
-    titOrigEntrada: "🏭 PRODUCTION / PROCESS ORIGIN",
+    titOrigEntrada: "🏭 SOURCE (optional · injection / purchasing have no origin)",
     titOrigSalida: "🛫 MATERIAL ORIGIN (Where it leaves from)",
     titOrigTransf: "🛫 ORIGIN (Where it is taken from)",
     titOrigAjuste: "🛫 LOCATION WHERE SHORTAGE WAS FOUND (-)",
@@ -698,13 +713,13 @@ const i18n = {
     lAreaDest: "Destination Area *",
     lLocDest: "📍 Fixed Location / Lane DESTINATION *",
     phLocDest: "Search or scan destination lane...",
-    lContDest: "🛒 DESTINATION Cart / Container *",
+    lContDest: "🛒 DESTINATION Cart / Container (optional)",
     phContDest: "Search or scan destination cart...",
     lQty: "Quantity (Pieces) *",
     lblParcialSwitch: "⚠️ Is it Partial? (Incomplete Box/Cart)",
     lOrdenFolio: "Order Folio (Work / Ship Order)",
     phOrdenFolio: "Optional (e.g. OP-104)",
-    lComm: "Comment / Reason *",
+    lComm: "Comment (optional)",
     phComm: "Type comment or note...",
     btnEntrada: "CONFIRM RECEIPT",
     btnSalida: "CONFIRM FIFO ISSUE",
@@ -834,6 +849,7 @@ function setMode(m) {
     document.getElementById('lblTituloOrigen').innerText = t.titOrigEntrada;
     document.getElementById('lAreaOrig').innerText = t.lAreaOrigEntrada;
     document.getElementById('lAreaDest').innerText = t.lAreaDestEntrada;
+    document.getElementById('lProcedencia').innerText = ({es:'Procedencia (opcional)', ko:'출처 (선택 사항)', en:'Source (optional)'})[currentLang] || 'Procedencia (opcional)';
   } else if (m === 'SALIDA') {
     btn.className = 'btn-action btn-salida';
     txtBtn.innerText = t.btnSalida;
@@ -849,6 +865,8 @@ function setMode(m) {
     btn.className = 'btn-action btn-ajuste';
     txtBtn.innerText = t.btnAjuste;
     document.getElementById('lblTituloOrigen').innerText = t.titOrigAjuste;
+    document.getElementById('lAreaOrig').innerText = t.lAreaOrig;
+    document.getElementById('lAreaDest').innerText = t.lAreaDest;
   }
 
   toggleInputs(); 
@@ -862,14 +880,24 @@ function setMode(m) {
   }
 }
 
-function toggleInputs() { 
-  const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG'); 
-  document.getElementById('bloqueOrigen').style.display = (mode === 'AJUSTE' && !isNeg) ? 'none' : 'block';
-  divOrigen.style.display = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg) ? 'block' : 'none'; 
-  divDestino.style.display = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg)) ? 'block' : 'none'; 
-  resetSelection(); 
+// ¿Este modo captura el ÁREA en el bloque DESTINO? (ENTRADA, REUBICAR y AJUSTE positivo)
+function usaAreaDestino() {
+  const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG');
+  return mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg);
 }
 
+function toggleInputs() {
+  const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG');
+  const esEntrada = (mode === 'ENTRADA');
+  document.getElementById('bloqueOrigen').style.display = (mode === 'AJUSTE' && !isNeg) ? 'none' : 'block';
+  // En ENTRADA no se pide origen: solo una procedencia opcional
+  document.getElementById('grpAreaOrig').style.display = esEntrada ? 'none' : 'block';
+  document.getElementById('grpProcedencia').style.display = esEntrada ? 'block' : 'none';
+  divOrigen.style.display = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg) ? 'block' : 'none';
+  divDestino.style.display = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg)) ? 'block' : 'none';
+  divAreaDest.style.display = usaAreaDestino() ? 'block' : 'none';
+  resetSelection();
+}
 function alternarModoContenedorCompleto() {
   const transferMode = document.getElementById('selTransferMode').value;
   const divParte = document.getElementById('divPartSearch');
@@ -902,7 +930,7 @@ function alternarModoContenedorCompleto() {
 }
 
 function resetSelection() { 
-  selOrigId=null; selOrigContId=null;
+  selOrigId=null; selOrigContId=null; selOrigItem=null;
   originInput.value=''; contOriginInput.value='';
   if(mode !== 'ENTRADA' && mode !== 'TRANSFERENCIA') {
     selDestId=null; selDestContId=null;
@@ -927,9 +955,16 @@ function aplicarReglaLoteAutomatico() {
   const t = i18n[currentLang] || i18n.es;
 
   if (mode === 'AJUSTE') {
-    lblLote.innerText = t.lLotAjuste;
-    const hoyISO = new Date().toISOString().split('T')[0];
-    contenedor.innerHTML = `<input type="date" id="lotInput" value="${hoyISO}">`;
+    if (ajusteTipo.value === 'NEG') {
+      // Ajuste negativo: el lote es el del stock elegido (si no, el ajuste no descuenta el lote correcto)
+      lblLote.innerText = t.lLotFifo;
+      contenedor.innerHTML = `<input id="lotInput" readonly style="background:rgba(100,116,139,0.12); font-weight:800; cursor:not-allowed;" placeholder="${t.phLotFifo}">`;
+    } else {
+      lblLote.innerText = t.lLotAjuste;
+      const h = new Date();
+      const hoyISO = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+      contenedor.innerHTML = `<input type="date" id="lotInput" value="${hoyISO}">`;
+    }
   } else if (mode === 'ENTRADA') {
     lblLote.innerText = t.lLotEntrada;
     const hoy = new Date();
@@ -970,11 +1005,14 @@ async function alSeleccionarParte(parte) {
 // Helper para consultar estatus de Cuarentena / Calidad / Retrabajo / Embarque de un N/P
 async function obtenerMapaEstatusParte(partId, partNumberTxt) {
   const mapa = {};
-  const { data: movs } = await _client
+  let qEst = _client
     .from('inventory_movements')
-    .select('part_id, lot_number, comment, created_at, status_stock, orden_embarque_folio')
+    .select('id, part_id, lot_number, comment, created_at, status_stock, orden_embarque_folio')
     .ilike('comment', '%[KRAEM_STATUS:%')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true });
+  if (partId && /^\d+$/.test(String(partId))) qEst = qEst.eq('part_id', partId);
+  const { data: movs } = await qEst;
 
   if (movs) {
     movs.forEach(m => {
@@ -983,7 +1021,8 @@ async function obtenerMapaEstatusParte(partId, partNumberTxt) {
       const fin = m.comment.indexOf(']', ini);
       if (fin === -1) return;
       const partes = m.comment.substring(ini, fin).split('|');
-      const st = m.status_stock || partes[0] || 'DISPONIBLE';
+      // El estatus oficial viaja en la marca [KRAEM_STATUS:XXX]; la columna status_stock siempre trae 'DISPONIBLE' por default
+      const st = String(partes[0] || m.status_stock || 'DISPONIBLE').toUpperCase();
       let loc = '', cont = '', oe = m.orden_embarque_folio || '';
       partes.slice(1).forEach(kv => {
         const idx = kv.indexOf(':');
@@ -1025,7 +1064,7 @@ async function buscarLoteAutomaticoFIFO() {
     obtenerMapaEstatusParte(selPartId, partSearch.value.trim())
   ]);
 
-  const data = resStock.data;
+  const data = ordenarFIFO(resStock.data || []);
   if (!data || data.length === 0) {
     fifoList.innerHTML = `<div style="color:var(--danger); font-weight:700;">⚠️ Sin inventario disponible para este Número de Parte.</div>`;
     return;
@@ -1100,12 +1139,13 @@ function cargarItemEnFormularioOrigen(item) {
   }
   originInput.value = item.location || '';
   selOrigId = item.location_id;
+  selOrigItem = item;
 
   contOriginInput.value = item.container_code ? item.container_code : "N/A - Sin Contenedor";
   selOrigContId = item.container_id ? item.container_id : null;
 
   const lotEl = document.getElementById('lotInput');
-  if (lotEl && mode !== 'AJUSTE') {
+  if (lotEl && (mode !== 'AJUSTE' || ajusteTipo.value === 'NEG')) {
     lotEl.value = item.lot_number || '';
   }
 
@@ -1154,20 +1194,46 @@ contOriginInput.oninput = () => {
   contOrigBox.style.display = 'block';
 };
 
-document.body.addEventListener('input', function(e) {
-  if (e.target && e.target.id === 'destInput') {
-    const v = e.target.value.toUpperCase();
-    const aId = (mode === 'TRANSFERENCIA' || mode === 'ENTRADA') ? areaDestSelect.value : areaSelect.value;
-    destBox.innerHTML = '';
-    const m = locations.filter(l => l.area_id == aId && l.location_code.includes(v)).slice(0, 10);
-    m.forEach(l => { 
-      const d = document.createElement('div'); 
-      d.innerHTML = `📍 <b>${l.location_code}</b>`; 
-      d.onclick = () => { document.getElementById('destInput').value = l.location_code; selDestId = l.id; destBox.style.display = 'none'; }; 
-      destBox.appendChild(d); 
-    });
-    destBox.style.display = m.length ? 'block' : 'none';
+function mostrarOpcionesDestino() {
+  const v = (document.getElementById('destInput')?.value || '').trim().toUpperCase();
+  const aId = usaAreaDestino() ? areaDestSelect.value : areaSelect.value;
+  destBox.innerHTML = '';
+  const delArea = locations.filter(l => l.area_id == aId);
+  if (delArea.length === 0) {
+    const selEl = usaAreaDestino() ? areaDestSelect : areaSelect;
+    const areaTxt = (selEl.options[selEl.selectedIndex] || {}).text || 'esta área';
+    const d = document.createElement('div');
+    d.style.color = 'var(--warning)';
+    d.style.cursor = 'default';
+    d.innerHTML = `⚠️ <b>${areaTxt}</b> no tiene ubicaciones fijas/piso en el Catálogo de Ubicaciones.`;
+    destBox.appendChild(d);
+    destBox.style.display = 'block';
+    return;
   }
+  const m = delArea.filter(l => !v || l.location_code.toUpperCase().includes(v)).slice(0, 15);
+  m.forEach(l => {
+    const d = document.createElement('div');
+    d.innerHTML = `📍 <b>${l.location_code}</b>`;
+    d.onclick = () => { document.getElementById('destInput').value = l.location_code; selDestId = l.id; destBox.style.display = 'none'; };
+    destBox.appendChild(d);
+  });
+  destBox.style.display = m.length ? 'block' : 'none';
+}
+
+document.body.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 'destInput') { selDestId = null; mostrarOpcionesDestino(); }
+});
+document.body.addEventListener('focusin', function(e) {
+  if (e.target && e.target.id === 'destInput') mostrarOpcionesDestino();
+  if (e.target && e.target.id === 'contOriginInput') contOriginInput.oninput();
+  if (e.target && e.target.id === 'destContInput') destContInput.oninput();
+});
+document.addEventListener('click', function(e) {
+  const id = e.target && e.target.id;
+  if (id !== 'partSearch' && !partResults.contains(e.target)) partResults.style.display = 'none';
+  if (id !== 'destInput' && !destBox.contains(e.target)) destBox.style.display = 'none';
+  if (id !== 'contOriginInput' && !contOrigBox.contains(e.target)) contOrigBox.style.display = 'none';
+  if (id !== 'destContInput' && !destContBox.contains(e.target)) destContBox.style.display = 'none';
 });
 
 destContInput.oninput = () => {
@@ -1215,22 +1281,34 @@ async function abrirModalStock() {
   }
   
   const {data} = await query;
-  
-  modalList.innerHTML = data?.length ? '' : '<p style="text-align:center; color:var(--text-secondary)">Sin stock disponible</p>';
-  data?.forEach(i => { 
-    const d = document.createElement('div'); 
-    d.style.padding = '12px'; 
-    d.style.borderBottom = '1px solid var(--border)'; 
-    d.style.cursor = 'pointer'; 
-    
+  const lista = ordenarFIFO(data || []);
+  let mapaEstatus = {};
+  if (selPartId && !isMasivo) {
+    mapaEstatus = await obtenerMapaEstatusParte(selPartId, partSearch.value.trim());
+  }
+
+  modalList.innerHTML = lista.length ? '' : '<p style="text-align:center; color:var(--text-secondary)">Sin stock disponible</p>';
+  lista.forEach(i => {
+    const d = document.createElement('div');
+    d.style.padding = '12px';
+    d.style.borderBottom = '1px solid var(--border)';
+    d.style.cursor = 'pointer';
+
+    const st = consultarEstatusItem(i, mapaEstatus).status;
+    const bloq = (mode === 'SALIDA' && (st === 'CALIDAD' || st === 'RETRABAJO'));
+    const stTag = st === 'CALIDAD' ? ' <b style="color:#f59e0b">[CUARENTENA]</b>' : (st === 'RETRABAJO' ? ' <b style="color:#f97316">[RETRABAJO]</b>' : (st === 'ASIGNADO' ? ' <b style="color:#3b82f6">[ASIGNADO]</b>' : ''));
     const contLabel = i.container_code ? `🛒 ${i.container_code}` : `📦 Suelto`;
-    d.innerHTML = `📍 <b>${i.location}</b> [${contLabel}] (${i.area})<br>Parte: <b>${i.part_number || ''}</b> - Lote: <b>${i.lot_number || 'S/L'}</b> - <b style="color:var(--success)">${i.quantity} pzas</b>`; 
-    
+    d.innerHTML = `📍 <b>${i.location}</b> [${contLabel}] (${i.area})${stTag}<br>Parte: <b>${i.part_number || ''}</b> - Lote: <b>${i.lot_number || 'S/L'}</b> - <b style="color:var(--success)">${i.quantity} pzas</b>`;
+
     d.onclick = () => {
+      if (bloq) {
+        alert(`🚫 Lote bloqueado por estatus "${st}". Libéralo primero en Torre de Control FIFO.`);
+        return;
+      }
       cargarItemEnFormularioOrigen(i);
       cerrarModal();
-    }; 
-    modalList.appendChild(d); 
+    };
+    modalList.appendChild(d);
   });
 }
 function cerrarModal() { modalStock.style.display = 'none'; }
@@ -1238,212 +1316,377 @@ function cerrarModal() { modalStock.style.display = 'none'; }
 // =========================================================================
 // 6. GUARDADO DE MOVIMIENTOS (CON TRANSFER_GROUP_ID PARA REVERSAS ATÓMICAS)
 // =========================================================================
+// ---------- Utilidades de fecha / FIFO / áreas ----------------------------------
+// created_at es "timestamp sin zona" guardado en UTC: sin la 'Z' el navegador lo lee como hora local (6 h de error)
+function parseFechaDB(v) {
+  if (!v) return new Date(NaN);
+  let s = String(v).trim().replace(' ', 'T');
+  if (!/[zZ]$|[+-]\d{2}(:?\d{2})?$/.test(s)) s += 'Z';
+  return new Date(s);
+}
+
+// FIFO por FECHA DEL LOTE (YYYYMMDD). La fecha de captura NO sirve: una reubicación la reinicia y el lote "rejuvenece".
+function claveFIFO(i) {
+  const lot = String(i.lot_number || '');
+  if (/^20\d{6}$/.test(lot)) return lot;
+  const d = parseFechaDB(i.created_at);
+  if (!isNaN(d.getTime())) return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  return '99999999';
+}
+function ordenarFIFO(lista) {
+  return (lista || []).slice().sort((a, b) => {
+    const ka = claveFIFO(a), kb = claveFIFO(b);
+    if (ka !== kb) return ka < kb ? -1 : 1;
+    return (parseFechaDB(a.created_at) - parseFechaDB(b.created_at)) || 0;
+  });
+}
+
+function areaIdPorNombre(nombre) {
+  const n = String(nombre || '').trim().toUpperCase();
+  const a = areas.find(x => String(x.area_name || '').trim().toUpperCase() === n);
+  return a ? a.id : null;
+}
+
+const COMENTARIO_DEFAULT = {
+  ENTRADA: 'Entrada a almacén',
+  SALIDA: 'Salida de almacén',
+  TRANSFERENCIA: 'Reubicación de material',
+  AJUSTE: 'Ajuste de inventario'
+};
+
+let guardandoMovimiento = false;
+function bloquearGuardado(b) {
+  guardandoMovimiento = b;
+  const btn = document.getElementById('btnConfirm');
+  if (btn) { btn.disabled = b; btn.style.opacity = b ? '0.6' : '1'; }
+}
+
+function mensajeErrorMovimiento(error) {
+  const msg = (error && error.message) ? error.message : String(error);
+  if (/transfer_group_id/i.test(msg)) {
+    return "⚠️ Falta aplicar la migración WMS en Supabase (columna transfer_group_id).\nEjecuta wms_fix_integridad_inventario.sql y vuelve a intentar.";
+  }
+  if (/stock insuficiente/i.test(msg)) return "❌ " + msg;
+  return "❌ No se pudo guardar el movimiento:\n" + msg;
+}
+
+// =========================================================================
+// 6. GUARDADO DE MOVIMIENTOS (CON TRANSFER_GROUP_ID PARA REVERSAS ATÓMICAS)
+// =========================================================================
 async function procesarGuardado() {
+  if (guardandoMovimiento) return;
   if (!currentUserId) return alert("🔒 Debes iniciar sesión primero.");
-  
+
   const transferMode = document.getElementById('selTransferMode').value;
   let comm = comment.value.trim();
   const ordenFolio = document.getElementById('ordenFolioInput').value.trim();
   const lotInput = document.getElementById('lotInput');
-  
+
+  // El comentario es opcional: se completa solo (en AJUSTE ya viaja el motivo de discrepancia)
   if (mode === 'AJUSTE') {
     const mot = document.getElementById('motivoAjuste').value;
-    comm = `[AJUSTE: ${mot}] ${comm}`;
+    comm = `[AJUSTE: ${mot}] ${comm}`.trim();
+  } else if (!comm) {
+    comm = COMENTARIO_DEFAULT[mode] || 'Movimiento WMS';
   }
-  if(!comm) return alert("Por favor escriba un comentario descriptivo.");
 
-  if(mode === 'TRANSFERENCIA' && transferMode === 'CARRITO') {
-    if(!selOrigContId) return alert("❌ Debe seleccionar, escribir o escanear el Carrito de ORIGEN.");
-    if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
-    
+  if (mode === 'TRANSFERENCIA' && transferMode === 'CARRITO') {
+    if (!selOrigContId) return alert("❌ Debe seleccionar, escribir o escanear el Carrito de ORIGEN.");
+    if (!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
+
     const { data: stockCarrito } = await _client
       .from('v_inventory_by_location')
       .select('*')
       .eq('container_id', selOrigContId)
       .gt('quantity', 0);
-        
-    if(!stockCarrito || stockCarrito.length === 0) {
+
+    if (!stockCarrito || stockCarrito.length === 0) {
       return alert("❌ Este carrito no tiene ningún número de parte asignado actualmente.");
     }
-    
-    guardarMovimientoMasivo(currentUserId, comm, stockCarrito, 'CARRITO', ordenFolio);
+
+    bloquearGuardado(true);
+    try { await guardarMovimientoMasivo(currentUserId, comm, stockCarrito, 'CARRITO', ordenFolio); }
+    finally { bloquearGuardado(false); }
     return;
   }
 
-  if(mode === 'TRANSFERENCIA' && transferMode === 'UBICACION') {
-    if(!selOrigId) return alert("❌ Debe seleccionar o escanear la Ubicación Fija de ORIGEN.");
-    if(!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
-    
+  if (mode === 'TRANSFERENCIA' && transferMode === 'UBICACION') {
+    if (!selOrigId) return alert("❌ Debe seleccionar o escanear la Ubicación Fija de ORIGEN.");
+    if (!selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de DESTINO.");
+    if (selOrigId === selDestId) return alert("❌ La ubicación de origen y la de destino son la misma.");
+
     const { data: stockUbicacion } = await _client
       .from('v_inventory_by_location')
       .select('*')
       .eq('location_id', selOrigId)
       .gt('quantity', 0);
-        
-    if(!stockUbicacion || stockUbicacion.length === 0) {
+
+    if (!stockUbicacion || stockUbicacion.length === 0) {
       return alert("❌ Esta ubicación física no tiene stock registrado actualmente.");
     }
-    
-    guardarMovimientoMasivo(currentUserId, comm, stockUbicacion, 'UBICACION', ordenFolio);
+
+    bloquearGuardado(true);
+    try { await guardarMovimientoMasivo(currentUserId, comm, stockUbicacion, 'UBICACION', ordenFolio); }
+    finally { bloquearGuardado(false); }
     return;
   }
 
-  const q = parseInt(qty.value);
-  if(!selPartId || !q || q <= 0) return alert("Completa los campos obligatorios (Número de parte y cantidad válida).");
+  const q = parseInt(qty.value, 10);
+  if (!selPartId || !q || q <= 0) return alert("Completa los campos obligatorios (Número de parte y cantidad válida).");
 
   const isNeg = (mode === 'AJUSTE' && ajusteTipo.value === 'NEG');
+  // ENTRADA (inyección / compra) NO requiere origen. Solo SALIDA, REUBICAR y AJUSTE negativo lo necesitan.
   const requiereOrigen = (mode === 'SALIDA' || mode === 'TRANSFERENCIA' || isNeg);
   const requiereDestino = (mode === 'ENTRADA' || mode === 'TRANSFERENCIA' || (mode === 'AJUSTE' && !isNeg));
 
   if (requiereDestino && !selDestId) return alert("❌ Debe seleccionar una Ubicación Fija de Destino.");
-  if (requiereOrigen && !selOrigId) return alert("❌ Debe seleccionar una Ubicación Fija de Origen.");
+  if (requiereOrigen && !selOrigId) return alert("❌ Debe seleccionar una Ubicación Fija de Origen (toca el campo para elegir del stock).");
 
-  let loteFormateado = lotInput.value.trim().toUpperCase();
-  if (mode === 'AJUSTE') {
+  if (mode === 'TRANSFERENCIA' && selOrigId === selDestId && (selOrigContId || null) === (selDestContId || null)) {
+    return alert("❌ El origen y el destino son exactamente iguales (misma ubicación y mismo contenedor).");
+  }
+
+  let loteFormateado = lotInput ? lotInput.value.trim().toUpperCase() : '';
+  if (mode === 'AJUSTE' && !isNeg) {
     if (!loteFormateado) return alert("❌ Debe seleccionar una fecha para el Ajuste.");
     loteFormateado = loteFormateado.replace(/-/g, "");
   }
 
-  if (requiereOrigen && mode !== 'AJUSTE' && selOrigId) {
-    const areaText = areaSelect.options[areaSelect.selectedIndex].text;
-    if (!loteFormateado) return alert("❌ Debe cargarse un número de Lote antes de continuar.");
+  if (requiereOrigen) {
+    const origenSinLote = !!(selOrigItem && !selOrigItem.lot_number);
+    if (!loteFormateado && !origenSinLote) return alert("❌ Debe cargarse un número de Lote antes de continuar (elige el lote en la lista de stock).");
 
+    // Candado de existencias: nunca sacar más de lo que hay en esa ubicación + contenedor + lote
+    let qStock = _client.from('v_inventory_by_location')
+      .select('quantity, lot_number')
+      .eq('part_id', selPartId)
+      .eq('location_id', selOrigId);
+    qStock = selOrigContId ? qStock.eq('container_id', selOrigContId) : qStock.is('container_id', null);
+    const { data: filasStock } = await qStock;
+    const disponible = (filasStock || [])
+      .filter(f => String(f.lot_number || '') === String(loteFormateado || ''))
+      .reduce((s, f) => s + Number(f.quantity || 0), 0);
+    if (q > disponible) {
+      return alert(`❌ STOCK INSUFICIENTE\n\nSolo hay ${disponible} pzs de este lote en la ubicación/contenedor de origen y quieres mover ${q} pzs.\n\nVerifica la cantidad, el carrito y el lote (toca el campo de origen para elegir del stock).`);
+    }
+  }
+
+  if (requiereOrigen && mode === 'SALIDA') {
+    const areaText = (selOrigItem && selOrigItem.area) || areaSelect.options[areaSelect.selectedIndex].text;
     const [{ data: todosLosLotes }, mapaEstatus] = await Promise.all([
       _client
         .from('v_inventory_by_location')
-        .select('lot_number, location, container_code, container_id, quantity')
+        .select('lot_number, location, container_code, container_id, quantity, created_at')
         .eq('part_id', selPartId)
         .eq('area', areaText)
-        .gt('quantity', 0)
-        .order('created_at', { ascending: true }),
+        .gt('quantity', 0),
       obtenerMapaEstatusParte(selPartId, partSearch.value.trim())
     ]);
 
-    if (todosLosLotes && todosLosLotes.length > 0 && mode === 'SALIDA') {
-      // Filtrar solo lotes HÁBILES (excluir CALIDAD y RETRABAJO)
-      const lotesHabiles = todosLosLotes.filter(l => {
+    const lista = ordenarFIFO(todosLosLotes);
+    if (lista.length > 0) {
+      // El lote que se va a sacar no puede estar en cuarentena / retrabajo
+      const stSel = consultarEstatusItem({
+        location: (selOrigItem && selOrigItem.location) || originInput.value,
+        container_code: (selOrigItem && selOrigItem.container_code) || null,
+        container_id: selOrigContId,
+        lot_number: loteFormateado
+      }, mapaEstatus).status;
+      if (stSel === 'CALIDAD' || stSel === 'RETRABAJO') {
+        return alert(`🚫 CANDADO DE CALIDAD:\nEste lote tiene estatus "${stSel}". No se permite SALIDA hasta que Calidad lo libere a DISPONIBLE en la Torre de Control FIFO.`);
+      }
+
+      // Solo lotes HÁBILES participan en el FIFO
+      const lotesHabiles = lista.filter(l => {
         const st = consultarEstatusItem(l, mapaEstatus).status;
         return st !== 'CALIDAD' && st !== 'RETRABAJO';
       });
 
       if (lotesHabiles.length === 0) {
-        alert(`🚫 BLOQUEO DE CALIDAD:\nTodos los lotes disponibles en ${areaText} están en CUARENTENA o RETRABAJO. Deben liberarse primero en la Torre de Control FIFO.`);
-        return;
+        return alert(`🚫 BLOQUEO DE CALIDAD:\nTodos los lotes disponibles en ${areaText} están en CUARENTENA o RETRABAJO. Deben liberarse primero en la Torre de Control FIFO.`);
       }
 
-      const loteMasViejoGlobal = lotesHabiles[0].lot_number;
+      const loteMasViejoGlobal = lotesHabiles[0].lot_number || '';
       const ubicacionMasViejoGlobal = lotesHabiles[0].location;
 
-      if (loteFormateado !== loteMasViejoGlobal) {
-        alert(`⚠️ ¡ALERTA CRÍTICA DE CONTROL FIFO! ⚠️\n\n` +
+      if (String(loteFormateado || '') !== String(loteMasViejoGlobal)) {
+        return alert(`⚠️ ¡ALERTA CRÍTICA DE CONTROL FIFO! ⚠️\n\n` +
               `El lote seleccionado NO es el lote HÁBIL más antiguo en ${areaText}.\n\n` +
-              `• Lote Seleccionado: ${loteFormateado}\n` +
+              `• Lote Seleccionado: ${loteFormateado || 'S/L'}\n` +
               `• Lote Requerido (FIFO Hábil): ${loteMasViejoGlobal || 'Sin Lote'}\n` +
               `• Encontrado en: [${ubicacionMasViejoGlobal}]\n\n` +
               `❌ Operación cancelada.`);
-        return;
       }
     }
   }
 
-  guardarMovimiento(currentUserId, q, comm, loteFormateado, ordenFolio);
+  bloquearGuardado(true);
+  try { await guardarMovimiento(currentUserId, q, comm, loteFormateado, ordenFolio); }
+  catch (e) { alert(mensajeErrorMovimiento(e)); }
+  finally { bloquearGuardado(false); }
+}
+
+// El estatus de calidad (CALIDAD / RETRABAJO / ASIGNADO) vive en marcas por ubicación+carro+lote.
+// Si el material se reubica, el estatus debe viajar con él (si no, la cuarentena se "borra" al moverlo).
+async function propagarEstatusTransferencia(userId, movs) {
+  try {
+    const cache = {};
+    const filas = [];
+    const codeLoc = id => (locations.find(l => l.id === id) || {}).location_code || '';
+    const codeCont = id => (containers.find(c => c.id === id) || {}).location_code || '';
+
+    for (const it of movs) {
+      if (!cache[it.part_id]) cache[it.part_id] = await obtenerMapaEstatusParte(it.part_id, it.part_number);
+      const st = consultarEstatusItem(
+        { location: codeLoc(it.fromLocId), container_code: codeCont(it.fromContId), lot_number: it.lot },
+        cache[it.part_id]
+      );
+      if (!st || st.status === 'DISPONIBLE') continue;
+
+      const marca = (status, locId, contId, oe, nota) => ({
+        part_id: it.part_id,
+        area: it.area || 'N/A',
+        quantity: 0,
+        from_location_id: locId, to_location_id: locId,
+        from_container_id: contId || null, to_container_id: contId || null,
+        movement_type: 'AJUSTE',
+        comment: `[KRAEM_STATUS:${status}|NP:${it.part_number || ''}|LOC:${(codeLoc(locId) || 'SIN UBICACION').toUpperCase()}|CONT:${(codeCont(contId) || 'SIN CONTENEDOR').toUpperCase()}|OE:${oe || ''}|CLI:] ${nota}`,
+        user_id: userId,
+        lot_number: it.lot || null
+      });
+
+      filas.push(marca(st.status, it.toLocId, it.toContId, st.oe, 'Estatus trasladado por reubicación'));
+      if (it.todo) filas.push(marca('DISPONIBLE', it.fromLocId, it.fromContId, '', 'Estatus liberado en origen por reubicación'));
+    }
+    if (filas.length) {
+      const { error } = await _client.from('inventory_movements').insert(filas);
+      if (error) console.warn('No se pudo trasladar el estatus de calidad:', error.message);
+    }
+  } catch (e) {
+    console.warn('propagarEstatusTransferencia:', e);
+  }
 }
 
 async function guardarMovimientoMasivo(userId, comm, registrosStock, tipoMasivo, ordenFolio) {
-  let rows = [];
-  const areaOrigText = areaSelect.options[areaSelect.selectedIndex].text;
-  const areaDestText = areaDestSelect.options[areaDestSelect.selectedIndex].text;
-  const containerDestId = selDestContId || (tipoMasivo === 'CARRITO' ? selOrigContId : null);
-  
+  const rows = [];
+  const areaDestText = (areaDestSelect.options[areaDestSelect.selectedIndex] || {}).text || '';
+  const areaDestId = parseInt(areaDestSelect.value) || null;
+  const etiqueta = tipoMasivo === 'CARRITO' ? '[MASIVO CARRITO]' : '[MASIVO UBICACIÓN]';
+  const paraEstatus = [];
+
   registrosStock.forEach((item, idx) => {
     const groupId = `TR-${Date.now()}-${idx}`;
+    // Si no se eligió carrito destino, cada pieza conserva el carrito en el que ya viajaba
+    const containerDestId = selDestContId || item.container_id || null;
     const base = {
       part_id: item.part_id,
-      comment: tipoMasivo === 'CARRITO' ? `[MASIVO CARRITO] ${comm}` : `[MASIVO UBICACIÓN] ${comm}`,
+      comment: `${etiqueta} ${comm}`,
       user_id: userId,
-      lot_number: item.lot_number || '',
+      lot_number: item.lot_number || null,
       transfer_group_id: groupId,
-      orden_produccion_folio: ordenFolio || null,
-      created_at: new Date().toISOString()
+      orden_produccion_folio: ordenFolio || null
     };
-    
+
     rows.push({
       ...base,
-      area: item.area || areaOrigText,
+      area: item.area || '',
+      area_id: areaIdPorNombre(item.area),
       quantity: -item.quantity,
       from_location_id: item.location_id,
-      from_container_id: item.container_id || null, 
+      from_container_id: item.container_id || null,
       to_location_id: null,
       to_container_id: null,
       movement_type: 'TRANSFERENCIA'
     });
-    
+
     rows.push({
       ...base,
       area: areaDestText,
-      area_id: parseInt(areaDestSelect?.value) || null,
+      area_id: areaDestId,
       quantity: item.quantity,
       from_location_id: null,
       from_container_id: null,
       to_location_id: selDestId,
-      to_container_id: containerDestId, 
+      to_container_id: containerDestId,
       movement_type: 'TRANSFERENCIA'
     });
+
+    paraEstatus.push({
+      part_id: item.part_id, part_number: item.part_number, lot: item.lot_number || null,
+      fromLocId: item.location_id, fromContId: item.container_id || null,
+      toLocId: selDestId, toContId: containerDestId, area: areaDestText, todo: true
+    });
   });
-  
+
   const { error } = await _client.from('inventory_movements').insert(rows);
-  if(error) {
-    alert("Error al procesar movimiento masivo: " + error.message);
+  if (error) {
+    alert(mensajeErrorMovimiento(error));
   } else {
+    await propagarEstatusTransferencia(userId, paraEstatus);
     alert(`¡Éxito! Se movieron en bloque ${registrosStock.length} ítems correctamente.`);
     location.reload();
   }
 }
 
 async function guardarMovimiento(userId, q, comm, loteEspecifico, ordenFolio) {
-  const areaOrigText = areaSelect.options[areaSelect.selectedIndex].text;
-  const areaDestText = areaDestSelect.options[areaDestSelect.selectedIndex]?.text || areaOrigText;
-  const areaOrigId = parseInt(areaSelect.value) || null;
+  const usaDest = usaAreaDestino();
+  const areaOrigText = (selOrigItem && selOrigItem.area) || (areaSelect.options[areaSelect.selectedIndex] || {}).text || '';
+  const areaOrigId = areaIdPorNombre(areaOrigText) || parseInt(areaSelect.value) || null;
+  const areaDestText = (areaDestSelect.options[areaDestSelect.selectedIndex] || {}).text || areaOrigText;
   const areaDestId = parseInt(areaDestSelect.value) || areaOrigId;
   const containerOrigId = selOrigContId || null;
   const containerDestId = selDestContId || null;
   const esParcial = document.getElementById('chkParcial').checked;
+  const lotValue = loteEspecifico ? loteEspecifico : null;
 
-  const commFinal = (mode === 'ENTRADA' && areaOrigText !== areaDestText)
-    ? `[ORIGEN: ${areaOrigText}] ${comm}`
-    : comm;
+  // En ENTRADA no hay origen; la procedencia (opcional) solo queda como nota de trazabilidad
+  let commFinal = comm;
+  if (mode === 'ENTRADA') {
+    const proc = document.getElementById('procedenciaSelect').value;
+    if (proc) commFinal = `[PROCEDENCIA: ${proc}] ${comm}`;
+  }
 
-  const base = { 
-    part_id: selPartId, 
-    area: (mode === 'ENTRADA') ? areaDestText : areaOrigText, 
-    area_id: (mode === 'ENTRADA') ? areaDestId : areaOrigId,
-    comment: commFinal, 
-    user_id: userId, 
-    lot_number: loteEspecifico,
+  const base = {
+    part_id: selPartId,
+    area: usaDest ? areaDestText : areaOrigText,
+    area_id: usaDest ? areaDestId : areaOrigId,
+    comment: commFinal,
+    user_id: userId,
+    lot_number: lotValue,
     es_parcial: esParcial,
     orden_produccion_folio: ordenFolio || null,
-    orden_embarque_folio: ordenFolio || null,
-    created_at: new Date().toISOString()
+    orden_embarque_folio: ordenFolio || null
   };
-  
+
   let rows = [];
-  
-  if(mode === 'ENTRADA' || (mode === 'AJUSTE' && ajusteTipo.value === 'POS')) {
+
+  if (mode === 'ENTRADA' || (mode === 'AJUSTE' && ajusteTipo.value === 'POS')) {
     rows.push({ ...base, quantity: q, to_location_id: selDestId, to_container_id: containerDestId, movement_type: mode });
   }
-  else if(mode === 'SALIDA' || (mode === 'AJUSTE' && ajusteTipo.value === 'NEG')) {
+  else if (mode === 'SALIDA' || (mode === 'AJUSTE' && ajusteTipo.value === 'NEG')) {
     rows.push({ ...base, quantity: -q, from_location_id: selOrigId, from_container_id: containerOrigId, movement_type: mode });
   }
-  else if(mode === 'TRANSFERENCIA') {
+  else if (mode === 'TRANSFERENCIA') {
     const groupId = `TR-${Date.now()}`;
     rows.push({ ...base, transfer_group_id: groupId, area: areaOrigText, area_id: areaOrigId, quantity: -q, from_location_id: selOrigId, from_container_id: containerOrigId, movement_type: 'TRANSFERENCIA' });
     rows.push({ ...base, transfer_group_id: groupId, area: areaDestText, area_id: areaDestId, quantity: q, to_location_id: selDestId, to_container_id: containerDestId, movement_type: 'TRANSFERENCIA' });
   }
-  
-  const {error} = await _client.from('inventory_movements').insert(rows);
-  if(error) alert(error.message); else { alert("✅ Movimiento guardado con éxito"); location.reload(); }
-}
 
+  const { error } = await _client.from('inventory_movements').insert(rows);
+  if (error) { alert(mensajeErrorMovimiento(error)); return; }
+
+  if (mode === 'TRANSFERENCIA') {
+    await propagarEstatusTransferencia(userId, [{
+      part_id: selPartId, part_number: partSearch.value.trim(), lot: lotValue,
+      fromLocId: selOrigId, fromContId: containerOrigId,
+      toLocId: selDestId, toContId: containerDestId, area: areaDestText,
+      todo: !!(selOrigItem && Number(selOrigItem.quantity) === q)
+    }]);
+  }
+
+  alert("✅ Movimiento guardado con éxito");
+  location.reload();
+}
 // =========================================================================
 // 7. REVERSAS OFICIALES ATÓMICAS (CANDADOS 1, 2 Y 3)
 // =========================================================================
@@ -1454,7 +1697,8 @@ async function cargarMovimientosRecientes() {
   const { data, error } = await _client.from('v_history_master')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(35);
+    .order('id', { ascending: false })
+    .limit(50);
 
   if (error || !data) {
     tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--danger); padding:20px;">Error al cargar historial.</td></tr>`;
@@ -1464,20 +1708,24 @@ async function cargarMovimientosRecientes() {
   tbody.innerHTML = data.map(m => {
     const esReversado = m.reversado === true;
     const esReversaMisma = m.movement_type === 'REVERSA';
+    const esMarcaEstatus = Number(m.quantity) === 0;
 
     let botonAccion = '';
     if (esReversado) {
       botonAccion = `<span class="badge-reversado">REVERSADO</span>`;
+    } else if (esMarcaEstatus) {
+      botonAccion = `<span style="font-size:10px; color:var(--text-secondary); font-weight:bold;">ESTATUS</span>`;
     } else if (esReversaMisma) {
       botonAccion = `<span style="font-size:10px; color:var(--text-secondary); font-weight:bold;">REVERSA</span>`;
     } else {
       const ubicTxt = m.to_container || m.from_container || m.to_location || m.from_location || 'Piso';
-      botonAccion = `<button class="btn-reversar" onclick="abrirModalReversa('${m.id}', '${m.part_number}', '${m.quantity}', '${m.movement_type}', '${ubicTxt}')"><i class="fas fa-undo"></i> Reversar</button>`;
+      const escArg = s => String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      botonAccion = `<button class="btn-reversar" onclick="abrirModalReversa('${escArg(m.id)}', '${escArg(m.part_number)}', '${escArg(m.quantity)}', '${escArg(m.movement_type)}', '${escArg(ubicTxt)}')"><i class="fas fa-undo"></i> Reversar</button>`;
     }
 
     let horaSegura = '-';
     if (m.created_at) {
-      const dt = new Date(m.created_at);
+      const dt = parseFechaDB(m.created_at);
       if (!isNaN(dt.getTime()) && dt.getFullYear() >= 2020) {
         horaSegura = dt.toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit'}) + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
       }
@@ -1588,13 +1836,13 @@ async function onScanSuccess(decodedText) {
       const tokens = cleanCode.split('|');
       const numParte = tokens[0].trim();
       const cantidad = tokens[1].trim();
-      const parteEncontrada = parts.find(p => p.part_number === numParte);
+      const parteEncontrada = parts.find(p => String(p.part_number || '').toUpperCase() === numParte);
       if (parteEncontrada) {
         await alSeleccionarParte(parteEncontrada);
         qty.value = cantidad;
       } else { alert(`Parte "${numParte}" no encontrada.`); }
     } else {
-      const parteEncontrada = parts.find(p => p.part_number === cleanCode);
+      const parteEncontrada = parts.find(p => String(p.part_number || '').toUpperCase() === cleanCode);
       if (parteEncontrada) {
         await alSeleccionarParte(parteEncontrada);
       } else { alert(`Número de parte "${cleanCode}" no encontrado.`); }
@@ -1602,14 +1850,14 @@ async function onScanSuccess(decodedText) {
   } 
   else if (qrTargetField === 'ORIGEN') {
     if (!selPartId && transferMode === 'INDIVIDUAL') return alert("❌ Primero selecciona un Número de Parte.");
-    const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
+    const encontrada = locations.find(l => String(l.qr_code || '').toUpperCase() === cleanCode || String(l.location_code || '').toUpperCase() === cleanCode);
     if (!encontrada) return alert(`❌ Ubicación Origen "${cleanCode}" no existe.`);
     originInput.value = encontrada.location_code;
     selOrigId = encontrada.id;
     abrirModalStock(); 
   }
   else if (qrTargetField === 'CONT_ORIGEN') {
-    const encontrada = containers.find(c => c.qr_code === cleanCode || c.location_code === cleanCode);
+    const encontrada = containers.find(c => String(c.qr_code || '').toUpperCase() === cleanCode || String(c.location_code || '').toUpperCase() === cleanCode);
     if (!encontrada) return alert(`❌ Contenedor "${cleanCode}" no existe.`);
     if (encontrada.status_operativo === 'EN_REPARACION') return alert(`⚠️ El carro ${encontrada.location_code} está en REPARACIÓN.`);
     contOriginInput.value = encontrada.location_code;
@@ -1617,16 +1865,18 @@ async function onScanSuccess(decodedText) {
     abrirModalStock();
   }
   else if (qrTargetField === 'DESTINO') {
-    const encontrada = locations.find(l => l.qr_code === cleanCode || l.location_code === cleanCode);
+    const encontrada = locations.find(l => String(l.qr_code || '').toUpperCase() === cleanCode || String(l.location_code || '').toUpperCase() === cleanCode);
     if (encontrada) {
-      if (mode === 'TRANSFERENCIA' || mode === 'ENTRADA') areaDestSelect.value = encontrada.area_id;
-      else areaSelect.value = encontrada.area_id;
+      if (encontrada.area_id) {
+        if (usaAreaDestino()) areaDestSelect.value = encontrada.area_id;
+        else areaSelect.value = encontrada.area_id;
+      }
       destInput.value = encontrada.location_code;
       selDestId = encontrada.id;
     } else { alert(`Ubicación "${cleanCode}" no encontrada.`); }
   }
   else if (qrTargetField === 'CONT_DESTINO') {
-    const encontrada = containers.find(c => c.qr_code === cleanCode || c.location_code === cleanCode);
+    const encontrada = containers.find(c => String(c.qr_code || '').toUpperCase() === cleanCode || String(c.location_code || '').toUpperCase() === cleanCode);
     if (encontrada) {
       if (encontrada.status_operativo === 'EN_REPARACION') return alert(`⚠️ El carro ${encontrada.location_code} está en REPARACIÓN.`);
       destContInput.value = encontrada.location_code;

@@ -384,13 +384,23 @@ const i18n = {
 // =========================================================================
 // 1. FORMATEADOR INTELIGENTE DE FECHA (ELIMINA EL BUG DEL AÑO 1969)
 // =========================================================================
+function parseFechaDB(v) {
+  if (!v) return new Date(NaN);
+  let s = String(v).trim().replace(' ', 'T');
+  if (!/[zZ]$|[+-]\d{2}(:?\d{2})?$/.test(s)) s += 'Z';
+  return new Date(s);
+}
+function fechaLocalISO(dt) {
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
 function obtenerFechaSegura(r) {
   const t = i18n[currentLang] || i18n.es;
-  // 1. Verificar si created_at existe y es posterior al año 2000 (evita new Date(null) -> 31/12/1969)
+  // 1. Verificar si created_at existe y es posterior al año 2020 (interpretado como UTC cuando viene sin zona)
   if (r.created_at) {
-    const dt = new Date(r.created_at);
+    const dt = parseFechaDB(r.created_at);
     if (!isNaN(dt.getTime()) && dt.getFullYear() >= 2020) {
-      const iso = dt.toISOString().split('T')[0];
+      const iso = fechaLocalISO(dt);
       const fechaStr = dt.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
       const horaStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       return {
@@ -429,10 +439,19 @@ async function cargarDatos() {
   const body = document.getElementById('historialBody');
   body.innerHTML = `<tr><td colspan="13" style="text-align:center; padding:30px;"><i class="fas fa-spinner fa-spin"></i> Consultando movimientos...</td></tr>`;
 
-  const { data, error } = await _client
-    .from('v_history_master')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let data = null, error = null;
+  if (window.fetchAllRows) {
+    try {
+      data = await window.fetchAllRows('v_history_master', { client: _client, orderBy: 'id', ascending: false });
+    } catch (e) { error = e; }
+  } else {
+    const res = await _client
+      .from('v_history_master')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
+    data = res.data; error = res.error;
+  }
 
   if (error) {
     console.error(error);
@@ -440,7 +459,7 @@ async function cargarDatos() {
     return;
   }
 
-  datosOriginales = data || [];
+  datosOriginales = (data || []).slice().sort((a, b) => (parseFechaDB(b.created_at) - parseFechaDB(a.created_at)) || (Number(b.id || 0) - Number(a.id || 0)));
   aplicarFiltros();
 }
 
@@ -591,7 +610,7 @@ function aplicarFiltros() {
 function aplicarFechaRapida(modo) {
   document.querySelectorAll('.btn-qdate').forEach(b => b.classList.remove('active'));
   const hoy = new Date();
-  const hoyISO = hoy.toISOString().split('T')[0];
+  const hoyISO = fechaLocalISO(hoy);
 
   if (modo === 'HOY') {
     document.getElementById('btnQHood').classList.add('active');
@@ -599,7 +618,7 @@ function aplicarFechaRapida(modo) {
     document.getElementById('fHasta').value = hoyISO;
   } else if (modo === '7D') {
     document.getElementById('btnQ7d').classList.add('active');
-    const hace7 = new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const hace7 = fechaLocalISO(new Date(hoy.getTime() - 7 * 24 * 60 * 60 * 1000));
     document.getElementById('fDesde').value = hace7;
     document.getElementById('fHasta').value = hoyISO;
   } else if (modo === 'MES') {
@@ -627,6 +646,7 @@ function limpiarFiltros() {
 
 document.querySelectorAll('.filter-panel input, .filter-panel select').forEach(el => {
   el.addEventListener('input', aplicarFiltros);
+  el.addEventListener('change', aplicarFiltros);
 });
 
 // =========================================================================

@@ -583,13 +583,35 @@ function generarKeyEstatus(partNumOrId, locationCode, containerCode, lotNumber) 
   return `${String(partNumOrId).trim().toUpperCase()}||${loc}||${cont}||${lot}`;
 }
 
+function parseFechaDB(v) {
+  if (!v) return new Date(NaN);
+  let s = String(v).trim().replace(' ', 'T');
+  if (!/[zZ]$|[+-]\d{2}(:?\d{2})?$/.test(s)) s += 'Z';
+  return new Date(s);
+}
+function claveFIFO(i) {
+  const lot = String(i.lot_number || '');
+  if (/^20\d{6}$/.test(lot)) return lot;
+  const d = parseFechaDB(i.created_at);
+  if (!isNaN(d.getTime())) return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  return '99999999';
+}
+function ordenarFIFO(lista) {
+  return (lista || []).slice().sort((a, b) => {
+    const ka = claveFIFO(a), kb = claveFIFO(b);
+    if (ka !== kb) return ka < kb ? -1 : 1;
+    return (parseFechaDB(a.created_at) - parseFechaDB(b.created_at)) || 0;
+  });
+}
+
 async function cargarMapaEstatus() {
   mapaEstatus = {};
   const { data: movs } = await _client
     .from('inventory_movements')
-    .select('part_id, lot_number, comment, created_at, status_stock, orden_embarque_folio, cliente_destino')
+    .select('id, part_id, lot_number, comment, created_at, status_stock, orden_embarque_folio, cliente_destino')
     .ilike('comment', '%[KRAEM_STATUS:%')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true });
 
   if (movs) {
     movs.forEach(m => {
@@ -599,7 +621,8 @@ async function cargarMapaEstatus() {
       if (fin === -1) return;
       const partes = m.comment.substring(ini, fin).split('|');
       const motivo = m.comment.substring(fin + 1).trim();
-      const st = m.status_stock || partes[0] || 'DISPONIBLE';
+      // El estatus oficial viaja en la marca [KRAEM_STATUS:XXX]; la columna status_stock siempre trae 'DISPONIBLE' por default
+      const st = String(partes[0] || m.status_stock || 'DISPONIBLE').toUpperCase();
       let loc = '', cont = '', oe = m.orden_embarque_folio || '', cli = m.cliente_destino || '', np = '';
       partes.slice(1).forEach(kv => {
         const idx = kv.indexOf(':');
@@ -758,18 +781,18 @@ async function buscarEstrategiaFIFO(partId, partNumber, partDesc) {
   
   await cargarMapaEstatus();
   ultimoCriterioBuscado = partNumber;
-  const { data: inventario, error } = await _client
+  const { data: invRaw, error } = await _client
     .from('v_inventory_by_location')
     .select('*')
     .eq('part_id', partId)
-    .gt('quantity', 0)
-    .order('lot_number', { ascending: true });
+    .gt('quantity', 0);
 
-  if (error || !inventario || inventario.length === 0) {
+  if (error || !invRaw || invRaw.length === 0) {
     divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--danger); font-weight: 800; background:rgba(239,68,68,0.08); border-radius:12px;">❌ No hay existencias de la parte ${partNumber}.</div>`;
     return;
   }
 
+  const inventario = ordenarFIFO(invRaw);
   const descripcionFinal = partDesc || inventario[0].part_name || 'Sin descripción disponible';
   ultimoInventarioBuscado = inventario;
   
@@ -921,18 +944,18 @@ async function buscarContenidoCarrito(containerId, containerCode) {
   
   await cargarMapaEstatus();
   ultimoCriterioBuscado = containerCode;
-  const { data: inventario, error } = await _client
+  const { data: invRaw, error } = await _client
     .from('v_inventory_by_location')
     .select('*')
     .eq('container_id', containerId)
-    .gt('quantity', 0)
-    .order('lot_number', { ascending: true });
+    .gt('quantity', 0);
 
-  if (error || !inventario || inventario.length === 0) {
+  if (error || !invRaw || invRaw.length === 0) {
     divResultados.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--warning); font-weight: 800; background:rgba(245,158,11,0.08); border-radius:12px;">🛒 El carrito [${containerCode}] está VACÍO actualmente en sistema.</div>`;
     return;
   }
 
+  const inventario = ordenarFIFO(invRaw);
   ultimoInventarioBuscado = inventario;
   divResultados.innerHTML = `
     <div class="results-header">
@@ -999,10 +1022,10 @@ async function cargarInventarioTorre() {
   tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:25px;"><i class="fas fa-spinner fa-spin"></i> Cargando inventario...</td></tr>`;
 
   await cargarMapaEstatus();
-  const [resProy, resLotes] = await Promise.all([
-    _client.from('v_inventory_by_location_proyectos').select('*'),
-    _client.from('v_inventory_by_location').select('*').gt('quantity', 0)
-  ]);
+  const resLotes = window.fetchAllRows
+    ? { data: await window.fetchAllRows('v_inventory_by_location', { client: _client, orderBy: 'part_number' }) }
+    : await _client.from('v_inventory_by_location').select('*').gt('quantity', 0);
+  const resProy = { data: resLotes.data };
 
   const mapaProyecto = {};
   if (resProy.data) {
@@ -1253,6 +1276,7 @@ async function guardarEstatusInventario() {
     comment: tag,
     user_id: currentUser.id,
     lot_number: itemSeleccionadoModal.lot_number || null,
+    status_stock: (estatusElegidoModal === 'ASIGNADO') ? 'DISPONIBLE' : estatusElegidoModal,
     created_at: new Date().toISOString()
   };
 
