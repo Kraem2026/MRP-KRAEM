@@ -1049,37 +1049,316 @@
     /* ==============================================================
        ADAPTACIONES MÓVIL Y TABLET (RESPONSIVE PROFESIONAL)
        ============================================================== */
-    @media (max-width: 1200px) {
+    /* Reglas para Escritorio / PC (mantener diseño completo sin cambios) */
+    @media (min-width: 1025px) {
+      .sidebar-overlay { display: none !important; }
+      .sidebar-close-btn { display: none !important; }
+      .mobile-kpi-banner { display: none !important; }
+      .mobile-modules-hub { display: none !important; }
+      .mobile-toggle-depts-wrap { display: none !important; }
+      #sec-gerencial { display: block !important; }
+    }
+
+    @media (max-width: 1200px) and (min-width: 1025px) {
       .flow-grid {
-        grid-template-columns: repeat(4, 1fr); /* 2 filas de 4 en tablet */
+        grid-template-columns: repeat(4, 1fr); /* 2 filas de 4 en pantallas medianas */
       }
       .flow-card:nth-child(4)::after { display: none; }
     }
 
-    @media (max-width: 768px) {
+    /* Reglas exclusivas para Celular y Tablet (<= 1024px) */
+    @media (max-width: 1024px) {
+      /* 1. Barra Lateral (Sidebar Drawer) táctil con Overlay y Botón Cerrar */
       .sidebar {
-        position: fixed;
-        left: -100%;
-        top: 0;
-        bottom: 0;
+        position: fixed !important;
+        left: -320px !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 290px !important;
+        max-width: 86vw !important;
+        height: 100vh !important;
+        z-index: 2100 !important;
+        box-shadow: none !important;
+        transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
       }
       .sidebar.open {
-        left: 0;
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+        left: 0 !important;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.85) !important;
       }
-      .topbar { padding: 10px 14px; }
+      .sidebar-overlay {
+        display: block !important;
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(3, 7, 18, 0.75) !important;
+        backdrop-filter: blur(5px) !important;
+        -webkit-backdrop-filter: blur(5px) !important;
+        z-index: 2050 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 0.25s ease !important;
+      }
+      .sidebar-overlay.open {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+      .sidebar-close-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        cursor: pointer;
+        font-size: 1.05rem;
+        margin-left: auto;
+        flex-shrink: 0;
+        transition: all 0.15s ease;
+      }
+      .sidebar-close-btn:hover, .sidebar-close-btn:active {
+        background: rgba(239, 68, 68, 0.25);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+      .sidebar-link {
+        padding: 10px 12px;
+        font-size: 0.86rem;
+      }
+
+      /* 2. Topbar adaptada para móvil */
+      .topbar {
+        padding: 0 12px;
+        height: 52px;
+      }
+      .btn-collapse {
+        width: 40px;
+        height: 40px;
+        font-size: 1.15rem;
+      }
+      .topbar-center {
+        display: none !important; /* Quitar barra de búsqueda que satura en móvil */
+      }
+      .user-pill span#userEmailTxt {
+        display: none !important; /* Ocultar texto largo del email en móvil */
+      }
+      .lang-box {
+        display: none !important; /* Idiomas accesibles en sidebar para no desbordar topbar */
+      }
+      .btn-top span {
+        display: none !important; /* Mostrar solo íconos en botones auxiliares */
+      }
+
+      /* 3. Ocultar gráficas de OEE y sección pesada de inicio en móvil/tablet */
+      #sec-gerencial {
+        display: none !important;
+      }
+
+      /* 4. Banner de acceso rápido a KPIs en celular/tablet */
+      .mobile-kpi-banner {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%);
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+        margin-bottom: 8px;
+      }
+      .mobile-kpi-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+      .mobile-kpi-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 11px;
+        background: rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #60a5fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+      }
+      .mobile-kpi-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 2px;
+      }
+      .mobile-kpi-subtitle {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        line-height: 1.3;
+      }
+      .mobile-kpi-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--primary);
+        color: #fff !important;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 9px 13px;
+        border-radius: 9px;
+        flex-shrink: 0;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        transition: transform 0.15s ease;
+      }
+      .mobile-kpi-btn:active {
+        transform: scale(0.96);
+      }
+
+      /* 5. Hub de Botones Generales de Módulos (Muy práctico para celular) */
+      .mobile-modules-hub {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      @media (min-width: 600px) and (max-width: 1024px) {
+        .mobile-modules-hub {
+          grid-template-columns: repeat(2, 1fr) !important;
+        }
+      }
+
+      .mobile-mod-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 13px 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      }
+      .mobile-mod-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .mobile-mod-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .mobile-mod-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        flex-shrink: 0;
+      }
+      .mobile-mod-name {
+        font-size: 0.92rem;
+        font-weight: 800;
+        color: var(--text);
+      }
+      .mobile-mod-badge {
+        font-size: 0.64rem;
+        font-weight: 700;
+        color: var(--text-dim);
+      }
+      .mobile-mod-primary-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border);
+        color: #fff;
+        text-decoration: none;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+      }
+      .mobile-mod-primary-btn:hover, .mobile-mod-primary-btn:active {
+        background: var(--primary);
+        border-color: var(--primary);
+      }
+      .mobile-mod-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .mobile-mod-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-muted);
+        font-size: 0.73rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.15s ease;
+      }
+      .mobile-mod-chip:active {
+        background: rgba(59, 130, 246, 0.18);
+        color: #93c5fd;
+        border-color: rgba(59, 130, 246, 0.4);
+      }
+
+      /* 6. Botón para colapsar / expandir submódulos detallados en móvil */
+      .mobile-toggle-depts-wrap {
+        display: flex !important;
+        justify-content: center;
+        margin: 10px 0 16px;
+      }
+      .btn-toggle-depts-mobile {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .btn-toggle-depts-mobile:active {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+        border-color: var(--primary);
+      }
+      #detailedDeptsContainer.mobile-collapsed {
+        display: none !important;
+      }
+
+      /* 7. Ajustes de cuerpo y flujo en móvil */
       .dashboard-body { padding: 12px; gap: 14px; }
       .flow-grid {
-        grid-template-columns: repeat(2, 1fr); /* 4 filas de 2 en móvil */
+        grid-template-columns: repeat(2, 1fr) !important;
       }
       .flow-card::after { display: none !important; }
-      .flow-card { min-height: 85px; }
-      .kpi-cards-grid { grid-template-columns: 1fr 1fr; }
-      .chart-container-drawer { height: 170px; }
+      .flow-card { min-height: 75px; }
     }
 
     @media (max-width: 480px) {
-      .kpi-cards-grid { grid-template-columns: 1fr; }
+      .flow-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .mobile-kpi-banner { flex-direction: column; align-items: stretch; text-align: left; }
+      .mobile-kpi-btn { justify-content: center; }
     }
     /* Tabular numbers for enterprise clarity */
     .kpi-number, .dm-val, .flow-step-num, .font-mono, td {
@@ -1416,6 +1695,9 @@
           </select>
         </div>
       </div>
+      <button class="sidebar-close-btn" id="btnSidebarCloseMobile" onclick="closeSidebarMobile()" aria-label="Cerrar menú lateral" title="Cerrar Menú">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
 
     <div class="sidebar-search">
@@ -1501,6 +1783,9 @@
       </a>
     </div>
   </aside>
+
+  <!-- Overlay oscuro táctil para cerrar la barra en celular/tablet -->
+  <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebarMobile()"></div>
 
   <!-- ==============================================================
        MAIN WORKSPACE
@@ -1651,6 +1936,214 @@
         </div>
       </section>
 
+      <!-- ==============================================================
+           EXCLUSIVO MÓVIL Y TABLET: BANNER DE ACCESO A KPIS Y HUB GENERAL
+           ============================================================== -->
+      <!-- Banner directo a KPIs (evita gráficas pesadas de OEE de inicio en celular) -->
+      <div class="mobile-kpi-banner" id="mobileKpiBanner">
+        <div class="mobile-kpi-content">
+          <div class="mobile-kpi-icon"><i class="fas fa-chart-pie"></i></div>
+          <div class="mobile-kpi-text">
+            <div class="mobile-kpi-title">Métricas de Planta & OEE</div>
+            <div class="mobile-kpi-subtitle">Monitoreo de eficiencia general, cumplimiento de plan e inventarios.</div>
+          </div>
+        </div>
+        <a href="dashboard_kpi.html" class="mobile-kpi-btn">
+          <span>Ver KPIs</span>
+          <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+
+      <!-- Hub Operativo con Botones Generales para Celular y Tablet -->
+      <div class="mobile-modules-hub" id="mobileModulesHub">
+
+        <!-- 1. PRODUCCIÓN MES -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(239,68,68,0.15); color:#f87171;">
+                <i class="fas fa-industry"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Producción MES</div>
+                <div class="mobile-mod-badge">Inyección & Piso</div>
+              </div>
+            </div>
+            <a href="produccion_captura.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-play"></i> Captura
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="planeacion_aps_tablero.html" class="mobile-mod-chip"><i class="fas fa-calendar-week"></i> Tablero APS</a>
+            <a href="produccion_inspeccion_captura.html" class="mobile-mod-chip"><i class="fas fa-clipboard-check"></i> Inspección</a>
+            <a href="planeacion_montaje_moldes.html" class="mobile-mod-chip"><i class="fas fa-wrench"></i> Montaje SMED</a>
+          </div>
+        </div>
+
+        <!-- 2. ALMACÉN & WMS -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(16,185,129,0.15); color:#34d399;">
+                <i class="fas fa-warehouse"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Almacén & WMS</div>
+                <div class="mobile-mod-badge">Control de Stock & Lotes</div>
+              </div>
+            </div>
+            <a href="wms_operaciones.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-boxes-stacked"></i> Estación WMS
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="consulta_fifo.html" class="mobile-mod-chip"><i class="fas fa-truck-fast"></i> FIFO & Lotes</a>
+            <a href="compras_recibo.html" class="mobile-mod-chip"><i class="fas fa-truck-ramp-box"></i> Recibo Mercancía</a>
+            <a href="conteos_menu.html" class="mobile-mod-chip"><i class="fas fa-barcode"></i> Conteos Cíclicos</a>
+            <a href="inventarios.html" class="mobile-mod-chip"><i class="fas fa-clipboard-list"></i> Maestro Inv.</a>
+          </div>
+        </div>
+
+        <!-- 3. PLANEACIÓN & MRP -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(59,130,246,0.15); color:#60a5fa;">
+                <i class="fas fa-calendar-alt"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Planeación & MRP</div>
+                <div class="mobile-mod-badge">Demanda & Programación</div>
+              </div>
+            </div>
+            <a href="planeacion_hub.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-compass"></i> Cockpit
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="planeacion_aps_tablero.html" class="mobile-mod-chip"><i class="fas fa-chart-gantt"></i> Programación Prensas</a>
+            <a href="planeacion_mrp_forecast.html" class="mobile-mod-chip"><i class="fas fa-chart-line"></i> Explosión Resinas</a>
+            <a href="planeacion_produccion.html" class="mobile-mod-chip"><i class="fas fa-list-check"></i> Plan Maestro</a>
+          </div>
+        </div>
+
+        <!-- 4. INGENIERÍA & MOLDES -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(99,102,241,0.15); color:#818cf8;">
+                <i class="fas fa-drafting-compass"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Ingeniería & BOM</div>
+                <div class="mobile-mod-badge">Estructura & Herramentales</div>
+              </div>
+            </div>
+            <a href="ingenieria_catalogos.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-book"></i> Catálogos
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="ingenieria_bom.html" class="mobile-mod-chip"><i class="fas fa-sitemap"></i> BOM Estructura</a>
+            <a href="catalogo_moldes.html" class="mobile-mod-chip"><i class="fas fa-shapes"></i> Catálogo Moldes</a>
+            <a href="admin_partes.html" class="mobile-mod-chip"><i class="fas fa-list-ol"></i> Catálogo Partes</a>
+          </div>
+        </div>
+
+        <!-- 5. COMPRAS & ABASTO -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24;">
+                <i class="fas fa-cart-shopping"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Compras & Abasto</div>
+                <div class="mobile-mod-badge">OCs & Proveedores</div>
+              </div>
+            </div>
+            <a href="compras_ordenes.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-file-invoice-dollar"></i> Órdenes Compra
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="compras_recibo.html" class="mobile-mod-chip"><i class="fas fa-truck-ramp-box"></i> Recibo WMS</a>
+            <a href="catalogo_proveedores.html" class="mobile-mod-chip"><i class="fas fa-handshake"></i> Proveedores</a>
+          </div>
+        </div>
+
+        <!-- 6. CALIDAD & SGC -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(16,185,129,0.15); color:#10b981;">
+                <i class="fas fa-certificate"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Calidad & SGC</div>
+                <div class="mobile-mod-badge">ISO 9001 & Defectos</div>
+              </div>
+            </div>
+            <a href="calidad_control.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-shield-halved"></i> Control
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="inspeccion_captura.html" class="mobile-mod-chip"><i class="fas fa-microscope"></i> Auditoría Piso</a>
+            <a href="admin_defectos.html" class="mobile-mod-chip"><i class="fas fa-triangle-exclamation"></i> Defectos</a>
+            <a href="control_documental_iso.html" class="mobile-mod-chip"><i class="fas fa-file-shield"></i> Documental ISO</a>
+          </div>
+        </div>
+
+        <!-- 7. RECURSOS HUMANOS & 5S -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(236,72,153,0.15); color:#f472b6;">
+                <i class="fas fa-users"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Capital Humano & 5S</div>
+                <div class="mobile-mod-badge">Asistencia & Personal</div>
+              </div>
+            </div>
+            <a href="admin_rh.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-id-card"></i> Portal RH
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="rh_asistencia.html" class="mobile-mod-chip"><i class="fas fa-user-clock"></i> Asistencia</a>
+            <a href="rh_turnos.html" class="mobile-mod-chip"><i class="fas fa-calendar-day"></i> Turnos</a>
+            <a href="rh_evaluacion_5s.html" class="mobile-mod-chip"><i class="fas fa-broom"></i> Evaluaciones 5S</a>
+            <a href="rh_matriz_habilidades.html" class="mobile-mod-chip"><i class="fas fa-graduation-cap"></i> Habilidades</a>
+          </div>
+        </div>
+
+        <!-- 8. CONFIGURACIÓN & SEDES -->
+        <div class="mobile-mod-card">
+          <div class="mobile-mod-header">
+            <div class="mobile-mod-title-wrap">
+              <div class="mobile-mod-icon" style="background:rgba(148,163,184,0.15); color:#cbd5e1;">
+                <i class="fas fa-sliders-h"></i>
+              </div>
+              <div>
+                <div class="mobile-mod-name">Configuración & Sedes</div>
+                <div class="mobile-mod-badge">Ajustes & Maestros</div>
+              </div>
+            </div>
+            <a href="configuracion_sistema.html" class="mobile-mod-primary-btn">
+              <i class="fas fa-gear"></i> Ajustes
+            </a>
+          </div>
+          <div class="mobile-mod-chips">
+            <a href="catalogo_plantas.html" class="mobile-mod-chip"><i class="fas fa-industry"></i> Plantas</a>
+            <a href="admin_maquinas.html" class="mobile-mod-chip"><i class="fas fa-server"></i> Prensas</a>
+            <a href="catalogo_clientes.html" class="mobile-mod-chip"><i class="fas fa-building"></i> Clientes</a>
+          </div>
+        </div>
+
+      </div>
+
       <!-- 2. MÉTRICAS GERENCIALES & KPIS (CON LA GRÁFICA DE RENDIMIENTO INTEGRADA DENTRO) -->
       <section class="kpi-section-container" id="sec-gerencial">
         <div class="kpi-section-header">
@@ -1792,8 +2285,17 @@
         </div>
       </section>
 
+      <!-- Botón para expandir catálogo completo de submódulos en celular/tablet -->
+      <div class="mobile-toggle-depts-wrap">
+        <button type="button" class="btn-toggle-depts-mobile" onclick="toggleDeptsMobileView()">
+          <i class="fas fa-layer-group"></i>
+          <span id="txtDeptsMobile">Ver Catálogo Completo de Submódulos (50+)</span>
+          <i class="fas fa-chevron-down" id="arrowDeptsMobile"></i>
+        </button>
+      </div>
+
       <!-- 3. MÓDULOS DEPARTAMENTALES DE CLASE MUNDIAL (ORGANIZADOS POR LOS 5 PILARES ERP) -->
-      <section class="depts-grid">
+      <section class="depts-grid mobile-collapsed" id="detailedDeptsContainer">
 
         <!-- ==================== PILAR 1: OPERACIONES & MANUFACTURA ==================== -->
         <div class="pillar-banner" id="banner-pilar1">
@@ -2425,19 +2927,61 @@ let sparkIraInstance = null;
 let sparkWoInstance = null;
 let trendDrawerOpen = false;
 
+function closeSidebarMobile() {
+  const sidebar = document.getElementById('appSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function openSidebarMobile() {
+  const sidebar = document.getElementById('appSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.add('open');
+  if (overlay) overlay.classList.add('open');
+}
+
+function toggleDeptsMobileView() {
+  const container = document.getElementById('detailedDeptsContainer');
+  const txt = document.getElementById('txtDeptsMobile');
+  const icon = document.getElementById('arrowDeptsMobile');
+  if (!container) return;
+  const isNowCollapsed = container.classList.toggle('mobile-collapsed');
+  if (txt) {
+    txt.textContent = isNowCollapsed ? 'Ver Catálogo Completo de Submódulos (50+)' : 'Ocultar Submódulos Detallados';
+  }
+  if (icon) {
+    icon.className = isNowCollapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+  }
+}
+
 function irA(secId) {
+  closeSidebarMobile();
+  // En celular/tablet, el acceso a Métricas & Gerencia abre directamente la pantalla dedicada de KPIs
+  if (window.innerWidth <= 1024 && (secId === 'sec-gerencial' || secId === 'kpi')) {
+    openModuleInShell('dashboard_kpi.html', 'Dashboard de KPIs & OEE');
+    return;
+  }
   const frameContainer = document.getElementById('workspaceFrameContainer');
   if (frameContainer && frameContainer.style.display !== 'none') {
     navGoHome();
   }
   setTimeout(() => {
+    const deptsContainer = document.getElementById('detailedDeptsContainer');
+    if (deptsContainer && deptsContainer.classList.contains('mobile-collapsed')) {
+      deptsContainer.classList.remove('mobile-collapsed');
+      const txt = document.getElementById('txtDeptsMobile');
+      if (txt) txt.textContent = 'Ocultar Submódulos Detallados';
+      const icon = document.getElementById('arrowDeptsMobile');
+      if (icon) icon.className = 'fas fa-chevron-up';
+    }
     const el = document.getElementById(secId);
     if (!el) return;
     if (el.classList.contains('collapsed')) {
       el.classList.remove('collapsed');
     }
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 60);
+  }, 80);
 }
 
 function toggleSidebarMenu() {
@@ -2472,6 +3016,10 @@ function toggleTrendDrawer() {
 
 function filtrarModulos(query) {
   const q = (query || '').toLowerCase().trim();
+  const deptsContainer = document.getElementById('detailedDeptsContainer');
+  if (q && deptsContainer && deptsContainer.classList.contains('mobile-collapsed')) {
+    deptsContainer.classList.remove('mobile-collapsed');
+  }
   document.querySelectorAll('.tile').forEach(tile => {
     const text = tile.textContent.toLowerCase();
     tile.style.display = (!q || text.includes(q)) ? 'flex' : 'none';
@@ -2517,6 +3065,7 @@ function toggleKpiPreview() {
    RENDER DE GRÁFICAS CHART.JS (ESTILO SAAS IMAGEN 1)
    ============================================================== */
 function crearSparkline(canvasId, dataPoints, color) {
+  if (window.innerWidth <= 1024) return null; // No renderizar en móvil/tablet
   const ctx = document.getElementById(canvasId);
   if (!ctx) return null;
   return new Chart(ctx, {
@@ -2546,6 +3095,7 @@ function crearSparkline(canvasId, dataPoints, color) {
 }
 
 function renderGraficaPrincipal(dias, realData, planData) {
+  if (window.innerWidth <= 1024) return; // No renderizar en móvil/tablet
   const ctx = document.getElementById('chartTendenciaPrincipal');
   if (!ctx) return;
   if (chartMainInstance) chartMainInstance.destroy();
@@ -2753,11 +3303,14 @@ function toggleInspectorDrawer() {
    APP SHELL MASTER NAVIGATION & EMBEDDED WORKSPACE CONTROLLER
    ============================================================== */
 function toggleSidebarCollapse() {
-  const sidebar = document.getElementById('appSidebar') || document.getElementById('sidebar');
+  const sidebar = document.getElementById('appSidebar');
   const overlay = document.getElementById('sidebarOverlay');
-  if (window.innerWidth <= 768) {
-    if (sidebar) sidebar.classList.toggle('open');
-    if (overlay) overlay.classList.toggle('open');
+  if (window.innerWidth <= 1024) {
+    if (sidebar && sidebar.classList.contains('open')) {
+      closeSidebarMobile();
+    } else {
+      openSidebarMobile();
+    }
   } else {
     if (sidebar) sidebar.classList.toggle('collapsed');
   }
@@ -2859,11 +3412,8 @@ function openModuleInShell(url, title, group) {
   }
 
   // Cerrar sidebar en pantallas táctiles / móviles
-  if (window.innerWidth <= 768) {
-    const sb = document.getElementById('sidebar');
-    const ov = document.getElementById('sidebarOverlay');
-    if (sb) sb.classList.remove('open');
-    if (ov) ov.classList.remove('open');
+  if (window.innerWidth <= 1024) {
+    closeSidebarMobile();
   }
 }
 
