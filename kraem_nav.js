@@ -455,8 +455,13 @@
         }
 
         // Vincular TODOS los botones de volver internos para que SIEMPRE funcionen
+        // (sin interceptar botones que usan .btn-nav/.btn-back para pasos internos o cerrar modales)
         var backBtns = document.querySelectorAll('.btn-back, .back-btn, .btn-nav, button.back, [data-action="back"]');
         backBtns.forEach(function (btn) {
+          var oc = (btn.getAttribute('onclick') || '').trim();
+          var esVolverReal = !oc || /KraemNav\.back|navShellBack|history\.back|goBack|location\.href|\.html/i.test(oc);
+          if (!esVolverReal) return;
+
           btn.style.cursor = 'pointer';
           btn.addEventListener('click', function (e) {
             e.preventDefault();

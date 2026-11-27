@@ -48,7 +48,7 @@
             border-bottom:2px solid var(--bg);
             padding-bottom:12px;
         }
-        .btn-back{
+        .btn-step-back{
             background:none;
             border:none;
             color:var(--primary);
@@ -171,7 +171,7 @@
             color:white;
             border-color:#dc2626;
         }
-        .btn-nav{
+        .btn-wizard{
             padding:15px;
             border:none;
             border-radius:12px;
@@ -183,7 +183,7 @@
             color:white;
             transition:.2s;
         }
-        .btn-nav:hover{
+        .btn-wizard:hover{
             opacity:.95;
         }
         .hidden{
@@ -202,7 +202,7 @@
 
 <div class="container">
     <header>
-        <button class="btn-back" id="header-back-btn" onclick="prevStep()">
+        <button class="btn-step-back" id="header-back-btn" onclick="prevStep()">
             <i class="fas fa-arrow-left"></i> <span id="back-text">Panel</span>
         </button>
         <h3 style="margin:0;">Auditoría 5S</h3>
@@ -256,7 +256,7 @@
             </div>
         </div>
 
-        <button class="btn-nav" onclick="nextStep()">EMPEZAR AUDITORÍA</button>
+        <button class="btn-wizard" onclick="nextStep()">EMPEZAR AUDITORÍA</button>
     </div>
 
     <div id="audit-flow" class="hidden">
@@ -273,13 +273,13 @@
             <textarea id="obs_input" rows="3" placeholder="Hallazgos, mejoras, problemas detectados..."></textarea>
         </div>
 
-        <button class="btn-nav" style="margin-top:20px;" onclick="nextStep()">SIGUIENTE</button>
+        <button class="btn-wizard" style="margin-top:20px;" onclick="nextStep()">SIGUIENTE</button>
     </div>
 
     <div id="step-result" class="hidden">
         <div style="text-align:center; font-weight:bold; font-size:1.2rem;">RESULTADO FINAL</div>
         <div id="score-badge">0%</div>
-        <button class="btn-nav" style="background:var(--success)" onclick="guardar()">
+        <button class="btn-wizard" id="btnGuardar5s" style="background:var(--success)" onclick="guardar()">
             <i class="fas fa-save"></i> GUARDAR AUDITORÍA
         </button>
     </div>
@@ -522,7 +522,8 @@ function nextStep(){
 
 function prevStep(){
     if(currentStep === 0){
-        location.href='dashboard.html';
+        if (window.KraemNav) KraemNav.back('dashboard.html');
+        else location.href='dashboard.html';
         return;
     }
     currentStep--;
@@ -594,7 +595,9 @@ function render(){
         backIcon.className = "fas fa-arrow-left";
 
         const vals = Object.values(auditData.respuestas);
-        const totalPreguntas = (tipo === 'estacion' && aplicaJigs) ? 30 : 25; 
+        const baseCount = matrizPreguntas.reduce((s, sec) => s + (Array.isArray(sec) ? sec.length : 0), 0);
+        const jigsCount = (tipo === 'estacion' && aplicaJigs) ? Math.min(matrizPreguntas.length, preguntasJigs.length) : 0;
+        const totalPreguntas = (baseCount + jigsCount) || 25;
         
         auditData.score = Math.round((vals.reduce((a,b)=>a+b,0) / totalPreguntas) * 100);
 
@@ -611,6 +614,9 @@ function setAns(id, v, btn){
 }
 
 async function guardar(){
+    const btn = document.getElementById('btnGuardar5s');
+    if (btn && btn.disabled) return;
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
     try{
         const tipo = document.getElementById('tipo_auditoria').value;
         const { error } = await client.from('rh_evaluaciones_5s').insert([{
@@ -632,6 +638,7 @@ async function guardar(){
     }catch(e){
         console.error(e);
         alert(e.message);
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
     }
 }
 
