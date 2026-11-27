@@ -383,6 +383,8 @@
           <small>Umbral objetivo de polivalencia por empleado/estación.</small>
         </div>
       </div>
+      <div class="list-editor" id="box_puestos_rh" style="margin-bottom:18px;"></div>
+
       <div class="lists-grid" style="margin-bottom:18px;">
         <div class="list-editor" id="box_tallas"></div>
         <div class="list-editor" id="box_sol_tipos"></div>
@@ -425,10 +427,22 @@
       </div>
 
       <div style="margin-bottom:16px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <small style="color:var(--muted);font-weight:700;">Elige un puesto registrado en RH (<code>rh_puestos</code>) o escribe un rol manual para darle permisos en la matriz.</small>
+          <button type="button" class="btn" style="padding:5px 10px;font-size:0.76rem;" onclick="irAEditorPuestos()">
+            <i class="fas fa-id-badge"></i> Administrar Puestos RH &rarr;
+          </button>
+        </div>
         <div class="form-grid" style="align-items:flex-end;">
           <div class="field">
-            <label>Nuevo Rol / Posición</label>
-            <input type="text" id="sec_new_role_name" placeholder="Ej. MATERIALISTA, MANTENIMIENTO, EMBARQUES" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarRol();}" data-guard>
+            <label>Elegir de Puestos RH (<code>rh_puestos</code>)</label>
+            <select id="sec_new_role_puesto" onchange="onSelectPuestoParaRol()" data-guard>
+              <option value="">-- Seleccionar puesto de RH (o escribir manual) --</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Nombre del Nuevo Rol</label>
+            <input type="text" id="sec_new_role_name" placeholder="Ej. MATERIALISTA, MANTENIMIENTO, EMBARQUES" oninput="onManualRoleInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarRol();}" data-guard>
           </div>
           <div class="field">
             <label>Copiar permisos base de</label>
@@ -812,6 +826,13 @@ function normalizeRoleName(raw) {
     .replace(/^_|_$/g, '');
 }
 
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escAttr(s) {
+  return escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function syncRoleSelects() {
   const roles = Object.keys((working.seguridad && working.seguridad.role_matrix) || {});
 
@@ -836,8 +857,54 @@ function syncRoleSelects() {
       roles.map(r => `<option value="${r}" ${r === prev ? 'selected' : ''}>${r}</option>`).join('');
   }
 
+  syncPuestosSelects();
+
   if (Array.isArray(cachedUsers) && cachedUsers.length > 0) {
     renderUsersTable();
+  }
+}
+
+function syncPuestosSelects() {
+  const fPuesto = document.getElementById('f_user_puesto');
+  if (fPuesto) {
+    const prev = fPuesto.value;
+    fPuesto.innerHTML = '<option value="">Todos los puestos</option>' +
+      catalogPuestos.map(p => `<option value="${escAttr(p)}" ${prev === p ? 'selected' : ''}>${escHtml(p)}</option>`).join('') +
+      `<option value="__SIN_PUESTO__" ${prev === '__SIN_PUESTO__' ? 'selected' : ''}>-- Sin puesto / Manual --</option>`;
+  }
+
+  const pSel = document.getElementById('sec_new_role_puesto');
+  if (pSel) {
+    const prev = pSel.value;
+    const matrix = (working.seguridad && working.seguridad.role_matrix) || {};
+    pSel.innerHTML = '<option value="">-- Seleccionar puesto de RH (o escribir manual) --</option>' +
+      (catalogPuestosObjs || []).map(p => {
+        const yaExiste = !!matrix[normalizeRoleName(p.nombre)];
+        return `<option value="${escAttr(p.nombre)}" ${prev === p.nombre ? 'selected' : ''}>${escHtml(p.nombre)}${yaExiste ? ' ✓ (ya en matriz)' : ''}</option>`;
+      }).join('');
+  }
+}
+
+function onSelectPuestoParaRol() {
+  const pSel = document.getElementById('sec_new_role_puesto');
+  const inp = document.getElementById('sec_new_role_name');
+  if (!pSel || !inp) return;
+  if (pSel.value) inp.value = pSel.value;
+}
+
+function onManualRoleInput() {
+  const pSel = document.getElementById('sec_new_role_puesto');
+  const inp = document.getElementById('sec_new_role_name');
+  if (pSel && inp && pSel.value && normalizeRoleName(inp.value) !== normalizeRoleName(pSel.value)) {
+    pSel.value = '';
+  }
+}
+
+function irAEditorPuestos() {
+  setTab('rh');
+  const el = document.getElementById('box_puestos_rh');
+  if (el && typeof el.scrollIntoView === 'function') {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
 
@@ -845,6 +912,7 @@ async function agregarRol() {
   if (!isEditable) return alert('Sin permisos para editar configuración.');
   const inp = document.getElementById('sec_new_role_name');
   const copySel = document.getElementById('sec_new_role_copy');
+  const pSel = document.getElementById('sec_new_role_puesto');
   const role = normalizeRoleName(inp ? inp.value : '');
   if (role.length < 2 || role.length > 32) {
     return alert('El nombre del rol debe tener entre 2 y 32 caracteres válidos (letras, números o guion bajo).');
@@ -868,6 +936,7 @@ async function agregarRol() {
   working.seguridad.role_matrix[role] = perms;
   if (inp) inp.value = '';
   if (copySel) copySel.value = '';
+  if (pSel) pSel.value = '';
   renderRoleMatrix();
   syncRoleSelects();
   await saveSeguridad();
@@ -1077,10 +1146,121 @@ async function resetCat(cat) {
 
 let catalogAreas = [];
 let catalogPuestos = [];
+let catalogPuestosObjs = [];
 let catalogEmpleados = [];
 let cachedUsers = [];
 let cachedCredsMap = {};
 let resetTargetUid = null;
+
+function renderPuestosEditor() {
+  const wrap = document.getElementById('box_puestos_rh');
+  if (!wrap) return;
+  const list = catalogPuestosObjs || [];
+  const rowsHtml = list.map(p => {
+    const cnt = (catalogEmpleados || []).filter(e => String(e.puesto_id || '') === String(p.id)).length;
+    return `
+      <div class="chip-row">
+        <input type="text" id="puesto_inp_${escAttr(p.id)}" value="${escAttr(p.nombre)}" onkeydown="if(event.key==='Enter'){event.preventDefault();renombrarPuestoRH('${escAttr(p.id)}');}" ${isEditable ? '' : 'disabled'}>
+        <span style="font-size:0.74rem;color:var(--muted);white-space:nowrap;font-weight:700;">${cnt} emp.</span>
+        ${isEditable ? `
+          <button type="button" onclick="renombrarPuestoRH('${escAttr(p.id)}')" title="Guardar nombre" style="color:var(--primary);"><i class="fas fa-save"></i></button>
+          <button type="button" onclick="eliminarPuestoRH('${escAttr(p.id)}')" title="Eliminar puesto"><i class="fas fa-trash"></i></button>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  wrap.innerHTML = `
+    <h4>Puestos Operativos de RH (<code>rh_puestos</code>) (${list.length})</h4>
+    <small style="display:block;color:var(--muted);margin:-4px 0 10px;">Los cambios se guardan directo en Supabase y alimentan tanto Expedientes RH como el selector de Alta de Roles.</small>
+    <div class="chip-list">${rowsHtml || '<small style="color:var(--muted);">Sin puestos registrados en RH.</small>'}</div>
+    ${isEditable ? `<div class="add-row">
+      <input type="text" id="add_puesto_rh_inp" placeholder="Nuevo puesto (ej. Materialista, Almacenista, Mantenimiento)..." onkeydown="if(event.key==='Enter'){event.preventDefault();agregarPuestoRH();}">
+      <button type="button" class="btn btn-primary" onclick="agregarPuestoRH()"><i class="fas fa-plus"></i> Agregar</button>
+    </div>` : ''}
+  `;
+}
+
+async function recargarPuestosRH() {
+  const { data: ps, error } = await client.from('rh_puestos').select('id, nombre').order('nombre');
+  if (error) {
+    alert('Error recargando puestos de RH: ' + error.message);
+    return;
+  }
+  const puestoById = {};
+  catalogPuestosObjs = (ps || []).filter(p => p && p.nombre);
+  catalogPuestos = catalogPuestosObjs.map(p => p.nombre);
+  catalogPuestosObjs.forEach(p => { puestoById[String(p.id)] = p.nombre; });
+  catalogEmpleados = (catalogEmpleados || []).map(e => ({
+    ...e,
+    puesto_nombre: puestoById[String(e.puesto_id)] || ''
+  }));
+  renderPuestosEditor();
+  syncPuestosSelects();
+  if (Array.isArray(cachedUsers) && cachedUsers.length > 0) {
+    renderUsersTable();
+  }
+}
+
+async function agregarPuestoRH() {
+  if (!isEditable) return alert('Sin permisos para editar puestos.');
+  const inp = document.getElementById('add_puesto_rh_inp');
+  const nombre = (inp ? inp.value : '').trim();
+  if (nombre.length < 2) {
+    return alert('Escribe un nombre de puesto válido (mínimo 2 caracteres).');
+  }
+  if (catalogPuestosObjs.some(p => String(p.nombre).toLowerCase() === nombre.toLowerCase())) {
+    return alert(`El puesto "${nombre}" ya existe en RH.`);
+  }
+  const { error } = await client.from('rh_puestos').insert([{ nombre }]);
+  if (error) {
+    return alert('Error al agregar puesto: ' + error.message);
+  }
+  if (inp) inp.value = '';
+  await recargarPuestosRH();
+  toast('Puesto agregado en RH');
+}
+
+async function renombrarPuestoRH(id) {
+  if (!isEditable) return alert('Sin permisos para editar puestos.');
+  const actual = catalogPuestosObjs.find(p => String(p.id) === String(id));
+  const inp = document.getElementById('puesto_inp_' + id);
+  const nuevo = (inp ? inp.value : '').trim();
+  if (nuevo.length < 2) {
+    return alert('El nombre del puesto debe tener al menos 2 caracteres.');
+  }
+  if (actual && actual.nombre === nuevo) return;
+  if (catalogPuestosObjs.some(p => String(p.id) !== String(id) && String(p.nombre).toLowerCase() === nuevo.toLowerCase())) {
+    return alert(`Ya existe otro puesto llamado "${nuevo}".`);
+  }
+  const { error } = await client.from('rh_puestos').update({ nombre: nuevo }).eq('id', id);
+  if (error) {
+    return alert('Error actualizando puesto: ' + error.message);
+  }
+  await recargarPuestosRH();
+  toast('Puesto actualizado');
+}
+
+async function eliminarPuestoRH(id) {
+  if (!isEditable) return alert('Sin permisos para editar puestos.');
+  const p = catalogPuestosObjs.find(x => String(x.id) === String(id));
+  if (!p) return;
+  const cnt = (catalogEmpleados || []).filter(e => String(e.puesto_id || '') === String(id)).length;
+  if (cnt > 0) {
+    return alert(`No puedes eliminar "${p.nombre}" porque ${cnt} empleado(s) tienen ese puesto asignado. Primero reasígnalos o renombra el puesto.`);
+  }
+  if (!confirm(`¿Eliminar el puesto "${p.nombre}" del catálogo de RH?`)) return;
+
+  const { error } = await client.from('rh_puestos').delete().eq('id', id);
+  if (error) {
+    if (error.code === '23503' || /foreign key/i.test(error.message || '')) {
+      return alert('No se puede eliminar este puesto porque aparece en el historial de puestos de RH. Puedes renombrarlo en su lugar.');
+    }
+    return alert('Error eliminando puesto: ' + error.message);
+  }
+  await recargarPuestosRH();
+  toast('Puesto eliminado');
+}
 
 function normalizeUsernameSuggestion(name) {
   return String(name || '')
@@ -1121,6 +1301,13 @@ function onSelectNewEmployee() {
     userInp.dataset.auto = '1';
     syncNewEmail();
   }
+  const selRole = document.getElementById('new_role');
+  if (selRole && emp.puesto_nombre) {
+    const normRole = normalizeRoleName(emp.puesto_nombre);
+    if (working.seguridad && working.seguridad.role_matrix && working.seguridad.role_matrix[normRole]) {
+      selRole.value = normRole;
+    }
+  }
 }
 
 function syncNewEmail() {
@@ -1156,9 +1343,10 @@ async function loadAreasForUsers() {
 
   try {
     const { data: ps } = await client.from('rh_puestos').select('id, nombre').order('nombre');
-    catalogPuestos = (ps || []).map(p => p.nombre).filter(Boolean);
-    (ps || []).forEach(p => { puestoById[String(p.id)] = p.nombre; });
-  } catch (_) { catalogPuestos = []; }
+    catalogPuestosObjs = (ps || []).filter(p => p && p.nombre);
+    catalogPuestos = catalogPuestosObjs.map(p => p.nombre);
+    catalogPuestosObjs.forEach(p => { puestoById[String(p.id)] = p.nombre; });
+  } catch (_) { catalogPuestosObjs = []; catalogPuestos = []; }
 
   try {
     const { data: emps } = await client
@@ -1168,6 +1356,7 @@ async function loadAreasForUsers() {
     catalogEmpleados = (emps || []).map(e => ({
       id: e.id,
       nombre_completo: e.nombre_completo || '',
+      puesto_id: e.puesto_id || null,
       area_nombre: areaById[String(e.area_general_id)] || '',
       puesto_nombre: puestoById[String(e.puesto_id)] || '',
       estatus: e.estatus || 'ACTIVO'
@@ -1190,12 +1379,7 @@ async function loadAreasForUsers() {
       catalogAreas.map(a => `<option value="${a}">${a}</option>`).join('') +
       '<option value="__SIN_AREA__">-- Sin área --</option>';
   }
-  const fPuesto = document.getElementById('f_user_puesto');
-  if (fPuesto) {
-    fPuesto.innerHTML = '<option value="">Todos los puestos</option>' +
-      catalogPuestos.map(p => `<option value="${p}">${p}</option>`).join('') +
-      '<option value="__SIN_PUESTO__">-- Sin puesto / Manual --</option>';
-  }
+  renderPuestosEditor();
   syncRoleSelects();
 }
 
