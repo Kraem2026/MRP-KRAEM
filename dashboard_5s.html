@@ -638,28 +638,29 @@ async function generatePDF() {
     // PIE DE PÁGINA: CONTROL DE DOCUMENTOS Y PAGINACIÓN
     // =======================================================
     const totalPages = doc.getNumberOfPages();
+    const pageWidth = 595.28;
     const fechaImpresion = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
-        
+
         // Línea divisoria gris clara
         doc.setDrawColor(200);
         doc.setLineWidth(0.5);
-        doc.line(margin, 810, 595 - margin, 810);
+        doc.line(margin, 810, pageWidth - margin, 810);
 
-        doc.setFontSize(7);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(100);
+        doc.setFontSize(6.8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 116, 139);
 
-        // Izquierda: Código de documento + Revisión
-        doc.text("DOCUMENTO CONTROLADO SGC ISO 9001 | CODIGO: KR-SYS-5S-0001 | REV 01", margin, 822);
+        const leftFooter = "DOCUMENTO CONTROLADO SGC ISO 9001 | CÓDIGO: KR-SYS-5S-0001 | REV 01";
+        const rightFooter = `Página ${i} de ${totalPages}`;
+        const midFooter = `Fecha de Emisión: ${fechaImpresion}`;
 
-        // Centro: Fecha de generación
-        doc.text(`Fecha de Emisión: ${fechaImpresion}`, 265, 822);
-
-        // Derecha: Paginación dinámica
-        doc.text(`Página ${i} de ${totalPages}`, 595 - margin - 50, 822);
+        doc.text(leftFooter, margin, 822, { align: 'left' });
+        doc.text(rightFooter, pageWidth - margin, 822, { align: 'right' });
+        const rightWidth = doc.getTextWidth(rightFooter);
+        doc.text(midFooter, pageWidth - margin - rightWidth - 18, 822, { align: 'right' });
     }
 
     doc.save(`KR-SYS-5S-0001_Reporte_5S_KRAEM_${new Date().toISOString().slice(0,10)}.pdf`);
@@ -717,6 +718,28 @@ async function generateAuditableQuestionsPDF() {
         doc.line(margin, 66, pageWidth - margin, 66);
     }
 
+    function renderStatusBadge(rawVal, xRight, yBaseline) {
+        const hasVal = rawVal !== undefined && rawVal !== null && rawVal !== '';
+        const numVal = hasVal ? Number(rawVal) : NaN;
+        if (numVal === 1) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(22, 101, 52);
+            doc.text("CUMPLE (100%)", xRight, yBaseline, { align: 'right' });
+        } else if (!Number.isNaN(numVal) && numVal > 0 && numVal < 1) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(180, 83, 9);
+            doc.text(`PARCIAL (${Math.round(numVal * 100)}%)`, xRight, yBaseline, { align: 'right' });
+        } else if (numVal === 0) {
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(185, 28, 28);
+            doc.text("NO CUMPLE (0%)", xRight, yBaseline, { align: 'right' });
+        } else {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(148, 163, 184);
+            doc.text("N/A", xRight, yBaseline, { align: 'right' });
+        }
+    }
+
     for (let idx = 0; idx < lastFetchedData.length; idx++) {
         if (idx > 0) {
             doc.addPage();
@@ -751,7 +774,10 @@ async function generateAuditableQuestionsPDF() {
 
         let jSum = 0, jCount = 0;
         Object.entries(res).forEach(([k, v]) => {
-            if (k.includes('_jig')) { jSum += v; jCount++; }
+            if (k.includes('_jig') && v !== undefined && v !== null && v !== '') {
+                const nv = Number(v);
+                if (!Number.isNaN(nv)) { jSum += nv; jCount++; }
+            }
         });
         const tieneJigs = (tipo !== 'maquina') && (jCount > 0);
         const jigsPct = tieneJigs ? Math.round((jSum / jCount) * 100) : null;
@@ -787,7 +813,7 @@ async function generateAuditableQuestionsPDF() {
 
         let jigsBadgeText = "N/A (Auditoría de Máquina)";
         if (tipo !== 'maquina') {
-            jigsBadgeText = tieneJigs ? `Evaluado (${jigsPct}% - ${jSum}/${jCount} Cumplen)` : "No evaluado en esta estación";
+            jigsBadgeText = tieneJigs ? `Evaluado (${jigsPct}% - ${Number(jSum.toFixed(1))}/${jCount} pts)` : "No evaluado en esta estación";
         }
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(7);
@@ -807,9 +833,12 @@ async function generateAuditableQuestionsPDF() {
             let secSum = 0, secCount = 0;
             for (let p = 0; p < 5; p++) {
                 const val = res[`${s}_${p}`];
-                if (val !== undefined && val !== null) {
-                    secSum += val;
-                    secCount++;
+                if (val !== undefined && val !== null && val !== '') {
+                    const nv = Number(val);
+                    if (!Number.isNaN(nv)) {
+                        secSum += nv;
+                        secCount++;
+                    }
                 }
             }
             const secAvg = secCount > 0 ? Math.round((secSum / secCount) * 100) : 0;
@@ -820,7 +849,7 @@ async function generateAuditableQuestionsPDF() {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);
             doc.text(titulosSecciones[s].toUpperCase(), margin + 6, yPos + 10.5);
-            doc.text(`Cumplimiento Sección: ${secAvg}% (${secSum}/${secCount || 5})`, pageWidth - margin - 8, yPos + 10.5, { align: 'right' });
+            doc.text(`Cumplimiento Sección: ${secAvg}% (${Number(secSum.toFixed(1))}/${secCount || 5})`, pageWidth - margin - 8, yPos + 10.5, { align: 'right' });
             yPos += 15;
 
             const preguntasArray = matrizPreguntas[s] || [];
@@ -849,19 +878,7 @@ async function generateAuditableQuestionsPDF() {
                 const wrapped = doc.splitTextToSize(`${s+1}.${p+1}  ${textoPregunta}`, 440);
                 doc.text(wrapped[0], margin + 6, yPos + 9.5);
 
-                if (valRes === 1) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(22, 101, 52);
-                    doc.text("CUMPLE (100%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
-                } else if (valRes === 0) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(185, 28, 28);
-                    doc.text("NO CUMPLE (0%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
-                } else {
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(148, 163, 184);
-                    doc.text("N/A", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
-                }
+                renderStatusBadge(valRes, pageWidth - margin - 8, yPos + 9.5);
 
                 yPos += 13;
             }
@@ -876,8 +893,17 @@ async function generateAuditableQuestionsPDF() {
                 doc.setFontSize(6.5);
                 doc.setTextColor(180, 83, 9);
                 const obsWrap = doc.splitTextToSize(`* Hallazgo S${s+1}: ${obsS.trim()}`, contentWidth - 16);
+                const obsHeight = (obsWrap.length * 8) + 4;
+                if (yPos + obsHeight > 798) {
+                    doc.addPage();
+                    yPos = 76;
+                    renderAuditableHeader(doc.getNumberOfPages(), idx, lastFetchedData.length);
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(6.5);
+                    doc.setTextColor(180, 83, 9);
+                }
                 doc.text(obsWrap, margin + 6, yPos + 8);
-                yPos += (obsWrap.length * 8) + 4;
+                yPos += obsHeight;
             } else {
                 yPos += 2;
             }
@@ -899,7 +925,7 @@ async function generateAuditableQuestionsPDF() {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(8);
             doc.text("EVALUACIÓN DE JIGS Y DISPOSITIVOS DE PRODUCCIÓN", margin + 6, yPos + 10.5);
-            doc.text(`Cumplimiento Jigs: ${jigsPct}% (${jSum}/${jCount})`, pageWidth - margin - 8, yPos + 10.5, { align: 'right' });
+            doc.text(`Cumplimiento Jigs: ${jigsPct}% (${Number(jSum.toFixed(1))}/${jCount})`, pageWidth - margin - 8, yPos + 10.5, { align: 'right' });
             yPos += 15;
 
             for (let j = 0; j < 5; j++) {
@@ -927,19 +953,7 @@ async function generateAuditableQuestionsPDF() {
                 const wrappedJig = doc.splitTextToSize(`J.${j+1}  ${txtJig}`, 440);
                 doc.text(wrappedJig[0], margin + 6, yPos + 9.5);
 
-                if (valJig === 1) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(22, 101, 52);
-                    doc.text("CUMPLE (100%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
-                } else if (valJig === 0) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(185, 28, 28);
-                    doc.text("NO CUMPLE (0%)", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
-                } else {
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(148, 163, 184);
-                    doc.text("N/A", pageWidth - margin - 8, yPos + 9.5, { align: 'right' });
-                }
+                renderStatusBadge(valJig, pageWidth - margin - 8, yPos + 9.5);
 
                 yPos += 13;
             }
@@ -999,15 +1013,20 @@ async function generateAuditableQuestionsPDF() {
         doc.setPage(i);
         doc.setDrawColor(203, 213, 225);
         doc.setLineWidth(0.5);
-        doc.line(margin, 812, pageWidth - margin, 812);
+        doc.line(margin, 810, pageWidth - margin, 810);
 
-        doc.setFontSize(7);
+        doc.setFontSize(6.8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 116, 139);
 
-        doc.text("DOCUMENTO CONTROLADO SGC ISO 9001 | CODIGO: KR-SYS-5S-0002 | REV 01", margin, 824);
-        doc.text(`Fecha de Emisión: ${fechaImpresion}`, 260, 824);
-        doc.text(`Página ${i} de ${totalPages}`, pageWidth - margin - 45, 824);
+        const leftFooter = "DOCUMENTO CONTROLADO SGC ISO 9001 | CÓDIGO: KR-SYS-5S-0002 | REV 01";
+        const rightFooter = `Página ${i} de ${totalPages}`;
+        const midFooter = `Fecha de Emisión: ${fechaImpresion}`;
+
+        doc.text(leftFooter, margin, 822, { align: 'left' });
+        doc.text(rightFooter, pageWidth - margin, 822, { align: 'right' });
+        const rightWidth = doc.getTextWidth(rightFooter);
+        doc.text(midFooter, pageWidth - margin - rightWidth - 18, 822, { align: 'right' });
     }
 
     doc.save(`KR-SYS-5S-0002_Auditoria_Detallada_5S_${new Date().toISOString().slice(0,10)}.pdf`);
