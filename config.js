@@ -265,14 +265,24 @@ window.KraemI18n = (function () {
         return VALID.includes(stored) ? stored : 'es';
     }
 
+    let _dispatchingLang = false;
+
     function setLang(lang) {
         const next = VALID.includes(lang) ? lang : 'es';
+        const prev = getLang();
         try {
             localStorage.setItem('lang', next);
             localStorage.setItem('kraem_lang', next);
         } catch(e) {}
         document.documentElement.setAttribute('lang', next);
-        document.dispatchEvent(new CustomEvent('kraem:langchange', { detail: { lang: next } }));
+        if (!_dispatchingLang) {
+            _dispatchingLang = true;
+            try {
+                document.dispatchEvent(new CustomEvent('kraem:langchange', { detail: { lang: next, previousLang: prev } }));
+            } finally {
+                _dispatchingLang = false;
+            }
+        }
         if (document.body) {
             applyCommonTextNodes();
         }

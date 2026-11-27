@@ -106,6 +106,10 @@ tr:hover td { background:rgba(37,99,235,0.02); }
 #qrPrintArea { text-align:center; padding:20px; background:white; color:black; border-radius:12px; }
 #qrcode { display:flex; justify-content:center; margin:15px 0; }
 
+@media (max-width: 768px) {
+  .asoc-grid-movil { grid-template-columns: 1fr !important; }
+  .asoc-grid-movil button { width: 100% !important; }
+}
 @media print {
   body * { visibility:hidden; }
   #qrPrintArea, #qrPrintArea * { visibility:visible; }
@@ -387,7 +391,7 @@ tr:hover td { background:rgba(37,99,235,0.02); }
     <!-- Formulario para agregar una parte a este empaque -->
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:15px;">
       <h5 style="margin:0 0 8px 0; font-size:12px; text-transform:uppercase; color:var(--text-secondary);">➕ Asignar Número de Parte a este Contenedor</h5>
-      <div style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; align-items:flex-end;">
+      <div class="asoc-grid-movil" style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; align-items:flex-end;">
         <div>
           <label style="font-size:10px; font-weight:700; text-transform:uppercase;">N° de Parte</label>
           <input type="text" id="asocPartInput" placeholder="Busca N/P..." list="dlPartes">
@@ -554,8 +558,10 @@ function actualizarKPIsFlota() {
 // Poblar selector de clientes
 function poblarFiltroClientes() {
   const sel = document.getElementById('fCliente');
+  const lang = localStorage.getItem('kraem_lang') || localStorage.getItem('lang') || 'es';
+  const lblAll = (i18nEmp[lang] && i18nEmp[lang].optFClienteAll) || 'Todos los Clientes / Propietarios';
   const clientes = [...new Set(allEmpaques.map(e => e.cliente_propietario).filter(Boolean))];
-  sel.innerHTML = `<option value="">Todos los Clientes / Propietarios</option>` + 
+  sel.innerHTML = `<option value="" id="optFClienteAll">${lblAll}</option>` + 
     clientes.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
@@ -630,7 +636,7 @@ function renderTable(lista) {
     return `
       <tr>
         <td>
-          <button class="btn btn-sm" onclick="verQREmpaque('${e.codigo}', '${e.nombre}', '${e.tipo_empaque}')" style="padding:4px 8px;" title="Ver QR"><i class="fas fa-qrcode"></i></button>
+          <button class="btn btn-sm" onclick="verQREmpaque('${String(e.codigo||'').replace(/'/g,"\\'")}', '${String(e.nombre||'').replace(/'/g,"\\'")}', '${String(e.tipo_empaque||'').replace(/'/g,"\\'")}')" style="padding:4px 8px;" title="Ver QR"><i class="fas fa-qrcode"></i></button>
         </td>
         <td><strong>${e.codigo}</strong></td>
         <td>
@@ -678,7 +684,7 @@ function renderizarTablaFlota() {
   const st = document.getElementById('filtroCarroStatus').value;
 
   const filtrados = allCarrosFisicos.filter(c => {
-    const matchTxt = !txt || c.location_code.includes(txt) || (c.location_name && c.location_name.toUpperCase().includes(txt));
+    const matchTxt = !txt || (c.location_code && c.location_code.toUpperCase().includes(txt)) || (c.location_name && c.location_name.toUpperCase().includes(txt));
     const matchSt = !st || c.status_operativo === st;
     return matchTxt && matchSt;
   });
@@ -696,7 +702,7 @@ function renderizarTablaFlota() {
     return `
       <tr>
         <td>
-          <button class="btn btn-sm" onclick="verQREmpaque('${c.location_code}', '${c.location_name || 'Carro de Planta'}', 'CARRO_INTERNO')" style="padding:2px 6px;">
+          <button class="btn btn-sm" onclick="verQREmpaque('${String(c.location_code||'').replace(/'/g,"\\'")}', '${String(c.location_name || 'Carro de Planta').replace(/'/g,"\\'")}', 'CARRO_INTERNO')" style="padding:2px 6px;">
             <i class="fas fa-qrcode"></i>
           </button>
         </td>
@@ -1046,38 +1052,39 @@ function setLang(lang) {
   if (window.KraemI18n) { window.KraemI18n.setLang(lang); } else { localStorage.setItem('lang', lang); localStorage.setItem('kraem_lang', lang); }
   localStorage.setItem('kraem_lang', lang);
   const t = i18nEmp[lang] || i18nEmp.es;
-  document.getElementById('txtTitle').innerText = t.title;
-  document.getElementById('txtSub').innerText = t.sub;
-  document.getElementById('txtBtnFlota').innerText = t.btnFlota;
-  document.getElementById('txtBtnNuevo').innerText = t.btnNuevo;
-  document.getElementById('kpiTitle1').innerText = t.kpi1;
-  document.getElementById('kpiSub1').innerText = t.kpiSub1;
-  document.getElementById('kpiTitle2').innerText = t.kpi2;
-  document.getElementById('kpiTitle3').innerText = t.kpi3;
-  document.getElementById('kpiSub3').innerText = t.kpiSub3;
-  document.getElementById('kpiTitle4').innerText = t.kpi4;
-  document.getElementById('kpiSub4').innerText = t.kpiSub4;
-  document.getElementById('fSearch').placeholder = t.phSearch;
-  document.getElementById('optFTipoAll').innerText = t.optFTipoAll;
-  document.getElementById('optFTipoCarro').innerText = t.optFTipoCarro;
-  document.getElementById('optFTipoRet').innerText = t.optFTipoRet;
-  document.getElementById('optFTipoCaja').innerText = t.optFTipoCaja;
-  document.getElementById('optFTipoCarton').innerText = t.optFTipoCarton;
-  document.getElementById('optFClienteAll').innerText = t.optFClienteAll;
-  document.getElementById('optFEstAll').innerText = t.optFEstAll;
-  document.getElementById('optFEstAct').innerText = t.optFEstAct;
-  document.getElementById('optFEstInact').innerText = t.optFEstInact;
-  document.getElementById('thEmpCod').innerText = t.thCod;
-  document.getElementById('thEmpNom').innerText = t.thNom;
-  document.getElementById('thEmpTipo').innerText = t.thTipo;
-  document.getElementById('thEmpProp').innerText = t.thProp;
-  document.getElementById('thEmpDim').innerText = t.thDim;
-  document.getElementById('thEmpTara').innerText = t.thTara;
-  document.getElementById('thEmpParc').innerText = t.thParc;
-  document.getElementById('thEmpFlota').innerText = t.thFlota;
-  document.getElementById('thEmpNP').innerText = t.thNP;
-  document.getElementById('thEmpEst').innerText = t.thEst;
-  document.getElementById('thEmpAcc').innerText = t.thAcc;
+  const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+  setTxt('txtTitle', t.title);
+  setTxt('txtSub', t.sub);
+  setTxt('txtBtnFlota', t.btnFlota);
+  setTxt('txtBtnNuevo', t.btnNuevo);
+  setTxt('kpiTitle1', t.kpi1);
+  setTxt('kpiSub1', t.kpiSub1);
+  setTxt('kpiTitle2', t.kpi2);
+  setTxt('kpiTitle3', t.kpi3);
+  setTxt('kpiSub3', t.kpiSub3);
+  setTxt('kpiTitle4', t.kpi4);
+  setTxt('kpiSub4', t.kpiSub4);
+  const fS = document.getElementById('fSearch'); if (fS) fS.placeholder = t.phSearch;
+  setTxt('optFTipoAll', t.optFTipoAll);
+  setTxt('optFTipoCarro', t.optFTipoCarro);
+  setTxt('optFTipoRet', t.optFTipoRet);
+  setTxt('optFTipoCaja', t.optFTipoCaja);
+  setTxt('optFTipoCarton', t.optFTipoCarton);
+  setTxt('optFClienteAll', t.optFClienteAll);
+  setTxt('optFEstAll', t.optFEstAll);
+  setTxt('optFEstAct', t.optFEstAct);
+  setTxt('optFEstInact', t.optFEstInact);
+  setTxt('thEmpCod', t.thCod);
+  setTxt('thEmpNom', t.thNom);
+  setTxt('thEmpTipo', t.thTipo);
+  setTxt('thEmpProp', t.thProp);
+  setTxt('thEmpDim', t.thDim);
+  setTxt('thEmpTara', t.thTara);
+  setTxt('thEmpParc', t.thParc);
+  setTxt('thEmpFlota', t.thFlota);
+  setTxt('thEmpNP', t.thNP);
+  setTxt('thEmpEst', t.thEst);
+  setTxt('thEmpAcc', t.thAcc);
 }
 
 setLang(localStorage.getItem('kraem_lang') || 'es');

@@ -141,8 +141,13 @@
     }
   });
 
-  document.addEventListener('kraem:langchange', () => {
-    if (window.KraemI18n && window.KraemI18n.getLang() === 'es') {
+  let currentLoadedLang = (window.KraemI18n && window.KraemI18n.getLang()) || localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es';
+
+  document.addEventListener('kraem:langchange', (e) => {
+    const nextLang = (e && e.detail && e.detail.lang) || (window.KraemI18n && window.KraemI18n.getLang()) || 'es';
+    if (nextLang === currentLoadedLang) return;
+    currentLoadedLang = nextLang;
+    if (nextLang === 'es') {
       window.location.reload();
     } else {
       applyAll();
