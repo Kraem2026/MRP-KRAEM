@@ -3343,17 +3343,32 @@ window.KraemSettings = (function () {
                 merged[cat] = Object.assign({}, merged[cat], saved[cat]);
             }
         });
-        if (saved.seguridad && saved.seguridad.role_matrix) {
+        if (saved.seguridad && saved.seguridad.role_matrix && Object.keys(saved.seguridad.role_matrix).length > 0) {
             const defMatrix = DEFAULTS.seguridad.role_matrix;
-            const resMatrix = deepClone(defMatrix);
-            Object.keys(saved.seguridad.role_matrix).forEach(role => {
-                const sRole = saved.seguridad.role_matrix[role] || {};
-                const base = defMatrix[role] ? deepClone(defMatrix[role]) : {};
+            const allMods = Object.keys(defMatrix.ADMIN);
+            const resMatrix = {};
+            Object.keys(saved.seguridad.role_matrix).forEach(rawRole => {
+                const role = String(rawRole || '').trim().toUpperCase();
+                if (!role) return;
+                const sRole = saved.seguridad.role_matrix[rawRole] || {};
+                const base = {};
+                allMods.forEach(mod => {
+                    if (sRole[mod] && typeof sRole[mod] === 'object') {
+                        base[mod] = { view: !!sRole[mod].view, edit: !!sRole[mod].edit };
+                    } else if (defMatrix[role] && defMatrix[role][mod]) {
+                        base[mod] = deepClone(defMatrix[role][mod]);
+                    } else {
+                        base[mod] = { view: mod === 'dashboard', edit: false };
+                    }
+                });
                 Object.keys(sRole).forEach(k => {
-                    if (k !== 'rh') base[k] = sRole[k];
+                    if (k !== 'rh' && !base[k] && sRole[k] && typeof sRole[k] === 'object') {
+                        base[k] = { view: !!sRole[k].view, edit: !!sRole[k].edit };
+                    }
                 });
                 resMatrix[role] = base;
             });
+            if (!resMatrix.ADMIN) resMatrix.ADMIN = deepClone(defMatrix.ADMIN);
             merged.seguridad.role_matrix = resMatrix;
         }
         return merged;

@@ -424,6 +424,26 @@
         </div>
       </div>
 
+      <div style="margin-bottom:16px;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg);">
+        <div class="form-grid" style="align-items:flex-end;">
+          <div class="field">
+            <label>Nuevo Rol / Posición</label>
+            <input type="text" id="sec_new_role_name" placeholder="Ej. MATERIALISTA, MANTENIMIENTO, EMBARQUES" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarRol();}" data-guard>
+          </div>
+          <div class="field">
+            <label>Copiar permisos base de</label>
+            <select id="sec_new_role_copy" data-guard>
+              <option value="">En blanco (solo Dashboard)</option>
+            </select>
+          </div>
+          <div class="field" style="display:flex;justify-content:flex-start;">
+            <button type="button" class="btn btn-primary" onclick="agregarRol()" data-guard style="width:fit-content;">
+              <i class="fas fa-plus"></i> Agregar Rol
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="table-wrap">
         <table id="roleMatrixTbl"></table>
       </div>
@@ -781,11 +801,116 @@ function render5sEditor() {
   }).join('');
 }
 
+function normalizeRoleName(raw) {
+  return String(raw || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim()
+    .replace(/[\s\-]+/g, '_')
+    .replace(/[^A-Z0-9_]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+function syncRoleSelects() {
+  const roles = Object.keys((working.seguridad && working.seguridad.role_matrix) || {});
+
+  const selRole = document.getElementById('new_role');
+  if (selRole) {
+    const prev = selRole.value;
+    const defVal = roles.includes(prev) ? prev : (roles.includes('OPERADOR') ? 'OPERADOR' : (roles[0] || ''));
+    selRole.innerHTML = roles.map(r => `<option value="${r}" ${r === defVal ? 'selected' : ''}>${r}</option>`).join('');
+  }
+
+  const fRole = document.getElementById('f_user_role');
+  if (fRole) {
+    const prev = fRole.value;
+    fRole.innerHTML = '<option value="">Todos los permisos</option>' +
+      roles.map(r => `<option value="${r}" ${r === prev ? 'selected' : ''}>${r}</option>`).join('');
+  }
+
+  const copySel = document.getElementById('sec_new_role_copy');
+  if (copySel) {
+    const prev = copySel.value;
+    copySel.innerHTML = '<option value="">En blanco (solo Dashboard)</option>' +
+      roles.map(r => `<option value="${r}" ${r === prev ? 'selected' : ''}>${r}</option>`).join('');
+  }
+
+  if (Array.isArray(cachedUsers) && cachedUsers.length > 0) {
+    renderUsersTable();
+  }
+}
+
+async function agregarRol() {
+  if (!isEditable) return alert('Sin permisos para editar configuración.');
+  const inp = document.getElementById('sec_new_role_name');
+  const copySel = document.getElementById('sec_new_role_copy');
+  const role = normalizeRoleName(inp ? inp.value : '');
+  if (role.length < 2 || role.length > 32) {
+    return alert('El nombre del rol debe tener entre 2 y 32 caracteres válidos (letras, números o guion bajo).');
+  }
+  if (!working.seguridad.role_matrix) working.seguridad.role_matrix = {};
+  if (working.seguridad.role_matrix[role]) {
+    return alert(`El rol "${role}" ya existe.`);
+  }
+
+  const copyFrom = copySel ? copySel.value : '';
+  const src = (copyFrom && working.seguridad.role_matrix[copyFrom]) ? working.seguridad.role_matrix[copyFrom] : null;
+  const perms = {};
+  MODULES_LIST.forEach(m => {
+    if (src && src[m.id] && typeof src[m.id] === 'object') {
+      perms[m.id] = { view: !!src[m.id].view, edit: !!src[m.id].edit };
+    } else {
+      perms[m.id] = { view: m.id === 'dashboard', edit: false };
+    }
+  });
+
+  working.seguridad.role_matrix[role] = perms;
+  if (inp) inp.value = '';
+  if (copySel) copySel.value = '';
+  renderRoleMatrix();
+  syncRoleSelects();
+  await saveSeguridad();
+}
+
+async function eliminarRol(role) {
+  if (!isEditable) return alert('Sin permisos para editar configuración.');
+  const target = String(role || '').toUpperCase();
+  if (target === 'ADMIN') {
+    return alert('El rol ADMIN está protegido y no se puede eliminar.');
+  }
+  const asignados = (cachedUsers || []).filter(u => String(u.role || '').toUpperCase() === target).length;
+  if (asignados > 0) {
+    return alert(`No puedes eliminar el rol "${target}" porque tiene ${asignados} usuario(s) asignado(s). Primero cámbiales el rol en la tabla de usuarios.`);
+  }
+  if (!confirm(`¿Eliminar el rol "${target}" de la matriz de permisos?`)) return;
+
+  delete working.seguridad.role_matrix[target];
+
+  const highInp = document.getElementById('sec_high_roles');
+  if (highInp) {
+    const filteredHigh = highInp.value.split(',').map(s => s.trim().toUpperCase()).filter(r => r && r !== target);
+    highInp.value = filteredHigh.join(', ');
+    working.seguridad.high_rank_roles = filteredHigh;
+  }
+
+  renderRoleMatrix();
+  syncRoleSelects();
+  await saveSeguridad();
+}
+
 function renderRoleMatrix() {
   const matrix = working.seguridad.role_matrix || {};
   const roles = Object.keys(matrix);
-  const head = `<thead><tr><th>Rol</th>${MODULES_LIST.map(m => `<th style="text-align:center;font-size:0.7rem;">${m.label}</th>`).join('')}</tr></thead>`;
-  const body = `<tbody>${roles.map(role => `
+  const head = `<thead><tr><th>Rol</th>${MODULES_LIST.map(m => `<th style="text-align:center;font-size:0.7rem;">${m.label}</th>`).join('')}<th style="text-align:center;">Acción</th></tr></thead>`;
+  const body = `<tbody>${roles.map(role => {
+    const isFixed = role === 'ADMIN';
+    const actHtml = isFixed
+      ? `<span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;"><i class="fas fa-lock"></i> Fijo</span>`
+      : (isEditable
+          ? `<button type="button" class="btn" style="padding:4px 8px;font-size:0.75rem;color:var(--danger);border-color:var(--danger);" onclick="eliminarRol('${role}')" title="Eliminar rol"><i class="fas fa-trash-alt"></i></button>`
+          : '-');
+    return `
     <tr>
       <td><b>${role}</b></td>
       ${MODULES_LIST.map(m => {
@@ -796,8 +921,9 @@ function renderRoleMatrix() {
           <label title="Editar"><input type="checkbox" ${perm.edit ? 'checked' : ''} onchange="setRolePerm('${role}','${m.id}','edit',this.checked)" ${isEditable ? '' : 'disabled'}> E</label>
         </td>`;
       }).join('')}
-    </tr>
-  `).join('')}</tbody>`;
+      <td style="text-align:center;">${actHtml}</td>
+    </tr>`;
+  }).join('')}</tbody>`;
   document.getElementById('roleMatrixTbl').innerHTML = head + body;
 }
 
@@ -806,6 +932,8 @@ function setRolePerm(role, mod, prop, checked) {
   if (!working.seguridad.role_matrix[role][mod]) working.seguridad.role_matrix[role][mod] = { view: false, edit: false };
   working.seguridad.role_matrix[role][mod][prop] = checked;
   if (prop === 'edit' && checked) working.seguridad.role_matrix[role][mod].view = true;
+  if (prop === 'view' && !checked) working.seguridad.role_matrix[role][mod].edit = false;
+  renderRoleMatrix();
 }
 
 function populateForm() {
@@ -849,6 +977,7 @@ function populateForm() {
   // Seguridad
   document.getElementById('sec_high_roles').value = (working.seguridad.high_rank_roles || []).join(', ');
   renderRoleMatrix();
+  syncRoleSelects();
 
   // General
   document.getElementById('gen_empresa').value = working.general.empresa_nombre;
@@ -1055,11 +1184,6 @@ async function loadAreasForUsers() {
   if (selNew) {
     selNew.innerHTML = '<option value="">-- Sin asignar --</option>' + catalogAreas.map(a => `<option value="${a}">${a}</option>`).join('');
   }
-  const roles = Object.keys(working.seguridad.role_matrix || {});
-  const selRole = document.getElementById('new_role');
-  if (selRole) {
-    selRole.innerHTML = roles.map(r => `<option value="${r}" ${r === 'OPERADOR' ? 'selected' : ''}>${r}</option>`).join('');
-  }
   const fArea = document.getElementById('f_user_area');
   if (fArea) {
     fArea.innerHTML = '<option value="">Todas las áreas</option>' +
@@ -1072,11 +1196,7 @@ async function loadAreasForUsers() {
       catalogPuestos.map(p => `<option value="${p}">${p}</option>`).join('') +
       '<option value="__SIN_PUESTO__">-- Sin puesto / Manual --</option>';
   }
-  const fRole = document.getElementById('f_user_role');
-  if (fRole) {
-    fRole.innerHTML = '<option value="">Todos los permisos</option>' +
-      roles.map(r => `<option value="${r}">${r}</option>`).join('');
-  }
+  syncRoleSelects();
 }
 
 async function crearNuevoUsuario() {
@@ -1288,7 +1408,11 @@ function renderUsersTable() {
       </td>
       <td>
         <select id="u_role_${u.user_id}" style="padding:5px 8px;border-radius:7px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);" ${isEditable ? '' : 'disabled'}>
-          ${roles.map(r => `<option value="${r}" ${String(u.role).toUpperCase() === r ? 'selected' : ''}>${r}</option>`).join('')}
+          ${(() => {
+            const uRoleUpper = String(u.role || '').toUpperCase();
+            const rowRoles = (uRoleUpper && !roles.includes(uRoleUpper)) ? [uRoleUpper, ...roles] : roles;
+            return rowRoles.map(r => `<option value="${r}" ${uRoleUpper === r ? 'selected' : ''}>${r}</option>`).join('');
+          })()}
         </select>
       </td>
       ${strictAdmin ? `<td style="white-space:nowrap;">
