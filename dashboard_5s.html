@@ -511,13 +511,86 @@ function exportToExcel() {
     link.click();
 }
 
+const KRAEM_LOGO_FALLBACK_B64 = 'data:image/png;base64,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';
+
+function loadKraemLogo() {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                const w = img.naturalWidth || 48;
+                const h = img.naturalHeight || 48;
+                const c = document.createElement('canvas');
+                c.width = w;
+                c.height = h;
+                const ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve({ dataUrl: c.toDataURL('image/png'), ratio: w / h });
+            } catch (_) {
+                resolve({ dataUrl: KRAEM_LOGO_FALLBACK_B64, ratio: 1 });
+            }
+        };
+        img.onerror = () => resolve({ dataUrl: KRAEM_LOGO_FALLBACK_B64, ratio: 1 });
+        img.src = 'logo-kraem.png';
+    });
+}
+
+function renderKraemPdfHeader(doc, logoInfo, opts) {
+    const margin = (opts && opts.margin) || 30;
+    const pageWidth = (opts && opts.pageWidth) || 595.28;
+
+    doc.setFillColor(220, 38, 38);
+    doc.rect(margin, 14, 34, 2.5, 'F');
+    doc.setFillColor(30, 58, 138);
+    doc.rect(margin + 34, 14, pageWidth - (margin * 2) - 34, 2.5, 'F');
+
+    const logoH = 34;
+    const logoW = Math.min(72, Math.max(24, Math.round(logoH * (logoInfo && logoInfo.ratio ? logoInfo.ratio : 1))));
+    try {
+        doc.addImage((logoInfo && logoInfo.dataUrl) || KRAEM_LOGO_FALLBACK_B64, 'PNG', margin, 23, logoW, logoH);
+    } catch (_) {}
+
+    const brandX = margin + logoW + 8;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(15, 23, 42);
+    doc.text("KRAEM", brandX, 38);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(37, 99, 235);
+    doc.text("Powered by APEX", brandX, 48);
+
+    const divX = Math.max(148, brandX + 74);
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.7);
+    doc.line(divX, 23, divX, 57);
+
+    const titleX = divX + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(opts.title, titleX, 33);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.2);
+    doc.setTextColor(71, 85, 105);
+    doc.text(opts.subtitle, titleX, 44);
+
+    doc.setTextColor(100, 116, 139);
+    doc.text(opts.meta, titleX, 54);
+
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.8);
+    doc.line(margin, 64, pageWidth - margin, 64);
+}
+
 async function generatePDF() {
+    const logoInfo = await loadKraemLogo();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4');
     const margin = 30;
-    let yPos = 100;
-
-    try { doc.addImage('logo-kraem.jpg', 'JPEG', margin, 30, 100, 40); } catch (e) { doc.setFontSize(18); doc.text("KRAEM", margin, 55); }
+    let yPos = 84;
 
     // IDENTIFICACIÓN DINÁMICA DEL TIPO DE AUDITORÍA PARA EL TÍTULO
     const filtroTipo = document.getElementById('f-tipo').value;
@@ -525,13 +598,14 @@ async function generatePDF() {
     if (filtroTipo === 'estacion') extensionTitulo = "ESTACIONES DE TRABAJO";
     if (filtroTipo === 'maquina') extensionTitulo = "MÁQUINAS DE INYECCIÓN";
 
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`REPORTE SEMANAL ESTRATÉGICO 5'S - ${extensionTitulo}`, 145, 55);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
     const periodo = `Periodo: ${document.getElementById('f-inicio').value} al ${document.getElementById('f-fin').value}`;
-    doc.text(periodo, 145, 70);
+    renderKraemPdfHeader(doc, logoInfo, {
+        margin,
+        pageWidth: 595.28,
+        title: `REPORTE SEMANAL ESTRATÉGICO 5'S - ${extensionTitulo}`,
+        subtitle: "SISTEMA DE GESTIÓN DE CALIDAD Y ESTANDARIZACIÓN OPERATIVA 5'S",
+        meta: periodo
+    });
 
     const radarCanvas = document.getElementById('radarChart');
     const radarImg = radarCanvas.toDataURL('image/png');
@@ -673,6 +747,7 @@ async function generateAuditableQuestionsPDF() {
     }
 
     cargarPreguntasConfiguradas();
+    const logoInfo = await loadKraemLogo();
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'pt', 'a4');
@@ -693,29 +768,13 @@ async function generateAuditableQuestionsPDF() {
     const fFin = document.getElementById('f-fin')?.value || 'N/A';
 
     function renderAuditableHeader(pageNum, auditIndex, totalAudits) {
-        try { 
-            doc.addImage('logo-kraem.jpg', 'JPEG', margin, 24, 85, 34); 
-        } catch (e) { 
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(15); 
-            doc.setTextColor(30, 58, 138);
-            doc.text("KRAEM", margin, 46); 
-        }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(15, 23, 42);
-        doc.text("KRAEM AUTOMOTIVE - REPORTE AUDITABLE DETALLADO 5'S", 125, 36);
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(71, 85, 105);
-        doc.text("EVALUACIÓN SISTÉMICA POR REACTIVO Y DISPOSITIVOS (ISO 9001:2015 / IATF 16949)", 125, 48);
-        doc.text(`Periodo: ${fInicio} al ${fFin}  |  Evaluación ${auditIndex + 1} de ${totalAudits}`, 125, 59);
-
-        doc.setDrawColor(203, 213, 225);
-        doc.setLineWidth(0.8);
-        doc.line(margin, 66, pageWidth - margin, 66);
+        renderKraemPdfHeader(doc, logoInfo, {
+            margin,
+            pageWidth,
+            title: "REPORTE AUDITABLE DETALLADO 5'S",
+            subtitle: "EVALUACIÓN SISTÉMICA POR REACTIVO Y DISPOSITIVOS (ISO 9001:2015 / IATF 16949)",
+            meta: `Periodo: ${fInicio} al ${fFin}   |   Evaluación ${auditIndex + 1} de ${totalAudits}`
+        });
     }
 
     function renderStatusBadge(rawVal, xRight, yBaseline) {
@@ -1000,7 +1059,7 @@ async function generateAuditableQuestionsPDF() {
         doc.setTextColor(100, 116, 139);
         doc.text(auditor, margin + 80, yPos + 41, { align: 'center' });
         doc.text(operador, margin + 260, yPos + 41, { align: 'center' });
-        doc.text("KRAEM Automotive Plant", margin + 440, yPos + 41, { align: 'center' });
+        doc.text("KRAEM", margin + 440, yPos + 41, { align: 'center' });
     }
 
     // ==========================================
