@@ -3,64 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRAEM ERP | Boceto Tablero APS Autónomo & Gantt</title>
+<title>KRAEM by APEX SYSTEM | Tablero APS & Kitting WMS</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-  <script src="kraem_nav.js"></script>
+<script src="kraem_nav.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
 :root{
   --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
   --primary:#2563eb; --accent:#4f46e5; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+  --surface:#f1f5f9;
 }
 [data-theme="dark"]{
-  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --bg:#090d16; --card:#111827; --text:#f1f5f9; --muted:#94a3b8; --border:#1f2937;
+  --surface:#1e293b;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
-.container{max-width:1620px;margin:auto}
-.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
-.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
+body{margin:0;padding:18px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;transition:.2s}
+.container{max-width:1640px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:8px 13px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .btn-primary{background:var(--primary);color:#fff;border:none}
 .btn-accent{background:var(--accent);color:#fff;border:none}
 .btn-success{background:var(--success);color:#fff;border:none}
 .btn-warn{background:var(--warning);color:#fff;border:none}
 .btn-danger{background:var(--danger);color:#fff;border:none}
-.btn-sm{padding:5px 9px;font-size:11.5px;border-radius:7px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px}
-.card h3{margin:0 0 10px;font-size:15px}
-.banner{background:rgba(79,70,229,0.08);border:1px solid rgba(79,70,229,0.25);padding:12px 16px;border-radius:12px;font-size:12.5px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 15px;border-left:4px solid var(--accent)}
-.kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
-.kpi .v{font-size:21px;font-weight:800;margin-top:3px}
+.btn-sm{padding:5px 8px;font-size:11.5px;border-radius:6px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.card h3{margin:0 0 8px;font-size:14.5px}
+.banner{background:rgba(37,99,235,0.06);border:1px solid var(--border);padding:10px 14px;border-radius:10px;font-size:12.5px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;border-left:4px solid var(--accent)}
+.kpi .t{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.kpi .v{font-size:20px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
-/* GANTT HORIZONTAL POR DÍAS Y HORAS */
-.gantt-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--bg)}
+.gantt-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg)}
 .gantt-grid{min-width:1380px}
-.gantt-head{display:grid;grid-template-columns:230px 1fr;border-bottom:1px solid var(--border);background:rgba(148,163,184,0.1);font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted)}
+.gantt-head{display:grid;grid-template-columns:220px 1fr;border-bottom:1px solid var(--border);background:var(--surface);font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted)}
 .gantt-days{display:grid}
-.gantt-day-cell{padding:10px 8px;border-left:1px solid var(--border);text-align:center;font-weight:800}
-.gantt-row{display:grid;grid-template-columns:230px 1fr;border-bottom:1px solid var(--border);min-height:82px;align-items:stretch}
-.gantt-mach{padding:12px 14px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
-.gantt-lane{position:relative;min-height:80px}
-.gantt-bar{position:absolute;top:10px;height:62px;min-width:170px;border-radius:8px;overflow:hidden;display:flex;cursor:pointer;box-shadow:0 3px 8px rgba(0,0,0,0.2);border:1px solid rgba(0,0,0,0.22);transition:all .15s ease;z-index:2}
-.gantt-bar:hover{transform:translateY(-2px);z-index:30;box-shadow:0 10px 22px rgba(0,0,0,0.32);min-width:230px}
-.bar-smed{background:#d97706;color:#fff;font-size:11px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;white-space:nowrap;overflow:hidden;min-width:36px;border-right:1px solid rgba(255,255,255,0.25)}
-.bar-prod{background:#1d4ed8;color:#fff;font-size:11px;padding:6px 9px;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.25;gap:2px;overflow:hidden}
+.gantt-day-cell{padding:9px 8px;border-left:1px solid var(--border);text-align:center;font-weight:800}
+.gantt-row{display:grid;grid-template-columns:220px 1fr;border-bottom:1px solid var(--border);min-height:78px;align-items:stretch}
+.gantt-mach{padding:10px 12px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
+.gantt-lane{position:relative;min-height:76px}
+.gantt-bar{position:absolute;top:9px;height:60px;min-width:168px;border-radius:7px;overflow:hidden;display:flex;cursor:pointer;border:1px solid rgba(0,0,0,0.25);transition:transform .12s ease;z-index:2}
+.gantt-bar:hover{transform:translateY(-1px);z-index:30;min-width:225px}
+.bar-smed{background:#d97706;color:#fff;font-size:10.5px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 5px;white-space:nowrap;overflow:hidden;min-width:34px;border-right:1px solid rgba(255,255,255,0.25)}
+.bar-prod{background:#1d4ed8;color:#fff;font-size:11px;padding:5px 8px;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;line-height:1.25;gap:2px;overflow:hidden}
 .bar-prod.pinned{background:#6d28d9}
 .bar-prod.split{background:#0e7490}
-.bar-prod.shortage{background:linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);border-left:3px solid #f87171}
-.bar-header{font-weight:800;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px}
+.bar-prod.shortage{background:#991b1b;border-left:3px solid #fca5a5}
+.bar-header{font-weight:800;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
 .bar-pn{color:#fed7aa;font-weight:700}
 .bar-info{font-size:10.5px;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shortage-badge-pill{display:inline-flex;align-items:center;gap:3px;background:#fef2f2;color:#991b1b;font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:4px;width:fit-content}
-.ok-badge-pill{display:inline-flex;align-items:center;gap:3px;background:rgba(220,252,231,0.25);color:#bbf7d0;font-size:9.5px;font-weight:700;padding:0 4px;border-radius:4px;width:fit-content}
+.ok-badge-pill{display:inline-flex;align-items:center;gap:3px;background:rgba(220,252,231,0.22);color:#bbf7d0;font-size:9.5px;font-weight:700;padding:0 4px;border-radius:4px;width:fit-content}
 
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left}
-th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(148,163,184,0.08)}
-.badge{padding:3px 7px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px 9px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+th{font-size:10.5px;text-transform:uppercase;color:var(--muted);background:var(--surface);position:sticky;top:0}
+tr:hover td{background:rgba(148,163,184,0.04)}
+.badge{padding:3px 7px;border-radius:5px;font-size:10.5px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
 .b-ok{background:#dcfce7;color:#166534}
 .b-warn{background:#fef3c7;color:#92400e}
 .b-bad{background:#fee2e2;color:#991b1b}
@@ -68,9 +75,9 @@ th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(14
 .b-pin{background:#ede9fe;color:#5b21b6}
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;justify-content:center;align-items:center;z-index:1000;padding:15px}
-.modal-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:560px}
-label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:10px 0 4px}
-input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);font-size:13px}
+.modal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:8px 0 4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:12.5px}
 .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 </style>
 </head>
@@ -78,18 +85,21 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-r
 <div class="container">
   <div class="header">
     <div style="display:flex;align-items:center;gap:12px">
-      <a href="planeacion_hub.html" class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html'); return false;"><i class="fas fa-arrow-left"></i> Cockpit</a>
+      <a href="planeacion_hub.html" class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html'); return false;"><i class="fas fa-arrow-left"></i> <span id="lblBack">Cockpit</span></a>
       <div>
-        <h1 style="margin:0;font-size:22px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span><i class="fas fa-calendar-week" style="color:var(--accent)"></i> Tablero APS Autónomo & Gantt por Máquina</span>
-          <span style="font-size:11px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.18);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        <h1 style="margin:0;font-size:21px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span><i class="fas fa-calendar-week" style="color:var(--accent)"></i> <span id="lblTitle">Tablero APS & Gantt por Máquina</span></span>
+          <span style="font-size:10.5px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.14);padding:2px 7px;border-radius:5px">by APEX SYSTEM</span>
         </h1>
-        <small style="color:var(--muted)">Propuesta automática por fechas de entrega, tiempo ciclo (`part_molds`), SMED (`molds`), OEE (`mes_machines`) y límite de carritos/contenedores (`empaques`).</small>
+        <small id="lblSub" style="color:var(--muted)">Demanda FIRME desde BD (excluye Forecast), publicación idempotente a production_orders y Kitting FIFO WMS.</small>
       </div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-accent" onclick="generarPropuestaAutomatica()"><i class="fas fa-wand-magic-sparkles"></i> Generar Propuesta Automática (APS)</button>
-      <button class="btn btn-primary" id="btnPublicarMes" onclick="publicarOrdenesAPiso()"><i class="fas fa-paper-plane"></i> Publicar a Piso MES</button>
+    <div class="controls">
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      <button class="btn btn-accent" id="btnGenAps" onclick="generarPropuestaAutomatica()"><i class="fas fa-wand-magic-sparkles"></i> <span id="lblBtnGen">Generar / Sincronizar APS</span></button>
+      <button class="btn btn-primary" id="btnPublicarMes" onclick="publicarOrdenesAPiso(false)"><i class="fas fa-paper-plane"></i> <span id="lblBtnPub">Publicar a Piso MES</span></button>
       <a href="planeacion_montaje_moldes.html" class="btn btn-success"><i class="fas fa-wrench"></i> Cola Montaje SMED →</a>
       <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
@@ -97,27 +107,27 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-r
 
   <div class="banner">
     <div>
-      <i class="fas fa-robot" style="color:var(--accent)"></i>
-      <strong>Cómo trabaja la propuesta automática:</strong> Lee las demandas del módulo <em>Forecast & MRP</em> → calcula tiempo ciclo + SMED + OEE → si un producto usa <strong>carrito/caja retornable limitada</strong>, divide automáticamente la corrida (ej. tope diario/carritos disponibles y reprograma el resto cuando regresan contenedores). <strong>Haz clic en cualquier barra del Gantt o fila para mover, posponer o cancelar</strong> y todo lo demás se reprogramará en cascada.
+      <i class="fas fa-database" style="color:var(--primary)"></i>
+      <strong id="lblRuleHead">Fuente única BD:</strong>
+      <span id="lblRuleBody">Lee WOs activas de <code>production_orders</code> + demandas abiertas <code>PEDIDO_FIRME</code> de <code>requerimientos</code> (ignora <code>FORECAST</code>). Divide lotes por empaque retornable y surte Kitting FIFO directo a <code>inventory_movements</code>.</span>
     </div>
-    <span id="sourceBadge" class="badge b-info">Cargando maestros...</span>
+    <span id="sourceBadge" class="badge b-info">Conectando BD...</span>
   </div>
 
-  <!-- SIMULADOR DE RESTRICCIONES DE EMPAQUE / HORIZONTE (BOCETO PARA INGENIERÍA) -->
-  <div class="card" style="padding:14px 18px">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-      <div style="font-size:13px">
-        <strong><i class="fas fa-boxes-packing" style="color:var(--warning)"></i> Regla de Empaque Limitado (Boceto a conectar con Ingeniería):</strong>
-        <span style="color:var(--muted)">Si el empaque primario es <code>CARRO_INTERNO</code> o <code>RETORNABLE_CLIENTE</code>, limita el lote continuo al tope de contenedores libres y espera días de retorno. Cartón = ilimitado.</span>
+  <div class="card" style="padding:12px 14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div style="font-size:12.5px">
+        <strong><i class="fas fa-boxes-packing" style="color:var(--warning)"></i> Restricción Empaque Retornable:</strong>
+        <span style="color:var(--muted)"><code>CARRO_INTERNO</code> / <code>RETORNABLE_CLIENTE</code> dividen el lote por ola con días de retorno. Cartón = continuo.</span>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:6px">
-          <label style="margin:0">Carros máx/parte (demo):</label>
-          <input type="number" id="cfgMaxCont" value="12" min="1" style="width:75px;padding:6px">
+          <label style="margin:0">Carros máx/parte:</label>
+          <input type="number" id="cfgMaxCont" value="12" min="1" style="width:72px;padding:5px">
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <label style="margin:0">Días retorno carro:</label>
-          <input type="number" id="cfgRetDays" value="2" min="1" max="7" style="width:65px;padding:6px">
+          <label style="margin:0">Días retorno:</label>
+          <input type="number" id="cfgRetDays" value="2" min="1" max="7" style="width:62px;padding:5px">
         </div>
         <button class="btn btn-sm btn-primary" onclick="generarPropuestaAutomatica()"><i class="fas fa-arrows-rotate"></i> Recalcular APS</button>
       </div>
@@ -125,33 +135,29 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-r
   </div>
 
   <div class="kpi-strip">
-    <div class="kpi"><div class="t">Órdenes Programadas (WO)</div><div class="v" id="kWos">0</div></div>
-    <div class="kpi" style="border-left-color:var(--warning)"><div class="t">Cambios de Molde (SMED)</div><div class="v" id="kSmed">0</div></div>
-    <div class="kpi" style="border-left-color:var(--danger)"><div class="t">Cortos de Material (Shortage)</div><div class="v" id="kShortage" style="color:var(--danger)">0</div></div>
-    <div class="kpi" style="border-left-color:var(--cyan, #0891b2)"><div class="t">Lotes Divididos por Empaque</div><div class="v" id="kSplit">0</div></div>
-    <div class="kpi" style="border-left-color:var(--success)"><div class="t">Horas Totales Cargadas</div><div class="v" id="kHrs">0 h</div></div>
+    <div class="kpi"><div class="t" id="lblKpiWos">Órdenes Programadas (WO)</div><div class="v" id="kWos">0</div></div>
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t" id="lblKpiSmed">Cambios de Molde (SMED)</div><div class="v" id="kSmed">0</div></div>
+    <div class="kpi" style="border-left-color:var(--danger)"><div class="t" id="lblKpiShort">Cortos de Material</div><div class="v" id="kShortage" style="color:var(--danger)">0</div></div>
+    <div class="kpi" style="border-left-color:#0891b2"><div class="t" id="lblKpiSplit">Olas por Empaque</div><div class="v" id="kSplit">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t" id="lblKpiHrs">Horas Totales Cargadas</div><div class="v" id="kHrs">0 h</div></div>
   </div>
 
-  <!-- DIAGRAMA DE GANTT HORIZONTAL -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <h3 style="margin:0"><i class="fas fa-bars-staggered" style="color:var(--accent)"></i> Diagrama de Gantt por Máquina</h3>
-        <div style="display:flex;align-items:center;gap:6px">
-          <label style="margin:0;font-size:11px;font-weight:700;color:var(--muted)">Vista:</label>
-          <select id="cfgHorizonDays" onchange="cambiarHorizonte(this.value)" style="width:auto;padding:4px 8px;font-size:12px;font-weight:700">
-            <option value="3">3 Días (Detalle por Turno)</option>
-            <option value="7" selected>7 Días (Semanal)</option>
-            <option value="14">14 Días (Quincenal)</option>
-          </select>
-        </div>
+        <select id="cfgHorizonDays" onchange="cambiarHorizonte(this.value)" style="width:auto;padding:4px 8px;font-size:12px;font-weight:700">
+          <option value="3">3 Días</option>
+          <option value="7" selected>7 Días (Semanal)</option>
+          <option value="14">14 Días (Quincenal)</option>
+        </select>
       </div>
-      <div style="display:flex;gap:6px;font-size:11px;align-items:center;flex-wrap:wrap">
-        <span class="badge" style="background:#d97706;color:#fff">🔧 SMED Montaje</span>
-        <span class="badge" style="background:#1d4ed8;color:#fff">⚙️ Producción OK</span>
-        <span class="badge" style="background:#b91c1c;color:#fff">⚠️ Corto Material (Shortage)</span>
-        <span class="badge" style="background:#0e7490;color:#fff">📦 Carrito Retornable</span>
-        <span class="badge" style="background:#6d28d9;color:#fff">📌 Fijada Manual</span>
+      <div style="display:flex;gap:6px;font-size:10.5px;align-items:center;flex-wrap:wrap">
+        <span class="badge" style="background:#d97706;color:#fff">SMED</span>
+        <span class="badge" style="background:#1d4ed8;color:#fff">Material OK</span>
+        <span class="badge" style="background:#991b1b;color:#fff">Shortage</span>
+        <span class="badge" style="background:#0e7490;color:#fff">Carrito Retornable</span>
+        <span class="badge" style="background:#6d28d9;color:#fff">Fija Manual</span>
       </div>
     </div>
     <div class="gantt-wrap">
@@ -159,17 +165,16 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-r
     </div>
   </div>
 
-  <!-- TABLA DETALLADA CON ACCIONES DE EXCEPCIÓN -->
   <div class="card" style="overflow-x:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
       <h3 style="margin:0"><i class="fas fa-list-check" style="color:var(--primary)"></i> Programa Detallado de Montaje, Corrida y Kitting WMS</h3>
-      <small style="color:var(--muted)">Cualquier ajuste manual reprograma en automático la cola de la máquina.</small>
+      <small style="color:var(--muted)">Cada ajuste reprograma la cola de máquina y persiste sin duplicar al publicar.</small>
     </div>
     <table>
       <thead>
         <tr>
-          <th>WO</th><th>Máquina</th><th>Molde</th><th>PT (Entrega Req.)</th><th>Meta Lote</th>
-          <th>Ventana Setup SMED</th><th>Ventana Producción</th><th>Empaque / Restricción</th><th>Kitting WMS</th><th>Estatus Material (MRP)</th><th>Ajuste Excepción</th>
+          <th>WO / Estado BD</th><th>Máquina</th><th>Molde</th><th>PT (Entrega Req.)</th><th class="num">Meta Lote</th>
+          <th>Setup SMED</th><th>Ventana Producción</th><th>Empaque / Ola</th><th>Kitting WMS</th><th>Estatus Material (MRP)</th><th>Acciones</th>
         </tr>
       </thead>
       <tbody id="woBody"></tbody>
@@ -177,19 +182,17 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-r
   </div>
 </div>
 
-<!-- MODAL EXCEPCIÓN MANUAL (MOVER / POSPONER / CANCELAR) -->
+<!-- MODAL EXCEPCIÓN MANUAL -->
 <div class="modal" id="editModal" onclick="if(event.target===this)cerrarModal()">
   <div class="modal-card">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <h3 style="margin:0" id="mTitle">Ajustar Orden</h3>
       <button class="btn btn-sm" onclick="cerrarModal()"><i class="fas fa-times"></i></button>
     </div>
-    <p id="mSub" style="font-size:12.5px;color:var(--muted);margin:6px 0 12px"></p>
+    <p id="mSub" style="font-size:12px;color:var(--muted);margin:6px 0 10px"></p>
     <div id="mShortageNotice"></div>
-
     <label>Máquina Asignada</label>
     <select id="eMach"></select>
-
     <div class="row-2">
       <div>
         <label>Fecha Inicio Mínima</label>
@@ -200,45 +203,121 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-r
         <input type="number" id="eHour" min="0" max="23" step="0.5" value="7">
       </div>
     </div>
-
     <label>Modo de Programación</label>
     <select id="ePinned">
-      <option value="true">📌 Fijar en esta fecha/hora y reprogramar las demás</option>
-      <option value="false">🤖 Automático (acomodar en el siguiente hueco libre)</option>
+      <option value="true">Fijar en esta fecha/hora y reprogramar cascada</option>
+      <option value="false">Automático (siguiente hueco libre)</option>
     </select>
-
-    <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;flex-wrap:wrap">
       <button class="btn btn-danger" onclick="cancelarOrdenModal()"><i class="fas fa-ban"></i> Cancelar Orden</button>
       <div style="display:flex;gap:8px">
         <button class="btn" onclick="cerrarModal()">Cerrar</button>
-        <button class="btn btn-primary" onclick="guardarAjusteModal()"><i class="fas fa-check"></i> Mover y Reprogramar Cascada</button>
+        <button class="btn btn-primary" onclick="guardarAjusteModal()"><i class="fas fa-check"></i> Mover y Reprogramar</button>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-const LS_DEM = 'kraem_boceto_demand_v1';
-const LS_APS = 'kraem_boceto_aps_v1';
+<!-- MODAL KITTING WMS FIFO -->
+<div class="modal" id="kittingModal" onclick="if(event.target===this)cerrarKittingModal()">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0"><i class="fas fa-dolly" style="color:var(--success)"></i> <span id="kTitle">Surtido Kitting WMS FIFO</span></h3>
+      <button class="btn btn-sm" onclick="cerrarKittingModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <p id="kSub" style="font-size:12px;color:var(--muted);margin:6px 0 10px"></p>
+    <div id="kDraftNotice"></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>Componente / Material</th><th class="num">Requerido</th><th class="num">Stock WMS</th><th>Selección FIFO (Lotes Antiguos)</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="kItemsBody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" onclick="cerrarKittingModal()">Cancelar</button>
+      <button class="btn btn-success" id="btnConfirmKit" onclick="confirmarKittingWms()"><i class="fas fa-check-double"></i> Confirmar Salida FIFO y Marcar SURTIDO</button>
+    </div>
+  </div>
+</div>
 
-let allParts = [], pts = [], machines = [], molds = [], partMolds = [], moldMachines = [], boms = [], packs = [], partRoutings = [], procesos = [], stockMap = {};
+<script>
+const LS_APS_CACHE = 'kraem_aps_board_cache_v2';
+
+let allParts = [], pts = [], machines = [], molds = [], partMolds = [], moldMachines = [], boms = [], packs = [], partRoutings = [], procesos = [];
+let stockMap = {}, fifoBucketsByPart = {}, firmDemands = [], dbPos = [];
 let wos = [];
 let baseDayMs = 0;
 let editIdx = -1;
+let kitIdx = -1;
+let currentHorizonDays = 7;
+let canEditPlan = true, canKitWms = true;
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt = n => Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits:1});
+const fmt = n => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 1 });
+const sameId = (a, b) => String(a ?? '') === String(b ?? '');
+
+const APS_I18N = {
+  es: { back:'Cockpit', title:'Tablero APS & Gantt por Máquina', sub:'Demanda FIRME desde BD (excluye Forecast), publicación idempotente a production_orders y Kitting FIFO WMS.', gen:'Generar / Sincronizar APS', pub:'Publicar a Piso MES', kWos:'Órdenes Programadas (WO)', kSmed:'Cambios de Molde (SMED)', kShort:'Cortos de Material', kSplit:'Olas por Empaque', kHrs:'Horas Totales Cargadas' },
+  ko: { back:'조종실', title:'APS 스케줄 보드 및 설비 간트', sub:'확정 주문(DB) 기반 스케줄링(예측 제외), 중복 없는 작업지시 발행 및 FIFO 불출 키팅.', gen:'APS 생성 / 동기화', pub:'MES 작업지시 발행', kWos:'계획 작업지시(WO)', kSmed:'금형 교체(SMED)', kShort:'자재 부족 알림', kSplit:'포장 분할 오더', kHrs:'총 부하 시간' },
+  en: { back:'Cockpit', title:'APS Schedule Board & Machine Gantt', sub:'FIRM DB demand (excludes Forecast), idempotent publishing to production_orders & WMS FIFO Kitting.', gen:'Generate / Sync APS', pub:'Publish to MES Floor', kWos:'Scheduled WOs', kSmed:'Mold Changeovers (SMED)', kShort:'Material Shortages', kSplit:'Packaging Split Waves', kHrs:'Total Loaded Hours' }
+};
+
+function setLang(lang) {
+  const l = APS_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = APS_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('lblBtnGen').textContent = t.gen;
+  document.getElementById('lblBtnPub').textContent = t.pub;
+  document.getElementById('lblKpiWos').textContent = t.kWos;
+  document.getElementById('lblKpiSmed').textContent = t.kSmed;
+  document.getElementById('lblKpiShort').textContent = t.kShort;
+  document.getElementById('lblKpiSplit').textContent = t.kSplit;
+  document.getElementById('lblKpiHrs').textContent = t.kHrs;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+function syncPermissions() {
+  canEditPlan = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('planeacion');
+  canKitWms = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('planeacion') || KraemAuth.canEdit('wms');
+  const pubBtn = document.getElementById('btnPublicarMes');
+  if (pubBtn) pubBtn.style.display = canEditPlan ? 'inline-flex' : 'none';
+}
+
+document.addEventListener('kraem:authready', syncPermissions);
 
 function dayStartMs(dateStr){
-  const [y,m,d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+  const parts = String(dateStr || '').split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return baseDayMs;
+  return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0).getTime();
 }
+
 function todayStr(offsetDays = 0){
   const dt = new Date();
   dt.setHours(0,0,0,0);
   dt.setDate(dt.getDate() + offsetDays);
   return dt.toISOString().slice(0,10);
 }
+
 function fmtDT(ms){
   const d = new Date(ms);
   const dd = d.toLocaleDateString('es-MX', { day:'2-digit', month:'short' });
@@ -246,12 +325,51 @@ function fmtDT(ms){
   return `${dd} ${hm}`;
 }
 
+async function cargarPartesCanonicas() {
+  const cols = 'id, part_number, part_name, product_type, unit_of_measure, safety_stock, min_lot_size, lot_rounding, lead_time_days, scrap_pct, std_pack, cavities, cycle_time_seg, obsolete, is_archived_duplicate';
+  if (window.fetchAllRows) {
+    try {
+      const data = await window.fetchAllRows('parts', { select: cols, filter: q => q.eq('obsolete', false).eq('is_archived_duplicate', false), orderBy: 'part_number' });
+      return Array.isArray(data) ? data : (data?.data || []);
+    } catch (_) {
+      const fb = await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, unit_of_measure, safety_stock, min_lot_size, lot_rounding, lead_time_days, scrap_pct, std_pack, cavities, cycle_time_seg, obsolete', filter: q => q.eq('obsolete', false), orderBy: 'part_number' });
+      return (Array.isArray(fb) ? fb : (fb?.data || [])).filter(p => !p.is_archived_duplicate);
+    }
+  }
+  const { data } = await client.from('parts').select(cols).eq('obsolete', false).order('part_number');
+  return (data || []).filter(p => !p.is_archived_duplicate);
+}
+
+async function refreshInventoryFromDB() {
+  const stockRows = window.fetchAllRows
+    ? await window.fetchAllRows('v_inventory_by_location', { select: 'part_id, part_number, area, location_id, location, container_id, container_code, lot_number, quantity, created_at', filter: q => q.gt('quantity', 0) })
+    : await client.from('v_inventory_by_location').select('part_id, part_number, area, location_id, location, container_id, container_code, lot_number, quantity, created_at').gt('quantity', 0).then(r => r.data || []);
+  stockMap = {};
+  fifoBucketsByPart = {};
+  (Array.isArray(stockRows) ? stockRows : (stockRows?.data || [])).forEach(s => {
+    const pid = Number(s.part_id);
+    const qty = parseFloat(s.quantity) || 0;
+    if (!pid || qty <= 0) return;
+    stockMap[pid] = (stockMap[pid] || 0) + qty;
+    if (!fifoBucketsByPart[pid]) fifoBucketsByPart[pid] = [];
+    fifoBucketsByPart[pid].push({ ...s, part_id: pid, quantity: qty });
+  });
+  Object.keys(fifoBucketsByPart).forEach(pid => {
+    fifoBucketsByPart[pid].sort((a,b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+  });
+}
+
 async function init(){
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  syncPermissions();
   baseDayMs = dayStartMs(todayStr(0));
+
   try {
-    const [partsData, rMach, moldsData, pmData, rMm, bomData, packsData, rRout, rProc, rStock] = await Promise.all([
-      window.fetchAllRows ? window.fetchAllRows('parts', { filter: q => q.eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('*').eq('obsolete', false).order('part_number').then(r => r.data || []),
+    const [partsData, rMesMach, rMachFb, moldsData, pmData, rMm, bomData, packsData, rRout, rProc, , rFirmReq, rDbPo] = await Promise.all([
+      cargarPartesCanonicas(),
       client.from('mes_machines').select('*').eq('active', true).order('machine_code'),
+      client.from('machines').select('*').neq('active', false).order('machine_code').then(r => r, () => ({ data: [] })),
       window.fetchAllRows ? window.fetchAllRows('molds', { orderBy: 'mold_code' }) : client.from('molds').select('*').order('mold_code').then(r => r.data || []),
       window.fetchAllRows ? window.fetchAllRows('part_molds', { filter: q => q.eq('active', true), orderBy: 'id' }) : client.from('part_molds').select('*').eq('active', true).then(r => r.data || []),
       client.from('mold_machines').select('*'),
@@ -259,69 +377,41 @@ async function init(){
       window.fetchAllRows ? window.fetchAllRows('empaques_partes', { select: 'id, part_id, part_number, standard_pack, es_empaque_primario, active, empaques(codigo, tipo_empaque)', filter: q => q.neq('active', false), orderBy: 'id' }) : client.from('empaques_partes').select('id, part_id, part_number, standard_pack, es_empaque_primario, active, empaques(codigo, tipo_empaque)').neq('active', false).then(r => r.data || []),
       window.fetchAllRows ? window.fetchAllRows('part_routings', { filter: q => q.neq('is_active', false), orderBy: 'seq_num' }) : client.from('part_routings').select('*').neq('is_active', false).order('seq_num').then(r => r.data || []),
       client.from('procesos').select('*'),
-      client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0)
+      refreshInventoryFromDB(),
+      client.from('requerimientos').select('*').eq('status', 'ABIERTO').eq('tipo_demanda', 'PEDIDO_FIRME').order('due_date', { ascending: true }).order('id', { ascending: true }),
+      client.from('production_orders').select('*').in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']).order('id', { ascending: true })
     ]);
 
-    allParts = (Array.isArray(partsData) ? partsData : (partsData.data || [])).filter(p => !p.is_archived_duplicate);
+    allParts = partsData || [];
     pts = allParts.filter(p => p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
-    machines = rMach.data || [];
-    molds = Array.isArray(moldsData) ? moldsData : (moldsData.data || []);
-    partMolds = Array.isArray(pmData) ? pmData : (pmData.data || []);
+    machines = (rMesMach.data && rMesMach.data.length) ? rMesMach.data : (rMachFb.data || []);
+    molds = Array.isArray(moldsData) ? moldsData : (moldsData?.data || []);
+    partMolds = Array.isArray(pmData) ? pmData : (pmData?.data || []);
     moldMachines = rMm.data || [];
-    boms = Array.isArray(bomData) ? bomData : (bomData.data || []);
-    packs = (Array.isArray(packsData) ? packsData : (packsData.data || [])).filter(x => x.active !== false);
+    boms = (Array.isArray(bomData) ? bomData : (bomData?.data || [])).filter(b => b.is_active !== false && Number(b.parent_id) !== Number(b.child_id));
+    packs = (Array.isArray(packsData) ? packsData : (packsData?.data || [])).filter(x => x.active !== false);
     partRoutings = (Array.isArray(rRout) ? rRout : (rRout?.data || [])).filter(r => r.is_active !== false);
     procesos = rProc?.data || [];
-    (rStock.data || []).forEach(s => { stockMap[s.part_id] = (stockMap[s.part_id] || 0) + (parseFloat(s.quantity) || 0); });
-  } catch (e) { console.warn(e); }
+    firmDemands = rFirmReq.data || [];
+    dbPos = rDbPo.data || [];
 
-  if (!pts.length) {
-    pts = [
-      { id: -1, part_number: 'DEMO-PT-100', part_name: 'Carcasa Tablero', cavities: 2, cycle_time_seg: 30, std_pack: 30 },
-      { id: -2, part_number: 'DEMO-PT-200', part_name: 'Soporte Consola', cavities: 4, cycle_time_seg: 24, std_pack: 50 },
-      { id: -3, part_number: 'DEMO-PT-300', part_name: 'Tapa Lateral', cavities: 2, cycle_time_seg: 36, std_pack: 40 }
-    ];
-    allParts = [...pts, { id: -10, part_number: 'RES-PP-BLK', part_name: 'PP Negro', product_type: 'RESINA', unit_of_measure: 'KG' }];
-    boms = [
-      { parent_id: -1, child_id: -10, usage_qty: 0.24 },
-      { parent_id: -2, child_id: -10, usage_qty: 0.14 },
-      { parent_id: -3, child_id: -10, usage_qty: 0.20 }
-    ];
-    packs = [
-      { part_number: 'DEMO-PT-100', standard_pack: 30, es_empaque_primario: true, empaques: { codigo:'CARRO-KRAEM', tipo_empaque:'CARRO_INTERNO' } },
-      { part_number: 'DEMO-PT-200', standard_pack: 50, es_empaque_primario: true, empaques: { codigo:'TOTE-RET-01', tipo_empaque:'RETORNABLE_CLIENTE' } },
-      { part_number: 'DEMO-PT-300', standard_pack: 40, es_empaque_primario: true, empaques: { codigo:'CARTON-01', tipo_empaque:'DESECHABLE_CARTON' } }
-    ];
-  }
-  if (!machines.length) {
-    machines = [
-      { id: -1, machine_code: 'INJ-01', machine_name: 'Nissei 150T', tonnage: 150, hours_per_day: 22.5, oee_target_pct: 85 },
-      { id: -2, machine_code: 'INJ-02', machine_name: 'Engel 250T', tonnage: 250, hours_per_day: 22.5, oee_target_pct: 85 },
-      { id: -3, machine_code: 'INJ-03', machine_name: 'Toshiba 350T', tonnage: 350, hours_per_day: 22.5, oee_target_pct: 85 }
-    ];
-  }
-  if (!molds.length) {
-    molds = [
-      { id: -1, mold_code: 'MLD-100', mold_name: 'Molde Carcasa 2C', tonnage_min: 140, setup_time_min: 45 },
-      { id: -2, mold_code: 'MLD-200', mold_name: 'Molde Soporte 4C', tonnage_min: 200, setup_time_min: 60 },
-      { id: -3, mold_code: 'MLD-300', mold_name: 'Molde Tapa 2C', tonnage_min: 280, setup_time_min: 40 }
-    ];
+    const badge = document.getElementById('sourceBadge');
+    badge.textContent = `BD: ${dbPos.length} WOs activas · ${firmDemands.length} Dem. Firmes · ${machines.length} Máq`;
+    badge.className = 'badge b-ok';
+  } catch (e) {
+    console.warn('APS init error:', e);
+    const badge = document.getElementById('sourceBadge');
+    badge.textContent = 'Error BD: ' + (e.message || e);
+    badge.className = 'badge b-bad';
   }
 
-  document.getElementById('sourceBadge').textContent = `${pts.length} PT · ${machines.length} Máq · ${molds.length} Moldes`;
   document.getElementById('eMach').innerHTML = machines.map(m =>
     `<option value="${m.id}">${esc(m.machine_code || m.machine_name)} (${m.tonnage || '?'}T)</option>`
   ).join('');
 
-  try { wos = JSON.parse(localStorage.getItem(LS_APS) || '[]'); } catch { wos = []; }
-  if (!wos.length || !wos[0].start_ms) {
-    generarPropuestaAutomatica();
-  } else {
-    reprogramarCascada();
-  }
+  construirTableroDesdeBD();
 }
 
-/* ==================== INTELIGENCIA / PROPUESTA AUTOMÁTICA APS ==================== */
 function getPartPackagingLimit(part){
   const pk = packs.find(x => x.active !== false && (Number(x.part_id) === Number(part.id) || x.part_number === part.part_number) && x.es_empaque_primario)
           || packs.find(x => x.active !== false && (Number(x.part_id) === Number(part.id) || x.part_number === part.part_number));
@@ -329,8 +419,6 @@ function getPartPackagingLimit(part){
   const tipo = pk?.empaques?.tipo_empaque || 'DESECHABLE_CARTON';
   const maxCont = Math.max(1, Number(document.getElementById('cfgMaxCont').value || 12));
   const retDays = Math.max(1, Number(document.getElementById('cfgRetDays').value || 2));
-
-  // CARRO_INTERNO / RETORNABLE_CLIENTE están físicamente limitados en flota; CARTÓN es ilimitado
   const limited = (tipo === 'CARRO_INTERNO' || tipo === 'RETORNABLE_CLIENTE') && stdPack > 0;
   const maxBatchQty = limited ? stdPack * maxCont : Infinity;
   return { limited, tipo, codigo: pk?.empaques?.codigo || 'ESTÁNDAR', stdPack, maxCont, retDays, maxBatchQty };
@@ -341,205 +429,256 @@ function getPartRoutingMeta(partId){
     .filter(r => Number(r.part_id) === Number(partId) && r.is_active !== false)
     .sort((a,b) => Number(a.seq_num) - Number(b.seq_num))
     .map(r => {
-      const proc = procesos.find(pr => String(pr.id) === String(r.proceso_id)) || {};
+      const proc = procesos.find(pr => sameId(pr.id, r.proceso_id)) || {};
       return { ...r, procCode: proc.codigo || '', procTipo: proc.tipo || '', procName: proc.nombre || '' };
     });
   const routeChain = steps.map(s => s.procCode).filter(Boolean).join(' → ');
   const injStep = steps.find(s => s.procTipo === 'INYECCION' || s.procCode === 'PROC-INY') || null;
-  const setupMin = steps.length ? steps.reduce((acc, s) => acc + Number(s.setup_time_min || 0), 0) : null;
-  const postInjSec = steps.filter(s => s.procTipo !== 'INYECCION').reduce((acc, s) => acc + Number(s.std_time_sec || 0), 0);
   const operatorsReq = steps.length ? Math.max(1, ...steps.map(s => Number(s.operators_req || 1))) : 1;
-  const smedChecklistId = injStep?.checklist_id || null;
-  return { steps, routeChain, injStep, setupMin, postInjSec, operatorsReq, smedChecklistId };
+  return { steps, routeChain, injStep, operatorsReq, smedChecklistId: injStep?.checklist_id || null };
 }
 
 function chooseMoldAndMachine(part, machineIndexFallback){
   const rMeta = getPartRoutingMeta(part.id);
-
-  // 1. Buscar molde en `part_molds` o paso de Inyección de `part_routings`
-  const pmRels = partMolds.filter(pm => pm.part_id === part.id);
+  const pmRels = partMolds.filter(pm => Number(pm.part_id) === Number(part.id));
   const pm = pmRels.find(r => r.is_primary) || pmRels[0];
-  let mold = pm ? molds.find(m => m.id === pm.mold_id) : null;
-  if (!mold && rMeta.injStep?.mold_id) mold = molds.find(m => String(m.id) === String(rMeta.injStep.mold_id)) || null;
-  if (!mold) mold = molds[machineIndexFallback % molds.length] || molds[0];
+  let mold = pm ? molds.find(m => sameId(m.id, pm.mold_id)) : null;
+  if (!mold && rMeta.injStep?.mold_id) mold = molds.find(m => sameId(m.id, rMeta.injStep.mold_id)) || null;
+  if (!mold && molds.length) mold = molds[machineIndexFallback % molds.length] || molds[0];
 
   const cav = Number(pm?.cavities_for_part || part.cavities || 2);
   let cyc = Number(pm?.cycle_time_sec || part.cycle_time_seg || 30);
   const reqTon = Number(mold?.tonnage_min || mold?.tonnage_req || 0);
   const setupMin = Number((rMeta.injStep && rMeta.injStep.setup_time_min) || mold?.setup_time_min || 45);
 
-  // 2. Buscar máquina en `mold_machines`, en `part_routings` o por tonelaje compatible
-  const mmRels = mold ? moldMachines.filter(mm => mm.mold_id === mold.id && mm.active !== false) : [];
+  const mmRels = mold ? moldMachines.filter(mm => sameId(mm.mold_id, mold.id) && mm.active !== false) : [];
   let mach = null;
   if (mmRels.length) {
     const prim = mmRels.find(r => r.is_primary) || mmRels[0];
-    mach = machines.find(m => String(m.id) === String(prim.machine_id));
+    mach = machines.find(m => sameId(m.id, prim.machine_id));
     if (prim.cycle_time_sec) cyc = Number(prim.cycle_time_sec);
   }
   if (!mach && rMeta.injStep?.machine_id) {
-    mach = machines.find(m => String(m.id) === String(rMeta.injStep.machine_id)) || null;
+    mach = machines.find(m => sameId(m.id, rMeta.injStep.machine_id)) || null;
   }
-  if (!mach) {
+  if (!mach && machines.length) {
     const compat = machines.filter(m => !reqTon || !m.tonnage || Number(m.tonnage) >= reqTon);
     mach = compat[machineIndexFallback % compat.length] || machines[machineIndexFallback % machines.length];
   }
   return { mold, mach, cav, cyc, setupMin, rMeta };
 }
 
-function generarPropuestaAutomatica(){
-  let rawDem = [];
-  try { rawDem = JSON.parse(localStorage.getItem(LS_DEM) || '[]'); } catch { rawDem = []; }
+function construirTableroDesdeBD() {
+  const nextWos = [];
+  const coveredReqIds = new Set();
+  const unlinkedOpenWoByPart = {};
 
-  // Si no hay demanda cargada aún en Forecast, creamos 3 demandas demo usando PT reales
-  if (!rawDem.length) {
-    rawDem = pts.slice(0, 3).map((p, i) => ({
-      id: Date.now() + i,
-      part_id: p.id,
-      date: todayStr(2 + i * 2),
-      qty: 900 + i * 350,
-      type: 'PEDIDO_FIRME'
-    }));
-  }
-
-  // Agrupar demanda por fecha y calcular necesidad neta descontando stock WMS
-  const runningStock = { ...stockMap };
-  const netTasks = [];
-
-  [...rawDem].sort((a,b) => a.date.localeCompare(b.date)).forEach((d, idx) => {
-    const part = pts.find(p => p.id === d.part_id);
-    if (!part) return;
-    const stk = runningStock[part.id] || 0;
-    const ss = Number(part.safety_stock || 0);
-    const net = Math.max(0, Number(d.qty || 0) + ss - stk);
-    runningStock[part.id] = Math.max(0, stk - Number(d.qty || 0));
-    if (net <= 0) return;
-
+  // 1. Cargar WOs persistidas activas en production_orders sin duplicar
+  dbPos.forEach((po, idx) => {
+    const part = allParts.find(p => Number(p.id) === Number(po.part_id)) || { id: po.part_id, cavities: 2, cycle_time_seg: 30 };
+    const { mold: defMold, mach: defMach, cav, cyc, setupMin, rMeta } = chooseMoldAndMachine(part, idx);
+    const mach = machines.find(m => sameId(m.id, po.machine_id)) || defMach || null;
+    const mold = molds.find(m => sameId(m.id, po.mold_id)) || defMold || null;
     const packInfo = getPartPackagingLimit(part);
-    const { mold, mach, cav, cyc, setupMin, rMeta } = chooseMoldAndMachine(part, idx);
-
-    // Si el empaque es limitado (carritos/retornables), dividimos la necesidad en lotes con días de espera
-    let remaining = Math.ceil(net);
-    let wave = 0;
-    while (remaining > 0 && wave < 5) {
-      const batchQty = packInfo.limited ? Math.min(remaining, packInfo.maxBatchQty) : remaining;
-      const earliestDay = todayStr(wave * packInfo.retDays);
-      netTasks.push({
-        part, demandDate: d.date, qty: batchQty, wave, totalNet: Math.ceil(net),
-        isSplit: packInfo.limited && net > packInfo.maxBatchQty,
-        packInfo, mold, mach, cav, cyc, setupMin, rMeta
-      });
-      remaining -= batchQty;
-      wave++;
+    const olaNum = Number(po.ola_num || 1);
+    const startMs = po.planned_start_at ? Date.parse(po.planned_start_at) : (baseDayMs + 7 * 3600000);
+    if (po.requerimiento_id != null) coveredReqIds.add(Number(po.requerimiento_id));
+    else if (Number(po.part_id)) {
+      unlinkedOpenWoByPart[Number(po.part_id)] = (unlinkedOpenWoByPart[Number(po.part_id)] || 0) + Number(po.quantity_planned || 0);
     }
+
+    nextWos.push({
+      po_id: po.id,
+      persisted: true,
+      wo: po.folio || ('WO-' + String(po.id).padStart(5, '0')),
+      requerimiento_id: po.requerimiento_id ? Number(po.requerimiento_id) : null,
+      folio_demanda: null,
+      ola_num: olaNum,
+      part_id: Number(po.part_id),
+      mold_id: mold?.id || null,
+      machine_id: mach?.id || null,
+      qty: Number(po.quantity_planned || 0),
+      cav,
+      cyc,
+      demand_date: po.due_date || todayStr(2),
+      min_start_ms: isNaN(startMs) ? (baseDayMs + 7 * 3600000) : startMs,
+      pinned: Boolean(po.is_pinned),
+      isSplit: Boolean((po.pack_note || '').includes('Limitado')),
+      pack_note: po.pack_note || (packInfo.limited ? `Limitado: máx ${packInfo.maxCont} ${packInfo.codigo} (${packInfo.maxBatchQty} pzs/ola)` : `Ilimitado (${packInfo.codigo})`),
+      setup_min: Number(po.setup_planned_min ?? setupMin),
+      status: po.status || 'PROGRAMADA',
+      setup_status: po.setup_status || 'PENDIENTE',
+      kitting_status: po.kitting_status || 'PENDIENTE',
+      route_chain: rMeta.routeChain || '',
+      operators_req: rMeta.operatorsReq || 1
+    });
   });
 
-  // Ordenar por fecha de entrega requerida (y ola de retorno), agrupando mismo molde para minimizar SMED
-  netTasks.sort((a,b) => (a.wave - b.wave) || a.demandDate.localeCompare(b.demandDate));
+  // 2. Generar borradores únicamente para demandas ABIERTO + PEDIDO_FIRME no cubiertas todavía
+  const runningStock = {};
+  let draftSeq = 1;
+  [...firmDemands]
+    .filter(d => (d.status === 'ABIERTO' || d.status === 'open') && (d.tipo_demanda || 'PEDIDO_FIRME') === 'PEDIDO_FIRME')
+    .sort((a,b) => String(a.due_date || '').localeCompare(String(b.due_date || '')) || (Number(a.id) - Number(b.id)))
+    .forEach((d, idx) => {
+      if (coveredReqIds.has(Number(d.id))) return;
+      const part = allParts.find(p => Number(p.id) === Number(d.part_id));
+      if (!part) return;
+      if (!(part.id in runningStock)) {
+        runningStock[part.id] = (stockMap[part.id] || 0) + (unlinkedOpenWoByPart[part.id] || 0);
+      }
+      const avail = runningStock[part.id];
+      const ss = Number(part.safety_stock || 0);
+      const netExact = Math.max(0, Number(d.quantity || 0) + ss - avail);
+      const minLot = Number(part.min_lot_size || 0);
+      const roundTo = Math.max(1, Number(part.lot_rounding || 1));
+      const woTotal = netExact > 0 ? Math.ceil(Math.max(netExact, minLot) / roundTo) * roundTo : 0;
+      runningStock[part.id] = Math.max(0, avail + woTotal - Number(d.quantity || 0));
+      if (woTotal <= 0) return;
 
-  wos = netTasks.map((t, i) => ({
-    wo: 'WO-' + String(1001 + i),
-    part_id: t.part.id,
-    mold_id: t.mold?.id || '',
-    machine_id: t.mach?.id || '',
-    qty: t.qty,
-    cav: t.cav,
-    cyc: t.cyc,
-    demand_date: t.demandDate,
-    date: todayStr(t.wave * t.packInfo.retDays),
-    min_start_ms: dayStartMs(todayStr(t.wave * t.packInfo.retDays)) + 7 * 3600000,
-    pinned: false,
-    isSplit: t.isSplit,
-    pack_note: t.packInfo.limited
-      ? `Limitado: máx ${t.packInfo.maxCont} ${t.packInfo.codigo} (${t.packInfo.maxBatchQty} pzs/ola)`
-      : `Ilimitado (${t.packInfo.codigo})`,
-    setup_min: t.setupMin,
-    route_chain: t.rMeta?.routeChain || '',
-    operators_req: t.rMeta?.operatorsReq || 1,
-    smed_checklist_id: t.rMeta?.smedChecklistId || null,
-    post_inj_sec: t.rMeta?.postInjSec || 0
-  }));
+      const packInfo = getPartPackagingLimit(part);
+      const { mold, mach, cav, cyc, setupMin, rMeta } = chooseMoldAndMachine(part, idx);
+      let remaining = Math.ceil(woTotal);
+      let wave = 0;
+      while (remaining > 0 && wave < 12) {
+        const batchQty = (packInfo.limited && wave < 11) ? Math.min(remaining, packInfo.maxBatchQty) : remaining;
+        const olaDay = todayStr(wave * packInfo.retDays);
+        nextWos.push({
+          po_id: null,
+          persisted: false,
+          wo: 'BORR-' + String(draftSeq++).padStart(4, '0'),
+          requerimiento_id: Number(d.id),
+          folio_demanda: d.folio_demanda || ('DEM-' + String(d.id).padStart(5, '0')),
+          ola_num: wave + 1,
+          part_id: Number(part.id),
+          mold_id: mold?.id || null,
+          machine_id: mach?.id || null,
+          qty: batchQty,
+          cav,
+          cyc,
+          demand_date: d.due_date || olaDay,
+          min_start_ms: dayStartMs(olaDay) + 7 * 3600000,
+          pinned: false,
+          isSplit: packInfo.limited && woTotal > packInfo.maxBatchQty,
+          pack_note: packInfo.limited
+            ? `Limitado: máx ${packInfo.maxCont} ${packInfo.codigo} (${packInfo.maxBatchQty} pzs/ola)`
+            : `Ilimitado (${packInfo.codigo})`,
+          setup_min: setupMin,
+          status: 'BORRADOR_APS',
+          setup_status: 'PENDIENTE',
+          kitting_status: 'PENDIENTE',
+          route_chain: rMeta.routeChain || '',
+          operators_req: rMeta.operatorsReq || 1
+        });
+        remaining -= batchQty;
+        wave++;
+      }
+    });
 
+  wos = nextWos;
   reprogramarCascada();
 }
 
-/* ==================== REPROGRAMACIÓN AUTOMÁTICA EN CASCADA ==================== */
+async function generarPropuestaAutomatica(){
+  try {
+    if (client && client.from) {
+      const [rFirm, rPo] = await Promise.all([
+        client.from('requerimientos').select('*').eq('status', 'ABIERTO').eq('tipo_demanda', 'PEDIDO_FIRME').order('due_date', { ascending: true }).order('id', { ascending: true }),
+        client.from('production_orders').select('*').in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']).order('id', { ascending: true })
+      ]);
+      if (!rFirm.error && Array.isArray(rFirm.data)) firmDemands = rFirm.data;
+      if (!rPo.error && Array.isArray(rPo.data)) dbPos = rPo.data;
+      await refreshInventoryFromDB();
+    }
+  } catch (e) { console.warn('Sync APS desde BD:', e); }
+
+  const badge = document.getElementById('sourceBadge');
+  if (badge) {
+    badge.textContent = `BD: ${dbPos.length} WOs activas · ${firmDemands.length} Dem. Firmes · ${machines.length} Máq`;
+    badge.className = 'badge b-ok';
+  }
+  construirTableroDesdeBD();
+}
+
 function reprogramarCascada(){
-  // Agrupar órdenes por máquina; respetar órdenes fijadas (pinned) y empujar las demás sin traslapes
   const machFreeAt = {};
   const lastMoldByMach = {};
   machines.forEach(m => { machFreeAt[m.id] = baseDayMs + 7 * 3600000; });
 
-  // Primero fijamos orden por: pinned primero o cronológico (min_start_ms)
-  const ordered = [...wos].sort((a,b) => (a.min_start_ms || 0) - (b.min_start_ms || 0));
+  const ordered = [...wos].sort((a,b) => (a.min_start_ms || 0) - (b.min_start_ms || 0) || (a.ola_num || 1) - (b.ola_num || 1));
+  const runningMatStock = { ...stockMap };
 
   ordered.forEach(w => {
-    const mach = machines.find(m => String(m.id) === String(w.machine_id)) || machines[0];
-    if (!mach) return;
-    w.machine_id = mach.id;
+    const mach = machines.find(m => sameId(m.id, w.machine_id)) || machines[0];
+    if (mach) {
+      w.machine_id = mach.id;
+      const defOee = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'aps_oee_default_pct', 85)) : 85;
+      const defSmed = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'smed_default_min', 45)) : 45;
+      const oee = Math.max(10, Number(mach.oee_target_pct || defOee)) / 100;
+      const pph = Math.round((3600 / Math.max(1, Number(w.cyc || 30))) * Number(w.cav || 1));
+      const prodHrs = (w.qty / Math.max(1, pph)) / oee;
 
-    const defOee = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'aps_oee_default_pct', 85)) : 85;
-    const defSmed = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'smed_default_min', 45)) : 45;
-    const oee = Math.max(10, Number(mach.oee_target_pct || defOee)) / 100;
-    const pph = Math.round((3600 / Math.max(1, Number(w.cyc || 30))) * Number(w.cav || 1));
-    const prodHrs = (w.qty / Math.max(1, pph)) / oee;
+      const sameMold = lastMoldByMach[mach.id] && sameId(lastMoldByMach[mach.id], w.mold_id);
+      const effectiveSetupMin = sameMold ? 0 : Number(w.setup_min || defSmed);
+      const totalHrs = prodHrs + effectiveSetupMin / 60;
 
-    // Si ya está el mismo molde montado inmediatamente antes en esa máquina, SMED = 0 min!
-    const sameMold = lastMoldByMach[mach.id] && String(lastMoldByMach[mach.id]) === String(w.mold_id);
-    const effectiveSetupMin = sameMold ? 0 : Number(w.setup_min || defSmed);
-    const totalHrs = prodHrs + effectiveSetupMin / 60;
+      let startMs = w.pinned
+        ? Math.max(w.min_start_ms || machFreeAt[mach.id], baseDayMs)
+        : Math.max(machFreeAt[mach.id] || (baseDayMs + 7*3600000), w.min_start_ms || 0);
+      if (!w.pinned && startMs < machFreeAt[mach.id]) startMs = machFreeAt[mach.id];
 
-    let startMs = w.pinned
-      ? Math.max(w.min_start_ms || machFreeAt[mach.id], baseDayMs)
-      : Math.max(machFreeAt[mach.id] || (baseDayMs + 7*3600000), w.min_start_ms || 0);
+      const setupEndMs = startMs + effectiveSetupMin * 60000;
+      const endMs = setupEndMs + prodHrs * 3600000;
 
-    // Si no está fijada y choca con una anterior en la máquina, empujarla al término de la anterior
-    if (!w.pinned && startMs < machFreeAt[mach.id]) {
-      startMs = machFreeAt[mach.id];
+      w.effective_setup_min = effectiveSetupMin;
+      w.prod_hrs = Number(prodHrs.toFixed(2));
+      w.total_hrs = Number(totalHrs.toFixed(2));
+      w.start_ms = startMs;
+      w.setup_end_ms = setupEndMs;
+      w.end_ms = endMs;
+      w.date = new Date(startMs).toISOString().slice(0,10);
+
+      machFreeAt[mach.id] = Math.max(machFreeAt[mach.id], endMs);
+      lastMoldByMach[mach.id] = w.mold_id;
+    } else {
+      w.effective_setup_min = 0;
+      w.prod_hrs = 8;
+      w.total_hrs = 8;
+      w.start_ms = w.min_start_ms || (baseDayMs + 7*3600000);
+      w.setup_end_ms = w.start_ms;
+      w.end_ms = w.start_ms + 8*3600000;
+      w.date = new Date(w.start_ms).toISOString().slice(0,10);
     }
 
-    const setupEndMs = startMs + effectiveSetupMin * 60000;
-    const endMs = setupEndMs + prodHrs * 3600000;
-
-    w.effective_setup_min = effectiveSetupMin;
-    w.prod_hrs = Number(prodHrs.toFixed(2));
-    w.total_hrs = Number(totalHrs.toFixed(2));
-    w.start_ms = startMs;
-    w.setup_end_ms = setupEndMs;
-    w.end_ms = endMs;
-    w.date = new Date(startMs).toISOString().slice(0,10);
-
-    machFreeAt[mach.id] = Math.max(machFreeAt[mach.id], endMs);
-    lastMoldByMach[mach.id] = w.mold_id;
-
-    // Evaluar Shortage de material WMS
-    w.shortage = evaluateMaterialShortage(w);
-    if (w.shortage.isShortage) {
-      w.suggested_date = todayStr(w.shortage.maxLeadTime);
-    }
+    w.shortage = evaluateMaterialShortage(w, runningMatStock);
+    if (w.shortage.isShortage) w.suggested_date = todayStr(w.shortage.maxLeadTime);
   });
 
   wos = ordered;
-  localStorage.setItem(LS_APS, JSON.stringify(wos));
+  localStorage.setItem(LS_APS_CACHE, JSON.stringify(wos));
   renderAll();
 }
 
-/* ==================== EVALUACIÓN DE SHORTAGE DE MATERIAL ==================== */
-function evaluateMaterialShortage(w) {
-  const rels = boms.filter(b => b.parent_id === w.part_id && b.is_active !== false && b.parent_id !== b.child_id);
+function evaluateMaterialShortage(w, poolRef) {
+  if (String(w.kitting_status || 'PENDIENTE').toUpperCase() === 'SURTIDO') {
+    return { hasBom: true, isShortage: false, alreadyKitted: true, items: [], maxLeadTime: 0, summary: 'Kit Surtido OK en WMS' };
+  }
+  const rels = boms.filter(b => Number(b.parent_id) === Number(w.part_id) && b.is_active !== false && Number(b.parent_id) !== Number(b.child_id));
   if (!rels.length) {
     return { hasBom: false, isShortage: false, items: [], maxLeadTime: 0, summary: 'Sin BOM registrado' };
   }
-
+  const pool = poolRef || stockMap;
   const items = [];
   let maxLeadTime = 0;
 
   for (const r of rels) {
-    const child = allParts.find(x => x.id === r.child_id);
+    const child = allParts.find(x => Number(x.id) === Number(r.child_id));
     if (!child) continue;
     const usage = Number(r.usage_qty ?? r.quantity ?? 0);
-    const scrap = Number(r.scrap_pct || child.scrap_pct || 0);
+    const scrap = Number(r.scrap_pct ?? child.scrap_pct ?? 0);
     const needed = Math.ceil(w.qty * usage * (1 + scrap / 100));
-    const inStock = Math.floor(stockMap[child.id] || 0);
+    const inStock = Math.max(0, Math.floor(pool[child.id] || 0));
+    if (poolRef) pool[child.id] = Math.max(0, inStock - needed);
 
     if (inStock < needed) {
       const lt = Math.max(1, Number(child.lead_time_days || 5));
@@ -556,20 +695,15 @@ function evaluateMaterialShortage(w) {
   }
 
   const isShortage = items.length > 0;
-  const summary = isShortage 
-    ? items.map(i => `${i.child.part_number}: falta ${i.deficit.toLocaleString()} ${i.uom} (LT: ${i.leadTime}d)`).join(' · ')
-    : 'Material 100% disponible en WMS';
-
   return {
     hasBom: true,
     isShortage,
     items,
     maxLeadTime: maxLeadTime || 3,
-    summary
+    summary: isShortage ? items.map(i => `${i.child.part_number}: falta ${i.deficit.toLocaleString()} ${i.uom} (LT: ${i.leadTime}d)`).join(' · ') : 'Material 100% disponible en WMS'
   };
 }
 
-let currentHorizonDays = 7;
 function cambiarHorizonte(days) {
   currentHorizonDays = Number(days) || 7;
   renderGantt();
@@ -580,14 +714,12 @@ function moverAFechaViable(idx) {
   if (!w) return;
   const shortInfo = w.shortage || evaluateMaterialShortage(w);
   const lt = shortInfo.maxLeadTime || 3;
-  const targetDateStr = todayStr(lt);
-  w.min_start_ms = dayStartMs(targetDateStr) + 7 * 3600000;
+  w.min_start_ms = dayStartMs(todayStr(lt)) + 7 * 3600000;
   w.pinned = true;
   if (editIdx >= 0) cerrarModal();
   reprogramarCascada();
 }
 
-/* ==================== RENDER GANTT + TABLA ==================== */
 function renderAll(){
   renderGantt();
   renderTable();
@@ -604,13 +736,13 @@ function renderGantt(){
     daysHtml += `<div class="gantt-day-cell">${dt.toLocaleDateString('es-MX', { weekday:'short', day:'2-digit', month:'short' })}</div>`;
   }
 
-  const rowsHtml = machines.map(m => {
-    const mWos = wos.filter(w => String(w.machine_id) === String(m.id));
-    const totalHrs = mWos.reduce((s, w) => s + w.total_hrs, 0);
+  const rowsHtml = machines.length ? machines.map(m => {
+    const mWos = wos.filter(w => sameId(w.machine_id, m.id));
+    const totalHrs = mWos.reduce((s, w) => s + Number(w.total_hrs || 0), 0);
 
     const bars = mWos.map(w => {
       const idx = wos.indexOf(w);
-      const p = pts.find(x => x.id === w.part_id) || {};
+      const p = allParts.find(x => Number(x.id) === Number(w.part_id)) || {};
       const shortInfo = w.shortage || evaluateMaterialShortage(w);
       const isShort = shortInfo.isShortage;
 
@@ -618,50 +750,27 @@ function renderGantt(){
       const clampEnd = Math.max(clampStart + 1800000, Math.min(horizonEndMs, w.end_ms));
       const leftPct = ((clampStart - baseDayMs) / (horizonHrs * 3600000)) * 100;
       const widthPct = Math.max(5.0, ((clampEnd - clampStart) / (horizonHrs * 3600000)) * 100);
-
       const smedRatio = w.total_hrs > 0 ? ((w.effective_setup_min / 60) / w.total_hrs) * 100 : 0;
-      const prodClasses = [
-        'bar-prod',
-        w.pinned ? 'pinned' : '',
-        w.isSplit ? 'split' : '',
-        isShort ? 'shortage' : ''
-      ].filter(Boolean).join(' ');
+      const prodClasses = ['bar-prod', w.pinned ? 'pinned' : '', w.isSplit ? 'split' : '', isShort ? 'shortage' : ''].filter(Boolean).join(' ');
 
-      const toolTip = `${w.wo} | ${p.part_number} (${p.part_name || ''})\n` +
-        `Cantidad: ${w.qty.toLocaleString()} pzs · Horas: ${w.prod_hrs}h prod (${w.total_hrs}h total)\n` +
-        `SMED Setup: ${fmtDT(w.start_ms)} → ${fmtDT(w.setup_end_ms)} (${w.effective_setup_min} min)\n` +
-        `Inyección: ${fmtDT(w.setup_end_ms)} → ${fmtDT(w.end_ms)}\n` +
-        (isShort ? `⚠️ CORTO DE MATERIAL:\n${shortInfo.summary}\n(Haz clic para reprogramar a fecha viable)` : `✅ Material en WMS disponible`);
-
-      return `<div class="gantt-bar" style="left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%"
-                title="${esc(toolTip)}"
-                onclick="abrirModal(${idx})">
-        ${smedRatio > 0 ? `<div class="bar-smed" style="width:${Math.max(16, Math.min(30, smedRatio)).toFixed(0)}%"><i class="fas fa-wrench" style="font-size:10px"></i><span style="font-size:9px">${w.effective_setup_min}m</span></div>` : ''}
+      return `<div class="gantt-bar" style="left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%" onclick="abrirModal(${idx})">
+        ${smedRatio > 0 ? `<div class="bar-smed" style="width:${Math.max(16, Math.min(30, smedRatio)).toFixed(0)}%"><i class="fas fa-wrench" style="font-size:9px"></i><span>${w.effective_setup_min}m</span></div>` : ''}
         <div class="${prodClasses}">
-          <div class="bar-header">
-            <span>${esc(w.wo)}</span> · <span class="bar-pn">${esc(p.part_number || 'PT')}</span>
-          </div>
-          <div class="bar-info">
-            <strong>${w.qty.toLocaleString()} pzs</strong> · ${w.prod_hrs}h prod
-          </div>
-          ${isShort 
-            ? `<div class="shortage-badge-pill"><i class="fas fa-triangle-exclamation"></i> CORTO MAT</div>` 
-            : `<div class="ok-badge-pill"><i class="fas fa-check"></i> Mat OK</div>`}
+          <div class="bar-header"><span>${esc(w.wo)}</span> · <span class="bar-pn">${esc(p.part_number || 'PT')}</span></div>
+          <div class="bar-info"><strong>${Number(w.qty).toLocaleString()} pzs</strong> · ${w.prod_hrs}h</div>
+          ${isShort ? `<div class="shortage-badge-pill">CORTO MAT</div>` : `<div class="ok-badge-pill">${w.kitting_status === 'SURTIDO' ? 'SURTIDO' : 'Mat OK'}</div>`}
         </div>
       </div>`;
     }).join('');
 
     return `<div class="gantt-row">
-      <div class="gantt-mach">
-        <strong>${esc(m.machine_code || m.machine_name)}</strong>
-        <small style="color:var(--muted);font-size:11px">${m.tonnage || '?'}T · ${totalHrs.toFixed(1)}h cargadas</small>
-      </div>
+      <div class="gantt-mach"><strong>${esc(m.machine_code || m.machine_name)}</strong><small style="color:var(--muted);font-size:11px">${m.tonnage || '?'}T · ${totalHrs.toFixed(1)}h</small></div>
       <div class="gantt-lane" style="background-image:repeating-linear-gradient(to right,transparent,transparent calc(100%/${horizonDays} - 1px),var(--border) calc(100%/${horizonDays} - 1px),var(--border) calc(100%/${horizonDays}))">${bars}</div>
     </div>`;
-  }).join('');
+  }).join('') : '<div style="padding:20px;text-align:center;color:var(--muted)">Sin máquinas activas registradas.</div>';
 
   document.getElementById('ganttGrid').innerHTML =
-    `<div class="gantt-head"><div style="padding:10px 14px">Máquina (CR01)</div><div class="gantt-days" style="grid-template-columns:repeat(${horizonDays},1fr)">${daysHtml}</div></div>${rowsHtml}`;
+    `<div class="gantt-head"><div style="padding:9px 12px">Máquina</div><div class="gantt-days" style="grid-template-columns:repeat(${horizonDays},1fr)">${daysHtml}</div></div>${rowsHtml}`;
 }
 
 function renderTable(){
@@ -674,95 +783,70 @@ function renderTable(){
 
   const body = document.getElementById('woBody');
   if (!wos.length) {
-    body.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:25px">Sin órdenes programadas. Usa "Generar Propuesta Automática (APS)".</td></tr>';
+    body.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:24px">Sin órdenes programadas ni Pedidos Firmes abiertos pendientes en BD.</td></tr>';
     return;
   }
 
   body.innerHTML = wos.map((w, idx) => {
-    const p = pts.find(x => x.id === w.part_id) || {};
-    const m = machines.find(x => String(x.id) === String(w.machine_id)) || {};
-    const mo = molds.find(x => String(x.id) === String(w.mold_id)) || {};
+    const p = allParts.find(x => Number(x.id) === Number(w.part_id)) || {};
+    const m = machines.find(x => sameId(x.id, w.machine_id)) || {};
+    const mo = molds.find(x => sameId(x.id, w.mold_id)) || {};
     const shortInfo = w.shortage || evaluateMaterialShortage(w);
-    const rels = boms.filter(b => b.parent_id === w.part_id && b.is_active !== false && b.parent_id !== b.child_id);
-    const kitTxt = rels.length ? rels.map(r => {
-      const ch = allParts.find(x => x.id === r.child_id);
-      if (!ch) return '';
-      return `${esc(ch.part_number)}: ${fmt(w.qty * Number(r.usage_qty ?? r.quantity ?? 0))} ${esc(ch.unit_of_measure || 'PZA')}`;
-    }).filter(Boolean).slice(0,2).join(' · ') : 'Sin BOM';
+    const rels = boms.filter(b => Number(b.parent_id) === Number(w.part_id) && b.is_active !== false && Number(b.parent_id) !== Number(b.child_id));
+    const kitStatus = String(w.kitting_status || 'PENDIENTE').toUpperCase();
+    const kitBadge = !rels.length
+      ? '<span class="badge">Sin BOM</span>'
+      : (kitStatus === 'SURTIDO'
+        ? '<span class="badge b-ok"><i class="fas fa-check"></i> SURTIDO</span>'
+        : `<button class="btn btn-sm btn-success" onclick="abrirModalKitting(${idx})"><i class="fas fa-dolly"></i> Surtir Kit</button>`);
 
-    const matStatusHtml = shortInfo.isShortage
-      ? `<div style="color:var(--danger);font-weight:700;font-size:11.5px">
-           <i class="fas fa-triangle-exclamation"></i> CORTO DE MATERIAL
-         </div>
-         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${esc(shortInfo.summary)}</div>
-         <button class="btn btn-sm btn-warn" onclick="moverAFechaViable(${idx})" title="Mover la orden a cuando llegue el material del proveedor">
-           <i class="fas fa-calendar-plus"></i> Mover a Fecha Viable (+${shortInfo.maxLeadTime}d: ${todayStr(shortInfo.maxLeadTime)})
-         </button>`
-      : `<span class="badge b-ok"><i class="fas fa-check"></i> Stock Disponible</span>`;
-
-    const rChain = w.route_chain || getPartRoutingMeta(w.part_id).routeChain;
-    const opsReq = w.operators_req || getPartRoutingMeta(w.part_id).operatorsReq || 1;
-    const routeHtml = rChain
-      ? `<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-info">${esc(rChain)}</span><span class="badge b-pin">Ops: ${opsReq}</span></div>`
-      : '';
+    const matStatusHtml = shortInfo.alreadyKitted
+      ? '<span class="badge b-ok">Surtido WMS OK</span>'
+      : (shortInfo.isShortage
+        ? `<div style="color:var(--danger);font-weight:700;font-size:11px"><i class="fas fa-triangle-exclamation"></i> CORTO MATERIAL</div>
+           <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">${esc(shortInfo.summary)}</div>
+           <div style="display:flex;gap:4px;flex-wrap:wrap">
+             <button class="btn btn-sm btn-warn" onclick="moverAFechaViable(${idx})"><i class="fas fa-calendar-plus"></i> +${shortInfo.maxLeadTime}d</button>
+             <a href="compras_ordenes.html?import_mrp=1" class="btn btn-sm btn-primary"><i class="fas fa-cart-plus"></i> Emitir OC MRP</a>
+           </div>`
+        : '<span class="badge b-ok"><i class="fas fa-check"></i> Stock Disponible</span>');
 
     return `<tr>
-      <td><strong>${esc(w.wo)}</strong> ${w.pinned ? '<span class="badge b-pin">Fija</span>' : ''}</td>
-      <td>${esc(m.machine_code || m.machine_name)}</td>
+      <td>
+        <div class="mono"><strong>${esc(w.wo)}</strong></div>
+        <span class="badge ${w.persisted ? 'b-ok' : 'b-warn'}">${w.persisted ? 'Publicada MES' : 'Borrador APS'}</span>
+        ${w.pinned ? ' <span class="badge b-pin">Fija</span>' : ''}
+      </td>
+      <td>${esc(m.machine_code || m.machine_name || '-')}</td>
       <td>${esc(mo.mold_code || mo.mold_name || '-')}</td>
-      <td><strong>${esc(p.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(p.part_name || '')}<br>Entrega: ${esc(w.demand_date || '-')}</div>${routeHtml}</td>
-      <td><strong>${w.qty.toLocaleString()}</strong> pzs</td>
-      <td>${w.effective_setup_min > 0 ? `<span class="badge b-warn">${fmtDT(w.start_ms)} (${w.effective_setup_min}m)</span>` : '<span class="badge b-ok">Mismo molde (0m)</span>'}</td>
-      <td><span class="badge b-info">${fmtDT(w.setup_end_ms)} → ${fmtDT(w.end_ms)}</span><div style="font-size:11px;color:var(--muted)">${w.prod_hrs} h prod.</div></td>
-      <td><span class="badge ${w.isSplit ? 'b-warn' : 'b-ok'}">${esc(w.pack_note || 'OK')}</span></td>
-      <td style="font-size:11.5px">${kitTxt}</td>
+      <td><strong>${esc(p.part_number || 'PT')}</strong><div style="font-size:10.5px;color:var(--muted)">Entrega: ${esc(w.demand_date || '-')} ${w.folio_demanda ? '· ' + esc(w.folio_demanda) : ''}</div></td>
+      <td class="num"><strong>${Number(w.qty).toLocaleString()}</strong> pzs</td>
+      <td>${w.effective_setup_min > 0 ? `<span class="badge b-warn">${fmtDT(w.start_ms)} (${w.effective_setup_min}m)</span>` : '<span class="badge b-ok">0m</span>'}</td>
+      <td><span class="badge b-info">${fmtDT(w.setup_end_ms)} → ${fmtDT(w.end_ms)}</span><div style="font-size:10.5px;color:var(--muted)">${w.prod_hrs} h</div></td>
+      <td><span class="badge ${w.isSplit ? 'b-warn' : 'b-ok'}">Ola ${w.ola_num || 1}</span><div style="font-size:10.5px;color:var(--muted)">${esc(w.pack_note || '')}</div></td>
+      <td>${kitBadge} ${w.persisted ? `<a href="wms_operaciones.html?modo=SALIDA&wo=${encodeURIComponent(w.wo)}" style="font-size:10.5px;color:var(--primary);display:block;margin-top:3px">WMS Manual →</a>` : ''}</td>
       <td>${matStatusHtml}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-sm btn-primary" onclick="abrirModal(${idx})"><i class="fas fa-sliders"></i> Ajustar</button>
-        <a href="planeacion_montaje_moldes.html?wo=${encodeURIComponent(w.wo)}" class="btn btn-sm btn-success" title="Ir a Setup SMED"><i class="fas fa-wrench"></i> SMED</a>
-        <button class="btn btn-sm btn-danger" onclick="cancelarDirecto(${idx})" title="Cancelar y reprogramar"><i class="fas fa-ban"></i></button>
+        <button class="btn btn-sm btn-primary" onclick="abrirModal(${idx})"><i class="fas fa-sliders"></i></button>
+        <a href="planeacion_montaje_moldes.html?wo=${encodeURIComponent(w.wo)}" class="btn btn-sm btn-success" title="SMED"><i class="fas fa-wrench"></i></a>
+        <button class="btn btn-sm btn-danger" onclick="cancelarDirecto(${idx})" title="Cancelar"><i class="fas fa-ban"></i></button>
       </td>
     </tr>`;
   }).join('');
 }
 
-/* ==================== ACCIONES DE EXCEPCIÓN EN CASCADA ==================== */
 function abrirModal(idx){
   const w = wos[idx];
   if (!w) return;
   editIdx = idx;
-  const p = pts.find(x => x.id === w.part_id) || {};
+  const p = allParts.find(x => Number(x.id) === Number(w.part_id)) || {};
   const shortInfo = w.shortage || evaluateMaterialShortage(w);
-
   document.getElementById('mTitle').textContent = `Ajuste de Excepción: ${w.wo}`;
-  document.getElementById('mSub').textContent = `${p.part_number || 'PT'} — ${p.part_name || ''} · ${w.qty.toLocaleString()} pzs · Ventana actual: ${fmtDT(w.start_ms)} → ${fmtDT(w.end_ms)}`;
-
-  const notice = document.getElementById('mShortageNotice');
-  if (shortInfo.isShortage) {
-    const targetDateStr = todayStr(shortInfo.maxLeadTime);
-    notice.innerHTML = `
-      <div style="background:rgba(220,38,38,0.1);border:1px solid var(--danger);border-radius:10px;padding:12px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:6px;color:var(--danger);font-weight:800;font-size:13px">
-          <i class="fas fa-triangle-exclamation"></i> ALERTA DE SHORTAGE: MATERIAL INSUFICIENTE EN WMS
-        </div>
-        <div style="font-size:12px;margin:6px 0;line-height:1.4">
-          No hay resina o componentes suficientes en almacén para arrancar esta orden en la fecha programada.
-          <ul style="margin:4px 0 6px 18px;padding:0">
-            ${shortInfo.items.map(it => `<li><strong>${esc(it.child.part_number)}</strong>: Requiere <strong>${it.needed.toLocaleString()} ${esc(it.uom)}</strong> · Stock actual: <strong>${it.inStock.toLocaleString()}</strong> · <span style="color:var(--danger);font-weight:700">Faltan ${it.deficit.toLocaleString()} ${esc(it.uom)}</span> (Lead Time proveedor: ${it.leadTime} días)</li>`).join('')}
-          </ul>
-        </div>
-        <button type="button" class="btn btn-sm btn-warn" onclick="moverAFechaViable(${idx})" style="width:100%;justify-content:center">
-          <i class="fas fa-calendar-check"></i> Mover orden automáticamente a fecha viable (+${shortInfo.maxLeadTime}d: ${targetDateStr})
-        </button>
-      </div>`;
-  } else {
-    notice.innerHTML = `
-      <div style="background:rgba(22,163,74,0.1);border:1px solid var(--success);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--success);display:flex;align-items:center;gap:6px">
-        <i class="fas fa-circle-check"></i> <strong>Material Disponible:</strong> Los componentes y resinas están 100% en stock WMS.
-      </div>`;
-  }
-
-  document.getElementById('eMach').value = w.machine_id;
+  document.getElementById('mSub').textContent = `${p.part_number || 'PT'} — ${Number(w.qty).toLocaleString()} pzs · ${fmtDT(w.start_ms)} → ${fmtDT(w.end_ms)}`;
+  document.getElementById('mShortageNotice').innerHTML = shortInfo.isShortage
+    ? `<div style="background:rgba(220,38,38,0.1);border:1px solid var(--danger);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px"><strong>Shortage:</strong> ${esc(shortInfo.summary)}</div>`
+    : `<div style="background:rgba(22,163,74,0.1);border:1px solid var(--success);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px;color:var(--success)">Material disponible / Kitting OK.</div>`;
+  document.getElementById('eMach').value = w.machine_id || '';
   document.getElementById('eDate').value = new Date(w.start_ms).toISOString().slice(0,10);
   const dt = new Date(w.start_ms);
   document.getElementById('eHour').value = (dt.getHours() + dt.getMinutes()/60).toFixed(1);
@@ -783,77 +867,302 @@ function guardarAjusteModal(){
   reprogramarCascada();
 }
 
-function cancelarOrdenModal(){
-  if (editIdx < 0) return;
-  wos.splice(editIdx, 1);
-  cerrarModal();
-  reprogramarCascada();
-}
+async function cancelarWO(idx) {
+  if (!canEditPlan) return alert('Sin permisos para cancelar órdenes.');
+  const w = wos[idx];
+  if (!w) return;
+  const nowIso = new Date().toISOString();
 
-function cancelarDirecto(idx){
-  if (!confirm(`¿Cancelar ${wos[idx].wo} y recorrer automáticamente las siguientes órdenes?`)) return;
-  wos.splice(idx, 1);
-  reprogramarCascada();
-}
-
-async function publicarOrdenesAPiso() {
-  if (!wos.length) {
-    alert("No hay órdenes programadas en el tablero APS.");
-    return;
+  if (w.po_id && client && client.from) {
+    const { error } = await client.from('production_orders').update({ status: 'CANCELADA', updated_at: nowIso }).eq('id', w.po_id);
+    if (error) return alert('Error al cancelar orden en BD: ' + error.message);
   }
+  wos.splice(idx, 1);
+
+  if (w.requerimiento_id && !wos.some(x => Number(x.requerimiento_id) === Number(w.requerimiento_id))) {
+    if (client && client.from) {
+      await client.from('requerimientos').update({ status: 'ABIERTO', updated_at: nowIso }).eq('id', w.requerimiento_id);
+    }
+  }
+  reprogramarCascada();
+}
+
+async function cancelarOrdenModal(){
+  if (editIdx < 0) return;
+  const idx = editIdx;
+  cerrarModal();
+  await cancelarWO(idx);
+}
+
+async function cancelarDirecto(idx){
+  if (!wos[idx]) return;
+  if (!confirm(`¿Cancelar ${wos[idx].wo} y recorrer las siguientes órdenes?`)) return;
+  await cancelarWO(idx);
+}
+
+/* ==================== PUBLICACIÓN IDEMPOTENTE SIN DUPLICADOS ==================== */
+async function publicarOrdenesAPiso(silent = false) {
+  if (!canEditPlan) { if (!silent) alert('Sin permisos para publicar órdenes.'); return; }
+  if (!wos.length) { if (!silent) alert('No hay órdenes programadas en el tablero APS.'); return; }
+
   const btn = document.getElementById('btnPublicarMes');
-  if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publicando a MES...';
+  if (btn && !silent) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publicando a MES...';
 
   try {
-    let successCount = 0;
+    let existingActive = [];
+    if (client && client.from) {
+      const { data } = await client
+        .from('production_orders')
+        .select('id, folio, requerimiento_id, ola_num, status, setup_status, kitting_status')
+        .in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']);
+      existingActive = data || [];
+    }
+
+    const byId = new Map();
+    const byReqOla = new Map();
+    const byFolio = new Map();
+    existingActive.forEach(po => {
+      byId.set(Number(po.id), po);
+      if (po.requerimiento_id != null) byReqOla.set(`${Number(po.requerimiento_id)}::${Number(po.ola_num || 1)}`, po);
+      if (po.folio) byFolio.set(String(po.folio), po);
+    });
+
+    let insertedCount = 0, updatedCount = 0;
+    const reqIdsToPlan = new Set();
+    const nowIso = new Date().toISOString();
+
     for (const w of wos) {
-      const folio = w.wo || w.wo_number || ('WO-' + String(w.id).slice(-4));
-      const basePayload = {
-        folio: folio,
-        part_id: w.part_id,
-        machine_id: w.machine_id,
+      const reqId = w.requerimiento_id ? Number(w.requerimiento_id) : null;
+      const olaNum = Number(w.ola_num || 1);
+      const isFormalFolio = w.wo && String(w.wo).startsWith('WO-');
+      const existingPo = (w.po_id && byId.get(Number(w.po_id)))
+        || (reqId ? byReqOla.get(`${reqId}::${olaNum}`) : null)
+        || (isFormalFolio ? byFolio.get(String(w.wo)) : null);
+
+      const commonPayload = {
+        requerimiento_id: reqId,
+        part_id: Number(w.part_id) > 0 ? Number(w.part_id) : null,
+        machine_id: (w.machine_id && Number(w.machine_id) > 0) ? Number(w.machine_id) : null,
         mold_id: (w.mold_id && Number(w.mold_id) > 0) ? Number(w.mold_id) : null,
-        quantity_planned: w.qty,
+        quantity_planned: Math.max(1, Math.round(Number(w.qty || 0))),
         estimated_hours: Number((w.prod_hrs || w.total_hrs || 8).toFixed(1)),
-        status: 'PROGRAMADA'
-      };
-      const extPayload = {
-        ...basePayload,
+        planned_start_at: w.start_ms ? new Date(w.start_ms).toISOString() : null,
+        planned_end_at: w.end_ms ? new Date(w.end_ms).toISOString() : null,
+        due_date: w.demand_date || null,
+        ola_num: olaNum,
+        is_pinned: Boolean(w.pinned),
+        pack_note: w.pack_note || null,
         setup_planned_min: Number(w.effective_setup_min ?? w.setup_min ?? 45),
-        setup_status: Number(w.effective_setup_min) === 0 ? 'MISMO_MOLDE' : 'PENDIENTE'
+        updated_at: nowIso
       };
 
       if (client && client.from) {
-        let { error } = await client.from('production_orders').insert([extPayload]);
-        if (error && (error.code === '42703' || error.code === 'PGRST204' || /column|schema cache/i.test(error.message || ''))) {
-          const fb = await client.from('production_orders').insert([basePayload]);
-          error = fb.error;
+        if (existingPo) {
+          const updPayload = {
+            ...commonPayload,
+            status: existingPo.status === 'EN_PROCESO' ? 'EN_PROCESO' : 'PROGRAMADA',
+            setup_status: existingPo.setup_status === 'LIBERADO' ? 'LIBERADO' : (Number(w.effective_setup_min) === 0 ? 'MISMO_MOLDE' : 'PENDIENTE'),
+            kitting_status: existingPo.kitting_status || w.kitting_status || 'PENDIENTE'
+          };
+          const { error: uErr } = await client.from('production_orders').update(updPayload).eq('id', existingPo.id);
+          if (uErr) throw uErr;
+          w.po_id = existingPo.id;
+          w.wo = existingPo.folio || w.wo;
+          w.persisted = true;
+          w.status = updPayload.status;
+          w.kitting_status = updPayload.kitting_status;
+          updatedCount++;
+        } else {
+          const insPayload = {
+            ...commonPayload,
+            folio: isFormalFolio ? w.wo : null,
+            status: 'PROGRAMADA',
+            setup_status: Number(w.effective_setup_min) === 0 ? 'MISMO_MOLDE' : 'PENDIENTE',
+            kitting_status: w.kitting_status || 'PENDIENTE'
+          };
+          const { data: ins, error: iErr } = await client.from('production_orders').insert([insPayload]).select('*').single();
+          if (iErr) throw iErr;
+          w.po_id = ins.id;
+          w.wo = ins.folio || ('WO-' + String(ins.id).padStart(5, '0'));
+          w.persisted = true;
+          w.status = ins.status || 'PROGRAMADA';
+          w.kitting_status = ins.kitting_status || 'PENDIENTE';
+          byId.set(Number(ins.id), ins);
+          if (reqId) byReqOla.set(`${reqId}::${olaNum}`, ins);
+          if (w.wo) byFolio.set(String(w.wo), ins);
+          insertedCount++;
         }
-        if (!error) successCount++;
       }
+      if (reqId && w.po_id) reqIdsToPlan.add(reqId);
     }
 
-    // Sincronizar en Supabase system_settings para persistencia multi-dispositivo
+    if (reqIdsToPlan.size > 0 && client && client.from) {
+      const reqIds = [...reqIdsToPlan];
+      await client.from('requerimientos').update({ status: 'PLANEADO', updated_at: nowIso }).in('id', reqIds).eq('status', 'ABIERTO');
+      firmDemands = firmDemands.filter(d => !reqIdsToPlan.has(Number(d.id)));
+    }
+
     if (client && client.from) {
       await client.from('system_settings').upsert({
         key: 'kraem_aps_wos_v1',
         category: 'planeacion',
         value: wos,
-        updated_at: new Date().toISOString()
+        updated_at: nowIso
       });
     }
 
-    alert(`✅ ¡Plan publicado a Piso MES con éxito!\n\n• ${wos.length} Órdenes de Trabajo programadas en el Gantt.\n• ${successCount} órdenes registradas formalmente en production_orders.\n• Los operadores ya pueden verlas y autollenar su terminal en produccion_captura.html.`);
+    renderAll();
+    if (!silent) {
+      alert(`Plan MES actualizado sin duplicados:\n• ${insertedCount} orden(es) nueva(s) creada(s)\n• ${updatedCount} orden(es) existente(s) actualizada(s)`);
+    }
   } catch (err) {
-    console.error("Error al publicar órdenes a piso:", err);
-    alert("Aviso: " + err.message);
+    console.error('Error publicando APS:', err);
+    if (!silent) alert('Error al publicar órdenes a MES: ' + (err.message || err));
+    else throw err;
   } finally {
-    if (btn) btn.innerHTML = '<i class="fas fa-paper-plane"></i> Publicar a Piso MES';
+    if (btn && !silent) btn.innerHTML = `<i class="fas fa-paper-plane"></i> <span id="lblBtnPub">${esc(APS_I18N[document.documentElement.lang]?.pub || 'Publicar a Piso MES')}</span>`;
   }
+}
+
+/* ==================== MODAL KITTING WMS FIFO REAL ==================== */
+function buildKittingPlan(w) {
+  const rels = boms.filter(b => Number(b.parent_id) === Number(w.part_id) && b.is_active !== false && Number(b.parent_id) !== Number(b.child_id));
+  return rels.map(r => {
+    const ch = allParts.find(x => Number(x.id) === Number(r.child_id));
+    if (!ch) return null;
+    const usage = Number(r.usage_qty ?? r.quantity ?? 0);
+    const scrap = Number(r.scrap_pct ?? ch.scrap_pct ?? 0);
+    const qtyNeeded = Math.ceil(Number(w.qty || 0) * usage * (1 + scrap / 100));
+    const buckets = (fifoBucketsByPart[Number(ch.id)] || []).filter(b => b.quantity > 0);
+    const totalAvail = buckets.reduce((s, b) => s + Number(b.quantity || 0), 0);
+    let rem = qtyNeeded;
+    const picks = [];
+    for (const b of buckets) {
+      if (rem <= 0) break;
+      const take = Math.min(rem, Math.floor(Number(b.quantity || 0)));
+      if (take > 0) {
+        picks.push({ bucket: b, qty: take });
+        rem -= take;
+      }
+    }
+    return { child: ch, qtyNeeded, totalAvail, missing: rem, picks, uom: ch.unit_of_measure || (ch.product_type === 'RESINA' ? 'KG' : 'PZA') };
+  }).filter(Boolean);
+}
+
+function abrirModalKitting(idx) {
+  const w = wos[idx];
+  if (!w) return;
+  kitIdx = idx;
+  const p = allParts.find(x => Number(x.id) === Number(w.part_id)) || {};
+  const plan = buildKittingPlan(w);
+
+  document.getElementById('kTitle').textContent = `Surtido Kitting FIFO: ${w.wo}`;
+  document.getElementById('kSub').textContent = `${p.part_number || 'PT'} · Meta Lote: ${Number(w.qty).toLocaleString()} pzas`;
+  document.getElementById('kDraftNotice').innerHTML = !w.po_id
+    ? '<div style="background:rgba(217,119,6,0.1);border:1px solid var(--warning);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12px">Esta orden aún es borrador APS: al confirmar el Kitting se publicará automáticamente en <code>production_orders</code> antes de rebajar inventario FIFO.</div>'
+    : '';
+
+  const allOk = plan.length > 0 && plan.every(it => it.missing <= 0);
+  document.getElementById('btnConfirmKit').disabled = !allOk || !canKitWms;
+
+  document.getElementById('kItemsBody').innerHTML = plan.length ? plan.map(it => {
+    const picksTxt = it.picks.map(pk => `${esc(pk.bucket.lot_number || 'S/L')} (${esc(pk.bucket.location || 'WMS')}): ${pk.qty} ${esc(it.uom)}`).join('<br>');
+    return `<tr>
+      <td><strong>${esc(it.child.part_number)}</strong><div style="font-size:10.5px;color:var(--muted)">${esc(it.child.part_name || '')}</div></td>
+      <td class="num"><strong>${it.qtyNeeded.toLocaleString()} ${esc(it.uom)}</strong></td>
+      <td class="num">${it.totalAvail.toLocaleString()} ${esc(it.uom)}</td>
+      <td style="font-size:11px">${picksTxt || '<span style="color:var(--danger)">Sin existencias FIFO</span>'}</td>
+      <td>${it.missing <= 0 ? '<span class="badge b-ok">Listo FIFO</span>' : `<span class="badge b-bad">Faltan ${it.missing}</span>`}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--muted)">Sin componentes activos en BOM.</td></tr>';
+
+  document.getElementById('kittingModal').style.display = 'flex';
+}
+
+function cerrarKittingModal() { document.getElementById('kittingModal').style.display = 'none'; kitIdx = -1; }
+
+async function confirmarKittingWms() {
+  if (!canKitWms) return alert('Sin permisos para surtir Kitting WMS.');
+  if (kitIdx < 0 || !wos[kitIdx]) return;
+  let w = wos[kitIdx];
+
+  if (!w.po_id) {
+    await publicarOrdenesAPiso(true);
+    w = wos[kitIdx];
+  }
+  if (!w || !w.po_id) return alert('Debes publicar la orden a production_orders antes de surtir.');
+
+  const plan = buildKittingPlan(w);
+  if (!plan.length) return alert('No hay componentes en el BOM para surtir.');
+  const shortage = plan.find(it => it.missing > 0);
+  if (shortage) return alert(`Stock insuficiente para ${shortage.child.part_number} (faltan ${shortage.missing} ${shortage.uom}).`);
+
+  let validUuid = window.KraemAuth?.user?.id || null;
+  if (!validUuid && client?.auth?.getSession) {
+    try {
+      const sess = await client.auth.getSession();
+      validUuid = sess?.data?.session?.user?.id || null;
+    } catch (_) {}
+  }
+  if (!validUuid) validUuid = '00000000-0000-0000-0000-000000000000';
+
+  const userEmail = window.KraemAuth?.user?.email || 'wms@kraem.com';
+  const mach = machines.find(m => sameId(m.id, w.machine_id)) || {};
+  const machCode = mach.machine_code || mach.machine_name || 'PRENSA';
+  const nowIso = new Date().toISOString();
+
+  const movRows = [];
+  plan.forEach(it => {
+    it.picks.forEach(pk => {
+      const negQty = -Math.ceil(pk.qty);
+      movRows.push({
+        part_id: Number(it.child.id),
+        quantity: negQty,
+        movement_type: 'SALIDA',
+        area: pk.bucket.area || 'ALMACEN',
+        from_location_id: pk.bucket.location_id || null,
+        from_container_id: pk.bucket.container_id || null,
+        lot_number: pk.bucket.lot_number || null,
+        production_order_id: w.po_id,
+        requerimiento_id: w.requerimiento_id || null,
+        orden_produccion_folio: w.wo,
+        maquina_id: (w.machine_id && Number(w.machine_id) > 0) ? Number(w.machine_id) : null,
+        user_id: validUuid,
+        status_stock: 'ASIGNADO',
+        comment: `[KITTING_APS] Surtido FIFO a ${machCode} para ${w.wo}`
+      });
+    });
+  });
+
+  const { error: mErr } = await client.from('inventory_movements').insert(movRows);
+  if (mErr) return alert('Error registrando salida FIFO en WMS: ' + mErr.message);
+
+  const { error: uErr } = await client
+    .from('production_orders')
+    .update({
+      kitting_status: 'SURTIDO',
+      kitting_confirmed_at: nowIso,
+      kitting_confirmed_by: userEmail,
+      updated_at: nowIso
+    })
+    .eq('id', w.po_id);
+  if (uErr) return alert('Salida WMS guardada, pero error actualizando kitting_status: ' + uErr.message);
+
+  // Reflejar descuento FIFO en pools locales y marcar WO como SURTIDO
+  plan.forEach(it => {
+    it.picks.forEach(pk => {
+      pk.bucket.quantity = Math.max(0, Number(pk.bucket.quantity) - pk.qty);
+    });
+    stockMap[Number(it.child.id)] = Math.max(0, (stockMap[Number(it.child.id)] || 0) - it.qtyNeeded);
+  });
+  w.kitting_status = 'SURTIDO';
+
+  cerrarKittingModal();
+  reprogramarCascada();
+  alert(`Kitting FIFO completado para ${w.wo} (${movRows.length} movimiento(s) en inventory_movements).`);
 }
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
-

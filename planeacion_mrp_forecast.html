@@ -306,7 +306,7 @@ th{font-size:11px;text-transform:uppercase;color:var(--muted);background:var(--t
 <script>
 const LS_APS_MPS = 'kraem_mps_firm_tasks_v1';
 const LS_MRP_SHORTAGE = 'kraem_mrp_shortage_export_v1';
-let allParts = [], ptParts = [], boms = [], stockMap = {}, openWoMap = {}, stdPackMap = {}, locsMap = {}, clientNames = [], projectNames = [];
+let allParts = [], ptParts = [], boms = [], stockMap = {}, openWoMap = {}, openWosList = [], openPoMap = {}, stdPackMap = {}, locsMap = {}, clientNames = [], projectNames = [];
 let demands = [], lastSubRows = [], lastMrpShortages = [], lastFirmMpsTasks = [];
 let pendingExcelRows = [], missingNps = [];
 let selectedReqIds = new Set();
@@ -431,14 +431,15 @@ async function init(){
   });
 
   try {
-    const [partsData, bomData, rStock, rWo, rPack, rLocs, rCli] = await Promise.all([
+    const [partsData, bomData, rStock, rWo, rPack, rLocs, rCli, rPo] = await Promise.all([
       cargarPartesCanonicas(),
       window.fetchAllRows ? window.fetchAllRows('bom_structures', { filter: q => q.neq('is_active', false), orderBy: 'id' }) : client.from('bom_structures').select('*').neq('is_active', false).then(r => r.data || []),
       window.fetchAllRows ? window.fetchAllRows('v_inventory_by_location', { select: 'part_id, quantity', filter: q => q.gt('quantity', 0) }) : client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0).then(r => r.data || []),
-      client.from('production_orders').select('id, part_id, quantity_planned, status').in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']),
+      client.from('production_orders').select('id, requerimiento_id, folio, part_id, quantity_planned, status, kitting_status, due_date').in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']),
       window.fetchAllRows ? window.fetchAllRows('empaques_partes', { select: 'part_id, standard_pack, es_empaque_primario, active', filter: q => q.neq('active', false), orderBy: 'id' }) : client.from('empaques_partes').select('part_id, standard_pack, es_empaque_primario, active').neq('active', false).then(r => r.data || []),
       client.from('locations').select('id, location_code'),
-      client.from('clientes').select('id, nombre').eq('activo', true).order('nombre')
+      client.from('clientes').select('id, nombre').eq('activo', true).order('nombre'),
+      client.from('v_compras_pendientes').select('part_id, part_number, cantidad_pendiente').then(r => r, () => ({ data: [] }))
     ]);
 
     allParts = partsData || [];
@@ -451,10 +452,15 @@ async function init(){
       if (pid) stockMap[pid] = (stockMap[pid] || 0) + (parseFloat(s.quantity) || 0);
     });
 
-    openWoMap = {};
-    ((rWo && rWo.data) || []).forEach(w => {
-      const pid = Number(w.part_id);
-      if (pid) openWoMap[pid] = (openWoMap[pid] || 0) + (Number(w.quantity_planned) || 0);
+    openWosList = (rWo && rWo.data) || [];
+
+    const partByNp = new Map();
+    allParts.forEach(p => { if (p.part_number) partByNp.set(norm(p.part_number), Number(p.id)); });
+    openPoMap = {};
+    ((rPo && rPo.data) || []).forEach(po => {
+      const pid = Number(po.part_id) || partByNp.get(norm(po.part_number)) || 0;
+      const qty = Number(po.cantidad_pendiente || 0);
+      if (pid && qty > 0) openPoMap[pid] = (openPoMap[pid] || 0) + qty;
     });
 
     stdPackMap = {};
@@ -835,6 +841,15 @@ function explodeBomRecursive(partId, parentQty, accMaterials, accSubs, runningSu
 
 function render(){
   const partsById = new Map(allParts.map(p => [Number(p.id), p]));
+  const plannedReqIds = new Set(demands.filter(d => d.status === 'PLANEADO').map(d => Number(d.id)));
+  openWoMap = {};
+  openWosList.forEach(w => {
+    const pid = Number(w.part_id);
+    if (!pid) return;
+    if (w.requerimiento_id != null && plannedReqIds.has(Number(w.requerimiento_id))) return;
+    openWoMap[pid] = (openWoMap[pid] || 0) + (Number(w.quantity_planned) || 0);
+  });
+
   const runningPool = {};
   const runningSubPool = {};
   const horizonDays = Number(document.getElementById('cfgForecastDays')?.value || 60);
@@ -844,6 +859,7 @@ function render(){
   let firmOpenCount = 0, firmOpenPcs = 0, fcstOpenCount = 0, fcstOpenPcs = 0, woCount = 0;
   const matNeeds = {};
   const subNeeds = {};
+  const explodedReqIds = new Set();
   lastFirmMpsTasks = [];
 
   const sortedDemands = [...demands].sort((a, b) => {
@@ -891,6 +907,7 @@ function render(){
             qty: woSuggested,
             net_exact: netExact
           });
+          explodedReqIds.add(Number(d.id));
           explodeBomRecursive(pid, woSuggested, matNeeds, subNeeds, runningSubPool, true, partsById);
           Object.keys(matNeeds).forEach(mid => {
             const mb = matNeeds[mid];
@@ -904,6 +921,7 @@ function render(){
         if (inForecastHorizon) {
           netExact = Math.max(0, qty + ss - availBefore);
           if (netExact > 0) {
+            explodedReqIds.add(Number(d.id));
             explodeBomRecursive(pid, netExact, matNeeds, subNeeds, runningSubPool, false, partsById);
             Object.keys(matNeeds).forEach(mid => {
               const mb = matNeeds[mid];
@@ -916,6 +934,23 @@ function render(){
     }
 
     return { d, p, pid, qty, availBefore, ss, netExact, woSuggested, isOpen, isFirm, inForecastHorizon };
+  });
+
+  // Conservar demanda de materiales para WOs generadas por APS aún no surtidas en WMS (kitting_status !== 'SURTIDO')
+  openWosList.forEach(w => {
+    if (w.requerimiento_id == null) return;
+    if (explodedReqIds.has(Number(w.requerimiento_id))) return;
+    if (String(w.kitting_status || 'PENDIENTE').toUpperCase() === 'SURTIDO') return;
+    const wPid = Number(w.part_id);
+    const wQty = Number(w.quantity_planned || 0);
+    if (!wPid || wQty <= 0) return;
+    explodeBomRecursive(wPid, wQty, matNeeds, subNeeds, runningSubPool, true, partsById);
+    if (w.due_date) {
+      Object.keys(matNeeds).forEach(mid => {
+        const mb = matNeeds[mid];
+        if (!mb.earliestDate || String(w.due_date) < mb.earliestDate) mb.earliestDate = String(w.due_date);
+      });
+    }
   });
 
   // Filtros visuales de Tab 1
@@ -942,7 +977,12 @@ function render(){
   } else {
     demBody.innerHTML = sliced.map(({ d, p, qty, availBefore, ss, woSuggested, isOpen, isFirm, inForecastHorizon }) => {
       const checked = selectedReqIds.has(String(d.id));
-      let mpsBadge = '<span class="badge b-ok">Planeado en Piso</span>';
+      const linkedFolios = openWosList
+        .filter(w => Number(w.requerimiento_id) === Number(d.id))
+        .map(w => w.folio || ('WO-' + w.id))
+        .filter(Boolean)
+        .join(', ');
+      let mpsBadge = `<span class="badge b-ok">Planeado${linkedFolios ? ' (' + esc(linkedFolios) + ')' : ' en Piso'}</span>`;
       if (isOpen) {
         if (isFirm) {
           mpsBadge = woSuggested > 0
@@ -1022,8 +1062,9 @@ function render(){
     const mb = matNeeds[id];
     const reqTotal = mb.firm + mb.forecast;
     const stk = stockMap[id] || 0;
+    const inTransitPo = openPoMap[id] || 0;
     const ss = Number(m.safety_stock || 0);
-    const deficit = Math.max(0, reqTotal + ss - stk);
+    const deficit = Math.max(0, reqTotal + ss - stk - inTransitPo);
     let suggested = 0;
     if (deficit > 0) {
       shortCount++;
@@ -1046,6 +1087,7 @@ function render(){
         part_name: m.part_name || '',
         product_type: m.product_type || 'MATERIAL',
         supplier: m.supplier || '',
+        in_transit_po: Number(inTransitPo.toFixed(2)),
         deficit_qty: Number(deficit.toFixed(2)),
         suggested_qty: suggested,
         uom,
@@ -1053,7 +1095,7 @@ function render(){
         required_order_date: orderLimit
       });
     }
-    return { m, mb, reqTotal, stk, ss, deficit, suggested, lt, orderLimit, uom };
+    return { m, mb, reqTotal, stk, inTransitPo, ss, deficit, suggested, lt, orderLimit, uom };
   }).filter(x => x && (!qMrp || norm(`${x.m.part_number} ${x.m.part_name} ${x.m.resin_grade || ''} ${x.m.supplier || ''}`).includes(qMrp)));
 
   document.getElementById('cntMrpTab').textContent = mrpRows.length;
@@ -1066,13 +1108,13 @@ function render(){
   if (!mrpRows.length) {
     mrpBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px">Sin requerimientos de materiales (o sin BOM ligado).</td></tr>';
   } else {
-    mrpBody.innerHTML = mrpRows.map(({ m, mb, reqTotal, stk, ss, deficit, suggested, lt, orderLimit, uom }) => `<tr>
+    mrpBody.innerHTML = mrpRows.map(({ m, mb, reqTotal, stk, inTransitPo, ss, deficit, suggested, lt, orderLimit, uom }) => `<tr>
       <td><strong>${esc(m.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(m.part_name || '')}</div></td>
       <td><span class="badge b-info">${esc(m.product_type)}</span></td>
       <td class="num">${fmt(mb.firm)}</td>
       <td class="num">${fmt(mb.forecast)}</td>
       <td class="num"><strong>${fmt(reqTotal)} ${esc(uom)}</strong></td>
-      <td class="num">${fmt(stk)}</td>
+      <td class="num">${fmt(stk)}${inTransitPo > 0 ? `<div style="font-size:10.5px;color:var(--primary);font-weight:700">+${fmt(inTransitPo)} OC</div>` : ''}</td>
       <td class="num">${fmt(ss)}</td>
       <td class="num">${deficit > 0 ? `<span style="color:var(--danger);font-weight:700">-${fmt(deficit)} ${esc(uom)}</span>` : '0'}</td>
       <td>${suggested > 0 ? `<span class="badge b-bad">Comprar ${fmt(suggested)} ${esc(uom)}</span>` : `<span class="badge b-ok">Stock suficiente</span>`}</td>

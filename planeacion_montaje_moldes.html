@@ -307,6 +307,7 @@ async function init(){
       qty: Number(po.quantity_planned || 0),
       setup_min: Number(po.setup_planned_min ?? defSmed),
       setup_status: po.setup_status || (po.smed_execution_id ? 'LIBERADO' : 'PENDIENTE'),
+      kitting_status: po.kitting_status || 'PENDIENTE',
       smed_execution_id: po.smed_execution_id || null,
       created_at: po.created_at
     }));
@@ -329,6 +330,7 @@ async function init(){
         qty: Number(w.qty || 0),
         setup_min: Number(w.effective_setup_min ?? w.setup_min ?? defSmed),
         setup_status: Number(w.effective_setup_min) === 0 ? 'MISMO_MOLDE' : 'PENDIENTE',
+        kitting_status: w.kitting_status || 'PENDIENTE',
         smed_execution_id: null
       }));
     }
@@ -373,7 +375,7 @@ async function init(){
         pmMax: Number(mold.shots_pm_limit ?? mold.pm_interval_shots ?? 50000),
         routeChain,
         checklist_id: targetChkId,
-        wmsReady: finalStatus === 'LIBERADA',
+        wmsReady: finalStatus === 'LIBERADA' || String(item.kitting_status || '').toUpperCase() === 'SURTIDO',
         status: finalStatus,
         checks: buildChecksForChecklist(targetChkId)
       };

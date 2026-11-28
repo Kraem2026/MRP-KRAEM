@@ -480,13 +480,52 @@ async function init(){
     console.warn("Catálogo de partes:", e);
   }
 
-  // 3. Cargar Órdenes de Compra y Recibos (Supabase con fallback a localStorage)
+  // 3. Cargar Órdenes de Compra (relacional + espejo system_settings sin duplicados) y Recibos
+  const mapPoByFolio = new Map();
   try {
     if (client && client.from) {
+      const { data: relPos, error: relErr } = await client
+        .from('compras_ordenes')
+        .select('*, proveedores(*), compras_ordenes_det(*)')
+        .order('id', { ascending: false });
+      if (!relErr && Array.isArray(relPos)) {
+        relPos.forEach(r => {
+          const prov = r.proveedores || {};
+          const dets = Array.isArray(r.compras_ordenes_det) ? r.compras_ordenes_det : [];
+          if (!r.folio) return;
+          mapPoByFolio.set(r.folio, {
+            id: r.id,
+            db_orden_id: r.id,
+            folio: r.folio,
+            proveedor_id: r.proveedor_id,
+            proveedor_nombre: prov.nombre_comercial || 'Proveedor',
+            proveedor_razon: prov.razon_social || prov.nombre_comercial || '',
+            proveedor_rfc: prov.rfc || 'XEXX010101000',
+            proveedor_email: prov.email_pedidos || '',
+            proveedor_contacto: prov.contacto_nombre || '',
+            fecha_emision: r.fecha_emision || '',
+            fecha_prometida: r.fecha_prometida || '',
+            moneda: r.moneda || 'MXN',
+            estatus: r.estatus || 'ENVIADA',
+            items: dets.map(d => ({
+              det_id: d.id,
+              part_id: d.part_id || null,
+              part_number: d.part_number,
+              part_name: d.descripcion || '',
+              cantidad: Number(d.cantidad_ordenada || 0),
+              cantidad_recibida: Number(d.cantidad_recibida || 0),
+              uom: d.unidad_medida || 'KG',
+              precio_unitario: Number(d.precio_unitario || 0),
+              importe: Number(d.importe || 0)
+            }))
+          });
+        });
+      }
       const { data: dbPo } = await client.from('system_settings').select('value').eq('key', 'compras_ordenes').maybeSingle();
       if (dbPo && Array.isArray(dbPo.value)) {
-        ordenes = dbPo.value;
-        localStorage.setItem(LS_PO, JSON.stringify(ordenes));
+        dbPo.value.forEach(leg => {
+          if (leg && leg.folio && !mapPoByFolio.has(leg.folio)) mapPoByFolio.set(leg.folio, leg);
+        });
       }
       const { data: dbRec } = await client.from('system_settings').select('value').eq('key', 'compras_recibos').maybeSingle();
       if (dbRec && Array.isArray(dbRec.value)) {
@@ -494,9 +533,12 @@ async function init(){
         localStorage.setItem(LS_REC, JSON.stringify(recibos));
       }
     }
-  } catch (_) {}
+  } catch (errLoadPo) { console.warn('Aviso cargando OCs en Recibo:', errLoadPo); }
 
-  if (!ordenes.length) {
+  if (mapPoByFolio.size) {
+    ordenes = [...mapPoByFolio.values()];
+    localStorage.setItem(LS_PO, JSON.stringify(ordenes));
+  } else {
     const savedPO = localStorage.getItem(LS_PO);
     ordenes = savedPO ? JSON.parse(savedPO) : [];
   }
@@ -610,9 +652,14 @@ async function confirmarRecepcion(){
       totalRecibidoHoy += qtyInput;
 
       partidasRecibidas.push({
+        det_id: it.det_id || null,
+        part_id: it.part_id || null,
+        resolved_part_id: it.part_id || null,
         part_number: it.part_number,
         part_name: it.part_name,
         cantidad: qtyInput,
+        nueva_recibida: it.cantidad_recibida,
+        cantidad_ordenada: Number(it.cantidad || 0),
         uom: it.uom,
         lote: loteInput,
         location_id: locId ? parseInt(locId) : null,
@@ -649,22 +696,29 @@ async function confirmarRecepcion(){
   let dbSuccessCount = 0;
   if (client) {
     try {
-      let authUserId = null;
-      try {
-        const userRes = await client.auth.getUser();
-        authUserId = userRes?.data?.user?.id || null;
-      } catch(e) {}
+      let authUserId = window.KraemAuth?.user?.id || null;
+      if (!authUserId && client.auth) {
+        try {
+          const sess = await client.auth.getSession();
+          authUserId = sess?.data?.session?.user?.id || null;
+        } catch(_) {}
+        if (!authUserId && typeof client.auth.getUser === 'function') {
+          try {
+            const userRes = await client.auth.getUser();
+            authUserId = userRes?.data?.user?.id || null;
+          } catch(_) {}
+        }
+      }
+      if (!authUserId) authUserId = '00000000-0000-0000-0000-000000000000';
 
       for (const p of partidasRecibidas) {
         // 1. Buscar o dar de alta la parte en 'parts'
         let matchedPart = partsCatalog.find(cp => cp.part_number.toUpperCase() === p.part_number.toUpperCase());
         if (!matchedPart) {
-          // Intentar consulta directa a Supabase
           const { data: dbP } = await client.from('parts').select('id, part_number, part_name, product_type').ilike('part_number', p.part_number).limit(1);
           if (dbP && dbP.length > 0) {
             matchedPart = dbP[0];
           } else {
-            // Dar de alta automáticamente como Materia Prima o Componente
             const isResina = (p.part_name && p.part_name.toLowerCase().includes('resina')) || (p.uom && p.uom.toUpperCase() === 'KG');
             const newPartData = {
               part_number: p.part_number,
@@ -681,7 +735,8 @@ async function confirmarRecepcion(){
           }
         }
 
-        const targetPartId = matchedPart?.id || null;
+        const targetPartId = matchedPart?.id || p.part_id || null;
+        p.resolved_part_id = targetPartId;
 
         // 2. Insertar movimiento de ENTRADA en 'inventory_movements'
         const movPayload = {
@@ -706,6 +761,49 @@ async function confirmarRecepcion(){
           console.error("Error insertando en inventory_movements:", movError);
         }
       }
+
+      // 3. Sincronizar tablas relacionales de Compras si la OC viene de BD
+      if (selectedOC.db_orden_id) {
+        const nowIso = new Date().toISOString();
+        for (const p of partidasRecibidas) {
+          if (p.det_id) {
+            const estLinea = p.nueva_recibida >= p.cantidad_ordenada ? 'COMPLETA' : 'PARCIAL';
+            await client.from('compras_ordenes_det').update({
+              cantidad_recibida: p.nueva_recibida,
+              estatus_linea: estLinea
+            }).eq('id', p.det_id);
+          }
+        }
+        await client.from('compras_ordenes').update({
+          estatus: selectedOC.estatus,
+          updated_at: nowIso
+        }).eq('id', selectedOC.db_orden_id);
+
+        const recHdrPayload = {
+          folio_recibo: folioRec,
+          orden_id: selectedOC.db_orden_id,
+          proveedor_id: selectedOC.proveedor_id || null,
+          factura_remision: factura,
+          recibido_por: recibio
+        };
+        const { data: insRecHdr, error: recHdrErr } = await client
+          .from('compras_recibos')
+          .insert([recHdrPayload])
+          .select('*')
+          .single();
+        if (!recHdrErr && insRecHdr?.id) {
+          const recDetRows = partidasRecibidas.map(p => ({
+            recibo_id: insRecHdr.id,
+            orden_det_id: p.det_id || null,
+            part_id: p.resolved_part_id || p.part_id || null,
+            part_number: p.part_number,
+            cantidad_recibida: p.cantidad,
+            lote_proveedor: p.lote,
+            location_id: p.location_id || null
+          }));
+          await client.from('compras_recibos_det').insert(recDetRows);
+        }
+      }
     } catch (dbErr) {
       console.error("Fallo general de inserción en Supabase:", dbErr);
     }
@@ -718,7 +816,7 @@ async function confirmarRecepcion(){
 
   try {
     if (client && client.from) {
-      Promise.all([
+      await Promise.all([
         client.from('system_settings').upsert({
           key: 'compras_recibos',
           category: 'compras',
@@ -731,8 +829,7 @@ async function confirmarRecepcion(){
           value: ordenes,
           updated_at: new Date().toISOString()
         })
-      ]).then(() => console.log("✅ Recibo y estatus de OC sincronizados en Supabase"))
-        .catch(e => console.warn(e));
+      ]);
     }
   } catch (_) {}
 

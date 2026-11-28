@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRAEM by APEX SYSTEM | Órdenes de Compra & Requisiciones</title>
+<title>KRAEM by APEX SYSTEM | Órdenes de Compra & Requisiciones MRP</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -14,64 +14,73 @@
 :root{
   --primary:#2563eb; --primary-dark:#1d4ed8; --bg:#f8fafc; --card:#ffffff; --text:#0f172a;
   --muted:#64748b; --border:#e2e8f0; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+  --surface:#f1f5f9;
 }
 [data-theme="dark"]{
-  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --bg:#090d16; --card:#111827; --text:#f1f5f9; --muted:#94a3b8; --border:#1f2937;
+  --surface:#1e293b;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);transition:.2s}
-.container{max-width:1440px;margin:auto}
+body{margin:0;padding:18px;background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);transition:.2s}
+.container{max-width:1480px;margin:auto}
 
-/* HEADER & BRANDING */
-.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
-.title-box{display:flex;align-items:center;gap:14px}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.title-box{display:flex;align-items:center;gap:12px}
 .brand-badge{display:flex;align-items:baseline;gap:6px}
-.kraem-brand{font-size:22px;font-weight:900;letter-spacing:.5px;color:var(--text)}
+.kraem-brand{font-size:20px;font-weight:900;letter-spacing:.5px;color:var(--text)}
 .apex-tag{font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.6px}
-.title-box h1{margin:2px 0 0;font-size:24px;font-weight:800}
-.title-box p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.title-box h1{margin:2px 0 0;font-size:22px;font-weight:800}
+.title-box p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 
-.btn{border:none;border-radius:9px;padding:9px 15px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:7px;font-size:13px;transition:.15s;text-decoration:none}
-.btn:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.btn{border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;transition:.15s;text-decoration:none}
+.btn:hover{filter:brightness(1.06)}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
 .btn-success{background:var(--success);color:#fff}
 .btn-warn{background:var(--warning);color:#fff}
 .btn-danger{background:var(--danger);color:#fff}
-.btn-sm{padding:6px 10px;font-size:11.5px;border-radius:7px}
+.btn-sm{padding:5px 9px;font-size:11.5px;border-radius:6px}
 
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
-.card h3{margin:0 0 12px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px}
 
-.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .group{display:flex;flex-direction:column}
 label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
-input,select,textarea{padding:9px 11px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:13px;font-family:inherit}
+input,select,textarea{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:12.5px;font-family:inherit}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
+.inline-num{width:105px;padding:5px 7px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 
 .table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1050px}
-th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left}
-th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(148,163,184,0.08)}
-tr:hover td{background:rgba(148,163,184,0.04)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:980px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+th{font-size:10.5px;text-transform:uppercase;color:var(--muted);background:var(--surface);position:sticky;top:0}
+tr:hover td{background:rgba(148,163,184,0.05)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 
-.badge{padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.badge{padding:3px 7px;border-radius:5px;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .b-ok{background:#dcfce7;color:#166534}
 .b-warn{background:#fef3c7;color:#92400e}
 .b-bad{background:#fee2e2;color:#991b1b}
 .b-info{background:#e0f2fe;color:#075985}
 .b-purple{background:#ede9fe;color:#5b21b6}
 
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 16px;border-left:4px solid var(--primary)}
-.kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
-.kpi .v{font-size:22px;font-weight:800;margin-top:4px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;border-left:4px solid var(--primary)}
+.kpi .t{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.kpi .v{font-size:20px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
 
-/* MODAL Y DIÁLOGOS */
+.mrp-groups-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px}
+.mrp-group-card{border:1px solid var(--border);background:var(--bg);border-radius:9px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mrp-group-card.active{border-color:var(--primary);background:rgba(37,99,235,0.08)}
+
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;justify-content:center;align-items:center;z-index:1000;padding:15px}
-.modal-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:760px;max-height:90vh;overflow-y:auto;box-shadow:0 10px 30px rgba(0,0,0,0.3)}
+.modal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;width:100%;max-width:760px;max-height:90vh;overflow-y:auto}
 
-/* FORMATO IMPRIMIBLE OC */
 @media print {
   body * { visibility: hidden; }
   #printArea, #printArea * { visibility: visible; }
@@ -83,42 +92,47 @@ tr:hover td{background:rgba(148,163,184,0.04)}
 <body>
 
 <div class="container no-print">
-  <!-- CABECERA -->
   <div class="header">
     <div class="title-box">
-      <button class="btn btn-secondary btn-back" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> Volver</button>
+      <button class="btn btn-secondary btn-back" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> <span id="lblBack">Volver</span></button>
       <div>
         <div class="brand-badge">
           <span class="kraem-brand">KRAEM</span>
           <span class="apex-tag">by APEX SYSTEM</span>
+          <span id="dbStatusBadge" class="badge b-info">Conectando BD...</span>
         </div>
-        <h1><i class="fas fa-file-invoice-dollar" style="color:var(--primary)"></i> Gestión de Compras & Órdenes (OC)</h1>
-        <p>Emisión de órdenes de compra, conexión directa con déficits del MRP y envío automatizado de correos al proveedor.</p>
+        <h1><i class="fas fa-file-invoice-dollar" style="color:var(--primary)"></i> <span id="lblTitle">Gestión de Compras & Órdenes (OC)</span></h1>
+        <p id="lblSub">Órdenes relacionales en PostgreSQL, explosión MRP en vivo por proveedor y descuento automático de OCs en tránsito.</p>
       </div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-warn" onclick="importarRequerimientosMRP()"><i class="fas fa-bolt"></i> Cargar Déficits de MRP</button>
-      <a href="catalogo_proveedores.html" class="btn btn-secondary"><i class="fas fa-truck-field"></i> Directorio Proveedores</a>
-      <a href="compras_recibo.html" class="btn btn-success"><i class="fas fa-box-archive"></i> Recibo en WMS →</a>
-      <button class="btn btn-secondary" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    <div class="controls">
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      <button class="btn btn-warn" id="btnImportMrp" onclick="importarRequerimientosMRP(false)"><i class="fas fa-bolt"></i> <span id="lblImportMrp">Cargar Déficits de MRP</span></button>
+      <a href="catalogo_proveedores.html" class="btn btn-secondary"><i class="fas fa-truck-field"></i> Proveedores</a>
+      <a href="compras_recibo.html" class="btn btn-success"><i class="fas fa-box-archive"></i> Recibo WMS →</a>
+      <button class="btn btn-secondary" onclick="toggleTheme()" title="Tema"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
   </div>
 
-  <!-- KPIS -->
   <div class="kpi-row">
-    <div class="kpi"><div class="t">Total Órdenes Emitidas</div><div class="v" id="kTotal">0</div></div>
-    <div class="kpi" style="border-left-color:var(--warning)"><div class="t">Pendientes de Envío</div><div class="v" id="kBorradores">0</div></div>
-    <div class="kpi" style="border-left-color:var(--primary)"><div class="t">En Tránsito / Proveedor</div><div class="v" id="kTransito">0</div></div>
-    <div class="kpi" style="border-left-color:var(--success)"><div class="t">Total Inversión en Material</div><div class="v" id="kMonto">$0</div></div>
+    <div class="kpi"><div class="t" id="lblKpiTot">Total Órdenes Emitidas</div><div class="v" id="kTotal">0</div></div>
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t" id="lblKpiDraft">Borradores / Pendientes</div><div class="v" id="kBorradores">0</div></div>
+    <div class="kpi" style="border-left-color:var(--primary)"><div class="t" id="lblKpiTrans">En Tránsito (OC)</div><div class="v" id="kTransito">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t" id="lblKpiAmt">Total Inversión</div><div class="v" id="kMonto">$0.00</div></div>
   </div>
 
+  <!-- PANEL AGRUPADO DE DÉFICITS REALES DE MRP -->
+  <div class="card" id="mrpImportPanel" style="display:none;border-left:4px solid var(--warning)"></div>
+
   <!-- CREADOR DE ORDEN DE COMPRA -->
-  <div class="card">
-    <h3 id="formTitle"><i class="fas fa-cart-plus" style="color:var(--primary)"></i> Generar Nueva Orden de Compra (OC)</h3>
+  <div class="card" id="poFormCard">
+    <h3 id="formTitle"><i class="fas fa-cart-plus" style="color:var(--primary)"></i> <span id="lblFormTitle">Generar Nueva Orden de Compra (OC)</span></h3>
     <div class="form-grid">
       <div class="group">
         <label>Folio OC</label>
-        <input id="f_folio" readonly style="font-weight:800;background:rgba(148,163,184,0.1)">
+        <input id="f_folio" readonly class="mono" style="font-weight:800;background:var(--surface)">
       </div>
       <div class="group" style="grid-column:span 2">
         <label>Proveedor *</label>
@@ -151,9 +165,8 @@ tr:hover td{background:rgba(148,163,184,0.04)}
       </div>
     </div>
 
-    <!-- AGREGAR PARTIDA -->
-    <div style="margin-top:16px;background:rgba(148,163,184,0.06);border:1px solid var(--border);border-radius:10px;padding:14px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--muted)">AGREGAR MATERIAL / RESINA / COMPONENTE:</div>
+    <div style="margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px">
+      <div style="font-size:11px;font-weight:700;margin-bottom:6px;color:var(--muted)">AGREGAR MATERIAL / RESINA / COMPONENTE:</div>
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
         <div class="group">
           <label>N° Parte / Material</label>
@@ -162,7 +175,7 @@ tr:hover td{background:rgba(148,163,184,0.04)}
         </div>
         <div class="group">
           <label>Cantidad</label>
-          <input id="p_qty" type="number" min="1" placeholder="Ej. 1000">
+          <input id="p_qty" type="number" min="1" step="any" placeholder="Ej. 1000">
         </div>
         <div class="group">
           <label>Unidad Medida</label>
@@ -172,51 +185,50 @@ tr:hover td{background:rgba(148,163,184,0.04)}
           <label>Precio Unitario</label>
           <input id="p_precio" type="number" step="0.01" min="0" placeholder="$0.00">
         </div>
-        <button class="btn btn-primary" onclick="agregarPartida()" style="height:40px"><i class="fas fa-plus"></i> Agregar</button>
+        <button class="btn btn-primary" onclick="agregarPartida()" style="height:36px"><i class="fas fa-plus"></i> Agregar</button>
       </div>
     </div>
 
-    <!-- TABLA DE PARTIDAS DE LA OC -->
-    <div class="table-wrap" style="margin-top:14px">
+    <div class="table-wrap" style="margin-top:12px">
       <table>
         <thead>
           <tr>
             <th>#</th>
             <th>N° Parte</th>
             <th>Descripción Material</th>
-            <th>Cantidad</th>
+            <th class="num">Cantidad</th>
             <th>UoM</th>
-            <th>Precio Unit.</th>
-            <th>Importe</th>
+            <th class="num">Precio Unit.</th>
+            <th class="num">Importe</th>
             <th style="text-align:right">Quitar</th>
           </tr>
         </thead>
         <tbody id="itemsBody">
-          <tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">No hay partidas agregadas aún. Selecciona un material arriba o usa "Cargar Déficits de MRP".</td></tr>
+          <tr><td colspan="8" style="text-align:center;padding:18px;color:var(--muted)">No hay partidas agregadas aún. Selecciona un material arriba o usa "Cargar Déficits de MRP".</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- TOTALES Y BOTONES -->
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
-      <div style="display:flex;gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-secondary" onclick="limpiarOC()"><i class="fas fa-eraser"></i> Limpiar</button>
+        <span id="mrpOriginBadge" class="badge b-warn" style="display:none"><i class="fas fa-bolt"></i> Origen MRP Real</span>
       </div>
-      <div style="display:flex;gap:20px;align-items:center">
-        <div style="font-size:13px;text-align:right">
+      <div style="display:flex;gap:18px;align-items:center">
+        <div style="font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums">
           <div>Subtotal: <strong id="tSubtotal">$0.00</strong></div>
           <div style="color:var(--muted)">IVA (16%): <span id="tIva">$0.00</span></div>
-          <div style="font-size:16px;color:var(--primary);margin-top:2px">Total OC: <strong id="tTotal">$0.00</strong></div>
+          <div style="font-size:15.5px;color:var(--primary);margin-top:2px">Total OC: <strong id="tTotal">$0.00</strong></div>
         </div>
-        <button class="btn btn-success" onclick="guardarOC()"><i class="fas fa-floppy-disk"></i> Guardar y Generar OC</button>
+        <button class="btn btn-success" id="btnGuardarOC" onclick="guardarOC()"><i class="fas fa-floppy-disk"></i> Guardar y Generar OC</button>
       </div>
     </div>
   </div>
 
   <!-- HISTORIAL DE ÓRDENES DE COMPRA -->
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-      <h3 style="margin:0"><i class="fas fa-list-check" style="color:var(--primary)"></i> Historial de Órdenes de Compra</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+      <h3 style="margin:0"><i class="fas fa-list-check" style="color:var(--primary)"></i> <span id="lblHistTitle">Historial de Órdenes de Compra</span></h3>
       <input id="qHist" placeholder="🔍 Buscar por folio, proveedor o estatus..." oninput="renderHistorial()" style="width:280px">
     </div>
 
@@ -229,13 +241,13 @@ tr:hover td{background:rgba(148,163,184,0.04)}
             <th>Emisión</th>
             <th>Entrega Prometida</th>
             <th>Partidas</th>
-            <th>Total</th>
+            <th class="num">Total</th>
             <th>Estatus</th>
             <th>Correo al Proveedor</th>
             <th style="text-align:right">Acciones</th>
           </tr>
         </thead>
-        <tbody id="histBody"><tr><td colspan="9" style="text-align:center;padding:25px">Cargando órdenes...</td></tr></tbody>
+        <tbody id="histBody"><tr><td colspan="9" style="text-align:center;padding:24px">Cargando órdenes...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -246,12 +258,11 @@ tr:hover td{background:rgba(148,163,184,0.04)}
   <div class="modal-card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3 style="margin:0"><i class="fas fa-paper-plane" style="color:var(--primary)"></i> Envío Automático de Orden de Compra</h3>
-      <button class="btn btn-sm" onclick="cerrarEmailModal()"><i class="fas fa-times"></i></button>
+      <button class="btn btn-sm btn-secondary" onclick="cerrarEmailModal()"><i class="fas fa-times"></i></button>
     </div>
     <div style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:12.5px">
-      <i class="fas fa-info-circle" style="color:var(--primary)"></i> El sistema generó el requerimiento oficial con base en la información del proveedor registrado. Puedes enviar directamente el correo con 1 clic:
+      <i class="fas fa-info-circle" style="color:var(--primary)"></i> Requerimiento oficial listo según los datos del proveedor en BD.
     </div>
-
     <div class="group" style="margin-bottom:10px">
       <label>Destinatario (Correo de Pedidos del Proveedor)</label>
       <input id="m_to" readonly style="font-weight:700">
@@ -262,119 +273,263 @@ tr:hover td{background:rgba(148,163,184,0.04)}
     </div>
     <div class="group" style="margin-bottom:14px">
       <label>Cuerpo del Correo Pre-redactado</label>
-      <textarea id="m_body" rows="11" style="font-family:monospace;font-size:12px"></textarea>
+      <textarea id="m_body" rows="11" class="mono" style="font-size:12px"></textarea>
     </div>
-
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <button class="btn btn-secondary" onclick="copiarCuerpoCorreo()"><i class="fas fa-copy"></i> Copiar Texto</button>
       <div style="display:flex;gap:8px">
-        <button class="btn" onclick="cerrarEmailModal()">Cerrar</button>
+        <button class="btn btn-secondary" onclick="cerrarEmailModal()">Cerrar</button>
         <button class="btn btn-primary" onclick="abrirClienteCorreo()"><i class="fas fa-envelope-open-text"></i> Abrir en Correo (Outlook / Gmail)</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ÁREA DE IMPRESIÓN FORMAL DE ORDEN DE COMPRA (PDF / IMPRESIÓN) -->
 <div id="printArea" style="display:none"></div>
 
 <script>
 const LS_PO = 'apex_kraem_purchase_orders_v1';
 const LS_PROV = 'apex_kraem_proveedores_v1';
+const LS_MRP_SHORTAGE = 'kraem_mrp_shortage_export_v1';
 
 let allParts = [];
 let proveedores = [];
 let ordenes = [];
 let currentItems = [];
+let mrpGroups = [];
+let activeMrpGroupIdx = -1;
+let isCurrentFromMrp = false;
 let activePoIndex = -1;
+let canEditCompras = true;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s ?? '').trim().toUpperCase();
 const fmt = n => Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const PO_I18N = {
+  es: { back:'Volver', title:'Gestión de Compras & Órdenes (OC)', sub:'Órdenes relacionales en PostgreSQL, explosión MRP en vivo por proveedor y descuento automático de OCs en tránsito.', imp:'Cargar Déficits de MRP', kTot:'Total Órdenes Emitidas', kDraft:'Borradores / Pendientes', kTrans:'En Tránsito (OC)', kAmt:'Total Inversión', form:'Generar Nueva Orden de Compra (OC)', hist:'Historial de Órdenes de Compra' },
+  ko: { back:'뒤로', title:'구매 및 발주 관리 (PO)', sub:'PostgreSQL 관계형 발주, 공급업체별 실시간 MRP 부족분 연동 및 미입고 발주 차감.', imp:'MRP 부족분 불러오기', kTot:'총 발행 발주서', kDraft:'임시 저장 / 대기', kTrans:'입고 대기 중 (PO)', kAmt:'총 발주 금액', form:'신규 구매 발주서(PO) 생성', hist:'구매 발주 이력' },
+  en: { back:'Back', title:'Purchasing & Purchase Orders (PO)', sub:'Relational PostgreSQL POs, live MRP shortage explosion grouped by supplier & in-transit PO deduction.', imp:'Load MRP Shortages', kTot:'Total Issued POs', kDraft:'Drafts / Pending', kTrans:'In Transit (PO)', kAmt:'Total Investment', form:'Create New Purchase Order (PO)', hist:'Purchase Order History' }
+};
+
+function setLang(lang) {
+  const l = PO_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = PO_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('lblImportMrp').textContent = t.imp;
+  document.getElementById('lblKpiTot').textContent = t.kTot;
+  document.getElementById('lblKpiDraft').textContent = t.kDraft;
+  document.getElementById('lblKpiTrans').textContent = t.kTrans;
+  document.getElementById('lblKpiAmt').textContent = t.kAmt;
+  document.getElementById('lblFormTitle').textContent = t.form;
+  document.getElementById('lblHistTitle').textContent = t.hist;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme(){
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+function syncPermissions() {
+  canEditCompras = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function')
+    || KraemAuth.canEdit('compras')
+    || KraemAuth.canEdit('planeacion');
+  const btn = document.getElementById('btnGuardarOC');
+  if (btn) btn.style.display = canEditCompras ? 'inline-flex' : 'none';
+}
+
+document.addEventListener('kraem:authready', syncPermissions);
+
+async function cargarPartesCanonicas() {
+  const cols = 'id, part_number, part_name, product_type, unit_of_measure, uom, supplier, safety_stock, min_lot_size, lot_rounding, lead_time_days, scrap_pct, obsolete, is_archived_duplicate';
+  if (window.fetchAllRows) {
+    try {
+      const data = await window.fetchAllRows('parts', {
+        select: cols,
+        filter: q => q.eq('obsolete', false).eq('is_archived_duplicate', false),
+        orderBy: 'part_number'
+      });
+      return Array.isArray(data) ? data : (data?.data || []);
+    } catch (_) {
+      const fb = await window.fetchAllRows('parts', {
+        select: 'id, part_number, part_name, product_type, unit_of_measure, uom, supplier, safety_stock, min_lot_size, lot_rounding, lead_time_days, scrap_pct, obsolete',
+        filter: q => q.eq('obsolete', false),
+        orderBy: 'part_number'
+      });
+      return (Array.isArray(fb) ? fb : (fb?.data || [])).filter(p => !p.is_archived_duplicate);
+    }
+  }
+  const { data } = await client.from('parts').select(cols).eq('obsolete', false).order('part_number');
+  return (data || []).filter(p => !p.is_archived_duplicate);
+}
+
+function normalizeRelOrden(row) {
+  const prov = row.proveedores || proveedores.find(p => String(p.id) === String(row.proveedor_id)) || {};
+  const dets = Array.isArray(row.compras_ordenes_det) ? row.compras_ordenes_det : [];
+  return {
+    id: row.id,
+    db_orden_id: row.id,
+    folio: row.folio,
+    proveedor_id: row.proveedor_id,
+    proveedor_nombre: prov.nombre_comercial || row.proveedor_nombre || 'Proveedor',
+    proveedor_razon: prov.razon_social || prov.nombre_comercial || '',
+    proveedor_rfc: prov.rfc || 'XEXX010101000',
+    proveedor_email: prov.email_pedidos || '',
+    proveedor_contacto: prov.contacto_nombre || '',
+    fecha_emision: row.fecha_emision || new Date().toISOString().slice(0,10),
+    fecha_prometida: row.fecha_prometida || '',
+    moneda: row.moneda || 'MXN',
+    condiciones_pago: row.condiciones_pago || 'Crédito 30 días',
+    lugar_entrega: row.lugar_entrega || 'Planta KRAEM - Almacén WMS',
+    comprador: row.comprador || 'Compras Planta',
+    subtotal: Number(row.subtotal || 0),
+    iva: Number(row.iva_monto ?? row.iva ?? 0),
+    total: Number(row.total || 0),
+    estatus: row.estatus || 'ENVIADA',
+    origen_mrp: Boolean(row.origen_mrp),
+    items: dets.map(d => ({
+      det_id: d.id,
+      part_id: d.part_id || null,
+      part_number: d.part_number,
+      part_name: d.descripcion || d.part_name || '',
+      cantidad: Number(d.cantidad_ordenada ?? d.cantidad ?? 0),
+      cantidad_recibida: Number(d.cantidad_recibida || 0),
+      uom: d.unidad_medida || d.uom || 'KG',
+      precio_unitario: Number(d.precio_unitario || 0),
+      importe: Number(d.importe || 0)
+    }))
+  };
+}
+
 async function init(){
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  syncPermissions();
+
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('f_emision').value = today;
   document.getElementById('f_prometida').value = new Date(Date.now() + 5*86400000).toISOString().slice(0,10);
 
-  // 1. Cargar partes completas (los 5,869 NPs gracias al bypass global)
   try {
-    if (window.fetchAllRows) {
-      allParts = await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, unit_of_measure, supplier', orderBy: 'part_number' });
-    }
-  } catch (e) { console.warn(e); }
-
-  if (!allParts.length) {
-    allParts = [
-      { id: -10, part_number: 'RES-PP-BLK', part_name: 'Polipropileno Negro', product_type: 'RESINA', unit_of_measure: 'KG' },
-      { id: -11, part_number: 'CLIP-MET-01', part_name: 'Clip Metálico', product_type: 'COMPONENTE', unit_of_measure: 'PZA' },
-      { id: 48, part_number: '11254-06206B', part_name: 'BOLT-WASHER ASSY', product_type: 'COMPONENTE', unit_of_measure: 'PZA' },
-      { id: 54, part_number: '86157-XV000', part_name: 'COVER-COWL TOP UNDER', product_type: 'PT', unit_of_measure: 'PZA' }
-    ];
+    allParts = await cargarPartesCanonicas();
+  } catch (e) {
+    console.warn('Error cargando partes:', e);
+    allParts = [];
   }
 
-  // Poblar datalist de partes
   const dl = document.getElementById('dlParts');
-  dl.innerHTML = allParts.slice(0, 1500).map(p => `<option value="${p.part_number}">${p.part_name || ''} (${p.unit_of_measure || 'KG'})</option>`).join('');
+  dl.innerHTML = allParts.slice(0, 1500).map(p => `<option value="${esc(p.part_number)}">${esc(p.part_name || '')} (${esc(p.unit_of_measure || p.uom || 'KG')})</option>`).join('');
 
-  // 2. Cargar proveedores
   try {
     if (window.fetchAllRows) {
       const data = await window.fetchAllRows('proveedores', { orderBy: 'nombre_comercial' });
       if (data && data.length) proveedores = data;
+    } else if (client && client.from) {
+      const { data } = await client.from('proveedores').select('*').order('nombre_comercial');
+      if (data && data.length) proveedores = data;
     }
-  } catch (e) {}
+  } catch (_) {}
 
-  if (!proveedores.length) {
+  if (!proveedores.length && client && client.from) {
     try {
-      if (client && client.from) {
-        const { data: dbProv } = await client.from('system_settings').select('value').eq('key', 'catalogo_proveedores').maybeSingle();
-        if (dbProv && Array.isArray(dbProv.value) && dbProv.value.length) {
-          proveedores = dbProv.value;
-        }
-      }
+      const { data: dbProv } = await client.from('system_settings').select('value').eq('key', 'catalogo_proveedores').maybeSingle();
+      if (dbProv && Array.isArray(dbProv.value)) proveedores = dbProv.value;
     } catch (_) {}
   }
-
   if (!proveedores.length) {
-    const savedProv = localStorage.getItem(LS_PROV);
-    if (savedProv) proveedores = JSON.parse(savedProv);
+    try { proveedores = JSON.parse(localStorage.getItem(LS_PROV) || '[]'); } catch { proveedores = []; }
   }
 
   const pSelect = document.getElementById('f_proveedor');
   pSelect.innerHTML = '<option value="">Selecciona un proveedor...</option>' +
     proveedores.map(p => `<option value="${p.id}">${esc(p.nombre_comercial)} (${esc(p.categoria || 'GENERAL')})</option>`).join('');
 
-  // 3. Cargar historial de órdenes (Supabase con fallback a localStorage)
+  // Cargar OCs relacionales + fusionar espejo legado por folio sin duplicar
+  const mapByFolio = new Map();
+  let dbRelCount = 0;
   try {
     if (client && client.from) {
+      const { data: relRows, error: relErr } = await client
+        .from('compras_ordenes')
+        .select('*, proveedores(*), compras_ordenes_det(*)')
+        .order('id', { ascending: false });
+      if (!relErr && Array.isArray(relRows)) {
+        dbRelCount = relRows.length;
+        relRows.forEach(r => {
+          const obj = normalizeRelOrden(r);
+          if (obj.folio) mapByFolio.set(obj.folio, obj);
+        });
+      }
       const { data: dbPo } = await client.from('system_settings').select('value').eq('key', 'compras_ordenes').maybeSingle();
       if (dbPo && Array.isArray(dbPo.value)) {
-        ordenes = dbPo.value;
-        localStorage.setItem(LS_PO, JSON.stringify(ordenes));
+        dbPo.value.forEach(leg => {
+          if (leg && leg.folio && !mapByFolio.has(leg.folio)) mapByFolio.set(leg.folio, leg);
+        });
       }
     }
-  } catch (_) {}
+  } catch (e) { console.warn('Carga OCs:', e); }
 
-  if (!ordenes.length) {
-    const savedPO = localStorage.getItem(LS_PO);
-    ordenes = savedPO ? JSON.parse(savedPO) : [];
+  if (!mapByFolio.size) {
+    try {
+      const localArr = JSON.parse(localStorage.getItem(LS_PO) || '[]');
+      localArr.forEach(o => { if (o && o.folio && !mapByFolio.has(o.folio)) mapByFolio.set(o.folio, o); });
+    } catch (_) {}
   }
+
+  ordenes = [...mapByFolio.values()];
+  if (ordenes.length) localStorage.setItem(LS_PO, JSON.stringify(ordenes));
+
+  const badge = document.getElementById('dbStatusBadge');
+  badge.textContent = `BD: ${allParts.length} NPs · ${proveedores.length} Prov · ${dbRelCount} OCs BD`;
+  badge.className = 'badge b-ok';
 
   generarNuevoFolio();
   renderHistorial();
 
-  // Verificar si viene con parámetro de URL (ej. ?prov_id=1 o ?import_mrp=1)
   const params = new URLSearchParams(window.location.search);
   if (params.get('prov_id')) {
     pSelect.value = params.get('prov_id');
     seleccionarProveedor();
   }
+  if (params.get('import_mrp') === '1') {
+    await importarRequerimientosMRP(true);
+  }
 }
 
 function generarNuevoFolio(){
-  const nextNum = ordenes.length + 1;
   const year = new Date().getFullYear();
-  document.getElementById('f_folio').value = `OC-${year}-${String(nextNum).padStart(4, '0')}`;
+  let maxSeq = 0;
+  ordenes.forEach(o => {
+    const m = String(o.folio || '').match(/(\d+)\s*$/);
+    if (m) {
+      const n = Number(m[1]);
+      if (n > maxSeq) maxSeq = n;
+    }
+  });
+  document.getElementById('f_folio').value = `OC-${year}-${String(maxSeq + 1).padStart(4, '0')}`;
+}
+
+function getLastHistoricalPrice(partNumber) {
+  const key = norm(partNumber);
+  for (const o of ordenes) {
+    const match = (o.items || []).find(it => norm(it.part_number) === key && Number(it.precio_unitario) > 0);
+    if (match) return Number(match.precio_unitario);
+  }
+  return 0;
 }
 
 function seleccionarProveedor(){
@@ -384,18 +539,18 @@ function seleccionarProveedor(){
 
   if (prov.moneda_preferida) document.getElementById('f_moneda').value = prov.moneda_preferida;
   if (prov.dias_credito) document.getElementById('f_terminos').value = `Crédito ${prov.dias_credito} días`;
-
   const lt = prov.lead_time_dias || 5;
   document.getElementById('f_prometida').value = new Date(Date.now() + lt * 86400000).toISOString().slice(0,10);
 }
 
 function seleccionarParte(){
   const val = document.getElementById('p_part_input').value.trim();
-  const part = allParts.find(p => p.part_number === val);
+  const part = allParts.find(p => norm(p.part_number) === norm(val));
   if (part) {
-    document.getElementById('p_uom').value = part.unit_of_measure || (part.product_type === 'RESINA' ? 'KG' : 'PZA');
-    if (!document.getElementById('p_precio').value) {
-      document.getElementById('p_precio').value = part.product_type === 'RESINA' ? '38.50' : '2.40';
+    document.getElementById('p_uom').value = part.unit_of_measure || part.uom || (part.product_type === 'RESINA' ? 'KG' : 'PZA');
+    const histPrice = getLastHistoricalPrice(part.part_number);
+    if (!document.getElementById('p_precio').value && histPrice > 0) {
+      document.getElementById('p_precio').value = histPrice.toFixed(2);
     }
   }
 }
@@ -407,21 +562,19 @@ function agregarPartida(){
   const precio = parseFloat(document.getElementById('p_precio').value) || 0;
 
   if (!partNum || !qty || qty <= 0) {
-    alert("Por favor ingresa un número de parte y una cantidad válida mayor a cero.");
+    alert('Por favor ingresa un número de parte y una cantidad válida mayor a cero.');
     return;
   }
 
-  const part = allParts.find(p => p.part_number === partNum) || { part_number: partNum, part_name: 'Material Industrial' };
-  const importe = qty * precio;
-
+  const part = allParts.find(p => norm(p.part_number) === norm(partNum));
   currentItems.push({
-    part_id: part.id,
-    part_number: part.part_number,
-    part_name: part.part_name || '',
+    part_id: part && Number(part.id) > 0 ? Number(part.id) : null,
+    part_number: part ? part.part_number : partNum,
+    part_name: part ? (part.part_name || '') : 'Material Industrial',
     cantidad: qty,
-    uom: uom,
+    uom,
     precio_unitario: precio,
-    importe: importe
+    importe: Number((qty * precio).toFixed(2))
   });
 
   document.getElementById('p_part_input').value = '';
@@ -430,15 +583,37 @@ function agregarPartida(){
   renderPartidas();
 }
 
+function actualizarCantidadPartida(idx, val) {
+  const it = currentItems[idx];
+  if (!it) return;
+  const q = Math.max(0.01, Number(val || 0));
+  it.cantidad = q;
+  it.importe = Number((q * Number(it.precio_unitario || 0)).toFixed(2));
+  renderPartidas();
+}
+
+function actualizarPrecioPartida(idx, val) {
+  const it = currentItems[idx];
+  if (!it) return;
+  const p = Math.max(0, Number(val || 0));
+  it.precio_unitario = p;
+  it.importe = Number((Number(it.cantidad || 0) * p).toFixed(2));
+  renderPartidas();
+}
+
 function quitarPartida(idx){
   currentItems.splice(idx, 1);
+  if (!currentItems.length) isCurrentFromMrp = false;
   renderPartidas();
 }
 
 function renderPartidas(){
+  const mrpBadge = document.getElementById('mrpOriginBadge');
+  if (mrpBadge) mrpBadge.style.display = isCurrentFromMrp ? 'inline-flex' : 'none';
+
   const tbody = document.getElementById('itemsBody');
   if (!currentItems.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">No hay partidas agregadas aún. Selecciona un material arriba.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:18px;color:var(--muted)">No hay partidas agregadas aún. Selecciona un material arriba o usa "Cargar Déficits de MRP".</td></tr>';
     calcularTotales();
     return;
   }
@@ -446,12 +621,12 @@ function renderPartidas(){
   tbody.innerHTML = currentItems.map((item, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td><strong>${esc(item.part_number)}</strong></td>
+      <td class="mono"><strong>${esc(item.part_number)}</strong></td>
       <td>${esc(item.part_name)}</td>
-      <td><strong>${item.cantidad.toLocaleString()}</strong></td>
+      <td class="num"><input type="number" class="inline-num" min="0.01" step="any" value="${item.cantidad}" onchange="actualizarCantidadPartida(${i}, this.value)"></td>
       <td><span class="badge b-info">${esc(item.uom)}</span></td>
-      <td>$${fmt(item.precio_unitario)}</td>
-      <td><strong>$${fmt(item.importe)}</strong></td>
+      <td class="num"><input type="number" class="inline-num" min="0" step="0.01" value="${Number(item.precio_unitario || 0).toFixed(2)}" onchange="actualizarPrecioPartida(${i}, this.value)"></td>
+      <td class="num"><strong>$${fmt(item.importe)}</strong></td>
       <td style="text-align:right">
         <button class="btn btn-sm btn-danger" onclick="quitarPartida(${i})"><i class="fas fa-trash"></i></button>
       </td>
@@ -462,7 +637,7 @@ function renderPartidas(){
 }
 
 function calcularTotales(){
-  const subtotal = currentItems.reduce((s, it) => s + it.importe, 0);
+  const subtotal = currentItems.reduce((s, it) => s + Number(it.importe || 0), 0);
   const iva = subtotal * 0.16;
   const total = subtotal + iva;
 
@@ -471,32 +646,402 @@ function calcularTotales(){
   document.getElementById('tTotal').textContent = `$${fmt(total)}`;
 }
 
-function guardarOC(){
+/* ==================== CONEXIÓN REAL CON EXPLOSIÓN MRP Y PROVEEDORES ==================== */
+function matchSupplier(rawSupplierName) {
+  const s = norm(rawSupplierName);
+  if (!s) return null;
+  return proveedores.find(p => {
+    const nc = norm(p.nombre_comercial);
+    const rs = norm(p.razon_social);
+    const cod = norm(p.codigo);
+    const tok = s.split(/\s+/)[0];
+    return (nc && (nc === s || nc.includes(s) || s.includes(nc) || (tok.length >= 4 && nc.includes(tok))))
+        || (rs && (rs.includes(s) || s.includes(rs)))
+        || (cod && cod === s);
+  }) || null;
+}
+
+function buildInTransitPoMap(vPendRows) {
+  const partByNp = new Map();
+  allParts.forEach(p => { if (p.part_number) partByNp.set(norm(p.part_number), Number(p.id)); });
+  const poMap = {};
+  const seenFolios = new Set();
+
+  (vPendRows || []).forEach(r => {
+    const pid = Number(r.part_id) || partByNp.get(norm(r.part_number)) || 0;
+    const pend = Number(r.cantidad_pendiente || 0);
+    if (r.folio) seenFolios.add(r.folio);
+    if (pid && pend > 0) poMap[pid] = (poMap[pid] || 0) + pend;
+  });
+
+  // Respaldo para OCs activas en memoria / stub no reflejadas todavía en v_compras_pendientes
+  ordenes.forEach(o => {
+    if (!o || ['RECIBIDA_TOTAL', 'CANCELADA'].includes(String(o.estatus || '').toUpperCase())) return;
+    if (o.folio && seenFolios.has(o.folio)) return;
+    (o.items || []).forEach(it => {
+      const pid = Number(it.part_id) || partByNp.get(norm(it.part_number)) || 0;
+      const pend = Math.max(0, Number(it.cantidad || 0) - Number(it.cantidad_recibida || 0));
+      if (pid && pend > 0) poMap[pid] = (poMap[pid] || 0) + pend;
+    });
+  });
+
+  return poMap;
+}
+
+function explodeMrpLive(reqs, openWos, boms, stockMap, openPoMap) {
+  const partsById = new Map(allParts.map(p => [Number(p.id), p]));
+  const horizonCutoff = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+  const openWoMap = {};
+  openWos.forEach(w => {
+    if (w.requerimiento_id != null) return;
+    const pid = Number(w.part_id);
+    if (pid) openWoMap[pid] = (openWoMap[pid] || 0) + Number(w.quantity_planned || 0);
+  });
+
+  const runningPool = {};
+  const runningSubPool = {};
+  const matNeeds = {};
+  const explodedReqIds = new Set();
+
+  function walkBom(partId, parentQty, isFirm, dueDate, depth = 0, seen = new Set()) {
+    if (depth > 5 || seen.has(Number(partId)) || parentQty <= 0) return;
+    const nextSeen = new Set(seen); nextSeen.add(Number(partId));
+    const children = boms.filter(b => Number(b.parent_id) === Number(partId) && b.is_active !== false && Number(b.parent_id) !== Number(b.child_id));
+    for (const rel of children) {
+      const ch = partsById.get(Number(rel.child_id));
+      if (!ch) continue;
+      const rawQty = Number(rel.usage_qty ?? rel.quantity ?? 0);
+      if (!(rawQty > 0)) continue;
+      const scrap = Number(rel.scrap_pct ?? ch.scrap_pct ?? 0);
+      const grossChild = parentQty * rawQty * (1 + scrap / 100);
+      if (ch.product_type === 'SUB-ENSAMBLE') {
+        const pool = runningSubPool[ch.id] ?? ((stockMap[ch.id] || 0) + (openWoMap[ch.id] || 0));
+        const ss = Number(ch.safety_stock || 0);
+        const netChild = Math.max(0, grossChild + ss - pool);
+        runningSubPool[ch.id] = Math.max(0, pool + netChild - grossChild);
+        if (netChild > 0) walkBom(ch.id, netChild, isFirm, dueDate, depth + 1, nextSeen);
+      } else {
+        const bucket = matNeeds[ch.id] || { gross: 0, earliestDate: null };
+        bucket.gross += grossChild;
+        if (dueDate && (!bucket.earliestDate || dueDate < bucket.earliestDate)) bucket.earliestDate = dueDate;
+        matNeeds[ch.id] = bucket;
+      }
+    }
+  }
+
+  const sortedReqs = [...reqs]
+    .filter(r => r.status === 'ABIERTO' || r.status === 'open')
+    .sort((a,b) => String(a.due_date || '').localeCompare(String(b.due_date || '')));
+
+  for (const d of sortedReqs) {
+    const pid = Number(d.part_id);
+    const p = partsById.get(pid);
+    if (!p) continue;
+    const qty = Number(d.quantity || 0);
+    const ss = Number(p.safety_stock || 0);
+    const isFirm = (d.tipo_demanda || 'PEDIDO_FIRME') === 'PEDIDO_FIRME';
+    if (!isFirm && d.due_date && String(d.due_date) > horizonCutoff) continue;
+
+    if (!(pid in runningPool)) runningPool[pid] = (stockMap[pid] || 0) + (openWoMap[pid] || 0);
+    const avail = runningPool[pid];
+    const netExact = Math.max(0, qty + ss - avail);
+    if (netExact > 0) {
+      let prodQty = netExact;
+      if (isFirm) {
+        const minLot = Number(p.min_lot_size || 0);
+        const rBase = Math.max(1, Number(p.lot_rounding || 1));
+        prodQty = Math.ceil(Math.max(netExact, minLot) / rBase) * rBase;
+      }
+      explodedReqIds.add(Number(d.id));
+      walkBom(pid, prodQty, isFirm, d.due_date || null);
+      runningPool[pid] = Math.max(0, avail + prodQty - qty);
+    } else {
+      runningPool[pid] = Math.max(0, avail - qty);
+    }
+  }
+
+  openWos.forEach(w => {
+    if (w.requerimiento_id == null || explodedReqIds.has(Number(w.requerimiento_id))) return;
+    if (String(w.kitting_status || 'PENDIENTE').toUpperCase() === 'SURTIDO') return;
+    const wPid = Number(w.part_id);
+    const wQty = Number(w.quantity_planned || 0);
+    if (wPid && wQty > 0) walkBom(wPid, wQty, true, w.due_date || null);
+  });
+
+  const shortages = [];
+  Object.keys(matNeeds).forEach(k => {
+    const id = Number(k);
+    const m = partsById.get(id);
+    if (!m) return;
+    const stk = stockMap[id] || 0;
+    const inTransit = openPoMap[id] || 0;
+    const ss = Number(m.safety_stock || 0);
+    const deficit = Math.max(0, matNeeds[id].gross + ss - stk - inTransit);
+    if (deficit <= 0) return;
+    const minLot = Number(m.min_lot_size || 0);
+    const roundTo = Math.max(1, Number(m.lot_rounding || 1));
+    const suggested = Math.ceil(Math.max(deficit, minLot) / roundTo) * roundTo;
+    const uom = m.unit_of_measure || m.uom || (m.product_type === 'RESINA' ? 'KG' : 'PZA');
+    shortages.push({
+      part_id: m.id,
+      part_number: m.part_number,
+      part_name: m.part_name || '',
+      supplier: m.supplier || '',
+      deficit_qty: Number(deficit.toFixed(2)),
+      suggested_qty: suggested,
+      uom,
+      lead_time_days: Number(m.lead_time_days || 5)
+    });
+  });
+  return shortages;
+}
+
+function buildMrpGroups(shortageList) {
+  const byKey = new Map();
+  shortageList.forEach(it => {
+    const partObj = allParts.find(p => Number(p.id) === Number(it.part_id) || norm(p.part_number) === norm(it.part_number));
+    const rawSup = it.supplier || partObj?.supplier || '';
+    const prov = matchSupplier(rawSup);
+    const key = prov ? `PROV_${prov.id}` : (rawSup ? `RAW_${norm(rawSup)}` : 'SIN_PROVEEDOR');
+    const label = prov ? prov.nombre_comercial : (rawSup || 'Sin Proveedor Asignado');
+    if (!byKey.has(key)) {
+      byKey.set(key, { key, proveedor_id: prov ? prov.id : null, label, items: [] });
+    }
+    byKey.get(key).items.push({
+      part_id: partObj && Number(partObj.id) > 0 ? Number(partObj.id) : (Number(it.part_id) > 0 ? Number(it.part_id) : null),
+      part_number: it.part_number,
+      part_name: it.part_name || partObj?.part_name || '',
+      cantidad: Number(it.suggested_qty || it.deficit_qty || 0),
+      uom: it.uom || 'KG',
+      precio_unitario: getLastHistoricalPrice(it.part_number)
+    });
+  });
+  return [...byKey.values()];
+}
+
+function renderMrpImportPanel() {
+  const panel = document.getElementById('mrpImportPanel');
+  if (!mrpGroups.length) {
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+    return;
+  }
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>
+        <strong style="font-size:13.5px"><i class="fas fa-bolt" style="color:var(--warning)"></i> Déficits Netos Reales del MRP por Proveedor (${mrpGroups.reduce((s,g) => s + g.items.length, 0)} materiales en ${mrpGroups.length} grupo(s))</strong>
+        <div style="font-size:11.5px;color:var(--muted)">Ya descuentan inventario WMS y OCs en tránsito (<code>v_compras_pendientes</code>). Selecciona un grupo para emitir su OC:</div>
+      </div>
+      <button class="btn btn-sm btn-secondary" onclick="mrpGroups=[];activeMrpGroupIdx=-1;renderMrpImportPanel()"><i class="fas fa-times"></i> Ocultar</button>
+    </div>
+    <div class="mrp-groups-grid">
+      ${mrpGroups.map((g, idx) => `
+        <div class="mrp-group-card ${idx === activeMrpGroupIdx ? 'active' : ''}">
+          <div>
+            <div style="font-weight:800;font-size:12.5px">${esc(g.label)}</div>
+            <div style="font-size:11px;color:var(--muted)">${g.items.length} partida(s): ${esc(g.items.map(x => `${x.part_number} (${x.cantidad} ${x.uom})`).slice(0,2).join(', '))}</div>
+          </div>
+          <button class="btn btn-sm ${idx === activeMrpGroupIdx ? 'btn-primary' : 'btn-warn'}" onclick="cargarGrupoMrpEnFormulario(${idx})">
+            <i class="fas fa-cart-arrow-down"></i> ${idx === activeMrpGroupIdx ? 'Cargado' : 'Cargar grupo'}
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function cargarGrupoMrpEnFormulario(idx) {
+  const g = mrpGroups[idx];
+  if (!g) return;
+  activeMrpGroupIdx = idx;
+  isCurrentFromMrp = true;
+  if (g.proveedor_id) {
+    document.getElementById('f_proveedor').value = String(g.proveedor_id);
+    seleccionarProveedor();
+  } else {
+    document.getElementById('f_proveedor').value = '';
+  }
+  currentItems = g.items.map(it => ({
+    ...it,
+    importe: Number((Number(it.cantidad || 0) * Number(it.precio_unitario || 0)).toFixed(2))
+  }));
+  renderMrpImportPanel();
+  renderPartidas();
+}
+
+async function importarRequerimientosMRP(silentIfEmpty = false){
+  let shortageList = [];
+  let loadedFromLive = false;
+
+  try {
+    if (client && client.from) {
+      const [rReq, rWo, bomData, stockData, rPoPend] = await Promise.all([
+        client.from('requerimientos').select('*').neq('status', 'CANCELADO'),
+        client.from('production_orders').select('id, requerimiento_id, part_id, quantity_planned, status, kitting_status, due_date').in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']),
+        window.fetchAllRows ? window.fetchAllRows('bom_structures', { filter: q => q.neq('is_active', false), orderBy: 'id' }) : client.from('bom_structures').select('*').neq('is_active', false).then(r => r.data || []),
+        window.fetchAllRows ? window.fetchAllRows('v_inventory_by_location', { select: 'part_id, quantity', filter: q => q.gt('quantity', 0) }) : client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0).then(r => r.data || []),
+        client.from('v_compras_pendientes').select('folio, part_id, part_number, cantidad_pendiente').then(r => r, () => ({ data: [] }))
+      ]);
+
+      const reqs = rReq.data || [];
+      const openWos = rWo.data || [];
+      const boms = (Array.isArray(bomData) ? bomData : (bomData?.data || [])).filter(b => b.is_active !== false);
+      const stockMap = {};
+      (Array.isArray(stockData) ? stockData : (stockData?.data || [])).forEach(s => {
+        const pid = Number(s.part_id);
+        if (pid) stockMap[pid] = (stockMap[pid] || 0) + Number(s.quantity || 0);
+      });
+      const openPoMap = buildInTransitPoMap(rPoPend.data || []);
+      shortageList = explodeMrpLive(reqs, openWos, boms, stockMap, openPoMap);
+      loadedFromLive = true;
+    }
+  } catch (e) {
+    console.warn('Fallo explosión MRP en vivo, usando caché exportado:', e);
+  }
+
+  if (!loadedFromLive) {
+    try {
+      const exp = JSON.parse(localStorage.getItem(LS_MRP_SHORTAGE) || '{}');
+      const items = Array.isArray(exp.items) ? exp.items : [];
+      const poMap = buildInTransitPoMap([]);
+      shortageList = items.map(it => {
+        const pid = Number(it.part_id) || 0;
+        const net = Math.max(0, Number(it.suggested_qty || it.deficit_qty || 0) - (poMap[pid] || 0));
+        return net > 0 ? { ...it, suggested_qty: net } : null;
+      }).filter(Boolean);
+    } catch (_) { shortageList = []; }
+  }
+
+  mrpGroups = buildMrpGroups(shortageList);
+  activeMrpGroupIdx = -1;
+
+  if (!mrpGroups.length) {
+    currentItems = [];
+    isCurrentFromMrp = false;
+    renderMrpImportPanel();
+    renderPartidas();
+    if (!silentIfEmpty) {
+      alert('No hay déficits netos pendientes en MRP (el stock WMS y las OCs en tránsito cubren la demanda).');
+    }
+    return;
+  }
+
+  cargarGrupoMrpEnFormulario(0);
+}
+
+/* ==================== GUARDADO RELACIONAL EN SUPABASE ==================== */
+async function guardarOC(){
+  if (!canEditCompras) { alert('Sin permisos para emitir Órdenes de Compra.'); return; }
   const provId = document.getElementById('f_proveedor').value;
-  if (!provId) { alert("Por favor selecciona un proveedor."); return; }
-  if (!currentItems.length) { alert("Agrega al menos una partida a la orden de compra."); return; }
+  if (!provId) { alert('Por favor selecciona un proveedor.'); return; }
+  if (!currentItems.length) { alert('Agrega al menos una partida a la orden de compra.'); return; }
+
+  const invalidQty = currentItems.some(it => !(Number(it.cantidad) > 0));
+  if (invalidQty) { alert('Todas las partidas deben tener una cantidad mayor a cero.'); return; }
+
+  let folio = document.getElementById('f_folio').value.trim();
+  if (!folio || ordenes.some(o => o.folio === folio)) {
+    generarNuevoFolio();
+    folio = document.getElementById('f_folio').value.trim();
+  }
 
   const prov = proveedores.find(x => String(x.id) === String(provId)) || {};
-  const subtotal = currentItems.reduce((s, it) => s + it.importe, 0);
-  const iva = subtotal * 0.16;
-  const total = subtotal + iva;
+  const subtotal = Number(currentItems.reduce((s, it) => s + Number(it.importe || 0), 0).toFixed(2));
+  const iva = Number((subtotal * 0.16).toFixed(2));
+  const total = Number((subtotal + iva).toFixed(2));
+
+  const fechaEmision = document.getElementById('f_emision').value;
+  const fechaPrometida = document.getElementById('f_prometida').value;
+  const moneda = document.getElementById('f_moneda').value;
+  const condiciones = document.getElementById('f_terminos').value;
+  const lugarEntrega = document.getElementById('f_entrega').value;
+  const comprador = document.getElementById('f_comprador').value.trim() || 'Compras Planta';
+
+  let dbOrdenId = null;
+  let savedItems = currentItems.map(it => ({ ...it, cantidad_recibida: 0 }));
+
+  if (client && client.from) {
+    const headerPayload = {
+      folio,
+      proveedor_id: Number(prov.id),
+      fecha_emision: fechaEmision,
+      fecha_prometida: fechaPrometida || null,
+      estatus: 'ENVIADA',
+      moneda,
+      tipo_cambio: moneda === 'USD' ? 20.0 : 1.0,
+      subtotal,
+      iva_pct: 16,
+      iva_monto: iva,
+      total,
+      condiciones_pago: condiciones,
+      lugar_entrega: lugarEntrega,
+      comprador,
+      origen_mrp: Boolean(isCurrentFromMrp)
+    };
+    const { data: insHdr, error: hdrErr } = await client.from('compras_ordenes').insert([headerPayload]).select('*').single();
+    if (hdrErr) {
+      alert('Error al guardar Orden de Compra en BD: ' + hdrErr.message);
+      return;
+    }
+    dbOrdenId = insHdr?.id || null;
+
+    if (dbOrdenId) {
+      const detPayloads = currentItems.map(it => {
+        const partMatch = Number(it.part_id) > 0 ? { id: Number(it.part_id) } : allParts.find(p => norm(p.part_number) === norm(it.part_number));
+        const safePartId = (partMatch && Number(partMatch.id) > 0) ? Number(partMatch.id) : null;
+        return {
+          orden_id: dbOrdenId,
+          part_id: safePartId,
+          part_number: it.part_number,
+          descripcion: it.part_name || '',
+          cantidad_ordenada: Number(it.cantidad),
+          cantidad_recibida: 0,
+          unidad_medida: it.uom || 'KG',
+          precio_unitario: Number(it.precio_unitario || 0),
+          importe: Number(it.importe || 0),
+          estatus_linea: 'PENDIENTE'
+        };
+      });
+      const { data: insDet, error: detErr } = await client.from('compras_ordenes_det').insert(detPayloads).select('*');
+      if (detErr) {
+        alert('Cabecera guardada, pero error en partidas: ' + detErr.message);
+        return;
+      }
+      if (Array.isArray(insDet) && insDet.length) {
+        savedItems = insDet.map(d => ({
+          det_id: d.id,
+          part_id: d.part_id,
+          part_number: d.part_number,
+          part_name: d.descripcion || '',
+          cantidad: Number(d.cantidad_ordenada),
+          cantidad_recibida: Number(d.cantidad_recibida || 0),
+          uom: d.unidad_medida,
+          precio_unitario: Number(d.precio_unitario || 0),
+          importe: Number(d.importe || 0)
+        }));
+      }
+    }
+  }
 
   const nueva = {
-    id: Date.now(),
-    folio: document.getElementById('f_folio').value,
+    id: dbOrdenId || Date.now(),
+    db_orden_id: dbOrdenId,
+    folio,
     proveedor_id: prov.id,
     proveedor_nombre: prov.nombre_comercial,
     proveedor_razon: prov.razon_social || prov.nombre_comercial,
     proveedor_rfc: prov.rfc || 'XEXX010101000',
     proveedor_email: prov.email_pedidos,
     proveedor_contacto: prov.contacto_nombre,
-    fecha_emision: document.getElementById('f_emision').value,
-    fecha_prometida: document.getElementById('f_prometida').value,
-    moneda: document.getElementById('f_moneda').value,
-    condiciones_pago: document.getElementById('f_terminos').value,
-    lugar_entrega: document.getElementById('f_entrega').value,
-    comprador: document.getElementById('f_comprador').value.trim() || 'Compras Planta',
-    items: [...currentItems],
+    fecha_emision: fechaEmision,
+    fecha_prometida: fechaPrometida,
+    moneda,
+    condiciones_pago: condiciones,
+    lugar_entrega: lugarEntrega,
+    comprador,
+    origen_mrp: Boolean(isCurrentFromMrp),
+    items: savedItems,
     subtotal, iva, total,
     estatus: 'ENVIADA',
     recibido: false
@@ -505,26 +1050,30 @@ function guardarOC(){
   ordenes.unshift(nueva);
   localStorage.setItem(LS_PO, JSON.stringify(ordenes));
 
-  // Persistir en base de datos Supabase
   try {
     if (client && client.from) {
-      client.from('system_settings').upsert({
+      await client.from('system_settings').upsert({
         key: 'compras_ordenes',
         category: 'compras',
         value: ordenes,
         updated_at: new Date().toISOString()
-      }).then(() => console.log("✅ Órdenes de compra sincronizadas en Supabase")).catch(e => console.warn(e));
+      });
     }
   } catch (_) {}
 
-  alert(`Orden ${nueva.folio} creada exitosamente. A continuación se abrirá el diálogo para el envío de correo al proveedor.`);
+  const wasMrp = isCurrentFromMrp;
+  alert(`Orden ${nueva.folio} guardada exitosamente en Base de Datos.`);
   limpiarOC();
   renderHistorial();
+  if (wasMrp) {
+    await importarRequerimientosMRP(true);
+  }
   abrirModalEnvioCorreo(0);
 }
 
 function limpiarOC(){
   currentItems = [];
+  isCurrentFromMrp = false;
   renderPartidas();
   generarNuevoFolio();
   document.getElementById('f_proveedor').value = '';
@@ -539,56 +1088,52 @@ function renderHistorial(){
 
   document.getElementById('kTotal').textContent = ordenes.length;
   document.getElementById('kBorradores').textContent = ordenes.filter(o => o.estatus === 'BORRADOR').length;
-  document.getElementById('kTransito').textContent = ordenes.filter(o => o.estatus === 'ENVIADA').length;
+  document.getElementById('kTransito').textContent = ordenes.filter(o => o.estatus === 'ENVIADA' || o.estatus === 'RECIBIDA_PARCIAL').length;
   const totalMonto = ordenes.reduce((s, o) => s + Number(o.total || 0), 0);
   document.getElementById('kMonto').textContent = `$${fmt(totalMonto)}`;
 
   const tbody = document.getElementById('histBody');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:25px;color:var(--muted)">Sin órdenes registradas aún.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">Sin órdenes registradas aún.</td></tr>';
     return;
   }
 
   tbody.innerHTML = filtered.map((o, idx) => {
-    const stBadge = o.estatus === 'ENVIADA' ? 'b-primary b-info' : (o.estatus === 'RECIBIDA_TOTAL' ? 'b-ok' : 'b-warn');
+    const stBadge = o.estatus === 'ENVIADA' ? 'b-info' : (o.estatus === 'RECIBIDA_TOTAL' ? 'b-ok' : 'b-warn');
     return `<tr>
-      <td><strong>${esc(o.folio)}</strong></td>
+      <td class="mono"><strong>${esc(o.folio)}</strong>${o.origen_mrp ? ' <span class="badge b-purple">MRP</span>' : ''}</td>
       <td>
         <strong>${esc(o.proveedor_nombre)}</strong>
         <div style="font-size:11px;color:var(--muted)">${esc(o.proveedor_contacto || '')}</div>
       </td>
       <td>${esc(o.fecha_emision)}</td>
-      <td><strong>${esc(o.fecha_prometida)}</strong></td>
-      <td>${o.items.length} partidas</td>
-      <td><strong>$${fmt(o.total)} ${esc(o.moneda)}</strong></td>
+      <td><strong>${esc(o.fecha_prometida || '-')}</strong></td>
+      <td class="num">${(o.items || []).length} partidas</td>
+      <td class="num"><strong>$${fmt(o.total)} ${esc(o.moneda)}</strong></td>
       <td><span class="badge ${stBadge}">${esc(o.estatus)}</span></td>
       <td>
-        <button class="btn btn-sm btn-secondary" onclick="abrirModalEnvioCorreo(${idx})" title="Ver / Enviar Correo">
-          <i class="fas fa-paper-plane" style="color:var(--primary)"></i> Enviar Correo
-        </button>
+        <button class="btn btn-sm btn-secondary" onclick="abrirModalEnvioCorreo(${idx})"><i class="fas fa-paper-plane" style="color:var(--primary)"></i> Enviar Correo</button>
       </td>
       <td style="text-align:right;white-space:nowrap">
         <button class="btn btn-sm btn-secondary" onclick="imprimirOC(${idx})" title="Imprimir Formato Formal / PDF"><i class="fas fa-print"></i> PDF</button>
-        <a href="compras_recibo.html?folio=${o.folio}" class="btn btn-sm btn-success" title="Recibir en WMS"><i class="fas fa-dolly"></i> Recibir</a>
+        <a href="compras_recibo.html?folio=${encodeURIComponent(o.folio)}" class="btn btn-sm btn-success" title="Recibir en WMS"><i class="fas fa-dolly"></i> Recibir</a>
       </td>
     </tr>`;
   }).join('');
 }
 
-/* ==================== ENVÍO AUTOMÁTICO DE CORREO ==================== */
+/* ==================== ENVÍO DE CORREO E IMPRESIÓN PDF ==================== */
 function abrirModalEnvioCorreo(idx){
   const o = ordenes[idx];
   if (!o) return;
   activePoIndex = idx;
-
   const to = o.proveedor_email || 'pedidos@proveedor.com';
   const subject = `Orden de Compra Oficial ${o.folio} — KRAEM de México (by APEX SYSTEM)`;
-
-  let itemsText = o.items.map((it, i) => 
-    `  ${i + 1}. [${it.part_number}] ${it.part_name} | Cantidad: ${it.cantidad.toLocaleString()} ${it.uom} | P.U.: $${fmt(it.precio_unitario)} ${o.moneda} | Importe: $${fmt(it.importe)} ${o.moneda}`
+  const itemsText = (o.items || []).map((it, i) =>
+    `  ${i + 1}. [${it.part_number}] ${it.part_name} | Cantidad: ${Number(it.cantidad).toLocaleString()} ${it.uom} | P.U.: $${fmt(it.precio_unitario)} ${o.moneda} | Importe: $${fmt(it.importe)} ${o.moneda}`
   ).join('\n');
 
-  const body = 
+  const body =
 `Estimado(a) ${o.proveedor_contacto || 'Departamento de Pedidos'} (${o.proveedor_nombre}):
 
 Por medio de la presente, la planta KRAEM de México (Powered by APEX SYSTEM) le emite la Orden de Compra oficial:
@@ -607,17 +1152,11 @@ SUBTOTAL: $${fmt(o.subtotal)} ${o.moneda}
 IVA (16%): $${fmt(o.iva)} ${o.moneda}
 TOTAL GENERAL: $${fmt(o.total)} ${o.moneda}
 
-INSTRUCCIONES DE RECEPCIÓN EN PLANTA WMS:
-1. Todo embarque debe acompañarse con remisión o factura citando el Folio ${o.folio}.
-2. Cada tarima o saco debe incluir etiqueta con NÚMERO DE LOTE visible para registro en nuestro sistema FIFO.
-3. Se requiere Certificado de Calidad / CoA correspondiente a la colada o lote entregado.
-
-Favor de confirmar por este medio la recepción de este pedido y la fecha estimada de entrega.
+Favor de confirmar recepción de este pedido y fecha estimada de entrega.
 
 Atentamente,
 ${o.comprador || 'Departamento de Compras y Abastecimiento'}
-KRAEM de México (Powered by APEX SYSTEM)
-Tel: (81) 8000-KRAEM | compras@kraem.com.mx`;
+KRAEM de México (Powered by APEX SYSTEM)`;
 
   document.getElementById('m_to').value = to;
   document.getElementById('m_subject').value = subject;
@@ -625,70 +1164,30 @@ Tel: (81) 8000-KRAEM | compras@kraem.com.mx`;
   document.getElementById('emailModal').style.display = 'flex';
 }
 
-function cerrarEmailModal(){
-  document.getElementById('emailModal').style.display = 'none';
-  activePoIndex = -1;
-}
-
+function cerrarEmailModal(){ document.getElementById('emailModal').style.display = 'none'; activePoIndex = -1; }
 function abrirClienteCorreo(){
   const to = encodeURIComponent(document.getElementById('m_to').value);
   const subject = encodeURIComponent(document.getElementById('m_subject').value);
   const body = encodeURIComponent(document.getElementById('m_body').value);
   window.open(`mailto:${to}?subject=${subject}&body=${body}`, '_blank');
 }
-
 function copiarCuerpoCorreo(){
-  const txt = document.getElementById('m_body').value;
-  navigator.clipboard.writeText(txt).then(() => {
-    alert("¡Texto del correo copiado al portapapeles! Puedes pegarlo directamente en Gmail o Outlook.");
+  navigator.clipboard.writeText(document.getElementById('m_body').value).then(() => {
+    alert('Texto del correo copiado al portapapeles.');
   });
 }
 
-/* ==================== IMPORTACIÓN DIRECTA DESDE MRP ==================== */
-function importarRequerimientosMRP(){
-  let rawDem = [];
-  try { rawDem = JSON.parse(localStorage.getItem('kraem_boceto_demand_v1') || '[]'); } catch { rawDem = []; }
-
-  // Si no hay demanda, cargamos dos requerimientos de ejemplo
-  const defaultNeeds = [
-    { part_number: 'RES-PP-BLK', part_name: 'Polipropileno Negro Inyección', cantidad: 3000, uom: 'KG', precio: 38.50 },
-    { part_number: '11254-06206B', part_name: 'BOLT-WASHER ASSY', cantidad: 2400, uom: 'PZA', precio: 3.20 }
-  ];
-
-  currentItems = defaultNeeds.map(d => ({
-    part_id: 1,
-    part_number: d.part_number,
-    part_name: d.part_name,
-    cantidad: d.cantidad,
-    uom: d.uom,
-    precio_unitario: d.precio,
-    importe: d.cantidad * d.precio
-  }));
-
-  if (proveedores.length) {
-    document.getElementById('f_proveedor').value = proveedores[0].id;
-    seleccionarProveedor();
-  }
-
-  renderPartidas();
-  alert("Requerimientos en déficit importados correctamente desde el MRP.");
-}
-
-/* ==================== FORMATO FORMAL DE IMPRESIÓN (PDF) ==================== */
 function imprimirOC(idx){
   const o = ordenes[idx];
   if (!o) return;
-
   const printDiv = document.getElementById('printArea');
   printDiv.style.display = 'block';
-
   printDiv.innerHTML = `
     <div style="font-family:'Segoe UI',sans-serif;color:#1e293b;padding:20px;max-width:900px;margin:auto">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2563eb;padding-bottom:15px">
         <div>
-          <div style="font-size:24px;font-weight:900;color:#0f172a">KRAEM DE MÉXICO <span style="font-size:11px;font-weight:800;color:#2563eb;background:#e0f2fe;padding:2px 6px;border-radius:4px">by APEX SYSTEM</span></div>
+          <div style="font-size:24px;font-weight:900;color:#0f172a">KRAEM <span style="font-size:11px;font-weight:800;color:#2563eb;background:#e0f2fe;padding:2px 6px;border-radius:4px">by APEX SYSTEM</span></div>
           <div style="font-size:12px;color:#64748b">Planta de Moldeo por Inyección y Ensamble Automotriz</div>
-          <div style="font-size:11px;color:#64748b">Parque Industrial Milenium, Apodaca, N.L. · RFC: KRM180512AB3</div>
         </div>
         <div style="text-align:right">
           <div style="font-size:18px;font-weight:800;color:#2563eb">ORDEN DE COMPRA</div>
@@ -696,51 +1195,25 @@ function imprimirOC(idx){
           <div style="font-size:12px;color:#64748b">Fecha Emisión: ${esc(o.fecha_emision)}</div>
         </div>
       </div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0;background:#f8fafc;padding:15px;border-radius:8px">
         <div>
           <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">PROVEEDOR:</div>
           <div style="font-size:14px;font-weight:800">${esc(o.proveedor_nombre)}</div>
-          <div style="font-size:12px">${esc(o.proveedor_razon)}</div>
-          <div style="font-size:12px">RFC: ${esc(o.proveedor_rfc)} · Contacto: ${esc(o.proveedor_contacto || 'Atención a Clientes')}</div>
+          <div style="font-size:12px">${esc(o.proveedor_razon)} · RFC: ${esc(o.proveedor_rfc)}</div>
           <div style="font-size:12px">Email: ${esc(o.proveedor_email)}</div>
         </div>
         <div>
           <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">DATOS DE ENTREGA:</div>
           <div style="font-size:12px"><strong>Fecha Requerida:</strong> ${esc(o.fecha_prometida)}</div>
-          <div style="font-size:12px"><strong>Condiciones de Pago:</strong> ${esc(o.condiciones_pago)}</div>
-          <div style="font-size:12px"><strong>Lugar Entrega:</strong> ${esc(o.lugar_entrega)}</div>
+          <div style="font-size:12px"><strong>Condiciones:</strong> ${esc(o.condiciones_pago)}</div>
+          <div style="font-size:12px"><strong>Lugar:</strong> ${esc(o.lugar_entrega)}</div>
           <div style="font-size:12px"><strong>Comprador:</strong> ${esc(o.comprador)}</div>
         </div>
       </div>
-
       <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:12px">
-        <thead>
-          <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1">
-            <th style="padding:8px;text-align:center">#</th>
-            <th style="padding:8px;text-align:left">N° Parte</th>
-            <th style="padding:8px;text-align:left">Descripción Material</th>
-            <th style="padding:8px;text-align:right">Cantidad</th>
-            <th style="padding:8px;text-align:center">UoM</th>
-            <th style="padding:8px;text-align:right">P. Unitario</th>
-            <th style="padding:8px;text-align:right">Total (${esc(o.moneda)})</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${o.items.map((it, i) => `
-            <tr style="border-bottom:1px solid #e2e8f0">
-              <td style="padding:8px;text-align:center">${i + 1}</td>
-              <td style="padding:8px;font-weight:700">${esc(it.part_number)}</td>
-              <td style="padding:8px">${esc(it.part_name)}</td>
-              <td style="padding:8px;text-align:right;font-weight:700">${it.cantidad.toLocaleString()}</td>
-              <td style="padding:8px;text-align:center">${esc(it.uom)}</td>
-              <td style="padding:8px;text-align:right">$${fmt(it.precio_unitario)}</td>
-              <td style="padding:8px;text-align:right;font-weight:700">$${fmt(it.importe)}</td>
-            </tr>
-          `).join('')}
-        </tbody>
+        <thead><tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1"><th style="padding:8px">#</th><th style="padding:8px;text-align:left">N° Parte</th><th style="padding:8px;text-align:left">Descripción</th><th style="padding:8px;text-align:right">Cantidad</th><th style="padding:8px">UoM</th><th style="padding:8px;text-align:right">P.U.</th><th style="padding:8px;text-align:right">Total (${esc(o.moneda)})</th></tr></thead>
+        <tbody>${(o.items || []).map((it, i) => `<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px;text-align:center">${i + 1}</td><td style="padding:8px;font-weight:700">${esc(it.part_number)}</td><td style="padding:8px">${esc(it.part_name)}</td><td style="padding:8px;text-align:right;font-weight:700">${Number(it.cantidad).toLocaleString()}</td><td style="padding:8px;text-align:center">${esc(it.uom)}</td><td style="padding:8px;text-align:right">$${fmt(it.precio_unitario)}</td><td style="padding:8px;text-align:right;font-weight:700">$${fmt(it.importe)}</td></tr>`).join('')}</tbody>
       </table>
-
       <div style="display:flex;justify-content:flex-end;margin-bottom:30px">
         <div style="width:280px;font-size:13px;line-height:1.6">
           <div style="display:flex;justify-content:space-between"><span>Subtotal:</span><strong>$${fmt(o.subtotal)} ${esc(o.moneda)}</strong></div>
@@ -748,23 +1221,9 @@ function imprimirOC(idx){
           <div style="display:flex;justify-content:space-between;border-top:1px solid #cbd5e1;padding-top:4px;font-size:15px;color:#2563eb"><span>TOTAL:</span><strong>$${fmt(o.total)} ${esc(o.moneda)}</strong></div>
         </div>
       </div>
-
-      <div style="margin-top:60px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;text-align:center;font-size:11px">
-        <div><div style="border-top:1px solid #94a3b8;padding-top:5px">Elaboró (Comprador)</div></div>
-        <div><div style="border-top:1px solid #94a3b8;padding-top:5px">Autorizó (Gerencia de Planta)</div></div>
-        <div><div style="border-top:1px solid #94a3b8;padding-top:5px">Aceptación Proveedor (Firma y Fecha)</div></div>
-      </div>
-    </div>
-  `;
-
+    </div>`;
   window.print();
   printDiv.style.display = 'none';
-}
-
-function toggleTheme(){
-  const isDark = document.body.getAttribute('data-theme') === 'dark';
-  document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-  document.getElementById('themeIcon').className = isDark ? 'fas fa-moon' : 'fas fa-sun';
 }
 
 document.addEventListener('DOMContentLoaded', init);
