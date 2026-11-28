@@ -255,7 +255,7 @@ async function init(){
       client.from('molds').select('*').order('mold_code'),
       client.from('part_molds').select('*').eq('active', true),
       client.from('mold_machines').select('*'),
-      window.fetchAllRows ? window.fetchAllRows('bom_structures', { orderBy: 'id' }) : client.from('bom_structures').select('*').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('bom_structures', { filter: q => q.neq('is_active', false), orderBy: 'id' }) : client.from('bom_structures').select('*').neq('is_active', false).then(r => r.data || []),
       window.fetchAllRows ? window.fetchAllRows('empaques_partes', { select: 'part_number, standard_pack, es_empaque_primario, empaques(codigo, tipo_empaque)', orderBy: 'id' }) : client.from('empaques_partes').select('part_number, standard_pack, es_empaque_primario, empaques(codigo, tipo_empaque)').then(r => r.data || []),
       client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0)
     ]);
@@ -494,7 +494,7 @@ function reprogramarCascada(){
 
 /* ==================== EVALUACIÓN DE SHORTAGE DE MATERIAL ==================== */
 function evaluateMaterialShortage(w) {
-  const rels = boms.filter(b => b.parent_id === w.part_id && b.is_active !== false);
+  const rels = boms.filter(b => b.parent_id === w.part_id && b.is_active !== false && b.parent_id !== b.child_id);
   if (!rels.length) {
     return { hasBom: false, isShortage: false, items: [], maxLeadTime: 0, summary: 'Sin BOM registrado' };
   }
@@ -505,7 +505,7 @@ function evaluateMaterialShortage(w) {
   for (const r of rels) {
     const child = allParts.find(x => x.id === r.child_id);
     if (!child) continue;
-    const usage = Number(r.usage_qty || r.quantity || 1);
+    const usage = Number(r.usage_qty ?? r.quantity ?? 0);
     const scrap = Number(r.scrap_pct || child.scrap_pct || 0);
     const needed = Math.ceil(w.qty * usage * (1 + scrap / 100));
     const inStock = Math.floor(stockMap[child.id] || 0);
@@ -652,11 +652,11 @@ function renderTable(){
     const m = machines.find(x => String(x.id) === String(w.machine_id)) || {};
     const mo = molds.find(x => String(x.id) === String(w.mold_id)) || {};
     const shortInfo = w.shortage || evaluateMaterialShortage(w);
-    const rels = boms.filter(b => b.parent_id === w.part_id);
+    const rels = boms.filter(b => b.parent_id === w.part_id && b.is_active !== false && b.parent_id !== b.child_id);
     const kitTxt = rels.length ? rels.map(r => {
       const ch = allParts.find(x => x.id === r.child_id);
       if (!ch) return '';
-      return `${esc(ch.part_number)}: ${fmt(w.qty * Number(r.usage_qty || r.quantity || 1))} ${esc(ch.unit_of_measure || 'PZA')}`;
+      return `${esc(ch.part_number)}: ${fmt(w.qty * Number(r.usage_qty ?? r.quantity ?? 0))} ${esc(ch.unit_of_measure || 'PZA')}`;
     }).filter(Boolean).slice(0,2).join(' · ') : 'Sin BOM';
 
     const matStatusHtml = shortInfo.isShortage

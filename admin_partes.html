@@ -226,8 +226,15 @@
     let locationsCache = [];
     let editMrpId = null;
     let canEditIng = true;
+    let supportsArchivedCol = true;
 
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    const applyCanonicalFilter = q => supportsArchivedCol ? q.eq('is_archived_duplicate', false) : q;
+    const isMissingArchivedColError = err => {
+        if (!err) return false;
+        const msg = String(err.message || err.details || '');
+        return err.code === '42703' || err.code === 'PGRST204' || msg.includes('is_archived_duplicate');
+    };
 
     const translations = {
         es: {
@@ -321,13 +328,21 @@
         }
     }
 
-    async function loadGlobalKpis() {
+    async function loadGlobalKpis(retried = false) {
         try {
             const [cPt, cMat, rSs] = await Promise.all([
-                client.from('parts').select('id', { count: 'exact', head: true }).in('product_type', ['PT', 'SUB-ENSAMBLE']).eq('obsolete', false),
-                client.from('parts').select('id', { count: 'exact', head: true }).in('product_type', ['RESINA', 'COMPONENTE']).eq('obsolete', false),
-                client.from('parts').select('id, safety_stock').eq('obsolete', false).gt('safety_stock', 0)
+                applyCanonicalFilter(client.from('parts').select('id', { count: 'exact', head: true }).in('product_type', ['PT', 'SUB-ENSAMBLE']).eq('obsolete', false)),
+                applyCanonicalFilter(client.from('parts').select('id', { count: 'exact', head: true }).in('product_type', ['RESINA', 'COMPONENTE']).eq('obsolete', false)),
+                applyCanonicalFilter(client.from('parts').select('id, safety_stock').eq('obsolete', false).gt('safety_stock', 0))
             ]);
+            const firstErr = cPt.error || cMat.error || rSs.error;
+            if (firstErr) {
+                if (!retried && supportsArchivedCol && isMissingArchivedColError(firstErr)) {
+                    supportsArchivedCol = false;
+                    return loadGlobalKpis(true);
+                }
+                throw firstErr;
+            }
             if (typeof cPt.count === 'number') document.getElementById('kpiPtSub').textContent = cPt.count.toLocaleString();
             if (typeof cMat.count === 'number') document.getElementById('kpiMat').textContent = cMat.count.toLocaleString();
 
@@ -353,6 +368,7 @@
     }
 
     function applyPartFilters(query, forceActiveOnly) {
+        query = applyCanonicalFilter(query);
         const partQ = document.getElementById('searchPart').value.trim();
         const projQ = document.getElementById('searchProject').value.trim();
         const typeQ = document.getElementById('filterType').value;
@@ -415,7 +431,7 @@
         return map;
     }
 
-    async function searchOnSupabase() {
+    async function searchOnSupabase(retried = false) {
         const body = document.getElementById('partsBody');
         const statusQ = document.getElementById('filterStatus').value;
         const from = (currentPage - 1) * PAGE_SIZE;
@@ -449,6 +465,10 @@
             updatePager();
             renderTable(pageRows);
         } catch (err) {
+            if (!retried && supportsArchivedCol && isMissingArchivedColError(err)) {
+                supportsArchivedCol = false;
+                return searchOnSupabase(true);
+            }
             console.error('Error cargando partes:', err);
             body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--danger);padding:24px;">Error: ${esc(err.message)}</td></tr>`;
         }
@@ -525,6 +545,7 @@
                 <td style="text-align:right; white-space:nowrap;">
                     <div style="display:inline-flex; gap:6px; align-items:center;">
                         <button type="button" class="btn-qr-gen" onclick="verQRParteById(${p.id})" title="Código QR"><i class="fas fa-qrcode"></i></button>
+                        ${(pType === 'PT' || pType === 'SUB-ENSAMBLE') ? `<a href="ingenieria_bom.html?part_id=${p.id}" class="btn btn-sm" title="Ver Estructura BOM"><i class="fas fa-sitemap"></i></a>` : ''}
                         <a href="part_ficha_tecnica.html?id=${p.id}" class="btn btn-sm" title="Ver Ficha Técnica"><i class="fas fa-eye"></i></a>
                         ${canEditIng ? `
                         <button type="button" class="btn btn-sm btn-primary" onclick="abrirMrp(${p.id})" title="Editar Parámetros MRP"><i class="fas fa-sliders"></i> MRP</button>

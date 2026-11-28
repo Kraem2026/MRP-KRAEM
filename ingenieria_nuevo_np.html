@@ -59,16 +59,16 @@
 <div class="container">
     <header>
         <div style="display: flex; align-items: center; gap: 15px;">
-            <a href="admin_partes.html" class="btn"><i class="fas fa-arrow-left"></i></a>
+            <button type="button" class="btn" id="btnBack" onclick="KraemNav.back('admin_partes.html')"><i class="fas fa-arrow-left"></i></button>
             <h2 style="margin:0;" id="main_title">Registro de Ingeniería</h2>
         </div>
         <div style="display: flex; gap: 10px;">
-            <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
-            <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
-            <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+            <button type="button" class="lang-btn" onclick="setLang('es')" title="Español"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
+            <button type="button" class="lang-btn" onclick="setLang('ko')" title="한국어"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+            <button type="button" class="lang-btn" onclick="setLang('en')" title="English"><img src="https://flagcdn.com/w80/us.png" alt="US"></button>
+            <button type="button" class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
         </div>
     </header>
-
     <form id="npForm" onsubmit="saveData(event)">
         <div class="form-grid">
             <div class="card">
@@ -92,8 +92,8 @@
                 </div>
                 
                 <div class="form-grid" style="gap:10px;">
-                    <div class="form-group" id="group_cli"><label id="l_cli">Cliente</label><input type="text" id="client"></div>
-                    <div class="form-group hidden" id="group_sup"><label id="l_sup">Proveedor</label><input type="text" id="supplier" placeholder="Nombre del proveedor"></div>
+                    <div class="form-group" id="group_cli"><label id="l_cli">Cliente</label><input type="text" id="client" list="dl_clientes"></div>
+                    <div class="form-group hidden" id="group_sup"><label id="l_sup">Proveedor</label><input type="text" id="supplier" list="dl_proveedores" placeholder="Nombre del proveedor"></div>
                 </div>
 
                 <div class="form-grid" style="gap:10px;">
@@ -132,7 +132,7 @@
                 <div class="card-title" id="t3">3. Especificaciones de Inyección</div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group"><label id="l_res">Resina (Tipo)</label><input type="text" id="resin_type" placeholder="Ej. PP"></div>
-                    <div class="form-group"><label id="l_grade">Grado de Resina</label><input type="text" id="resin_grade" placeholder="Ej. J-740"></div>
+                    <div class="form-group"><label id="l_grade">Grado de Resina</label><input type="text" id="resin_grade" list="dl_resinas" placeholder="Ej. J-740"></div>
                 </div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group"><label id="l_col">Color</label><input type="text" id="color"></div>
@@ -144,7 +144,7 @@
                 </div>
                 <div class="form-grid" style="gap:10px;" id="group_injection_details">
                     <div class="form-group"><label id="l_wr">Peso Vena/Colada (g)</label><input type="number" step="0.001" id="runner_weight_gr"></div>
-                    <div class="form-group"><label id="l_cic">Ciclo (s)</label><input type="number" id="cycle_time_seg"></div>
+                    <div class="form-group"><label id="l_cic">Ciclo (s)</label><input type="number" step="0.01" min="0" id="cycle_time_seg"></div>
                 </div>
             </div>
 
@@ -157,7 +157,7 @@
                     </div>
                     <div class="form-group">
                         <label id="l_eng_sta">Estatus Ingeniería</label>
-                        <select id="engineering_status">
+                        <select id="engineering_status" onchange="syncStatusFields('eng')">
                             <option value="ACTIVO">ACTIVO</option>
                             <option value="PROTOTIPO">PROTOTIPO</option>
                             <option value="ECN">ECN (En Cambio)</option>
@@ -168,7 +168,7 @@
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group">
                         <label id="l_sta">Estatus Catálogo</label>
-                        <select id="obsolete">
+                        <select id="obsolete" onchange="syncStatusFields('obs')">
                             <option value="false">ACTIVO</option>
                             <option value="true">OBSOLETO</option>
                         </select>
@@ -231,8 +231,8 @@
             <table class="bom-table">
                 <thead>
                     <tr>
-                        <th style="width: 45%;">Componente / Resina</th>
-                        <th style="width: 25%;">Tipo</th>
+                        <th style="width: 45%;">Componente / Resina (N° Parte)</th>
+                        <th style="width: 25%;">Tipo / Unidad</th>
                         <th style="width: 20%;">Uso / Pieza (U/S)</th>
                         <th style="width: 10%;">Acción</th>
                     </tr>
@@ -243,6 +243,11 @@
             </table>
         </div>
 
+        <datalist id="dl_clientes"></datalist>
+        <datalist id="dl_proveedores"></datalist>
+        <datalist id="dl_resinas"></datalist>
+        <datalist id="dl_bom_parts"></datalist>
+
         <button type="submit" class="btn btn-primary" id="btn_save">
             <i class="fas fa-save"></i> <span id="txt_save">GUARDAR DATOS Y BOM</span>
         </button>
@@ -251,13 +256,37 @@
 
 <script>
     const editId = new URLSearchParams(window.location.search).get('id');
-    let availablePartsList = []; // Para llenar el dropdown de componentes
+    let availablePartsList = [];
+    const escNp = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 
     const translations = {
-        es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación", t2: "2. Foto", t3: "3. Especificaciones", t4: "4. Estatus", save: "GUARDAR DATOS Y BOM", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *", grade: "Grado de Resina", tol: "Tolerancia (+/- g)", uom: "Unidad Medida", type: "Tipo Producto", sup: "Proveedor", cli: "Cliente" },
+        es: { title: "Registro de Ingeniería", edit: "Editar Número de Parte", t1: "1. Identificación Básica", t2: "2. Fotografía", t3: "3. Especificaciones de Inyección", t4: "4. Estatus, Logística y MRP (SAP MM)", save: "GUARDAR DATOS Y BOM", loading: "Guardando...", upload: "Click para subir foto", name: "Nombre de la Pieza *", grade: "Grado de Resina", tol: "Tolerancia (+/- g)", uom: "Unidad Medida", type: "Tipo Producto", sup: "Proveedor", cli: "Cliente" },
         ko: { title: "엔지니어링 등록", edit: "부품 번호 수정", t1: "1. 기본 정보", t2: "2. 사진", t3: "3. 사출 사양", t4: "4. 상태 및 물류", save: "데이터 저장", loading: "저장 중...", upload: "사진 클릭", name: "부품 이름 *", grade: "레진 등급", tol: "허용 오차", uom: "측정 단위", type: "제품 유형", sup: "공급업체", cli: "고객사" },
-        en: { title: "Engineering Registration", edit: "Edit Part Number", t1: "1. Identification", t2: "2. Photo", t3: "3. Specifications", t4: "4. Status", save: "SAVE DATA & BOM", loading: "Saving...", upload: "Click to upload photo", name: "Part Name *", grade: "Resin Grade", tol: "Tolerance (+/- g)", uom: "Unit of Measure", type: "Product Type", sup: "Supplier", cli: "Customer" }
+        en: { title: "Engineering Registration", edit: "Edit Part Number", t1: "1. Basic Identification", t2: "2. Photo", t3: "3. Injection Specifications", t4: "4. Status, Logistics & MRP", save: "SAVE DATA & BOM", loading: "Saving...", upload: "Click to upload photo", name: "Part Name *", grade: "Resin Grade", tol: "Tolerance (+/- g)", uom: "Unit of Measure", type: "Product Type", sup: "Supplier", cli: "Customer" }
     };
+
+    function syncEditPermissions() {
+        const canEdit = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('ingenieria');
+        const btnSave = document.getElementById('btn_save');
+        if (btnSave) {
+            btnSave.disabled = !canEdit;
+            btnSave.style.display = canEdit ? 'flex' : 'none';
+        }
+    }
+
+    function syncStatusFields(source) {
+        const engEl = document.getElementById('engineering_status');
+        const obsEl = document.getElementById('obsolete');
+        if (source === 'eng') {
+            obsEl.value = engEl.value === 'OBSOLETO' ? 'true' : 'false';
+        } else {
+            if (obsEl.value === 'true') {
+                engEl.value = 'OBSOLETO';
+            } else if (engEl.value === 'OBSOLETO') {
+                engEl.value = 'ACTIVO';
+            }
+        }
+    }
 
     function adjustFormByProductType() {
         const type = document.getElementById('product_type').value;
@@ -274,17 +303,16 @@
             groupInj.classList.remove('hidden');
             groupCli.classList.remove('hidden');
             groupSup.classList.add('hidden');
-            uom.value = 'PZA';
+            if (!editId) uom.value = 'PZA';
 
             bomTitle.innerText = "5. Estructura de Materiales (BOM)";
-            bomHelp.innerText = "Asigne las resinas, componentes y sub-ensambles que se requieren para armar este producto.";
+            bomHelp.innerText = "Asigne las resinas, componentes y sub-ensambles requeridos para fabricar este número de parte.";
         } else {
-            // COMPONENTE o RESINA
             groupCav.classList.add('hidden');
             groupInj.classList.add('hidden');
             groupCli.classList.add('hidden');
             groupSup.classList.remove('hidden');
-            uom.value = (type === 'RESINA') ? 'KG' : 'PZA';
+            if (!editId) uom.value = (type === 'RESINA') ? 'KG' : 'PZA';
 
             bomTitle.innerText = "5. Asignación a Productos Terminados (BOM)";
             bomHelp.innerText = "Asigne a qué Productos Terminados o Sub-ensambles pertenece este componente/resina.";
@@ -292,22 +320,53 @@
     }
 
     async function preloadAvailableParts() {
-        const [rParts, rLocs] = await Promise.all([
-            window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, unit_of_measure', orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name, product_type, unit_of_measure').order('part_number'),
-            client.from('locations').select('id, location_code, location_name, type, active').eq('active', true).order('location_code')
+        const [rParts, rLocs, rCli, rProv] = await Promise.all([
+            window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, unit_of_measure, part_weight_gr, runner_weight_gr, obsolete, engineering_status', orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name, product_type, unit_of_measure, part_weight_gr, runner_weight_gr, obsolete, engineering_status').order('part_number'),
+            client.from('locations').select('id, location_code, location_name, type, active').eq('active', true).order('location_code'),
+            client.from('clientes').select('nombre, activo').order('nombre'),
+            client.from('proveedores').select('nombre_comercial, activo').order('nombre_comercial')
         ]);
-        availablePartsList = Array.isArray(rParts) ? rParts : (rParts.data || []);
+
+        const rawParts = Array.isArray(rParts) ? rParts : (rParts.data || []);
+        availablePartsList = rawParts.filter(p => !p.is_archived_duplicate && p.engineering_status !== 'DUPLICADO_ARCHIVADO');
+
+        const dlBom = document.getElementById('dl_bom_parts');
+        if (dlBom) {
+            dlBom.innerHTML = availablePartsList
+                .filter(p => !editId || String(p.id) !== String(editId))
+                .map(p => `<option value="${escNp(p.part_number)}">${escNp((p.part_name || '') + ' [' + (p.product_type || 'PT') + ']')}</option>`)
+                .join('');
+        }
+
+        const dlRes = document.getElementById('dl_resinas');
+        if (dlRes) {
+            dlRes.innerHTML = availablePartsList
+                .filter(p => (p.product_type || '').toUpperCase() === 'RESINA')
+                .map(p => `<option value="${escNp(p.part_number)}">${escNp(p.part_name || '')}</option>`)
+                .join('');
+        }
+
+        const dlCli = document.getElementById('dl_clientes');
+        if (dlCli) {
+            dlCli.innerHTML = (rCli.data || []).filter(c => c.activo !== false && c.nombre).map(c => `<option value="${escNp(c.nombre)}">`).join('');
+        }
+
+        const dlProv = document.getElementById('dl_proveedores');
+        if (dlProv) {
+            dlProv.innerHTML = (rProv.data || []).filter(p => p.activo !== false && p.nombre_comercial).map(p => `<option value="${escNp(p.nombre_comercial)}">`).join('');
+        }
 
         const locSelect = document.getElementById('default_location_id');
         if (locSelect) {
             const fixedLocs = (rLocs.data || []).filter(l => l.type !== 'Móvil' && l.type !== 'Contenedor');
             locSelect.innerHTML = '<option value="">-- Sin ubicación fija --</option>' +
-                fixedLocs.map(l => `<option value="${l.id}">${l.location_code}${l.location_name ? ' (' + l.location_name + ')' : ''}</option>`).join('');
+                fixedLocs.map(l => `<option value="${l.id}">${escNp(l.location_code)}${l.location_name ? ' (' + escNp(l.location_name) + ')' : ''}</option>`).join('');
         }
     }
 
     async function init() {
         applyTheme();
+        syncEditPermissions();
         await preloadAvailableParts();
 
         if (editId) {
@@ -323,16 +382,16 @@
                 document.getElementById('resin_type').value = p.resin_type || '';
                 document.getElementById('resin_grade').value = p.resin_grade || '';
                 document.getElementById('color').value = p.color || '';
-                document.getElementById('cavities').value = p.cavities || 0;
-                document.getElementById('cycle_time_seg').value = p.cycle_time_seg || 0;
-                document.getElementById('part_weight_gr').value = p.part_weight_gr || 0;
-                document.getElementById('weight_tolerance').value = p.weight_tolerance || 0;
-                document.getElementById('runner_weight_gr').value = p.runner_weight_gr || 0;
-                document.getElementById('std_pack').value = p.std_pack || 0;
+                document.getElementById('cavities').value = p.cavities ?? 0;
+                document.getElementById('cycle_time_seg').value = p.cycle_time_seg ?? 0;
+                document.getElementById('part_weight_gr').value = p.part_weight_gr ?? 0;
+                document.getElementById('weight_tolerance').value = p.weight_tolerance ?? 0;
+                document.getElementById('runner_weight_gr').value = p.runner_weight_gr ?? 0;
+                document.getElementById('std_pack').value = p.std_pack ?? 0;
                 document.getElementById('obsolete').value = (p.obsolete || false).toString();
                 document.getElementById('customer_part_number').value = p.customer_part_number || '';
                 document.getElementById('drawing_revision').value = p.drawing_revision || 'REV-01';
-                document.getElementById('engineering_status').value = p.engineering_status || 'ACTIVO';
+                document.getElementById('engineering_status').value = p.engineering_status || (p.obsolete ? 'OBSOLETO' : 'ACTIVO');
                 document.getElementById('default_location_id').value = p.default_location_id || '';
                 document.getElementById('safety_stock').value = p.safety_stock ?? 0;
                 document.getElementById('min_lot_size').value = p.min_lot_size ?? 0;
@@ -340,8 +399,8 @@
                 document.getElementById('lead_time_days').value = p.lead_time_days ?? 0;
                 document.getElementById('scrap_pct').value = p.scrap_pct ?? 0;
                 document.getElementById('regrind_pct').value = p.regrind_pct ?? 0;
-                
-                if(p.image_url) {
+
+                if (p.image_url) {
                     const prev = document.getElementById('imgPreview');
                     prev.src = p.image_url;
                     prev.style.display = 'block';
@@ -349,51 +408,60 @@
                     document.getElementById('upload_txt').style.display = 'none';
                 }
 
-                // Cargar estructura BOM existente
-                loadExistingBom(p.id, p.product_type);
+                await loadExistingBom(p.id, p.product_type);
             }
         }
         adjustFormByProductType();
         setLang(localStorage.getItem('lang') || 'es');
     }
 
+    document.addEventListener('kraem:authready', syncEditPermissions);
+
     async function loadExistingBom(partId, productType) {
-        let isParent = (productType === 'PT' || productType === 'SUB-ENSAMBLE');
-        let query = client.from('bom_structures').select('*, child:parts!bom_structures_child_id_fkey(*), parent:parts!bom_structures_parent_id_fkey(*)');
-        
-        if (isParent) {
-            query = query.eq('parent_id', partId);
-        } else {
-            query = query.eq('child_id', partId);
-        }
+        const isParent = (productType === 'PT' || productType === 'SUB-ENSAMBLE');
+        let query = client
+            .from('bom_structures')
+            .select('*, child:parts!bom_structures_child_id_fkey(*), parent:parts!bom_structures_parent_id_fkey(*)')
+            .neq('is_active', false);
+
+        query = isParent ? query.eq('parent_id', partId) : query.eq('child_id', partId);
 
         const { data: bomData } = await query;
-        if (bomData && bomData.length > 0) {
-            bomData.forEach(item => {
-                const targetId = isParent ? item.child_id : item.parent_id;
-                addBomRow(targetId, item.usage_qty || item.quantity || 1);
-            });
-        }
+        const cleanRows = (bomData || []).filter(item => Number(item.parent_id) !== Number(item.child_id));
+        cleanRows.forEach(item => {
+            const targetId = isParent ? item.child_id : item.parent_id;
+            const uVal = item.usage_qty ?? item.quantity ?? 1;
+            addBomRow(targetId, uVal, true);
+        });
     }
 
-    function addBomRow(selectedPartId = '', usageQty = 1) {
+    function resolveCandidateByText(rawTxt) {
+        const clean = String(rawTxt || '').trim().toUpperCase();
+        if (!clean) return null;
+        return availablePartsList.find(p => String(p.part_number || '').trim().toUpperCase() === clean)
+            || availablePartsList.find(p => `${p.part_number} - ${p.part_name || ''}`.trim().toUpperCase() === clean)
+            || null;
+    }
+
+    function addBomRow(selectedPartId = '', usageQty = 1, fromDb = false) {
         const container = document.getElementById('bom_rows_container');
         const tr = document.createElement('tr');
+        if (fromDb) tr.dataset.loaded = '1';
 
-        const optionsHtml = availablePartsList.map(p => 
-            `<option value="${p.id}" ${p.id == selectedPartId ? 'selected' : ''}>${p.part_number} - ${p.part_name} (${p.product_type})</option>`
-        ).join('');
+        const found = selectedPartId ? availablePartsList.find(p => String(p.id) === String(selectedPartId)) : null;
+        const initPn = found ? found.part_number : '';
+        const initId = found ? found.id : '';
+        const initBadge = found ? `${escNp(found.product_type || 'COMPONENTE')} (${escNp(found.unit_of_measure || 'PZA')})` : '-';
+        const uVal = (usageQty !== null && usageQty !== undefined && usageQty !== '') ? usageQty : 1;
 
         tr.innerHTML = `
             <td>
-                <select class="bom-part-select" onchange="updateRowType(this)">
-                    <option value="">-- Seleccionar Elemento --</option>
-                    ${optionsHtml}
-                </select>
+                <input type="text" class="bom-part-input" list="dl_bom_parts" placeholder="Buscar N° Parte o Resina..." value="${escNp(initPn)}" oninput="onBomPartInput(this)" style="margin:0;">
+                <input type="hidden" class="bom-part-id" value="${escNp(initId)}">
             </td>
-            <td><span class="badge-type" style="font-size: 11px; font-weight: bold; color: var(--text-secondary);">-</span></td>
+            <td><span class="badge-type" style="font-size: 11px; font-weight: bold; color: var(--text-secondary);">${initBadge}</span></td>
             <td>
-                <input type="number" step="0.001" class="bom-usage-input" value="${usageQty}" style="padding: 6px;">
+                <input type="number" step="0.000001" min="0" class="bom-usage-input" value="${escNp(uVal)}" oninput="this.dataset.manual='1'" style="padding: 6px; margin:0;">
             </td>
             <td>
                 <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()">
@@ -403,22 +471,43 @@
         `;
 
         container.appendChild(tr);
-        if (selectedPartId) {
-            const selectEl = tr.querySelector('.bom-part-select');
-            updateRowType(selectEl);
-        }
     }
 
-    function updateRowType(selectEl) {
-        const tr = selectEl.closest('tr');
-        const partId = selectEl.value;
+    function onBomPartInput(inputEl) {
+        const tr = inputEl.closest('tr');
+        const hiddenIdEl = tr.querySelector('.bom-part-id');
         const badge = tr.querySelector('.badge-type');
+        const usageEl = tr.querySelector('.bom-usage-input');
+        const found = resolveCandidateByText(inputEl.value);
 
-        const found = availablePartsList.find(p => p.id == partId);
-        if (found) {
-            badge.innerText = found.product_type || 'COMPONENTE';
-        } else {
+        if (!found) {
+            hiddenIdEl.value = '';
             badge.innerText = '-';
+            return;
+        }
+
+        const currentPN = (document.getElementById('part_number').value || '').trim().toUpperCase();
+        if ((editId && String(found.id) === String(editId)) || (currentPN && String(found.part_number || '').trim().toUpperCase() === currentPN)) {
+            alert('No se puede asignar el mismo número de parte como componente de sí mismo.');
+            inputEl.value = '';
+            hiddenIdEl.value = '';
+            badge.innerText = '-';
+            return;
+        }
+
+        hiddenIdEl.value = found.id;
+        const fType = (found.product_type || 'COMPONENTE').toUpperCase();
+        badge.innerText = `${fType} (${found.unit_of_measure || (fType === 'RESINA' ? 'KG' : 'PZA')})`;
+
+        const myType = (document.getElementById('product_type').value || 'PT').toUpperCase();
+        const isParent = (myType === 'PT' || myType === 'SUB-ENSAMBLE');
+        if (isParent && fType === 'RESINA' && !usageEl.dataset.manual && !tr.dataset.loaded) {
+            const pGr = parseFloat(document.getElementById('part_weight_gr').value) || 0;
+            const rGr = parseFloat(document.getElementById('runner_weight_gr').value) || 0;
+            const totKg = (pGr + rGr) / 1000;
+            if (totKg > 0) {
+                usageEl.value = Number(totKg.toFixed(6));
+            }
         }
     }
 
@@ -431,61 +520,67 @@
                 prev.style.display = 'block';
                 document.getElementById('upload_icon').style.display = 'none';
                 document.getElementById('upload_txt').style.display = 'none';
-            }
+            };
             reader.readAsDataURL(input.files[0]);
         }
     }
 
     async function saveData(event) {
         event.preventDefault();
+        if (window.KraemAuth && typeof KraemAuth.canEdit === 'function' && !KraemAuth.canEdit('ingenieria')) {
+            alert('Sin permiso para editar Ingeniería.');
+            return;
+        }
         document.getElementById('loading').style.display = 'flex';
-        
+
         let imageUrl = document.getElementById('imgPreview').style.display === 'block' ? document.getElementById('imgPreview').src : null;
         const file = document.getElementById('fileInput').files[0];
-        
+
         if (file) {
             const path = `part_images/${Date.now()}_${file.name}`;
             const { error: storageError } = await client.storage.from('inventario').upload(path, file);
-            if(!storageError) {
+            if (!storageError) {
                 imageUrl = client.storage.from('inventario').getPublicUrl(path).data.publicUrl;
             }
         }
 
         const productType = document.getElementById('product_type').value;
+        const engStatus = document.getElementById('engineering_status').value || 'ACTIVO';
+        const isObs = engStatus === 'OBSOLETO' || document.getElementById('obsolete').value === 'true';
 
         const payload = {
             product_type: productType,
             part_number: document.getElementById('part_number').value.trim(),
             part_name: document.getElementById('part_name').value.trim(),
-            client: document.getElementById('client').value,
-            supplier: document.getElementById('supplier').value,
-            project: document.getElementById('project').value,
+            client: document.getElementById('client').value.trim() || null,
+            supplier: document.getElementById('supplier').value.trim() || null,
+            project: document.getElementById('project').value.trim() || null,
             unit_of_measure: document.getElementById('unit_of_measure').value,
-            resin_type: document.getElementById('resin_type').value,
-            resin_grade: document.getElementById('resin_grade').value,
-            color: document.getElementById('color').value,
-            cavities: parseInt(document.getElementById('cavities').value) || 0,
-            cycle_time_seg: parseInt(document.getElementById('cycle_time_seg').value) || 0,
+            uom: document.getElementById('unit_of_measure').value,
+            resin_type: document.getElementById('resin_type').value.trim() || null,
+            resin_grade: document.getElementById('resin_grade').value.trim() || null,
+            color: document.getElementById('color').value.trim() || null,
+            cavities: parseInt(document.getElementById('cavities').value, 10) || 0,
+            cycle_time_seg: parseFloat(document.getElementById('cycle_time_seg').value) || 0,
             part_weight_gr: parseFloat(document.getElementById('part_weight_gr').value) || 0,
             weight_tolerance: parseFloat(document.getElementById('weight_tolerance').value) || 0,
             runner_weight_gr: parseFloat(document.getElementById('runner_weight_gr').value) || 0,
-            std_pack: parseInt(document.getElementById('std_pack').value) || 0,
-            obsolete: document.getElementById('obsolete').value === 'true',
+            std_pack: parseInt(document.getElementById('std_pack').value, 10) || 0,
+            obsolete: isObs,
             customer_part_number: document.getElementById('customer_part_number').value.trim() || null,
             drawing_revision: document.getElementById('drawing_revision').value.trim() || 'REV-01',
-            engineering_status: document.getElementById('engineering_status').value || 'ACTIVO',
-            default_location_id: document.getElementById('default_location_id').value ? parseInt(document.getElementById('default_location_id').value) : null,
+            engineering_status: isObs ? 'OBSOLETO' : engStatus,
+            default_location_id: document.getElementById('default_location_id').value ? parseInt(document.getElementById('default_location_id').value, 10) : null,
             safety_stock: parseFloat(document.getElementById('safety_stock').value) || 0,
             min_lot_size: parseFloat(document.getElementById('min_lot_size').value) || 0,
-            lot_rounding: parseFloat(document.getElementById('lot_rounding').value) || 1,
-            lead_time_days: parseInt(document.getElementById('lead_time_days').value) || 0,
+            lot_rounding: Math.max(1, parseFloat(document.getElementById('lot_rounding').value) || 1),
+            lead_time_days: parseInt(document.getElementById('lead_time_days').value, 10) || 0,
             scrap_pct: parseFloat(document.getElementById('scrap_pct').value) || 0,
             regrind_pct: parseFloat(document.getElementById('regrind_pct').value) || 0,
             image_url: imageUrl
         };
 
-        // 1. Guardar o actualizar la Ficha Técnica (Parts)
-        let savedPartId = editId;
+        let savedPartId = editId ? Number(editId) : null;
 
         if (editId) {
             const { error } = await client.from('parts').update(payload).eq('id', editId);
@@ -496,62 +591,93 @@
             savedPartId = newPart.id;
         }
 
-        // 2. Guardar o actualizar las relaciones del BOM
         await saveBomRelations(savedPartId, productType);
-
         location.href = 'admin_partes.html';
     }
 
     async function saveBomRelations(partId, productType) {
         const isParent = (productType === 'PT' || productType === 'SUB-ENSAMBLE');
-        
-        // Limpiar relaciones anteriores de esta parte
-        if (isParent) {
-            await client.from('bom_structures').delete().eq('parent_id', partId);
-        } else {
-            await client.from('bom_structures').delete().eq('child_id', partId);
-        }
+        const pGr = parseFloat(document.getElementById('part_weight_gr').value) || 0;
+        const rGr = parseFloat(document.getElementById('runner_weight_gr').value) || 0;
+        const cycSeg = parseFloat(document.getElementById('cycle_time_seg').value) || 0;
+        const cavs = parseInt(document.getElementById('cavities').value, 10) || 1;
+        const curPn = document.getElementById('part_number').value.trim();
+
+        await client
+            .from('bom_structures')
+            .update({ is_active: false })
+            .eq(isParent ? 'parent_id' : 'child_id', partId)
+            .neq('is_active', false);
 
         const trs = document.querySelectorAll('#bom_rows_container tr');
-        let bomBatch = [];
+        const bomMap = new Map();
 
         trs.forEach(tr => {
-            const selectedPartId = tr.querySelector('.bom-part-select').value;
-            const usageQty = parseFloat(tr.querySelector('.bom-usage-input').value) || 1;
+            const hiddenEl = tr.querySelector('.bom-part-id');
+            const inputEl = tr.querySelector('.bom-part-input');
+            const resolved = hiddenEl?.value
+                ? availablePartsList.find(p => String(p.id) === String(hiddenEl.value))
+                : resolveCandidateByText(inputEl?.value);
+            if (!resolved) return;
 
-            if (selectedPartId) {
-                const selectedPart = availablePartsList.find(p => String(p.id) === String(selectedPartId));
-                if (isParent) {
-                    const childType = (selectedPart?.product_type || '').toUpperCase();
-                    bomBatch.push({
-                        parent_id: partId,
-                        child_id: selectedPartId,
-                        quantity: usageQty,
-                        usage_qty: usageQty,
-                        bom_level: childType === 'RESINA' ? 2 : 1,
-                        unit: selectedPart?.unit_of_measure || (childType === 'RESINA' ? 'KG' : 'PZA')
-                    });
-                } else {
-                    bomBatch.push({
-                        parent_id: selectedPartId,
-                        child_id: partId,
-                        quantity: usageQty,
-                        usage_qty: usageQty,
-                        bom_level: productType === 'RESINA' ? 2 : 1,
-                        unit: document.getElementById('unit_of_measure').value || (productType === 'RESINA' ? 'KG' : 'PZA')
-                    });
-                }
+            const selectedPartId = Number(resolved.id);
+            if (!selectedPartId || Number(selectedPartId) === Number(partId)) return;
+
+            const rawU = tr.querySelector('.bom-usage-input').value;
+            const usageQty = (rawU !== '' && rawU !== null && !Number.isNaN(Number(rawU))) ? Number(rawU) : 1;
+
+            if (isParent) {
+                const childType = (resolved.product_type || '').toUpperCase();
+                const isRes = childType === 'RESINA';
+                const rowObj = {
+                    parent_id: Number(partId),
+                    child_id: selectedPartId,
+                    quantity: usageQty,
+                    usage_qty: usageQty,
+                    bom_level: isRes ? (productType === 'SUB-ENSAMBLE' ? 2 : 1) : 1,
+                    unit: resolved.unit_of_measure || (isRes ? 'KG' : (childType === 'SUB-ENSAMBLE' ? 'PZA' : 'EA')),
+                    material_grade: isRes ? resolved.part_number : null,
+                    net_weight_kg: isRes ? Number((pGr / 1000).toFixed(6)) : Number((Number(resolved.part_weight_gr || 0) / 1000).toFixed(6)),
+                    gate_weight_kg: isRes ? Number((rGr / 1000).toFixed(6)) : Number((Number(resolved.runner_weight_gr || 0) / 1000).toFixed(6)),
+                    total_weight_kg: isRes ? Number(((pGr + rGr) / 1000).toFixed(6)) : Number(((Number(resolved.part_weight_gr || 0) + Number(resolved.runner_weight_gr || 0)) / 1000).toFixed(6)),
+                    cavities: cavs,
+                    cycle_time_sec: cycSeg,
+                    is_active: true
+                };
+                bomMap.set(`${rowObj.parent_id}::${rowObj.child_id}`, rowObj);
+            } else {
+                const isRes = productType === 'RESINA';
+                const parentPGr = Number(resolved.part_weight_gr || 0);
+                const parentRGr = Number(resolved.runner_weight_gr || 0);
+                const rowObj = {
+                    parent_id: selectedPartId,
+                    child_id: Number(partId),
+                    quantity: usageQty,
+                    usage_qty: usageQty,
+                    bom_level: isRes ? ((resolved.product_type || '').toUpperCase() === 'SUB-ENSAMBLE' ? 2 : 1) : 1,
+                    unit: document.getElementById('unit_of_measure').value || (isRes ? 'KG' : 'EA'),
+                    material_grade: isRes ? curPn : null,
+                    net_weight_kg: isRes ? Number((parentPGr / 1000).toFixed(6)) : 0,
+                    gate_weight_kg: isRes ? Number((parentRGr / 1000).toFixed(6)) : 0,
+                    total_weight_kg: isRes ? Number(((parentPGr + parentRGr) / 1000).toFixed(6)) : 0,
+                    is_active: true
+                };
+                bomMap.set(`${rowObj.parent_id}::${rowObj.child_id}`, rowObj);
             }
         });
 
+        const bomBatch = Array.from(bomMap.values());
         if (bomBatch.length > 0) {
-            await client.from('bom_structures').insert(bomBatch);
+            const { error: bomErr } = await client.from('bom_structures').insert(bomBatch);
+            if (bomErr) throw bomErr;
         }
     }
 
     function setLang(lang) {
         const safeLang = translations[lang] ? lang : 'es';
         localStorage.setItem('lang', safeLang);
+        localStorage.setItem('kraem_lang', safeLang);
+        document.documentElement.setAttribute('lang', safeLang);
         const l = translations[safeLang];
         document.getElementById('main_title').innerText = editId ? l.edit : l.title;
         document.getElementById('t1').innerText = l.t1;

@@ -277,10 +277,10 @@ async function init(){
   try {
     const [partsData, bomData, rStock, rLocs, rCli] = await Promise.all([
       window.fetchAllRows ? window.fetchAllRows('parts', { filter: q => q.eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('*').eq('obsolete', false).order('part_number').then(r => r.data || []),
-      window.fetchAllRows ? window.fetchAllRows('bom_structures', { orderBy: 'id' }) : client.from('bom_structures').select('*').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('bom_structures', { filter: q => q.neq('is_active', false), orderBy: 'id' }) : client.from('bom_structures').select('*').neq('is_active', false).then(r => r.data || []),
       window.fetchAllRows ? window.fetchAllRows('v_inventory_by_location', { select: 'part_id, quantity' }) : client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0).then(r => r.data || []),
       client.from('locations').select('id, location_code'),
-      client.from('clientes').select('id, client_name').eq('active', true).order('client_name')
+      client.from('clientes').select('id, nombre').eq('activo', true).order('nombre')
     ]);
 
     allParts = Array.isArray(partsData) ? partsData : (partsData.data || []);
@@ -296,7 +296,7 @@ async function init(){
 
     // Clientes reales: mezcla de tabla `clientes` + columna `client` de `parts`
     const cliSet = new Set();
-    (rCli.data || []).forEach(c => { if (c.client_name) cliSet.add(c.client_name.trim()); });
+    (rCli.data || []).forEach(c => { if (c.nombre) cliSet.add(c.nombre.trim()); });
     allParts.forEach(p => { if (p.client && p.client.trim()) cliSet.add(p.client.trim()); });
     clientNames = [...cliSet].sort();
 
@@ -642,7 +642,7 @@ function saveDemands(){
 function explodeBomRecursive(partId, parentQty, accMaterials, depth = 0, seen = new Set()){
   if (depth > 5 || seen.has(partId)) return;
   const nextSeen = new Set(seen); nextSeen.add(partId);
-  const children = boms.filter(b => b.parent_id === partId && b.is_active !== false);
+  const children = boms.filter(b => b.parent_id === partId && b.is_active !== false && b.parent_id !== b.child_id);
 
   for (const rel of children) {
     const child = allParts.find(p => p.id === rel.child_id);

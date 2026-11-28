@@ -61,31 +61,40 @@
 
 <header>
     <div style="display: flex; align-items: center; gap: 15px;">
-        <a href="dashboard.html" class="btn"><i class="fas fa-home"></i></a>
-        <h2 style="margin:0;" id="txt_title">Estructura de Materiales (BOM)</h2>
+        <button type="button" class="btn" id="btnBack" onclick="KraemNav.back('dashboard.html')" title="Regresar"><i class="fas fa-home"></i></button>
+        <h2 style="margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap" id="txt_title">
+            <span id="txt_title_main">Estructura de Materiales (BOM)</span>
+            <span style="font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        </h2>
     </div>
     <div class="controls">
-        <button class="btn btn-warning" onclick="downloadTemplate()">
-            <i class="fas fa-file-download"></i> Descargar Plantilla Excel
+        <button type="button" class="btn btn-warning" onclick="downloadTemplate()">
+            <i class="fas fa-file-download"></i> <span id="lbl_tpl">Plantilla Excel</span>
         </button>
 
         <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display:none" onchange="handleExcelUpload(event)">
-        
-        <button class="btn btn-success" onclick="document.getElementById('excelFileInput').click()">
-            <i class="fas fa-file-upload"></i> Cargar/Actualizar Excel BOM
+
+        <button type="button" class="btn btn-success" id="btnUploadExcel" onclick="document.getElementById('excelFileInput').click()">
+            <i class="fas fa-file-upload"></i> <span id="lbl_upload">Cargar/Actualizar Excel BOM</span>
         </button>
-        
-        <button class="btn" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
-        <button class="btn" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
-        <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+
+        <button type="button" class="btn" onclick="exportExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <button type="button" class="btn" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button type="button" class="lang-btn" onclick="setLang('es')" title="Español"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
+        <button type="button" class="lang-btn" onclick="setLang('ko')" title="한국어"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+        <button type="button" class="lang-btn" onclick="setLang('en')" title="English"><img src="https://flagcdn.com/w80/us.png" alt="US"></button>
+        <button type="button" class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
 
 <div class="main-container">
     <div class="panel search-box">
         <h4 id="txt_select_pt" style="margin-top:0">Seleccionar Producto Terminado / Sub-ensamble</h4>
+        <select id="filterParentType" onchange="fetchPTs()" style="margin-bottom:8px;">
+            <option value="ALL">Todos (PT + Sub-ensamble)</option>
+            <option value="PT">Solo PT (Terminados)</option>
+            <option value="SUB-ENSAMBLE">Solo Sub-ensambles</option>
+        </select>
         <input type="text" id="inputSearchPT" placeholder="Buscar por número de parte o nombre..." onkeyup="fetchPTs()">
         <div class="pt-list" id="ptList"></div>
     </div>
@@ -96,11 +105,18 @@
                 <h3 id="selectedPTName" style="margin:0">---</h3>
                 <small id="selectedPTNumber" style="color:var(--secondary)">Seleccione un número de parte</small>
             </div>
-            <div class="calc-box" id="calcBox" style="display:none;">
-                <label style="font-size:12px; font-weight:600;"><i class="fas fa-calculator"></i> Simular Lote (Pcs):</label>
-                <input type="number" id="batchQty" value="1000" style="width:100px; margin:0;" onchange="renderBOM()" onkeyup="renderBOM()">
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <button type="button" class="btn btn-primary" id="btnAddBomLine" style="display:none; padding:8px 14px;" onclick="abrirModalBomLine(null)">
+                    <i class="fas fa-plus"></i> <span id="lbl_add_comp">Agregar Componente / Resina</span>
+                </button>
+                <div class="calc-box" id="calcBox" style="display:none;">
+                    <label style="font-size:12px; font-weight:600;"><i class="fas fa-calculator"></i> Simular Lote (Pcs):</label>
+                    <input type="number" id="batchQty" value="1000" min="0" style="width:100px; margin:0;" onchange="renderBOM()" onkeyup="renderBOM()">
+                </div>
             </div>
         </div>
+
+        <div id="parentSpecsBar" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:14px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-size:12px;"></div>
 
         <div id="bomContent" style="overflow-x: auto;">
             <table id="bomTable">
@@ -117,10 +133,11 @@
                         <th>Peso Total (g)</th>
                         <th>U/S</th>
                         <th style="background:#eff6ff; color:#1e40af;">Requerido WMS</th>
+                        <th id="th_actions" style="text-align:right;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="bomBody">
-                    <tr><td colspan="11" style="text-align:center; color:var(--secondary)">Seleccione un PT o Sub-ensamble para ver su estructura.</td></tr>
+                    <tr><td colspan="12" style="text-align:center; color:var(--secondary)">Seleccione un PT o Sub-ensamble para ver su estructura.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -140,56 +157,145 @@
     </div>
 </div>
 
+<!-- Modal Inline Agregar / Editar Elemento BOM Nivel 1 -->
+<div class="modal-overlay" id="modalBomLine">
+    <div class="modal-content" style="text-align:left; max-width:480px;">
+        <h3 id="modalBomLineTitle" style="margin-top:0; margin-bottom:12px;">Agregar Componente / Resina al BOM</h3>
+        <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Componente / Sub-ensamble / Resina (N° Parte)</label>
+        <input type="text" id="bl_part_input" list="dl_bom_candidates" placeholder="Escribir N° Parte..." oninput="onBomModalPartInput()">
+        <input type="hidden" id="bl_child_id">
+        <datalist id="dl_bom_candidates"></datalist>
+        <div id="bl_part_info" style="font-size:11.5px; color:var(--secondary); margin:-4px 0 12px 0;">Seleccione un elemento del catálogo</div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+                <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Consumo / Pieza (U/S)</label>
+                <input type="number" step="0.000001" min="0" id="bl_usage" value="1">
+            </div>
+            <div>
+                <label style="font-size:12px; font-weight:700; display:block; margin-bottom:4px;">Unidad</label>
+                <input type="text" id="bl_unit" value="PZA" placeholder="KG / EA / PZA">
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
+            <button type="button" class="btn" onclick="cerrarModalBomLine()">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btnSaveBomLine" onclick="guardarLineaBom()"><i class="fas fa-save"></i> Guardar</button>
+        </div>
+    </div>
+</div>
 <script>
     let currentLang = localStorage.getItem('lang') || 'es';
     let selectedPTId = null;
+    let selectedPTObj = null;
     let allBomData = [];
     let partsCache = {};
+    let partsByIdCache = {};
+    let partsListCache = [];
     let ptListCache = {};
+    let editBomLineId = null;
+    let canEditIng = true;
 
     const translations = {
         es: {
             title: "Estructura de Materiales (BOM)", selectPT: "Seleccionar Producto Terminado / Sub-ensamble",
-            thComp: "Componente / Materia Prima", thType: "Tipo / Material Grade"
+            thComp: "Componente / Materia Prima", thType: "Tipo / Material Grade",
+            tpl: "Plantilla Excel", upload: "Cargar/Actualizar Excel BOM", addComp: "Agregar Componente / Resina"
         },
         ko: {
             title: "자재 명세서 (BOM) 관리", selectPT: "완제품 / 서브 조립품 선택",
-            thComp: "부품 / 원자재", thType: "유형 / 사출 원자재 스펙"
+            thComp: "부품 / 원자재", thType: "유형 / 사출 원자재 스펙",
+            tpl: "Excel 양식", upload: "Excel BOM 업로드", addComp: "부품 / 레진 추가"
         },
         en: {
             title: "Bill of Materials (BOM)", selectPT: "Select Finished Good / Sub-assembly",
-            thComp: "Component / Raw Material", thType: "Type / Resin Grade"
+            thComp: "Component / Raw Material", thType: "Type / Resin Grade",
+            tpl: "Excel Template", upload: "Upload/Update BOM Excel", addComp: "Add Component / Resin"
         }
     };
 
     const escHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-    async function init() {
-        applyTheme();
-        setLang(currentLang);
-        await preloadPartsCache();
-        fetchPTs();
+    function isRealResinStr(grade, pn) {
+        const g = String(grade || '').trim();
+        if (!g || g === '-') return false;
+        const cleanG = g.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const cleanPn = String(pn || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const cleanNoSuf = g.toUpperCase().replace(/[_ -]+(SY|KS|DH|KR|SC|HC|WK)$/i, '').replace(/[^A-Z0-9]/g, '');
+        return cleanG !== cleanPn && cleanNoSuf !== cleanPn;
     }
 
+    function syncEditPermissions() {
+        canEditIng = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('ingenieria');
+        const btnUp = document.getElementById('btnUploadExcel');
+        if (btnUp) btnUp.style.display = canEditIng ? 'flex' : 'none';
+        const btnAdd = document.getElementById('btnAddBomLine');
+        if (btnAdd) btnAdd.style.display = (canEditIng && selectedPTId) ? 'flex' : 'none';
+        const thAct = document.getElementById('th_actions');
+        if (thAct) thAct.style.display = canEditIng ? '' : 'none';
+    }
+
+    async function init() {
+        applyTheme();
+        syncEditPermissions();
+        setLang(currentLang);
+        await preloadPartsCache();
+
+        const urlPartId = new URLSearchParams(window.location.search).get('part_id');
+        if (urlPartId) {
+            let p = partsByIdCache[urlPartId] || partsByIdCache[Number(urlPartId)];
+            if (!p) {
+                const { data } = await client.from('parts').select('*').eq('id', urlPartId).maybeSingle();
+                p = data;
+            }
+            if (p) {
+                await loadBOM(p.id, p.part_number, p.part_name || '', p);
+                return;
+            }
+        }
+        await fetchPTs();
+    }
+
+    document.addEventListener('kraem:authready', () => {
+        syncEditPermissions();
+        renderBOM();
+    });
+
     async function preloadPartsCache() {
-        const parts = window.fetchAllRows 
-            ? await window.fetchAllRows('parts', { select: 'id, part_number', orderBy: 'id' })
-            : ((await client.from('parts').select('id, part_number')).data || []);
-        const data = parts;
-        if (data) {
-            partsCache = {};
-            data.forEach(p => {
-                if (p.part_number) partsCache[p.part_number.trim()] = p.id;
-            });
+        const raw = window.fetchAllRows
+            ? await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, unit_of_measure, project, client, cavities, cycle_time_seg, part_weight_gr, runner_weight_gr, resin_grade, obsolete, engineering_status', orderBy: 'part_number' })
+            : ((await client.from('parts').select('id, part_number, part_name, product_type, unit_of_measure, project, client, cavities, cycle_time_seg, part_weight_gr, runner_weight_gr, resin_grade, obsolete, engineering_status')).data || []);
+        const data = (Array.isArray(raw) ? raw : []).filter(p => !p.is_archived_duplicate && p.engineering_status !== 'DUPLICADO_ARCHIVADO');
+        partsCache = {};
+        partsByIdCache = {};
+        partsListCache = data;
+        data.forEach(p => {
+            partsByIdCache[p.id] = p;
+            if (p.part_number) partsCache[p.part_number.trim().toUpperCase()] = p.id;
+        });
+
+        const dl = document.getElementById('dl_bom_candidates');
+        if (dl) {
+            dl.innerHTML = data.map(p => `<option value="${escHtml(p.part_number)}">${escHtml((p.part_name || '') + ' [' + (p.product_type || 'PT') + ']')}</option>`).join('');
         }
     }
 
-    // Muestra solo Productos Terminados y Sub-ensambles en la lista lateral
     async function fetchPTs() {
         const q = document.getElementById('inputSearchPT').value.trim();
-        let query = client.from('parts')
-                          .select('id, part_number, part_name, product_type, project')
-                          .or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%');
+        const typeFilter = (document.getElementById('filterParentType')?.value || 'ALL').toUpperCase();
+
+        let query = client
+            .from('parts')
+            .select('id, part_number, part_name, product_type, project, client, cavities, cycle_time_seg, part_weight_gr, runner_weight_gr, resin_grade, obsolete, engineering_status')
+            .eq('obsolete', false);
+
+        if (typeFilter === 'PT') {
+            query = query.eq('product_type', 'PT');
+        } else if (typeFilter === 'SUB-ENSAMBLE') {
+            query = query.eq('product_type', 'SUB-ENSAMBLE');
+        } else {
+            query = query.or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%');
+        }
 
         if (q) query = query.or(`part_number.ilike.%${q}%,part_name.ilike.%${q}%`);
 
@@ -199,18 +305,22 @@
             return;
         }
 
+        const filtered = (data || []).filter(p => !p.is_archived_duplicate && p.engineering_status !== 'DUPLICADO_ARCHIVADO');
         const list = document.getElementById('ptList');
-        if (!data || data.length === 0) {
+        if (filtered.length === 0) {
             list.innerHTML = `<div style="padding:10px; color:var(--secondary); text-align:center;">No se encontraron PTs o Sub-ensambles.</div>`;
             return;
         }
 
         ptListCache = {};
-        data.forEach(pt => { ptListCache[pt.id] = pt; });
+        filtered.forEach(pt => {
+            ptListCache[pt.id] = pt;
+            partsByIdCache[pt.id] = pt;
+        });
 
-        list.innerHTML = data.map(pt => `
+        list.innerHTML = filtered.map(pt => `
             <div class="pt-item ${selectedPTId == pt.id ? 'active' : ''}" onclick="selectPT(${pt.id})">
-                <strong>${escHtml(pt.part_number)}</strong> 
+                <strong>${escHtml(pt.part_number)}</strong>
                 <span class="badge ${pt.product_type === 'PT' ? 'badge-level' : 'badge-resin'}">${escHtml(pt.product_type || 'PT')}</span><br>
                 <small>${escHtml(pt.part_name || '')} ${pt.project ? '| ' + escHtml(pt.project) : ''}</small>
             </div>
@@ -218,23 +328,59 @@
     }
 
     function selectPT(id) {
-        const pt = ptListCache[id];
+        const pt = ptListCache[id] || partsByIdCache[id];
         if (!pt) return;
-        loadBOM(pt.id, pt.part_number, pt.part_name || '');
+        loadBOM(pt.id, pt.part_number, pt.part_name || '', pt);
     }
 
-    async function loadBOM(id, number, name) {
-        selectedPTId = id;
-        document.getElementById('selectedPTName').innerText = name || number;
-        document.getElementById('selectedPTNumber').innerText = number;
-        document.getElementById('calcBox').style.display = 'flex';
-        fetchPTs();
+    function renderParentSpecsBar(p) {
+        const bar = document.getElementById('parentSpecsBar');
+        if (!bar) return;
+        if (!p) {
+            bar.style.display = 'none';
+            bar.innerHTML = '';
+            return;
+        }
+        const pw = parseFloat(p.part_weight_gr || 0).toFixed(1);
+        const rw = parseFloat(p.runner_weight_gr || 0).toFixed(1);
+        const cyc = p.cycle_time_seg ?? 0;
+        const cav = p.cavities ?? 1;
+        bar.style.display = 'flex';
+        bar.innerHTML = `
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+                <span class="badge badge-level">${escHtml(p.product_type || 'PT')}</span>
+                <span><strong>Cliente:</strong> ${escHtml(p.client || 'N/A')}</span>
+                <span><strong>Proyecto:</strong> ${escHtml(p.project || 'N/A')}</span>
+                <span><strong>Pza:</strong> ${pw} g · <strong>Colada:</strong> ${rw} g</span>
+                <span><strong>Cav:</strong> ${escHtml(cav)} · <strong>Ciclo:</strong> ${escHtml(cyc)} s</span>
+                ${p.resin_grade ? `<span><strong>Resina:</strong> ${escHtml(p.resin_grade)}</span>` : ''}
+            </div>
+            <a href="part_ficha_tecnica.html?id=${p.id}" class="btn" style="padding:5px 10px; font-size:11.5px;">
+                <i class="fas fa-eye"></i> Ver Ficha Técnica
+            </a>
+        `;
+    }
 
-        // Explosión multinivel recursiva (máx. 5 niveles, con protección contra ciclos)
+    async function loadBOM(id, number, name, partObjOpt) {
+        selectedPTId = Number(id);
+        let pObj = partObjOpt || ptListCache[id] || partsByIdCache[id];
+        if (!pObj) {
+            const { data } = await client.from('parts').select('*').eq('id', id).maybeSingle();
+            pObj = data || { id: selectedPTId, part_number: number, part_name: name, product_type: 'PT' };
+        }
+        selectedPTObj = pObj;
+
+        document.getElementById('selectedPTName').innerText = pObj.part_name || name || number;
+        document.getElementById('selectedPTNumber').innerText = pObj.part_number || number;
+        document.getElementById('calcBox').style.display = 'flex';
+        syncEditPermissions();
+        renderParentSpecsBar(selectedPTObj);
+        await fetchPTs();
+
         const exploded = [];
         const visited = new Set([String(id)]);
 
-        async function expandLevel(parentId, depth, parentUsage) {
+        async function expandLevel(parentObj, depth, parentUsage) {
             if (depth > 5) return;
             const { data, error } = await client
                 .from('bom_structures')
@@ -242,7 +388,8 @@
                     *,
                     child:parts!bom_structures_child_id_fkey(id, part_number, part_name, product_type, project, client, cycle_time_seg, cavities, part_weight_gr, runner_weight_gr, resin_grade, unit_of_measure)
                 `)
-                .eq('parent_id', parentId)
+                .eq('parent_id', parentObj.id)
+                .neq('is_active', false)
                 .order('bom_level', { ascending: true });
 
             if (error) {
@@ -251,25 +398,30 @@
                 return;
             }
 
-            for (const row of (data || [])) {
-                const localUsage = parseFloat(row.usage_qty) || parseFloat(row.quantity) || 1;
+            const rows = (data || []).filter(r => Number(r.parent_id) !== Number(r.child_id) && r.child);
+            for (const row of rows) {
+                const rawU = row.usage_qty ?? row.quantity;
+                const localUsage = (rawU !== null && rawU !== undefined && rawU !== '' && !Number.isNaN(Number(rawU))) ? Number(rawU) : 1;
                 const effectiveUsage = parentUsage * localUsage;
+
                 exploded.push({
                     ...row,
-                    _display_level: depth === 1 ? (row.bom_level || 1) : depth,
+                    _parent_part: parentObj,
+                    _display_level: depth,
                     _depth: depth,
+                    _local_usage: localUsage,
                     _effective_usage: effectiveUsage
                 });
 
                 const childType = (row.child?.product_type || '').toUpperCase();
                 if (row.child_id && !visited.has(String(row.child_id)) && (childType.includes('SUB') || childType.includes('ASSY') || childType === 'PT')) {
                     visited.add(String(row.child_id));
-                    await expandLevel(row.child_id, depth + 1, effectiveUsage);
+                    await expandLevel(row.child, depth + 1, effectiveUsage);
                 }
             }
         }
 
-        await expandLevel(id, 1, 1);
+        await expandLevel(selectedPTObj, 1, 1);
         allBomData = exploded;
         renderBOM();
     }
@@ -277,109 +429,271 @@
     function renderBOM() {
         const body = document.getElementById('bomBody');
         const batchQty = parseFloat(document.getElementById('batchQty').value) || 0;
+        const colCount = canEditIng ? 12 : 11;
+
+        if (!selectedPTId) {
+            body.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center; color:var(--secondary)">Seleccione un PT o Sub-ensamble para ver su estructura.</td></tr>`;
+            return;
+        }
 
         if (allBomData.length === 0) {
-            body.innerHTML = `<tr><td colspan="11" style="text-align:center;">No tiene componentes o materias primas asociadas.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="${colCount}" style="text-align:center;">No tiene componentes o materias primas asociadas.</td></tr>`;
             return;
         }
 
         body.innerHTML = allBomData.map(item => {
             const child = item.child || {};
-
-            const cycleTime = child.cycle_time_seg ?? '-';
-            const cavities = child.cavities ?? '-';
-
-            // Los pesos en DB (`parts.part_weight_gr`, `runner_weight_gr`) se almacenan en GRAMOS.
-            const partWeightGrams = parseFloat(child.part_weight_gr ?? 0);
-            const runnerWeightGrams = parseFloat(child.runner_weight_gr ?? 0);
-
-            const totalGrPerPiece = partWeightGrams + runnerWeightGrams;
-            const usage = item._effective_usage ?? (parseFloat(item.usage_qty) || parseFloat(item.quantity) || 1);
-            const unitUpper = (item.unit || child.unit_of_measure || '').toUpperCase();
+            const childType = (child.product_type || 'COMPONENTE').toUpperCase();
+            const usage = Number(item._effective_usage ?? item.usage_qty ?? item.quantity ?? 0);
             const indent = item._depth > 1 ? `padding-left:${(item._depth - 1) * 18}px;` : '';
 
+            let cycTxt = '-';
+            let cavTxt = '-';
+            let pwTxt = '-';
+            let rwTxt = '-';
+            let totTxt = '-';
+            let usageTxt = String(usage);
             let reqWmsText = '';
 
-            // CÁLCULO DE REQUERIDO WMS EN KG EXACTO
-            if (child.product_type === 'RESINA' || unitUpper === 'KG') {
-                const weightInKgPerPiece = totalGrPerPiece > 0 ? (totalGrPerPiece / 1000) : 0;
-                const totalKgNeeded = weightInKgPerPiece > 0
-                    ? weightInKgPerPiece * batchQty * usage
-                    : batchQty * usage;
-                reqWmsText = `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`;
+            if (childType === 'RESINA') {
+                const netGr = Number(item.net_weight_kg) > 0
+                    ? Number(item.net_weight_kg) * 1000
+                    : Number(item._parent_part?.part_weight_gr || 0);
+                const runnerGr = Number(item.gate_weight_kg) > 0
+                    ? Number(item.gate_weight_kg) * 1000
+                    : Number(item._parent_part?.runner_weight_gr || 0);
+                const totGr = netGr + runnerGr;
+                cycTxt = item.cycle_time_sec || item._parent_part?.cycle_time_seg || '-';
+                cavTxt = item.cavities || item._parent_part?.cavities || '-';
+                pwTxt = netGr > 0 ? netGr.toFixed(1) : '0.0';
+                rwTxt = runnerGr > 0 ? runnerGr.toFixed(1) : '0.0';
+                totTxt = totGr > 0 ? totGr.toFixed(1) : '0.0';
+                usageTxt = `${usage.toFixed(4)} KG`;
+
+                const totalKgNeeded = batchQty * usage;
+                reqWmsText = totalKgNeeded > 0
+                    ? `<strong>${totalKgNeeded.toFixed(2)} KG</strong>`
+                    : `<span style="color:var(--warning);font-weight:600">0.00 KG (Sin peso)</span>`;
+            } else if (childType === 'COMPONENTE') {
+                const uom = escHtml(item.unit || child.unit_of_measure || 'EA');
+                usageTxt = `${usage} ${uom}`;
+                const totalNeeded = (usage * batchQty).toFixed(2).replace(/\.00$/, '');
+                reqWmsText = `<strong>${totalNeeded} ${uom}</strong>`;
             } else {
-                const totalPcsNeeded = (usage * batchQty).toFixed(0);
-                reqWmsText = `<strong>${totalPcsNeeded} ${escHtml(item.unit || child.unit_of_measure || 'EA')}</strong>`;
+                const pGr = parseFloat(child.part_weight_gr ?? 0);
+                const rGr = parseFloat(child.runner_weight_gr ?? 0);
+                cycTxt = child.cycle_time_seg ?? '-';
+                cavTxt = child.cavities ?? '-';
+                pwTxt = pGr.toFixed(1);
+                rwTxt = rGr.toFixed(1);
+                totTxt = (pGr + rGr).toFixed(1);
+                const uom = escHtml(item.unit || child.unit_of_measure || 'PZA');
+                usageTxt = `${usage} ${uom}`;
+                reqWmsText = `<strong>${Math.ceil(usage * batchQty)} ${uom}</strong>`;
             }
+
+            const actionsHtml = canEditIng ? `
+                <td style="text-align:right; white-space:nowrap;">
+                    ${item._depth === 1 ? `
+                        <button type="button" class="btn" style="display:inline-flex;padding:4px 8px;font-size:11px;" onclick="abrirModalBomLine(${item.id})" title="Editar U/S"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn" style="display:inline-flex;padding:4px 8px;font-size:11px;color:#dc2626;" onclick="desactivarLineaBom(${item.id})" title="Quitar del BOM"><i class="fas fa-trash"></i></button>
+                    ` : '<small style="color:var(--secondary);">Sub-nivel</small>'}
+                </td>` : '';
 
             return `
                 <tr>
-                    <td><span class="badge badge-level">Lvl ${item._display_level || item.bom_level || 1}</span></td>
+                    <td><span class="badge badge-level">Lvl ${item._display_level || 1}</span></td>
                     <td style="${indent}">
                         ${item._depth > 1 ? '<span style="color:var(--secondary);">↳ </span>' : ''}<strong>${escHtml(child.part_number || 'N/A')}</strong><br>
                         <small style="color:var(--secondary)">${escHtml(child.part_name || '')}</small>
                     </td>
                     <td>${escHtml(item.car_model || child.project || '---')}</td>
                     <td>
-                        <span class="badge ${child.product_type === 'RESINA' ? 'badge-resin' : ''}">${escHtml(child.product_type || 'COMPONENTE')}</span><br>
+                        <span class="badge ${childType === 'RESINA' ? 'badge-resin' : 'badge-level'}">${escHtml(childType)}</span><br>
                         <small>${escHtml(child.resin_grade || item.material_grade || '')}</small>
                     </td>
-                    <td>${cycleTime}</td>
-                    <td>${cavities}</td>
-                    <td>${partWeightGrams.toFixed(1)}</td>
-                    <td>${runnerWeightGrams.toFixed(1)}</td>
-                    <td><strong>${totalGrPerPiece.toFixed(1)}</strong></td>
-                    <td>${usage}</td>
+                    <td>${escHtml(cycTxt)}</td>
+                    <td>${escHtml(cavTxt)}</td>
+                    <td>${pwTxt}</td>
+                    <td>${rwTxt}</td>
+                    <td><strong>${totTxt}</strong></td>
+                    <td>${usageTxt}</td>
                     <td style="background:#f0f9ff; color:#1e40af;">${reqWmsText}</td>
+                    ${actionsHtml}
                 </tr>
             `;
         }).join('');
     }
 
-    // DESCARGAR PLANTILLA EXCEL
+    function resolveCandidate(raw) {
+        const clean = String(raw || '').trim().toUpperCase();
+        if (!clean) return null;
+        return partsListCache.find(p => String(p.part_number || '').trim().toUpperCase() === clean) || null;
+    }
+
+    function abrirModalBomLine(bomRowId) {
+        if (!selectedPTId) return;
+        editBomLineId = bomRowId ? Number(bomRowId) : null;
+        const titleEl = document.getElementById('modalBomLineTitle');
+        const partInput = document.getElementById('bl_part_input');
+        const childHidden = document.getElementById('bl_child_id');
+        const infoEl = document.getElementById('bl_part_info');
+        const usageEl = document.getElementById('bl_usage');
+        const unitEl = document.getElementById('bl_unit');
+
+        if (editBomLineId) {
+            const row = allBomData.find(x => Number(x.id) === editBomLineId);
+            if (!row || !row.child) return;
+            titleEl.innerText = 'Editar Elemento del BOM';
+            partInput.value = row.child.part_number || '';
+            partInput.disabled = true;
+            childHidden.value = row.child.id;
+            infoEl.innerText = `${row.child.part_name || ''} · ${row.child.product_type || ''}`;
+            usageEl.value = row._local_usage ?? row.usage_qty ?? row.quantity ?? 1;
+            unitEl.value = row.unit || row.child.unit_of_measure || 'PZA';
+        } else {
+            titleEl.innerText = 'Agregar Componente / Resina al BOM';
+            partInput.value = '';
+            partInput.disabled = false;
+            childHidden.value = '';
+            infoEl.innerText = 'Seleccione un elemento del catálogo (sin auto-referencias)';
+            usageEl.value = '1';
+            unitEl.value = 'PZA';
+        }
+        document.getElementById('modalBomLine').style.display = 'flex';
+    }
+
+    function cerrarModalBomLine() {
+        document.getElementById('modalBomLine').style.display = 'none';
+        editBomLineId = null;
+    }
+
+    function onBomModalPartInput() {
+        const partInput = document.getElementById('bl_part_input');
+        const childHidden = document.getElementById('bl_child_id');
+        const infoEl = document.getElementById('bl_part_info');
+        const usageEl = document.getElementById('bl_usage');
+        const unitEl = document.getElementById('bl_unit');
+
+        const found = resolveCandidate(partInput.value);
+        if (!found) {
+            childHidden.value = '';
+            infoEl.innerText = 'Escriba un número de parte válido del catálogo';
+            return;
+        }
+        if (Number(found.id) === Number(selectedPTId)) {
+            childHidden.value = '';
+            infoEl.innerText = 'Bloqueado: no puede referenciar el mismo número de parte padre';
+            return;
+        }
+
+        childHidden.value = found.id;
+        const fType = (found.product_type || 'COMPONENTE').toUpperCase();
+        infoEl.innerText = `${found.part_name || ''} · ${fType}`;
+
+        if (fType === 'RESINA') {
+            unitEl.value = 'KG';
+            const pGr = parseFloat(selectedPTObj?.part_weight_gr || 0);
+            const rGr = parseFloat(selectedPTObj?.runner_weight_gr || 0);
+            const calcKg = (pGr + rGr) / 1000;
+            usageEl.value = calcKg > 0 ? Number(calcKg.toFixed(6)) : 0;
+        } else {
+            unitEl.value = found.unit_of_measure || (fType === 'SUB-ENSAMBLE' ? 'PZA' : 'EA');
+            if (!usageEl.value || Number(usageEl.value) === 0) usageEl.value = '1';
+        }
+    }
+
+    async function guardarLineaBom() {
+        if (!canEditIng || !selectedPTId) return;
+        const resolved = editBomLineId
+            ? partsByIdCache[document.getElementById('bl_child_id').value]
+            : resolveCandidate(document.getElementById('bl_part_input').value);
+
+        const childId = resolved ? Number(resolved.id) : Number(document.getElementById('bl_child_id').value || 0);
+        if (!childId) {
+            alert('Seleccione un componente o resina válido del catálogo.');
+            return;
+        }
+        if (Number(childId) === Number(selectedPTId)) {
+            alert('No se puede asignar el mismo N° Parte como componente de sí mismo (parent_id === child_id).');
+            return;
+        }
+
+        const rawU = document.getElementById('bl_usage').value;
+        const usageQty = (rawU !== '' && !Number.isNaN(Number(rawU))) ? Number(rawU) : 1;
+        const unit = (document.getElementById('bl_unit').value || resolved?.unit_of_measure || 'PZA').trim().toUpperCase();
+        const childType = (resolved?.product_type || '').toUpperCase();
+        const isRes = childType === 'RESINA';
+        const pGr = parseFloat(selectedPTObj?.part_weight_gr || 0);
+        const rGr = parseFloat(selectedPTObj?.runner_weight_gr || 0);
+
+        const payload = {
+            usage_qty: usageQty,
+            quantity: usageQty,
+            unit,
+            bom_level: isRes ? ((selectedPTObj?.product_type || '').toUpperCase() === 'SUB-ENSAMBLE' ? 2 : 1) : 1,
+            material_grade: isRes ? resolved.part_number : null,
+            net_weight_kg: isRes ? Number((pGr / 1000).toFixed(6)) : Number((Number(resolved?.part_weight_gr || 0) / 1000).toFixed(6)),
+            gate_weight_kg: isRes ? Number((rGr / 1000).toFixed(6)) : Number((Number(resolved?.runner_weight_gr || 0) / 1000).toFixed(6)),
+            total_weight_kg: isRes ? Number(((pGr + rGr) / 1000).toFixed(6)) : Number(((Number(resolved?.part_weight_gr || 0) + Number(resolved?.runner_weight_gr || 0)) / 1000).toFixed(6)),
+            is_active: true
+        };
+
+        let targetRowId = editBomLineId;
+        if (!targetRowId) {
+            const existing = allBomData.find(x => x._depth === 1 && Number(x.child_id) === Number(childId));
+            if (existing) targetRowId = existing.id;
+        }
+
+        const res = targetRowId
+            ? await client.from('bom_structures').update(payload).eq('id', targetRowId)
+            : await client.from('bom_structures').insert([{ ...payload, parent_id: Number(selectedPTId), child_id: childId }]);
+
+        if (res.error) {
+            alert('Error guardando línea BOM: ' + res.error.message);
+            return;
+        }
+        cerrarModalBomLine();
+        await loadBOM(selectedPTId, selectedPTObj?.part_number, selectedPTObj?.part_name, selectedPTObj);
+    }
+
+    async function desactivarLineaBom(bomRowId) {
+        if (!canEditIng || !bomRowId) return;
+        if (!confirm('¿Quitar este componente del BOM?')) return;
+        const { error } = await client.from('bom_structures').update({ is_active: false }).eq('id', bomRowId);
+        if (error) {
+            alert('Error quitando componente: ' + error.message);
+            return;
+        }
+        await loadBOM(selectedPTId, selectedPTObj?.part_number, selectedPTObj?.part_name, selectedPTObj);
+    }
+
     function downloadTemplate() {
         const headers = [
-            "PADRE_NUMERO_PARTE", "PADRE_NOMBRE", "SUB_NUMERO_PARTE", 
-            "COMPONENTE_NUMERO_PARTE", "COMPONENTE_NOMBRE", "TIPO_PRODUCTO", 
-            "PROYECTO", "CLIENTE", "TIEMPO_CICLO_SEG", "CAVIDADES", 
-            "PESO_PIEZA_KG", "PESO_COLADA_KG", "UNIDAD_MEDIDA", "USO_POR_PIEZA"
+            "PADRE_NUMERO_PARTE", "PADRE_NOMBRE", "SUB_NUMERO_PARTE",
+            "COMPONENTE_NUMERO_PARTE", "COMPONENTE_NOMBRE", "TIPO_PRODUCTO", "GRADO_RESINA",
+            "PROYECTO", "CLIENTE", "TIEMPO_CICLO_SEG", "CAVIDADES",
+            "PESO_PIEZA_GR", "PESO_COLADA_GR", "UNIDAD_MEDIDA", "USO_POR_PIEZA"
         ];
 
         const sampleRows = [
-            [
-                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "", "", "PT", "BL7m", "Seoyon", 0, 1, 0, 0, "PZA", 1
-            ],
-            [
-                "85860-BC000GYT", "TRIM-RR PLR, RH", "85861-BC000GYT", "", "CTR PLR GYT", "SUB-ENSAMBLE", "BL7m", "Seoyon", 27.0, 1, 0.46, 0.04, "PZA", 1
-            ],
-            [
-                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "85853-BC010", "RESINA PP-TD20", "RESINA", "BL7m", "Seoyon", 0, 1, 0.46, 0.04, "KG", 1
-            ],
-            [
-                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "85859-3S500", "FASTENER", "COMPONENTE", "BL7m", "Seoyon", 0, 1, 0, 0, "EA", 1
-            ],
-            [
-                "85860-BC000GYT", "TRIM-RR PLR, RH", "", "82315-2P000", "TETHER CLIP", "COMPONENTE", "BL7m", "Seoyon", 0, 1, 0, 0, "EA", 2
-            ]
+            ["85810-H9000BF3", "TRIM ASSY-FRT PLR, LH", "", "", "", "PT", "", "SC", "Seoyon", 0, 1, 0, 0, "PZA", 1],
+            ["85810-H9000BF3", "TRIM ASSY-FRT PLR, LH", "85811-H9000", "", "TRIM-FRT PLR, LH", "SUB-ENSAMBLE", "TM315A BF3", "SC", "Seoyon", 54.01, 1, 270, 14, "PZA", 1],
+            ["85811-H9000", "TRIM-FRT PLR, LH", "", "TM315A BF3", "Resina TM315A BF3", "RESINA", "TM315A BF3", "SC", "Seoyon", 0, 1, 0, 0, "KG", 0.284],
+            ["85810-H9000BF3", "TRIM ASSY-FRT PLR, LH", "", "82315-2W000", "FASTENER", "COMPONENTE", "", "SC", "Seoyon", 0, 1, 0, 0, "EA", 1]
         ];
 
         const wsData = [headers, ...sampleRows];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
-        
-        ws['!cols'] = [
-            { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 25 }, 
-            { wch: 22 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, 
-            { wch: 18 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, 
-            { wch: 16 }, { wch: 16 }
-        ];
+        ws['!cols'] = headers.map(() => ({ wch: 20 }));
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "PLANTILLA_BOM");
         XLSX.writeFile(wb, "Plantilla_Estandar_BOM_KRAEM.xlsx");
     }
 
-    // CARGAR Y PROCESAR LA PLANTILLA
     async function handleExcelUpload(event) {
+        if (!canEditIng) return;
         const file = event.target.files[0];
         if (!file) return;
 
@@ -389,11 +703,10 @@
         modal.style.display = 'flex';
 
         const reader = new FileReader();
-        reader.onload = async function(e) {
+        reader.onload = async function (e) {
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const rows = XLSX.utils.sheet_to_json(sheet);
 
@@ -402,7 +715,7 @@
 
                 const bomMap = new Map();
                 const affectedParents = new Set();
-                let totalRows = rows.length;
+                const totalRows = rows.length;
                 let totalInsertedCount = 0;
 
                 let currentParentPN = '';
@@ -412,7 +725,7 @@
                 for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
 
-                    if (i % 20 === 0) {
+                    if (i % 20 === 0 && totalRows > 0) {
                         const pct = Math.round((i / totalRows) * 100);
                         progressBar.style.width = pct + '%';
                         statusText.innerText = `Procesando fila ${i + 1} de ${totalRows} (${pct}%)...`;
@@ -420,19 +733,17 @@
 
                     const parentPNo = row["PADRE_NUMERO_PARTE"] ? row["PADRE_NUMERO_PARTE"].toString().trim() : currentParentPN;
                     const parentName = row["PADRE_NOMBRE"] ? row["PADRE_NOMBRE"].toString().trim() : currentParentName;
-                    
                     const subPNo = row["SUB_NUMERO_PARTE"] ? row["SUB_NUMERO_PARTE"].toString().trim() : '';
                     const compPNo = row["COMPONENTE_NUMERO_PARTE"] ? row["COMPONENTE_NUMERO_PARTE"].toString().trim() : '';
                     const compName = row["COMPONENTE_NOMBRE"] ? row["COMPONENTE_NOMBRE"].toString().trim() : '';
-                    
                     const rawProductType = row["TIPO_PRODUCTO"] ? row["TIPO_PRODUCTO"].toString().trim().toUpperCase() : '';
+                    const resinGradeCol = row["GRADO_RESINA"] ? row["GRADO_RESINA"].toString().trim() : '';
                     const project = row["PROYECTO"] ? row["PROYECTO"].toString().trim() : '';
                     const clientName = row["CLIENTE"] ? row["CLIENTE"].toString().trim() : '';
-                    
+
                     const cycleTime = parseFloat(row["TIEMPO_CICLO_SEG"]) || 0;
-                    const cavities = parseInt(row["CAVIDADES"]) || 1;
-                    
-                    // Conversión explícita a gramos (acepta PESO_PIEZA_GR directo o PESO_PIEZA_KG * 1000)
+                    const cavities = parseInt(row["CAVIDADES"], 10) || 1;
+
                     const weightGr = row["PESO_PIEZA_GR"] !== undefined
                         ? (parseFloat(row["PESO_PIEZA_GR"]) || 0)
                         : ((parseFloat(row["PESO_PIEZA_KG"]) || 0) * 1000);
@@ -440,24 +751,26 @@
                         ? (parseFloat(row["PESO_COLADA_GR"]) || 0)
                         : ((parseFloat(row["PESO_COLADA_KG"]) || 0) * 1000);
 
-                    const unit = row["UNIDAD_MEDIDA"] ? row["UNIDAD_MEDIDA"].toString().trim() : 'EA';
-                    const usageQty = parseFloat(row["USO_POR_PIEZA"]) || 1;
+                    const unit = row["UNIDAD_MEDIDA"] ? row["UNIDAD_MEDIDA"].toString().trim().toUpperCase() : 'EA';
+                    const rawUsage = parseFloat(row["USO_POR_PIEZA"]);
+                    const usageQty = !Number.isNaN(rawUsage) ? rawUsage : 1;
 
-                    if (parentPNo && parentPNo !== currentParentPN) {
+                    if (parentPNo && parentPNo.toUpperCase() !== currentParentPN.toUpperCase()) {
                         currentParentPN = parentPNo;
                         currentParentName = parentName;
+                        const parentIsMoldedOnly = !subPNo && !compPNo;
                         currentParentId = await getOrCreatePart(
-                            currentParentPN, 
-                            currentParentName, 
-                            'PT', 
-                            'PZA', 
-                            project, 
-                            clientName, 
-                            cycleTime, 
-                            cavities, 
-                            weightGr, 
-                            runnerGr, 
-                            ''
+                            currentParentPN,
+                            currentParentName || currentParentPN,
+                            'PT',
+                            'PZA',
+                            project,
+                            clientName,
+                            parentIsMoldedOnly ? cycleTime : 0,
+                            parentIsMoldedOnly ? cavities : 1,
+                            parentIsMoldedOnly ? weightGr : 0,
+                            parentIsMoldedOnly ? runnerGr : 0,
+                            parentIsMoldedOnly && isRealResinStr(resinGradeCol, currentParentPN) ? resinGradeCol : ''
                         );
                     }
 
@@ -474,52 +787,102 @@
                     } else if (compPNo) {
                         activeChildPN = compPNo;
                         activeChildName = compName || compPNo;
-                        activeType = rawProductType || (unit.toUpperCase() === 'KG' ? 'RESINA' : 'COMPONENTE');
+                        activeType = rawProductType || (unit === 'KG' ? 'RESINA' : 'COMPONENTE');
                         bomLevel = activeType === 'RESINA' ? 2 : 1;
                     } else {
                         continue;
                     }
 
                     if (!currentParentId || !activeChildPN) continue;
+                    if (activeChildPN.toUpperCase() === currentParentPN.toUpperCase()) continue;
+
+                    const isChildResin = activeType === 'RESINA';
+                    const validChildGrade = (!isChildResin && isRealResinStr(resinGradeCol, activeChildPN)) ? resinGradeCol : (isChildResin ? activeChildPN : '');
 
                     const childId = await getOrCreatePart(
-                        activeChildPN, 
-                        activeChildName, 
-                        activeType, 
-                        unit, 
-                        project, 
-                        clientName, 
-                        cycleTime, 
-                        cavities, 
-                        weightGr, 
-                        runnerGr, 
-                        ''
+                        activeChildPN,
+                        activeChildName,
+                        activeType,
+                        isChildResin ? 'KG' : (activeType === 'SUB-ENSAMBLE' ? 'PZA' : unit),
+                        project,
+                        clientName,
+                        isChildResin ? 0 : cycleTime,
+                        isChildResin ? 0 : cavities,
+                        isChildResin ? 0 : weightGr,
+                        isChildResin ? 0 : runnerGr,
+                        validChildGrade
                     );
 
-                    if (!childId) continue;
+                    if (!childId || Number(childId) === Number(currentParentId)) continue;
+
+                    const lineUsage = isChildResin
+                        ? ((weightGr + runnerGr) > 0 && usageQty === 1 ? Number(((weightGr + runnerGr) / 1000).toFixed(6)) : usageQty)
+                        : usageQty;
 
                     affectedParents.add(currentParentId);
                     bomMap.set(`${currentParentId}::${childId}`, {
                         parent_id: currentParentId,
                         child_id: childId,
-                        quantity: usageQty,
-                        usage_qty: usageQty,
+                        quantity: lineUsage,
+                        usage_qty: lineUsage,
                         bom_level: bomLevel,
                         client: clientName,
                         car_model: project,
-                        unit: unit,
-                        supplier_name: clientName
+                        unit: isChildResin ? 'KG' : (activeType === 'SUB-ENSAMBLE' ? 'PZA' : unit),
+                        material_grade: isChildResin ? activeChildPN : (validChildGrade || null),
+                        net_weight_kg: Number((weightGr / 1000).toFixed(6)),
+                        gate_weight_kg: Number((runnerGr / 1000).toFixed(6)),
+                        total_weight_kg: Number(((weightGr + runnerGr) / 1000).toFixed(6)),
+                        supplier_name: clientName,
+                        is_active: true
                     });
+
+                    // Si un sub-ensamble viene con GRADO_RESINA real, crear tambien SUB-ENSAMBLE -> RESINA
+                    if (activeType === 'SUB-ENSAMBLE' && isRealResinStr(resinGradeCol, activeChildPN)) {
+                        const resId = await getOrCreatePart(
+                            resinGradeCol,
+                            'Resina ' + resinGradeCol,
+                            'RESINA',
+                            'KG',
+                            '',
+                            '',
+                            0,
+                            0,
+                            0,
+                            0,
+                            resinGradeCol
+                        );
+                        if (resId && Number(resId) !== Number(childId)) {
+                            const kgPerPza = Number(((weightGr + runnerGr) / 1000).toFixed(6));
+                            affectedParents.add(childId);
+                            bomMap.set(`${childId}::${resId}`, {
+                                parent_id: childId,
+                                child_id: resId,
+                                quantity: kgPerPza,
+                                usage_qty: kgPerPza,
+                                bom_level: 2,
+                                client: clientName,
+                                car_model: project,
+                                unit: 'KG',
+                                material_grade: resinGradeCol,
+                                net_weight_kg: Number((weightGr / 1000).toFixed(6)),
+                                gate_weight_kg: Number((runnerGr / 1000).toFixed(6)),
+                                total_weight_kg: kgPerPza,
+                                cavities: cavities,
+                                cycle_time_sec: cycleTime,
+                                is_active: true
+                            });
+                        }
+                    }
                 }
 
-                // Reemplazar limpiamente el BOM anterior de los padres incluidos en el Excel (evita duplicados)
                 const parentIds = Array.from(affectedParents);
                 if (parentIds.length > 0) {
-                    statusText.innerText = "Actualizando estructuras BOM existentes...";
+                    statusText.innerText = "Desactivando versiones BOM previas...";
                     for (let i = 0; i < parentIds.length; i += 50) {
                         const chunk = parentIds.slice(i, i + 50);
-                        const { error: delErr } = await client.from('bom_structures').delete().in('parent_id', chunk);
-                        if (delErr) throw delErr;
+                        const { error: deactErr } = await client.from('bom_structures').update({ is_active: false }).in('parent_id', chunk).neq('is_active', false);
+                        if (deactErr) throw deactErr;
                     }
                 }
 
@@ -534,14 +897,13 @@
 
                 progressBar.style.width = '100%';
                 modal.style.display = 'none';
-                alert(`¡Proceso completado! Se actualizaron ${parentIds.length} productos con ${totalInsertedCount} elementos BOM (sin duplicados).`);
+                alert(`¡Proceso completado! Se actualizaron ${parentIds.length} productos con ${totalInsertedCount} elementos BOM activos.`);
                 await preloadPartsCache();
-                fetchPTs();
+                await fetchPTs();
                 if (selectedPTId && affectedParents.has(selectedPTId)) {
-                    const pt = ptListCache[selectedPTId];
-                    if (pt) loadBOM(pt.id, pt.part_number, pt.part_name || '');
+                    const pt = ptListCache[selectedPTId] || partsByIdCache[selectedPTId];
+                    if (pt) await loadBOM(pt.id, pt.part_number, pt.part_name || '', pt);
                 }
-
             } catch (err) {
                 console.error("Error al procesar la plantilla:", err);
                 modal.style.display = 'none';
@@ -556,23 +918,26 @@
 
     async function getOrCreatePart(partNumber, partName, productType, unit = 'PZA', project = '', clientName = '', cycleTime = 0, cavities = 1, partWeight = 0, runnerWeight = 0, resinGrade = '') {
         const cleanPN = partNumber.trim();
-        
+        const normKey = cleanPN.toUpperCase();
+
         const payload = {
             part_number: cleanPN,
             part_name: partName,
             product_type: productType,
             unit_of_measure: unit,
-            project: project,
-            client: clientName,
+            uom: unit,
+            project: project || null,
+            client: clientName || null,
             cycle_time_seg: cycleTime,
             cavities: cavities,
             part_weight_gr: partWeight,
             runner_weight_gr: runnerWeight,
-            resin_grade: resinGrade
+            resin_grade: resinGrade || null,
+            obsolete: false
         };
 
-        if (partsCache[cleanPN]) {
-            const existingId = partsCache[cleanPN];
+        if (partsCache[normKey]) {
+            const existingId = partsCache[normKey];
             await client.from('parts').update(payload).eq('id', existingId);
             return existingId;
         }
@@ -584,16 +949,16 @@
             .single();
 
         if (error) {
-            const { data: existing } = await client.from('parts').select('id').eq('part_number', cleanPN).maybeSingle();
+            const { data: existing } = await client.from('parts').select('id').ilike('part_number', cleanPN).neq('engineering_status', 'DUPLICADO_ARCHIVADO').maybeSingle();
             if (existing) {
-                partsCache[cleanPN] = existing.id;
+                partsCache[normKey] = existing.id;
                 await client.from('parts').update(payload).eq('id', existing.id);
                 return existing.id;
             }
             return null;
         }
 
-        partsCache[cleanPN] = inserted.id;
+        partsCache[normKey] = inserted.id;
         return inserted.id;
     }
 
@@ -615,22 +980,33 @@
     function setLang(lang) {
         currentLang = translations[lang] ? lang : 'es';
         localStorage.setItem('lang', currentLang);
+        localStorage.setItem('kraem_lang', currentLang);
+        document.documentElement.setAttribute('lang', currentLang);
         const l = translations[currentLang];
-        document.getElementById('txt_title').innerText = l.title;
+        document.getElementById('txt_title_main').innerText = l.title;
         document.getElementById('txt_select_pt').innerText = l.selectPT;
         document.getElementById('th_comp').innerText = l.thComp;
         document.getElementById('th_type').innerText = l.thType;
+        const lblTpl = document.getElementById('lbl_tpl');
+        if (lblTpl) lblTpl.innerText = l.tpl;
+        const lblUpload = document.getElementById('lbl_upload');
+        if (lblUpload) lblUpload.innerText = l.upload;
+        const lblAdd = document.getElementById('lbl_add_comp');
+        if (lblAdd) lblAdd.innerText = l.addComp;
     }
 
     function toggleTheme() {
         const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
+        document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 
     function applyTheme() {
         const theme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', theme);
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 
     init();
