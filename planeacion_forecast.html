@@ -2,89 +2,364 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Planeación – Forecast</title>
+<title>KRAEM ERP | Demanda Comercial & Cobertura PT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="kraem_nav.js"></script>
-
+<script src="config.js"></script>
+<script src="kraem_nav.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:20px}
-.container{max-width:1400px;margin:auto}
-.card{background:#fff;padding:20px;border-radius:8px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #ddd;font-size:14px}
-th{background:#f0f0f0}
-.badge-ok{color:#155724;background:#d4edda;padding:4px 8px;border-radius:4px}
-.badge-risk{color:#721c24;background:#f8d7da;padding:4px 8px;border-radius:4px}
-.back{background:#6c757d;color:#fff;border:none;padding:8px 12px;margin-bottom:10px}
+:root{
+  --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+  --primary:#2563eb; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+  --surface:#f8fafc; --thead:#f1f5f9;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#0f172a; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --surface:#1e293b; --thead:#1e293b;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;transition:.2s}
+.container{max-width:1520px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:8px 13px;border-radius:9px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff;border:none}
+.btn-success{background:var(--success);color:#fff;border:none}
+.btn-sm{padding:5px 9px;font-size:11.5px;border-radius:7px}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 15px;border-left:4px solid var(--primary)}
+.kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.kpi .v{font-size:21px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.5fr auto;gap:10px;align-items:end}
+@media(max-width:960px){.form-grid{grid-template-columns:1fr 1fr}}
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+th{font-size:11px;text-transform:uppercase;color:var(--muted);background:var(--thead)}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-ok{background:#dcfce7;color:#166534}
+.b-warn{background:#fef3c7;color:#92400e}
+.b-bad{background:#fee2e2;color:#991b1b}
+.b-info{background:#e0f2fe;color:#075985}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:10px;font-size:12.5px;color:var(--muted)}
 </style>
 </head>
-
 <body>
-
-<button class="back btn-back" onclick="KraemNav.back('planeacion_hub.html')">⬅ Volver al Cockpit</button>
-
-
 <div class="container">
-<div class="card">
-<h2>📈 Forecast – Análisis de Demanda</h2>
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> <span id="lblBack">Dashboard</span></button>
+      <div>
+        <h1 style="margin:0;font-size:21px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span><i class="fas fa-chart-area" style="color:var(--primary)"></i> <span id="lblTitle">Demanda Comercial, Forecast & Cobertura PT</span></span>
+          <span style="font-size:11px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.18);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        </h1>
+        <small id="lblSub" style="color:var(--muted)">Captura comercial directa hacia `public.requerimientos` y monitor de días de cobertura de producto terminado.</small>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      <a href="planeacion_mrp_forecast.html" class="btn btn-primary"><i class="fas fa-sitemap"></i> Ir a Explosión MRP Completa →</a>
+      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
+  </div>
 
-<table>
-<thead>
-<tr>
-  <th>Parte</th>
-  <th>Inventario</th>
-  <th>Consumo promedio</th>
-  <th>Días cobertura</th>
-  <th>Estado</th>
-</tr>
-</thead>
-<tbody id="body"></tbody>
-</table>
-</div>
+  <div class="kpi-strip">
+    <div class="kpi"><div class="t" id="lblKpiPt">SKUs PT / Sub Canónicos</div><div class="v" id="kpiTotalPt">0</div></div>
+    <div class="kpi" style="border-left-color:var(--danger)"><div class="t" id="lblKpiRisk">En Riesgo (&lt;15d o Déficit)</div><div class="v" id="kpiRiesgoCob">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t" id="lblKpiFirm">Demanda Firme Abierta</div><div class="v" id="kpiFirmesActivos">0</div></div>
+    <div class="kpi" style="border-left-color:#6366f1"><div class="t" id="lblKpiFcst">Forecast Abierto</div><div class="v" id="kpiForecastActivo">0</div></div>
+  </div>
+
+  <!-- CAPTURA RÁPIDA COMERCIAL -->
+  <div class="card" id="comCaptureCard">
+    <h3 style="margin:0 0 10px;font-size:15px"><i class="fas fa-plus-circle" style="color:var(--success)"></i> Captura Rápida Comercial (Forecast o Pedido Firme)</h3>
+    <div class="form-grid">
+      <div>
+        <label for="comPartInput">Número de Parte (PT / Sub-ensamble) *</label>
+        <input type="text" id="comPartInput" list="dlComParts" placeholder="Buscar N/P..." autocomplete="off">
+        <datalist id="dlComParts"></datalist>
+      </div>
+      <div>
+        <label for="comType">Tipo Demanda *</label>
+        <select id="comType">
+          <option value="FORECAST">FORECAST (Pronóstico)</option>
+          <option value="PEDIDO_FIRME">PEDIDO FIRME (Embarque)</option>
+        </select>
+      </div>
+      <div>
+        <label for="comDate">Fecha Requerida *</label>
+        <input type="date" id="comDate">
+      </div>
+      <div>
+        <label for="comQty">Cantidad (PZA) *</label>
+        <input type="number" id="comQty" min="1" value="1000">
+      </div>
+      <div>
+        <label for="comNotes">Referencia Cliente / Release</label>
+        <input type="text" id="comNotes" placeholder="Opcional: PO o semana">
+      </div>
+      <button type="button" class="btn btn-success" onclick="guardarDemandaComercial()"><i class="fas fa-save"></i> Registrar</button>
+    </div>
+  </div>
+
+  <!-- MONITOR PAGINADO DE COBERTURA -->
+  <div class="card" style="overflow-x:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <h3 style="margin:0;font-size:15px"><i class="fas fa-boxes-stacked" style="color:var(--primary)"></i> Cobertura de Producto Terminado vs Demanda Comercial</h3>
+      <div class="controls">
+        <input id="qCov" placeholder="🔍 Buscar N/P, nombre, cliente, proyecto..." oninput="onFilterChange()" style="width:260px">
+        <select id="fRisk" onchange="onFilterChange()" style="width:190px">
+          <option value="TODOS">Todos los estatus</option>
+          <option value="RIESGO">En Riesgo (&lt;15d / Déficit)</option>
+          <option value="CON_FIRME">Con Pedido Firme</option>
+          <option value="CON_FORECAST">Con Forecast</option>
+        </select>
+        <button type="button" class="btn btn-sm" onclick="loadCoverage()"><i class="fas fa-rotate"></i></button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>N° Parte</th><th>Descripción</th><th>Cliente / Proyecto</th><th class="num">Stock WMS</th>
+          <th class="num">WO Abiertas</th><th class="num">Firme Abierto</th><th class="num">Forecast</th>
+          <th class="num">Consumo 30d</th><th class="num">Días Cobertura</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="body"><tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">Cargando cobertura...</td></tr></tbody>
+    </table>
+
+    <div class="pager">
+      <div id="pageInfo">Mostrando 0 de 0 registros</div>
+      <div class="controls">
+        <button type="button" class="btn btn-sm" id="btnPrev" onclick="cambiarPagina(-1)" disabled><i class="fas fa-chevron-left"></i> Anterior</button>
+        <button type="button" class="btn btn-sm" id="btnNext" onclick="cambiarPagina(1)" disabled>Siguiente <i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-// client provisto por config.js
+const PAGE_SIZE = 50;
+let allRows = [], filteredRows = [], ptParts = [];
+let currentPage = 1;
+let canEditCom = true;
 
-async function loadForecast(){
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 1 });
+const norm = s => String(s ?? '').trim().toUpperCase();
 
-  const {data,error} = await client
-    .from('inventory_kpi_parts')
-    .select('*')
-    .order('coverage_days',{ascending:true});
+const FCST_I18N = {
+  es: { back: 'Dashboard', title: 'Demanda Comercial, Forecast & Cobertura PT', sub: 'Captura comercial directa hacia `public.requerimientos` y monitor de días de cobertura de producto terminado.', kPt: 'SKUs PT / Sub Canónicos', kRisk: 'En Riesgo (<15d o Déficit)', kFirm: 'Demanda Firme Abierta', kFcst: 'Forecast Abierto' },
+  ko: { back: '대시보드', title: '영업 수요, 예측 및 완제품 커버리지', sub: '`public.requerimientos` 직접 등록 및 완제품 재고 보유 일수 모니터링.', kPt: '활성 완제품/반제품 SKU', kRisk: '위험 품목 (<15일/부족)', kFirm: '진행 중 확정 오더', kFcst: '진행 중 예측 수요' },
+  en: { back: 'Dashboard', title: 'Commercial Demand, Forecast & FG Coverage', sub: 'Direct commercial capture into `public.requerimientos` and finished-goods days-of-coverage monitor.', kPt: 'Canonical FG / Sub SKUs', kRisk: 'At Risk (<15d or Deficit)', kFirm: 'Open Firm Demand', kFcst: 'Open Forecast' }
+};
 
-  body.innerHTML='';
+function setLang(lang) {
+  const l = FCST_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = FCST_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('lblKpiPt').textContent = t.kPt;
+  document.getElementById('lblKpiRisk').textContent = t.kRisk;
+  document.getElementById('lblKpiFirm').textContent = t.kFirm;
+  document.getElementById('lblKpiFcst').textContent = t.kFcst;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
 
-  if(error || !data || data.length === 0){
-    body.innerHTML =
-      '<tr><td colspan="5">Sin información disponible</td></tr>';
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+function syncPermissions() {
+  canEditCom = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function')
+    || KraemAuth.canEdit('planeacion')
+    || KraemAuth.canEdit('ventas');
+  const cc = document.getElementById('comCaptureCard');
+  if (cc) cc.style.display = canEditCom ? 'block' : 'none';
+}
+
+document.addEventListener('kraem:authready', syncPermissions);
+
+function isRowAtRisk(r) {
+  const cov = r.coverage_days !== null && r.coverage_days !== undefined ? Number(r.coverage_days) : null;
+  const firmGap = Number(r.firm_demand_qty || 0) + Number(r.safety_stock || 0) > Number(r.current_inventory || 0) + Number(r.open_wo_qty || 0);
+  return (cov !== null && cov < 15) || firmGap;
+}
+
+async function loadCoverage(){
+  try {
+    const [covRes, partsRes] = await Promise.all([
+      window.fetchAllRows ? window.fetchAllRows('v_cobertura_demanda_pt', { orderBy: 'part_number' }) : client.from('v_cobertura_demanda_pt').select('*').order('part_number').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, client, project, safety_stock, obsolete, is_archived_duplicate', filter: q => q.eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name, product_type, client, project, safety_stock, obsolete, is_archived_duplicate').eq('obsolete', false).then(r => r.data || [])
+    ]);
+
+    const rawParts = (Array.isArray(partsRes) ? partsRes : (partsRes?.data || [])).filter(p => !p.is_archived_duplicate);
+    ptParts = rawParts.filter(p => p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
+    document.getElementById('dlComParts').innerHTML = ptParts.map(p => `<option value="${esc(p.part_number)}">${esc(p.part_name || '')} (${esc(p.client || '-')})</option>`).join('');
+
+    let rows = Array.isArray(covRes) ? covRes : (covRes?.data || []);
+    if (!rows.length && ptParts.length) {
+      const [rStk, rReq] = await Promise.all([
+        client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0),
+        client.from('requerimientos').select('part_id, quantity, tipo_demanda, status').neq('status', 'CANCELADO')
+      ]);
+      const stkMap = {};
+      (rStk.data || []).forEach(s => { stkMap[s.part_id] = (stkMap[s.part_id] || 0) + Number(s.quantity || 0); });
+      const reqMap = {};
+      (rReq.data || []).filter(x => x.status === 'ABIERTO' || x.status === 'open').forEach(x => {
+        const cur = reqMap[x.part_id] || { firm: 0, fcst: 0 };
+        if (x.tipo_demanda === 'FORECAST') cur.fcst += Number(x.quantity || 0);
+        else cur.firm += Number(x.quantity || 0);
+        reqMap[x.part_id] = cur;
+      });
+      rows = ptParts.map(p => {
+        const rq = reqMap[p.id] || { firm: 0, fcst: 0 };
+        const inv = stkMap[p.id] || 0;
+        const totReq = rq.firm + rq.fcst;
+        return {
+          part_id: p.id, part_number: p.part_number, part_name: p.part_name, product_type: p.product_type,
+          client: p.client, project: p.project, safety_stock: p.safety_stock || 0,
+          current_inventory: inv, open_wo_qty: 0,
+          firm_demand_qty: rq.firm, forecast_demand_qty: rq.fcst,
+          avg_monthly_consumption: 0,
+          coverage_days: totReq > 0 ? Number((inv / (totReq / 30)).toFixed(1)) : null
+        };
+      });
+    }
+
+    allRows = rows;
+    document.getElementById('kpiTotalPt').textContent = allRows.length.toLocaleString();
+    document.getElementById('kpiRiesgoCob').textContent = allRows.filter(isRowAtRisk).length.toLocaleString();
+    document.getElementById('kpiFirmesActivos').textContent = fmt(allRows.reduce((s, r) => s + Number(r.firm_demand_qty || 0), 0));
+    document.getElementById('kpiForecastActivo').textContent = fmt(allRows.reduce((s, r) => s + Number(r.forecast_demand_qty || 0), 0));
+
+    onFilterChange();
+  } catch (e) {
+    console.warn('Coverage load error:', e);
+    document.getElementById('body').innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--danger);padding:20px">Error al cargar datos: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+function onFilterChange(){
+  currentPage = 1;
+  applyFiltersAndRender();
+}
+
+function cambiarPagina(delta){
+  currentPage = Math.max(1, currentPage + delta);
+  applyFiltersAndRender();
+}
+
+function applyFiltersAndRender(){
+  const q = norm(document.getElementById('qCov').value);
+  const f = document.getElementById('fRisk').value;
+
+  filteredRows = allRows.filter(r => {
+    const txt = norm(`${r.part_number || ''} ${r.part_name || ''} ${r.client || ''} ${r.project || ''}`);
+    if (q && !txt.includes(q)) return false;
+    if (f === 'RIESGO' && !isRowAtRisk(r)) return false;
+    if (f === 'CON_FIRME' && !(Number(r.firm_demand_qty || 0) > 0)) return false;
+    if (f === 'CON_FORECAST' && !(Number(r.forecast_demand_qty || 0) > 0)) return false;
+    return true;
+  });
+
+  const total = filteredRows.length;
+  const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (currentPage > maxPage) currentPage = maxPage;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filteredRows.slice(start, start + PAGE_SIZE);
+
+  const fromN = total ? start + 1 : 0;
+  const toN = start + pageItems.length;
+  document.getElementById('pageInfo').textContent = `Mostrando ${fromN}–${toN} de ${total.toLocaleString()} registros (Pág. ${currentPage}/${maxPage})`;
+  document.getElementById('btnPrev').disabled = currentPage <= 1;
+  document.getElementById('btnNext').disabled = currentPage >= maxPage;
+
+  const body = document.getElementById('body');
+  if (!pageItems.length) {
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">Sin registros con los filtros seleccionados.</td></tr>';
     return;
   }
 
-  data.forEach(f=>{
-    const risk = f.coverage_days !== null && f.coverage_days < 15;
-
-    body.innerHTML+=`
-      <tr>
-        <td>${f.part_number}</td>
-        <td>${f.current_inventory}</td>
-        <td>${f.avg_monthly_consumption}</td>
-        <td>${f.coverage_days ?? '-'}</td>
-        <td>
-          <span class="${risk?'badge-risk':'badge-ok'}">
-            ${risk?'RIESGO':'OK'}
-          </span>
-        </td>
-      </tr>
-    `;
-  });
+  body.innerHTML = pageItems.map(r => {
+    const risk = isRowAtRisk(r);
+    const cov = r.coverage_days !== null && r.coverage_days !== undefined ? `${fmt(r.coverage_days)} d` : '-';
+    return `<tr>
+      <td><strong>${esc(r.part_number)}</strong></td>
+      <td>${esc(r.part_name || '-')}</td>
+      <td>${esc(r.client || '-')} <span style="color:var(--muted);font-size:11px">${r.project ? '/ ' + esc(r.project) : ''}</span></td>
+      <td class="num"><strong>${fmt(r.current_inventory)}</strong></td>
+      <td class="num">${fmt(r.open_wo_qty)}</td>
+      <td class="num">${Number(r.firm_demand_qty) > 0 ? `<span class="badge b-ok">${fmt(r.firm_demand_qty)}</span>` : '0'}</td>
+      <td class="num">${Number(r.forecast_demand_qty) > 0 ? `<span class="badge b-info">${fmt(r.forecast_demand_qty)}</span>` : '0'}</td>
+      <td class="num">${fmt(r.avg_monthly_consumption)}</td>
+      <td class="num"><strong>${cov}</strong></td>
+      <td><span class="badge ${risk ? 'b-bad' : 'b-ok'}">${risk ? 'RIESGO' : 'OK'}</span></td>
+    </tr>`;
+  }).join('');
 }
 
-loadForecast();
-</script>
+async function guardarDemandaComercial(){
+  if (!canEditCom) return alert('Sin permisos para capturar demanda.');
+  const pn = norm(document.getElementById('comPartInput').value);
+  const tipo = document.getElementById('comType').value || 'FORECAST';
+  const fecha = document.getElementById('comDate').value;
+  const qty = Math.round(Number(document.getElementById('comQty').value));
+  const notas = (document.getElementById('comNotes').value || '').trim() || null;
 
+  const part = ptParts.find(p => norm(p.part_number) === pn);
+  if (!part) return alert('Selecciona un Número de Parte válido de la lista.');
+  if (!fecha || isNaN(qty) || qty <= 0) return alert('Indica fecha y cantidad válida mayor a 0.');
+
+  const { error } = await client.from('requerimientos').insert([{
+    part_id: part.id,
+    quantity: qty,
+    due_date: fecha,
+    status: 'ABIERTO',
+    tipo_demanda: tipo,
+    cliente: part.client || null,
+    proyecto: part.project || null,
+    origen: 'COMERCIAL',
+    notas
+  }]);
+  if (error) return alert('Error al registrar: ' + error.message);
+
+  document.getElementById('comPartInput').value = '';
+  document.getElementById('comNotes').value = '';
+  alert(`✅ ${tipo === 'FORECAST' ? 'Forecast' : 'Pedido Firme'} registrado para ${part.part_number}.`);
+  await loadCoverage();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  syncPermissions();
+  document.getElementById('comDate').value = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
+  loadCoverage();
+});
+</script>
 </body>
 </html>
-

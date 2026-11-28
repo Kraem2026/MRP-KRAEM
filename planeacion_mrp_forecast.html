@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRAEM ERP | Boceto Forecast & Explosión MRP</title>
+<title>KRAEM ERP | Demanda, Forecast & Explosión MPS/MRP (MD01/MD04)</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="config.js"></script>
@@ -14,139 +14,148 @@
 :root{
   --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
   --primary:#2563eb; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+  --surface:#f8fafc; --thead:#f1f5f9;
 }
 [data-theme="dark"]{
-  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --bg:#020617; --card:#0f172a; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --surface:#1e293b; --thead:#1e293b;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
-.container{max-width:1580px;margin:auto}
-.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
-.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
+body{margin:0;padding:18px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;transition:.2s}
+.container{max-width:1620px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:8px 13px;border-radius:9px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .btn-primary{background:var(--primary);color:#fff;border:none}
 .btn-success{background:var(--success);color:#fff;border:none}
 .btn-warning{background:var(--warning);color:#fff;border:none}
-.btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
-.banner{background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.25);padding:11px 15px;border-radius:12px;font-size:12.5px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.tab{padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:13px;cursor:pointer}
+.btn-danger-soft{background:rgba(220,38,38,0.12);color:var(--danger);border:1px solid rgba(220,38,38,0.25)}
+.btn-sm{padding:5px 9px;font-size:11.5px;border-radius:7px}
+.banner{background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.24);padding:10px 14px;border-radius:10px;font-size:12.5px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.tab{padding:9px 15px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px}
-.grid-top{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+.grid-top{display:grid;grid-template-columns:1.45fr 1fr;gap:14px;align-items:start}
 @media(max-width:1100px){.grid-top{grid-template-columns:1fr}}
-.form-row{display:grid;grid-template-columns:1.2fr 1.2fr 2fr;gap:10px;align-items:end;margin-bottom:10px}
-.form-row-2{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end}
+.form-row{display:grid;grid-template-columns:1.1fr 1.1fr 2fr;gap:10px;align-items:end;margin-bottom:10px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr 0.9fr 1.3fr auto;gap:10px;align-items:end}
 @media(max-width:960px){.form-row,.form-row-2{grid-template-columns:1fr 1fr}}
 label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
-input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);font-size:13px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:10px 11px;border-bottom:1px solid var(--border);text-align:left}
-th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(148,163,184,0.08)}
-.badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+th{font-size:11px;text-transform:uppercase;color:var(--muted);background:var(--thead);position:sticky;top:0}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.badge{padding:3px 7px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
 .b-ok{background:#dcfce7;color:#166534}
 .b-warn{background:#fef3c7;color:#92400e}
 .b-bad{background:#fee2e2;color:#991b1b}
 .b-info{background:#e0f2fe;color:#075985}
 .hidden{display:none}
-.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 15px;border-left:4px solid var(--primary)}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 14px;border-left:4px solid var(--primary)}
 .kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
-.kpi .v{font-size:21px;font-weight:800;margin-top:3px}
+.kpi .v{font-size:21px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11px;color:var(--muted);margin-top:2px}
+.batch-bar{display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:9px 14px;border-radius:10px;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.3);margin-bottom:10px;font-size:12.5px;font-weight:700}
 
-/* Picker filtrable de Número de Parte */
+/* Picker filtrable */
 .picker-wrap{position:relative}
 .picker-input-box{display:flex;align-items:center;gap:6px;position:relative}
 .picker-clear{position:absolute;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px}
-.picker-dropdown{
-  position:absolute;top:100%;left:0;right:0;z-index:200;margin-top:4px;
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  box-shadow:0 12px 28px rgba(0,0,0,0.16);max-height:290px;overflow-y:auto;display:none;
-}
+.picker-dropdown{position:absolute;top:100%;left:0;right:0;z-index:200;margin-top:4px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.18);max-height:280px;overflow-y:auto;display:none}
 .picker-dropdown.open{display:block}
-.picker-head{padding:7px 11px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(148,163,184,0.06);position:sticky;top:0}
-.picker-item{padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.picker-head{padding:7px 11px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);background:var(--thead);position:sticky;top:0}
+.picker-item{padding:8px 11px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .picker-item:hover{background:rgba(37,99,235,0.08)}
-.picker-item strong{font-size:13px;color:var(--primary)}
-.picker-item small{display:block;font-size:11.5px;color:var(--muted)}
+.picker-item strong{font-size:12.5px;color:var(--primary)}
+.picker-item small{display:block;font-size:11px;color:var(--muted)}
 
-/* Dropzone Excel */
-.dropzone{
-  border:2px dashed var(--border);border-radius:12px;padding:14px;text-align:center;
-  background:var(--bg);cursor:pointer;transition:.2s;margin-top:8px
-}
-.dropzone:hover{border-color:var(--primary);background:rgba(37,99,235,0.04)}
-.excel-preview{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);font-size:12.5px}
-.filter-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.dropzone{border:2px dashed var(--border);border-radius:12px;padding:13px;text-align:center;background:var(--surface);cursor:pointer;transition:.2s;margin-top:8px}
+.dropzone:hover{border-color:var(--primary)}
+.excel-preview{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-size:12px}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <div style="display:flex;align-items:center;gap:12px">
-      <button class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html')"><i class="fas fa-arrow-left"></i> Cockpit</button>
+      <button class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html')"><i class="fas fa-arrow-left"></i> <span id="lblBack">Cockpit</span></button>
       <div>
-        <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-size:18px;font-weight:900">KRAEM</span>
-          <span style="font-size:9.5px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 6px;border-radius:4px;text-transform:uppercase">by APEX SYSTEM</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <h1 style="margin:0;font-size:21px"><i class="fas fa-chart-line" style="color:var(--primary)"></i> <span id="lblTitle">Demanda, Forecast & Explosión MPS/MRP (MD01/MD04)</span></h1>
+          <span style="font-size:11px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.18);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
         </div>
-        <h1 style="margin:2px 0 0;font-size:22px"><i class="fas fa-chart-line" style="color:var(--primary)"></i> Forecast, Demanda & Explosión MRP (Boceto MD01/MD04)</h1>
-        <small style="color:var(--muted)">Captura individual filtrada por Cliente/Proyecto o carga masiva por Excel (800+ NPs) conectada a `parts`, `bom_structures` y WMS.</small>
+        <small id="lblSub" style="color:var(--muted)">Fuente oficial `public.requerimientos`: Pedidos Firmes activan APS/WO; Forecast activa Compras/MRP sin saturar prensas.</small>
       </div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <div id="mrpPlantBadge" title="Sede activa para el cálculo de MRP" style="display:inline-flex;align-items:center;gap:5px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);padding:5px 9px;border-radius:8px;font-size:11px;font-weight:700;color:var(--primary);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        <i class="fas fa-industry" style="font-size:11px;flex-shrink:0;"></i>
-        <span id="txtMrpPlant" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Planta Monterrey</span>
+    <div class="controls">
+      <div id="mrpPlantBadge" title="Sede activa para MRP" style="display:inline-flex;align-items:center;gap:5px;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.22);padding:5px 9px;border-radius:8px;font-size:11px;font-weight:700;color:var(--primary)">
+        <i class="fas fa-industry"></i> <span id="txtMrpPlant">Planta Monterrey</span>
       </div>
-      <button class="btn" onclick="cargarDemoReal()"><i class="fas fa-wand-magic-sparkles"></i> Cargar Demo</button>
-      <a href="compras_ordenes.html" class="btn btn-primary"><i class="fas fa-file-invoice-dollar"></i> Módulo de Compras (OC)</a>
-      <a href="planeacion_aps_tablero.html" class="btn btn-success"><i class="fas fa-calendar-week"></i> Tablero APS →</a>
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      <a href="compras_ordenes.html?import_mrp=1" class="btn btn-primary"><i class="fas fa-file-invoice-dollar"></i> Compras (OC)</a>
+      <button type="button" class="btn btn-success" onclick="irATableroAps()"><i class="fas fa-calendar-week"></i> Enviar Firmes al Tablero APS →</button>
       <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
   </div>
 
   <div class="banner">
-    <span><i class="fas fa-database" style="color:var(--primary)"></i> <strong>Modo Boceto sobre Datos Reales:</strong> Filtra por Proyecto/Cliente, busca cualquier N° Parte por clave o nombre, o sube el Excel masivo del cliente para correr el MRP completo.</span>
+    <span><i class="fas fa-shield-check" style="color:var(--primary)"></i> <strong>Regla Automotriz KRAEM:</strong> <code>PEDIDO_FIRME</code> genera necesidad de Orden de Producción (APS/WO); <code>FORECAST</code> proyecta compra de resinas y componentes en MRP sin ocupar prensas hasta pasar a Firme.</span>
     <span id="dataStatus" class="badge b-info">Conectando a Supabase...</span>
   </div>
 
   <div class="kpi-strip">
-    <div class="kpi"><div class="t">Líneas de Demanda</div><div class="v" id="kDem">0</div></div>
-    <div class="kpi" style="border-left-color:var(--success)"><div class="t">Total Piezas Demandadas</div><div class="v" id="kPcs">0</div></div>
-    <div class="kpi" style="border-left-color:var(--warning)"><div class="t">WO Sugeridas (Netas)</div><div class="v" id="kWo">0</div></div>
-    <div class="kpi" style="border-left-color:var(--danger)"><div class="t">Materiales con Déficit Compra</div><div class="v" id="kShort">0</div></div>
+    <div class="kpi"><div class="t" id="lblKpiFirm">Pedidos Firmes Abiertos</div><div class="v" id="kFirmOpen">0</div><div class="s" id="kFirmPcs">0 pzas firmes</div></div>
+    <div class="kpi" style="border-left-color:#6366f1"><div class="t" id="lblKpiFcst">Forecast Abierto (Compras)</div><div class="v" id="kForecastOpen">0</div><div class="s" id="kFcstPcs">0 pzas pronóstico</div></div>
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t" id="lblKpiWo">WOs Sugeridas (Solo Firme)</div><div class="v" id="kWo">0</div><div class="s">Descontando WMS + WOs en piso</div></div>
+    <div class="kpi" style="border-left-color:var(--danger)"><div class="t" id="lblKpiShort">Materiales en Déficit MRP</div><div class="v" id="kShort">0</div><div class="s">Firme + Forecast en horizonte</div></div>
   </div>
 
   <div class="tabs">
-    <button class="tab active" id="btnTabDem" onclick="switchTab('dem')"><i class="fas fa-inbox"></i> 1. Demanda, Excel Masivo & MPS</button>
-    <button class="tab" id="btnTabMrp" onclick="switchTab('mrp')"><i class="fas fa-sitemap"></i> 2. Explosión MRP de Resinas y Componentes</button>
+    <button class="tab active" id="btnTabDem" onclick="switchTab('dem')"><i class="fas fa-inbox"></i> 1. Demanda, Forecast & MPS (PT)</button>
+    <button class="tab" id="btnTabSub" onclick="switchTab('sub')"><i class="fas fa-layer-group"></i> 2. Sub-ensambles Inyectados (<span id="cntSubTab">0</span>)</button>
+    <button class="tab" id="btnTabMrp" onclick="switchTab('mrp')"><i class="fas fa-sitemap"></i> 3. Explosión MRP de Resinas y Componentes (<span id="cntMrpTab">0</span>)</button>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px">
+      <label style="margin:0">Horizonte Forecast MRP:</label>
+      <select id="cfgForecastDays" onchange="render()" style="width:auto;padding:5px 8px;font-size:12px">
+        <option value="30">30 días</option>
+        <option value="60" selected>60 días</option>
+        <option value="90">90 días</option>
+        <option value="365">Todo (365 días)</option>
+      </select>
+      <label style="margin:0;display:inline-flex;align-items:center;gap:5px;cursor:pointer;text-transform:none">
+        <input type="checkbox" id="chkRoundStdPack" onchange="render()" style="width:auto"> Redondear WO a Std Pack
+      </label>
+    </div>
   </div>
 
   <!-- TAB 1: DEMANDA Y NECESIDAD NETA PT -->
   <div id="tab-dem">
-    <div class="grid-top">
-      <!-- CAPTURA RÁPIDA CON FILTROS Y BUSCADOR -->
-      <div class="card">
-        <h3 style="margin:0 0 12px;font-size:15px"><i class="fas fa-magnifying-glass-plus" style="color:var(--primary)"></i> Captura Rápida (con Filtro de Cliente / Proyecto y Buscador)</h3>
+    <div class="grid-top" id="captureTopGrid">
+      <div class="card" id="manualCaptureCard">
+        <h3 style="margin:0 0 10px;font-size:15px"><i class="fas fa-magnifying-glass-plus" style="color:var(--primary)"></i> Captura en BD (`public.requerimientos`)</h3>
         <div class="form-row">
           <div>
-            <label>Cliente (Supabase)</label>
-            <select id="dClient" onchange="onFilterScopeChange()">
-              <option value="">Todos los clientes</option>
-            </select>
+            <label>Cliente</label>
+            <select id="dClient" onchange="onFilterScopeChange()"><option value="">Todos los clientes</option></select>
           </div>
           <div>
             <label>Proyecto / Vehículo</label>
-            <select id="dProject" onchange="onFilterScopeChange()">
-              <option value="">Todos los proyectos</option>
-            </select>
+            <select id="dProject" onchange="onFilterScopeChange()"><option value="">Todos los proyectos</option></select>
           </div>
           <div class="picker-wrap" id="pickerWrap">
-            <label>N° Parte o Nombre (escribe para filtrar)</label>
+            <label>N° Parte PT / Sub *</label>
             <div class="picker-input-box">
-              <input type="text" id="dPartSearch" placeholder="Ej. KRM-101 o nombre de pieza..." autocomplete="off"
+              <input type="text" id="dPartSearch" placeholder="Busca N/P o descripción..." autocomplete="off"
                 onfocus="openPicker()" oninput="onPartSearchInput()" onkeydown="onPartSearchKey(event)">
-              <button type="button" class="picker-clear" title="Limpiar selección" onclick="clearPartPicker()"><i class="fas fa-times"></i></button>
+              <button type="button" class="picker-clear" title="Limpiar" onclick="clearPartPicker()"><i class="fas fa-times"></i></button>
             </div>
             <input type="hidden" id="dPartId">
             <div class="picker-dropdown" id="partDropdown"></div>
@@ -155,90 +164,137 @@ th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(14
 
         <div class="form-row-2">
           <div>
-            <label>Tipo Demanda</label>
+            <label>Tipo Demanda *</label>
             <select id="dType">
-              <option value="PEDIDO_FIRME">Pedido Firme</option>
-              <option value="FORECAST">Forecast</option>
+              <option value="PEDIDO_FIRME">PEDIDO FIRME (APS + MRP)</option>
+              <option value="FORECAST">FORECAST (Solo MRP Compra)</option>
             </select>
           </div>
           <div>
-            <label>Fecha Requerida</label>
+            <label>Fecha Requerida *</label>
             <input type="date" id="dDate">
           </div>
           <div>
-            <label>Cantidad (PZA)</label>
-            <input type="number" id="dQty" min="1" value="1500">
+            <label>Cantidad (PZA) *</label>
+            <input type="number" id="dQty" min="1" value="1000">
           </div>
-          <button class="btn btn-primary" onclick="addDemand()"><i class="fas fa-plus"></i> Agregar</button>
+          <div>
+            <label>Notas / PO Cliente</label>
+            <input type="text" id="dNotes" placeholder="Opcional: Release #">
+          </div>
+          <button type="button" class="btn btn-primary" id="btnAddDemand" onclick="addDemand()"><i class="fas fa-plus"></i> Guardar</button>
         </div>
         <div id="pickedInfo" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
       </div>
 
-      <!-- CARGA MASIVA EXCEL (800+ FILAS) -->
-      <div class="card">
+      <div class="card" id="excelImportCard">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-          <h3 style="margin:0;font-size:15px"><i class="fas fa-file-excel" style="color:var(--success)"></i> Carga Masiva por Excel (800+ NPs)</h3>
-          <button class="btn btn-sm btn-success" onclick="descargarPlantillaExcel()"><i class="fas fa-download"></i> Plantilla Estándar .xlsx</button>
+          <h3 style="margin:0;font-size:15px"><i class="fas fa-file-excel" style="color:var(--success)"></i> Carga Masiva Excel / Release (800+ filas)</h3>
+          <button type="button" class="btn btn-sm btn-success" onclick="descargarPlantillaExcel()"><i class="fas fa-download"></i> Plantilla .xlsx</button>
         </div>
-        <small style="color:var(--muted)">Columnas estándar: <code>PART_NUMBER</code> (o <code>NP_CLIENTE</code>), <code>FECHA</code>, <code>CANTIDAD</code>, opcionales <code>CLIENTE</code>, <code>PROYECTO</code>, <code>TIPO</code>.</small>
+        <small style="color:var(--muted)">Columnas: <code>PART_NUMBER</code> (o <code>NP_CLIENTE</code>), <code>FECHA</code>, <code>CANTIDAD</code>, opcionales <code>TIPO</code> (<code>PEDIDO_FIRME</code> / <code>FORECAST</code>), <code>CLIENTE</code>, <code>PROYECTO</code>.</small>
 
         <div class="dropzone" onclick="document.getElementById('excelFile').click()">
           <i class="fas fa-cloud-upload-alt fa-lg" style="color:var(--primary)"></i>
-          <div style="font-weight:700;font-size:13px;margin-top:4px">Haz clic para seleccionar archivo Excel (.xlsx / .xls / .csv)</div>
-          <div style="font-size:11.5px;color:var(--muted)">Soporta cientos de filas, fechas Excel y empate por NP interno o NP Cliente</div>
+          <div style="font-weight:700;font-size:13px;margin-top:4px">Seleccionar Release Excel (.xlsx / .xls / .csv)</div>
           <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="procesarExcel(this)">
         </div>
-
         <div id="excelPreviewBox" class="excel-preview hidden"></div>
       </div>
     </div>
 
-    <!-- TABLA PLAN MAESTRO (MPS) -->
     <div class="card" style="overflow-x:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px">
-        <h3 style="margin:0;font-size:15px">Plan Maestro (MPS) — Necesidad Bruta vs Stock WMS vs WO Sugerida</h3>
-        <div class="filter-bar" style="margin-bottom:0">
-          <input id="qTable" placeholder="🔍 Filtrar tabla por NP, nombre, cliente o proyecto..." oninput="render()" style="width:260px">
-          <select id="fTableProject" onchange="render()" style="width:180px">
-            <option value="">Todos los proyectos</option>
+        <h3 style="margin:0;font-size:15px">Plan Maestro (MPS) — Demanda vs Stock WMS + WOs Abiertas en Prensa</h3>
+        <div class="filter-bar">
+          <select id="fTipoDem" onchange="render()" style="width:150px">
+            <option value="">Todos Tipos</option>
+            <option value="PEDIDO_FIRME">Solo Pedido Firme</option>
+            <option value="FORECAST">Solo Forecast</option>
           </select>
-          <select id="fTableLimit" onchange="render()" style="width:130px">
-            <option value="100">Ver 100 filas</option>
-            <option value="300">Ver 300 filas</option>
-            <option value="99999">Ver todas</option>
+          <select id="fStatusDem" onchange="render()" style="width:140px">
+            <option value="ABIERTO" selected>Estatus: Abierto</option>
+            <option value="PLANEADO">Estatus: Planeado</option>
+            <option value="">Todos Estatus</option>
           </select>
-          <button class="btn btn-sm" onclick="clearDemand()"><i class="fas fa-trash"></i> Limpiar Todo</button>
+          <select id="fTableProject" onchange="render()" style="width:160px"><option value="">Todos Proyectos</option></select>
+          <input id="qTable" placeholder="🔍 Filtrar folio, N/P, cliente..." oninput="render()" style="width:220px">
+          <select id="fTableLimit" onchange="render()" style="width:120px">
+            <option value="100">100 filas</option>
+            <option value="300">300 filas</option>
+            <option value="99999">Todas</option>
+          </select>
         </div>
       </div>
+
+      <div id="batchBar" class="batch-bar">
+        <span><i class="fas fa-check-square" style="color:var(--primary)"></i> <span id="batchCount">0</span> líneas seleccionadas</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn btn-sm btn-success" onclick="convertirSeleccionAFirme()"><i class="fas fa-check"></i> Pasar Seleccionadas a Firme</button>
+          <button type="button" class="btn btn-sm btn-danger-soft" onclick="cancelarSeleccionDemanda()"><i class="fas fa-ban"></i> Cancelar Seleccionadas</button>
+        </div>
+      </div>
+
       <table>
         <thead>
           <tr>
-            <th>Cliente / Proyecto</th><th>N° Parte PT</th><th>Tipo</th><th>Fecha Req.</th>
-            <th>Demanda</th><th>Stock WMS</th><th>Stock Seg.</th><th>Necesidad Neta (WO)</th><th>Acción</th>
+            <th style="width:30px"><input type="checkbox" id="chkAllReq" onchange="toggleSelectAllReqs(this.checked)" style="width:auto"></th>
+            <th>Folio</th><th>Tipo / Estatus</th><th>Cliente / Proyecto</th><th>N° Parte</th><th>Fecha Req.</th>
+            <th class="num">Demanda</th><th class="num">WMS + WO Abierta</th><th class="num">Stock Seg.</th><th>Necesidad Neta / Acción MPS</th><th style="text-align:right">Acciones</th>
           </tr>
         </thead>
         <tbody id="demBody"></tbody>
       </table>
-      <div id="tableFootNote" style="font-size:12px;color:var(--muted);margin-top:10px"></div>
+      <div id="tableFootNote" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
     </div>
   </div>
 
-  <!-- TAB 2: EXPLOSIÓN MRP MATERIALES -->
-  <div id="tab-mrp" class="hidden">
+  <!-- TAB 2: SUB-ENSAMBLES INYECTADOS REQUERIDOS -->
+  <div id="tab-sub" class="hidden">
     <div class="card" style="overflow-x:auto">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
         <div>
-          <h3 style="margin:0;font-size:15px">Explosión de Requerimientos de Materiales (Resinas, Insertos, Componentes)</h3>
-          <small style="color:var(--muted)">Calcula todas las líneas cargadas (aunque sean 800+ filas): Consumo BOM × (1 + Scrap%) × Necesidad Neta PT − Stock WMS + Stock Seg.</small>
+          <h3 style="margin:0;font-size:15px">Sub-ensambles Inyectados / WIP Requeridos por Pedidos Firmes</h3>
+          <small style="color:var(--muted)">Explosión de hijos tipo <code>SUB-ENSAMBLE</code> desde BOM multinivel descontando stock WIP WMS y WOs abiertas.</small>
         </div>
-        <input id="qMrp" placeholder="🔍 Buscar material o grado..." oninput="render()" style="width:250px">
+        <button type="button" class="btn btn-success" id="btnGenSubReqs" onclick="generarRequerimientosSubensamble()">
+          <i class="fas fa-plus-circle"></i> Generar Requerimientos Firmes de Sub-ensamble
+        </button>
       </div>
       <table>
         <thead>
           <tr>
-            <th>Material / N.P.</th><th>Tipo</th><th>Requerido BOM (+Scrap)</th><th>Stock WMS</th>
-            <th>Stock Seg.</th><th>Déficit Neto</th><th>Compra Sugerida (Lote/Múlt.)</th>
-            <th>Lead Time</th><th>Ubic. WMS</th><th>Estatus MRP</th>
+            <th>Sub-ensamble N/P</th><th>Descripción</th><th class="num">Bruto BOM (+Scrap)</th>
+            <th class="num">Stock WIP WMS</th><th class="num">WOs Abiertas</th><th class="num">Ya en Req. Abierto</th>
+            <th class="num">Faltante Neto a Inyectar</th><th>Estatus</th>
+          </tr>
+        </thead>
+        <tbody id="subBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: EXPLOSIÓN MRP MATERIALES -->
+  <div id="tab-mrp" class="hidden">
+    <div class="card" style="overflow-x:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin:0;font-size:15px">Explosión MRP de Resinas, Tintas y Componentes (Compras)</h3>
+          <small style="color:var(--muted)">Suma demanda neta de <code>PEDIDO_FIRME</code> + <code>FORECAST</code> dentro del horizonte. Exporta déficits reales hacia Compras.</small>
+        </div>
+        <div class="controls">
+          <input id="qMrp" placeholder="🔍 Buscar material, proveedor..." oninput="render()" style="width:230px">
+          <button type="button" class="btn btn-sm btn-success" onclick="exportarMrpExcel()"><i class="fas fa-file-excel"></i> Exportar MRP .xlsx</button>
+          <a href="compras_ordenes.html?import_mrp=1" class="btn btn-sm btn-primary"><i class="fas fa-cart-plus"></i> Emitir OC en Compras</a>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Material / N.P.</th><th>Tipo</th><th class="num">Req. Firmes</th><th class="num">Req. Forecast</th>
+            <th class="num">Bruto Total</th><th class="num">Stock WMS</th><th class="num">Stock Seg.</th>
+            <th class="num">Déficit Neto</th><th>Compra Sugerida (Lote/Múlt.)</th>
+            <th>Proveedor / Lead Time</th><th>Límite OC</th><th>Estatus MRP</th>
           </tr>
         </thead>
         <tbody id="mrpBody"></tbody>
@@ -248,86 +304,188 @@ th{font-size:11px;text-transform:uppercase;color:var(--muted);background:rgba(14
 </div>
 
 <script>
-const LS_KEY = 'kraem_boceto_demand_v1';
-let allParts = [], ptParts = [], boms = [], stockMap = {}, locsMap = {}, clientNames = [], projectNames = [];
-let demands = [];
+const LS_APS_MPS = 'kraem_mps_firm_tasks_v1';
+const LS_MRP_SHORTAGE = 'kraem_mrp_shortage_export_v1';
+let allParts = [], ptParts = [], boms = [], stockMap = {}, openWoMap = {}, stdPackMap = {}, locsMap = {}, clientNames = [], projectNames = [];
+let demands = [], lastSubRows = [], lastMrpShortages = [], lastFirmMpsTasks = [];
 let pendingExcelRows = [], missingNps = [];
+let selectedReqIds = new Set();
+let canEditPlan = true;
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt = n => Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits:2});
+const fmt = n => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 });
 const norm = s => String(s ?? '').trim().toUpperCase();
+const sameId = (a, b) => String(a ?? '') === String(b ?? '');
+
+const MRP_I18N = {
+  es: { back: 'Cockpit', title: 'Demanda, Forecast & Explosión MPS/MRP (MD01/MD04)', sub: 'Fuente oficial `public.requerimientos`: Pedidos Firmes activan APS/WO; Forecast activa Compras/MRP sin saturar prensas.', kFirm: 'Pedidos Firmes Abiertos', kFcst: 'Forecast Abierto (Compras)', kWo: 'WOs Sugeridas (Solo Firme)', kShort: 'Materiales en Déficit MRP' },
+  ko: { back: '조종실', title: '수요, 예측 및 MPS/MRP 전개 (MD01/MD04)', sub: '공식 수요 테이블 연동: 확정 오더는 APS 작업지시 생성, 예측은 자재 구매 MRP만 반영.', kFirm: '진행 중 확정 오더', kFcst: '진행 중 예측 수요 (구매용)', kWo: '권장 작업지시 (확정분)', kShort: 'MRP 자재 부족 품목' },
+  en: { back: 'Cockpit', title: 'Demand, Forecast & MPS/MRP Explosion (MD01/MD04)', sub: 'Live `public.requerimientos`: Firm Orders drive APS/WOs; Forecast drives Material Purchasing MRP only.', kFirm: 'Open Firm Orders', kFcst: 'Open Forecast (MRP Only)', kWo: 'Suggested WOs (Firm Only)', kShort: 'MRP Shortage Materials' }
+};
+
+function setLang(lang) {
+  const l = MRP_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = MRP_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('lblKpiFirm').textContent = t.kFirm;
+  document.getElementById('lblKpiFcst').textContent = t.kFcst;
+  document.getElementById('lblKpiWo').textContent = t.kWo;
+  document.getElementById('lblKpiShort').textContent = t.kShort;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+function syncPermissions() {
+  canEditPlan = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function')
+    || KraemAuth.canEdit('planeacion')
+    || KraemAuth.canEdit('ventas');
+  const capGrid = document.getElementById('captureTopGrid');
+  if (capGrid) capGrid.style.display = canEditPlan ? 'grid' : 'none';
+  const subBtn = document.getElementById('btnGenSubReqs');
+  if (subBtn) subBtn.style.display = canEditPlan ? 'inline-flex' : 'none';
+}
+
+document.addEventListener('kraem:authready', () => {
+  syncPermissions();
+  render();
+});
 
 function switchTab(t){
   document.getElementById('tab-dem').classList.toggle('hidden', t !== 'dem');
+  document.getElementById('tab-sub').classList.toggle('hidden', t !== 'sub');
   document.getElementById('tab-mrp').classList.toggle('hidden', t !== 'mrp');
   document.getElementById('btnTabDem').classList.toggle('active', t === 'dem');
+  document.getElementById('btnTabSub').classList.toggle('active', t === 'sub');
   document.getElementById('btnTabMrp').classList.toggle('active', t === 'mrp');
 }
 
+async function cargarPartesCanonicas() {
+  const cols = 'id, part_number, customer_part_number, part_name, product_type, client, project, supplier, unit_of_measure, safety_stock, min_lot_size, lot_rounding, lead_time_days, scrap_pct, default_location_id, std_pack, resin_grade, obsolete, is_archived_duplicate';
+  if (window.fetchAllRows) {
+    try {
+      const data = await window.fetchAllRows('parts', {
+        select: cols,
+        filter: q => q.eq('obsolete', false).eq('is_archived_duplicate', false),
+        orderBy: 'part_number'
+      });
+      return Array.isArray(data) ? data : (data?.data || []);
+    } catch (_) {
+      const fb = await window.fetchAllRows('parts', {
+        select: 'id, part_number, customer_part_number, part_name, product_type, client, project, supplier, unit_of_measure, safety_stock, min_lot_size, lot_rounding, lead_time_days, scrap_pct, default_location_id, std_pack, resin_grade, obsolete',
+        filter: q => q.eq('obsolete', false),
+        orderBy: 'part_number'
+      });
+      return (Array.isArray(fb) ? fb : (fb?.data || [])).filter(p => !p.is_archived_duplicate);
+    }
+  }
+  const { data } = await client.from('parts').select(cols).eq('obsolete', false).order('part_number');
+  return (data || []).filter(p => !p.is_archived_duplicate);
+}
+
+async function cargarRequerimientosDB() {
+  const { data, error } = await client
+    .from('requerimientos')
+    .select('*')
+    .neq('status', 'CANCELADO')
+    .order('due_date', { ascending: true })
+    .order('id', { ascending: true });
+  if (error) throw error;
+  demands = (data || []).map(r => ({
+    ...r,
+    tipo_demanda: r.tipo_demanda || 'PEDIDO_FIRME',
+    status: r.status === 'open' ? 'ABIERTO' : (r.status || 'ABIERTO')
+  }));
+}
+
 async function init(){
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  syncPermissions();
+
   document.getElementById('dDate').value = new Date(Date.now() + 7*86400000).toISOString().slice(0,10);
   if (location.hash === '#tab-mrp') switchTab('mrp');
+  else if (location.hash === '#tab-sub') switchTab('sub');
 
   document.addEventListener('click', e => {
-    if (!document.getElementById('pickerWrap').contains(e.target)) {
+    const pw = document.getElementById('pickerWrap');
+    if (pw && !pw.contains(e.target)) {
       document.getElementById('partDropdown').classList.remove('open');
     }
   });
 
   try {
-    const [partsData, bomData, rStock, rLocs, rCli] = await Promise.all([
-      window.fetchAllRows ? window.fetchAllRows('parts', { filter: q => q.eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('*').eq('obsolete', false).order('part_number').then(r => r.data || []),
+    const [partsData, bomData, rStock, rWo, rPack, rLocs, rCli] = await Promise.all([
+      cargarPartesCanonicas(),
       window.fetchAllRows ? window.fetchAllRows('bom_structures', { filter: q => q.neq('is_active', false), orderBy: 'id' }) : client.from('bom_structures').select('*').neq('is_active', false).then(r => r.data || []),
-      window.fetchAllRows ? window.fetchAllRows('v_inventory_by_location', { select: 'part_id, quantity' }) : client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0).then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('v_inventory_by_location', { select: 'part_id, quantity', filter: q => q.gt('quantity', 0) }) : client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0).then(r => r.data || []),
+      client.from('production_orders').select('id, part_id, quantity_planned, status').in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']),
+      window.fetchAllRows ? window.fetchAllRows('empaques_partes', { select: 'part_id, standard_pack, es_empaque_primario, active', filter: q => q.neq('active', false), orderBy: 'id' }) : client.from('empaques_partes').select('part_id, standard_pack, es_empaque_primario, active').neq('active', false).then(r => r.data || []),
       client.from('locations').select('id, location_code'),
       client.from('clientes').select('id, nombre').eq('activo', true).order('nombre')
     ]);
 
-    allParts = Array.isArray(partsData) ? partsData : (partsData.data || []);
-    boms = Array.isArray(bomData) ? bomData : (bomData.data || []);
-    const stockList = Array.isArray(rStock) ? rStock : (rStock.data || []);
-    stockList.forEach(s => { 
-      const pid = Number(s.part_id);
-      if (pid) stockMap[pid] = (stockMap[pid] || 0) + (parseFloat(s.quantity) || 0); 
-    });
-    (rLocs.data || []).forEach(l => { locsMap[l.id] = l.location_code; });
+    allParts = partsData || [];
+    boms = (Array.isArray(bomData) ? bomData : (bomData?.data || [])).filter(b => b.is_active !== false && Number(b.parent_id) !== Number(b.child_id));
 
+    stockMap = {};
+    const stockList = Array.isArray(rStock) ? rStock : (rStock?.data || []);
+    stockList.forEach(s => {
+      const pid = Number(s.part_id);
+      if (pid) stockMap[pid] = (stockMap[pid] || 0) + (parseFloat(s.quantity) || 0);
+    });
+
+    openWoMap = {};
+    ((rWo && rWo.data) || []).forEach(w => {
+      const pid = Number(w.part_id);
+      if (pid) openWoMap[pid] = (openWoMap[pid] || 0) + (Number(w.quantity_planned) || 0);
+    });
+
+    stdPackMap = {};
+    (Array.isArray(rPack) ? rPack : (rPack?.data || [])).filter(r => r.active !== false).forEach(r => {
+      const pid = Number(r.part_id);
+      if (!pid || !(Number(r.standard_pack) > 0)) return;
+      if (!stdPackMap[pid] || r.es_empaque_primario) stdPackMap[pid] = Number(r.standard_pack);
+    });
+
+    (rLocs?.data || []).forEach(l => { locsMap[l.id] = l.location_code; });
     ptParts = allParts.filter(p => p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
 
-    // Clientes reales: mezcla de tabla `clientes` + columna `client` de `parts`
     const cliSet = new Set();
-    (rCli.data || []).forEach(c => { if (c.nombre) cliSet.add(c.nombre.trim()); });
+    (rCli?.data || []).forEach(c => { if (c.nombre) cliSet.add(c.nombre.trim()); });
     allParts.forEach(p => { if (p.client && p.client.trim()) cliSet.add(p.client.trim()); });
     clientNames = [...cliSet].sort();
 
-    // Proyectos reales desde `parts.project`
     const projSet = new Set();
     allParts.forEach(p => { if (p.project && p.project.trim()) projSet.add(p.project.trim()); });
     projectNames = [...projSet].sort();
 
-    const st = document.getElementById('dataStatus');
-    st.textContent = `Conectado: ${ptParts.length} PT/Sub · ${projectNames.length} proyectos · ${boms.length} BOM`;
-    st.className = 'badge b-ok';
-  } catch (e) { console.warn(e); }
+    await cargarRequerimientosDB();
 
-  if (!ptParts.length) {
-    ptParts = [
-      { id: -1, part_number: 'DEMO-PT-100', customer_part_number: '84710-KRM', part_name: 'Carcasa Tablero Demo', product_type: 'PT', client: 'KIA', project: 'NQ5', safety_stock: 200 },
-      { id: -2, part_number: 'DEMO-PT-200', customer_part_number: '84720-KRM', part_name: 'Soporte Consola Demo', product_type: 'PT', client: 'HYUNDAI', project: 'CN7', safety_stock: 100 }
-    ];
-    allParts = [
-      ...ptParts,
-      { id: -10, part_number: 'RES-PP-BLK', part_name: 'Polipropileno Negro Demo', product_type: 'RESINA', unit_of_measure: 'KG', safety_stock: 300, min_lot_size: 500, lot_rounding: 25, lead_time_days: 7, scrap_pct: 3 },
-      { id: -11, part_number: 'CLIP-MET-01', part_name: 'Clip Metálico Demo', product_type: 'COMPONENTE', unit_of_measure: 'PZA', safety_stock: 1000, min_lot_size: 2000, lot_rounding: 500, lead_time_days: 14, scrap_pct: 1 }
-    ];
-    boms = [
-      { parent_id: -1, child_id: -10, usage_qty: 0.24, scrap_pct: 3 },
-      { parent_id: -1, child_id: -11, usage_qty: 2, scrap_pct: 1 },
-      { parent_id: -2, child_id: -10, usage_qty: 0.18, scrap_pct: 2 }
-    ];
-    clientNames = ['KIA', 'HYUNDAI'];
-    projectNames = ['NQ5', 'CN7'];
-    stockMap[-1] = 150; stockMap[-10] = 220; stockMap[-11] = 4500;
+    const st = document.getElementById('dataStatus');
+    st.textContent = `BD En Vivo: ${ptParts.length} PT/Sub · ${boms.length} BOM · ${demands.length} reqs`;
+    st.className = 'badge b-ok';
+  } catch (e) {
+    console.error('Init MRP error:', e);
+    const st = document.getElementById('dataStatus');
+    st.textContent = 'Error cargando Supabase: ' + (e.message || e);
+    st.className = 'badge b-bad';
   }
 
   document.getElementById('dClient').innerHTML = '<option value="">Todos los clientes</option>' +
@@ -338,61 +496,25 @@ async function init(){
   document.getElementById('dProject').innerHTML = projOpts;
   document.getElementById('fTableProject').innerHTML = projOpts;
 
-  try {
-    if (client && client.from) {
-      const { data: dbDem } = await client.from('system_settings').select('value').eq('key', 'kraem_boceto_demand_v1').maybeSingle();
-      if (dbDem && Array.isArray(dbDem.value) && dbDem.value.length) {
-        demands = dbDem.value;
-        localStorage.setItem(LS_KEY, JSON.stringify(demands));
-      }
-    }
-  } catch (_) {}
-
-  if (!demands.length) {
-    try { demands = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { demands = []; }
-  }
-  if (!demands.length) cargarDemoReal(false);
-  else render();
+  render();
 }
 
 /* ==================== PICKER BUSCABLE DE PARTES ==================== */
 function getScopedParts(){
   const cli = document.getElementById('dClient').value;
   const proj = document.getElementById('dProject').value;
-  return ptParts.filter(p =>
-    (!cli || norm(p.client) === norm(cli)) &&
-    (!proj || norm(p.project) === norm(proj))
-  );
+  return ptParts.filter(p => (!cli || norm(p.client) === norm(cli)) && (!proj || norm(p.project) === norm(proj)));
 }
 
 function onFilterScopeChange(){
-  // Si la parte seleccionada ya no pertenece al filtro de cliente/proyecto, limpiar
   const selId = Number(document.getElementById('dPartId').value);
-  if (selId && !getScopedParts().some(p => p.id === selId)) {
-    clearPartPicker(false);
-  }
+  if (selId && !getScopedParts().some(p => Number(p.id) === selId)) clearPartPicker(false);
   renderPickerList();
 }
 
-function openPicker(){
-  renderPickerList();
-  document.getElementById('partDropdown').classList.add('open');
-}
-
-function onPartSearchInput(){
-  document.getElementById('dPartId').value = '';
-  document.getElementById('pickedInfo').textContent = '';
-  openPicker();
-}
-
-function onPartSearchKey(e){
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const first = document.querySelector('#partDropdown .picker-item');
-    if (first) first.click();
-  }
-}
-
+function openPicker(){ renderPickerList(); document.getElementById('partDropdown').classList.add('open'); }
+function onPartSearchInput(){ document.getElementById('dPartId').value = ''; document.getElementById('pickedInfo').textContent = ''; openPicker(); }
+function onPartSearchKey(e){ if (e.key === 'Enter') { e.preventDefault(); const first = document.querySelector('#partDropdown .picker-item'); if (first) first.click(); } }
 function clearPartPicker(focusInput = true){
   document.getElementById('dPartId').value = '';
   document.getElementById('dPartSearch').value = '';
@@ -403,15 +525,10 @@ function clearPartPicker(focusInput = true){
 function renderPickerList(){
   const q = norm(document.getElementById('dPartSearch').value);
   const scoped = getScopedParts();
-  const matches = q ? scoped.filter(p =>
-    norm(p.part_number).includes(q) ||
-    norm(p.part_name).includes(q) ||
-    norm(p.customer_part_number).includes(q)
-  ) : scoped;
-
+  const matches = q ? scoped.filter(p => norm(p.part_number).includes(q) || norm(p.part_name).includes(q) || norm(p.customer_part_number).includes(q)) : scoped;
   const dd = document.getElementById('partDropdown');
   const shown = matches.slice(0, 60);
-  let html = `<div class="picker-head">Mostrando ${shown.length} de ${matches.length} números de parte disponibles</div>`;
+  let html = `<div class="picker-head">Mostrando ${shown.length} de ${matches.length} partes canónicas</div>`;
   if (!shown.length) {
     html += `<div style="padding:14px;text-align:center;color:var(--muted);font-size:12.5px">Sin coincidencias con los filtros actuales.</div>`;
   } else {
@@ -422,32 +539,27 @@ function renderPickerList(){
           <small>${esc(p.part_name || '')} · ${esc(p.client || 'Sin cliente')} / ${esc(p.project || 'Sin proyecto')}</small>
         </div>
         <span class="badge b-ok">WMS: ${fmt(stockMap[p.id] || 0)}</span>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
   dd.innerHTML = html;
 }
 
 function selectPart(id){
-  const p = ptParts.find(x => x.id === id);
+  const p = ptParts.find(x => Number(x.id) === Number(id));
   if (!p) return;
   document.getElementById('dPartId').value = p.id;
   document.getElementById('dPartSearch').value = `${p.part_number} — ${p.part_name || ''}`;
   document.getElementById('partDropdown').classList.remove('open');
-  if (p.client && [...document.getElementById('dClient').options].some(o => o.value === p.client)) {
-    document.getElementById('dClient').value = p.client;
-  }
-  if (p.project && [...document.getElementById('dProject').options].some(o => o.value === p.project)) {
-    document.getElementById('dProject').value = p.project;
-  }
+  if (p.client && [...document.getElementById('dClient').options].some(o => o.value === p.client)) document.getElementById('dClient').value = p.client;
+  if (p.project && [...document.getElementById('dProject').options].some(o => o.value === p.project)) document.getElementById('dProject').value = p.project;
   document.getElementById('pickedInfo').innerHTML =
-    `<i class="fas fa-check-circle" style="color:var(--success)"></i> Seleccionado: <strong>${esc(p.part_number)}</strong> · Stock WMS: <strong>${fmt(stockMap[p.id] || 0)}</strong> · Safety Stock: <strong>${fmt(p.safety_stock || 0)}</strong>`;
+    `<i class="fas fa-check-circle" style="color:var(--success)"></i> <strong>${esc(p.part_number)}</strong> · WMS: <strong>${fmt(stockMap[p.id] || 0)}</strong> · WO Abiertas: <strong>${fmt(openWoMap[p.id] || 0)}</strong> · Safety: <strong>${fmt(p.safety_stock || 0)}</strong>`;
 }
 
 /* ==================== CARGA MASIVA EXCEL ==================== */
 function descargarPlantillaExcel(){
   const d1 = new Date(Date.now() + 7*86400000).toISOString().slice(0,10);
-  const d2 = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
+  const d2 = new Date(Date.now() + 21*86400000).toISOString().slice(0,10);
   const sampleRows = (ptParts.length ? ptParts.slice(0, 3) : [{ part_number: 'EJEMPLO-NP-01', client: 'KIA', project: 'NQ5' }]).map((p, i) => ({
     CLIENTE: p.client || 'KIA',
     PROYECTO: p.project || 'GENERAL',
@@ -456,25 +568,17 @@ function descargarPlantillaExcel(){
     FECHA: i === 0 ? d1 : d2,
     CANTIDAD: 1200 + i * 500
   }));
-
   const refRows = ptParts.map(p => ({
-    PART_NUMBER: p.part_number,
-    NP_CLIENTE: p.customer_part_number || '',
-    DESCRIPCION: p.part_name || '',
-    CLIENTE: p.client || '',
-    PROYECTO: p.project || '',
-    TIPO: p.product_type || 'PT'
+    PART_NUMBER: p.part_number, NP_CLIENTE: p.customer_part_number || '', DESCRIPCION: p.part_name || '',
+    CLIENTE: p.client || '', PROYECTO: p.project || '', TIPO: p.product_type || 'PT'
   }));
-
   const wb = XLSX.utils.book_new();
   const wsReq = XLSX.utils.json_to_sheet(sampleRows);
   wsReq['!cols'] = [{wch:16},{wch:14},{wch:22},{wch:15},{wch:13},{wch:12}];
   XLSX.utils.book_append_sheet(wb, wsReq, 'REQUERIMIENTOS');
-
   const wsRef = XLSX.utils.json_to_sheet(refRows);
   wsRef['!cols'] = [{wch:22},{wch:18},{wch:32},{wch:16},{wch:14},{wch:14}];
   XLSX.utils.book_append_sheet(wb, wsRef, 'CATALOGO_PT');
-
   XLSX.writeFile(wb, 'Plantilla_Requerimientos_KRAEM.xlsx');
 }
 
@@ -513,10 +617,9 @@ function procesarExcel(input){
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-    // Índices rápidos para soportar 800+ filas en milisegundos
     const byNp = new Map();
     const byCustNp = new Map();
-    allParts.forEach(p => {
+    ptParts.forEach(p => {
       if (p.part_number) byNp.set(norm(p.part_number), p);
       if (p.customer_part_number) byCustNp.set(norm(p.customer_part_number), p);
     });
@@ -524,17 +627,17 @@ function procesarExcel(input){
     pendingExcelRows = [];
     missingNps = [];
     let badRows = 0;
+    const batchId = 'XLS-' + new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '');
 
-    rawRows.forEach((r, idx) => {
+    rawRows.forEach(r => {
       const npRaw = norm(getCol(r, ['PART_NUMBER', 'NP', 'NUMERO_PARTE', 'NUMERO_DE_PARTE', 'PARTE', 'NP_CLIENTE', 'MATERIAL']));
       const qtyVal = Number(String(getCol(r, ['CANTIDAD', 'QTY', 'DEMANDA', 'PIEZA', 'PIEZAS', 'REQUERIMIENTO'])).replace(/,/g, ''));
-      const dateVal = parseExcelDate(getCol(r, ['FECHA', 'DUE_DATE', 'FECHA_ENTREGA', 'FECHA_REQ', 'FECHA_REQUERIDA'])) || new Date().toISOString().slice(0,10);
+      const dateVal = parseExcelDate(getCol(r, ['FECHA', 'DUE_DATE', 'FECHA_ENTREGA', 'FECHA_REQ', 'FECHA_REQUERIDA'])) || new Date(Date.now() + 7*86400000).toISOString().slice(0,10);
       const cliVal = String(getCol(r, ['CLIENTE', 'CLIENT']) || '').trim();
       const projVal = String(getCol(r, ['PROYECTO', 'PROJECT', 'VEHICULO']) || '').trim();
       const typeRaw = norm(getCol(r, ['TIPO', 'TYPE', 'TIPO_DEMANDA']));
 
       if (!npRaw || isNaN(qtyVal) || qtyVal <= 0) { badRows++; return; }
-
       const part = byNp.get(npRaw) || byCustNp.get(npRaw);
       if (!part) {
         if (!missingNps.includes(npRaw)) missingNps.push(npRaw);
@@ -542,226 +645,485 @@ function procesarExcel(input){
       }
 
       pendingExcelRows.push({
-        id: Date.now() + idx + Math.random(),
-        client: cliVal || part.client || 'SIN CLIENTE',
-        project: projVal || part.project || '',
         part_id: part.id,
-        type: typeRaw.includes('FORE') ? 'FORECAST' : 'PEDIDO_FIRME',
-        date: dateVal,
-        qty: Math.round(qtyVal)
+        quantity: Math.round(qtyVal),
+        due_date: dateVal,
+        status: 'ABIERTO',
+        tipo_demanda: typeRaw.includes('FORE') ? 'FORECAST' : 'PEDIDO_FIRME',
+        cliente: cliVal || part.client || null,
+        proyecto: projVal || part.project || null,
+        origen: 'EXCEL_RELEASE',
+        lote_importacion: batchId
       });
     });
 
     const box = document.getElementById('excelPreviewBox');
     box.classList.remove('hidden');
     box.innerHTML = `
-      <div><strong>Archivo:</strong> ${esc(file.name)} (${rawRows.length} filas leídas)</div>
+      <div><strong>Archivo:</strong> ${esc(file.name)} (${rawRows.length} filas)</div>
       <div style="margin:6px 0;display:flex;gap:8px;flex-wrap:wrap">
-        <span class="badge b-ok">${pendingExcelRows.length} válidas para importar</span>
-        ${missingNps.length ? `<span class="badge b-bad">${missingNps.length} NP no encontrados en catálogo</span>` : ''}
-        ${badRows ? `<span class="badge b-warn">${badRows} con cantidad/NP inválido</span>` : ''}
+        <span class="badge b-ok">${pendingExcelRows.length} válidas para BD</span>
+        ${missingNps.length ? `<span class="badge b-bad">${missingNps.length} N/P inexistentes</span>` : ''}
+        ${badRows ? `<span class="badge b-warn">${badRows} con datos inválidos</span>` : ''}
       </div>
-      ${missingNps.length ? `<div style="font-size:11.5px;color:var(--danger);margin-bottom:8px">Faltan en ` + '`parts`' + `: ${esc(missingNps.slice(0, 8).join(', '))}${missingNps.length > 8 ? ` (+${missingNps.length - 8} más)` : ''}</div>` : ''}
+      ${missingNps.length ? `<div style="font-size:11.5px;color:var(--danger);margin-bottom:8px">No encontrados: ${esc(missingNps.slice(0, 6).join(', '))}</div>` : ''}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm btn-primary" onclick="confirmarImportExcel(true)" ${!pendingExcelRows.length ? 'disabled' : ''}>
-          <i class="fas fa-arrows-rotate"></i> Reemplazar y Cargar (${pendingExcelRows.length})
+        <button type="button" class="btn btn-sm btn-primary" onclick="confirmarImportExcel(true)" ${!pendingExcelRows.length ? 'disabled' : ''}>
+          <i class="fas fa-arrows-rotate"></i> Reemplazar Forecast Abierto e Importar (${pendingExcelRows.length})
         </button>
-        <button class="btn btn-sm btn-success" onclick="confirmarImportExcel(false)" ${!pendingExcelRows.length ? 'disabled' : ''}>
-          <i class="fas fa-plus"></i> Sumar a la lista actual
+        <button type="button" class="btn btn-sm btn-success" onclick="confirmarImportExcel(false)" ${!pendingExcelRows.length ? 'disabled' : ''}>
+          <i class="fas fa-plus"></i> Agregar Nuevos Requerimientos
         </button>
-      </div>
-    `;
+      </div>`;
     input.value = '';
   };
   reader.readAsArrayBuffer(file);
 }
 
-function confirmarImportExcel(replace){
+async function confirmarImportExcel(replaceOpenForecast){
+  if (!canEditPlan) return alert('Sin permisos para editar Planeación.');
   if (!pendingExcelRows.length) return;
-  demands = replace ? [...pendingExcelRows] : [...demands, ...pendingExcelRows];
-  saveDemands();
-  document.getElementById('excelPreviewBox').innerHTML = `<span class="badge b-ok"><i class="fas fa-check"></i> ${pendingExcelRows.length} requerimientos cargados al simulador MPS/MRP.</span>`;
-  pendingExcelRows = [];
-  render();
-}
 
-/* ==================== CRUD Y CÁLCULO MPS/MRP ==================== */
-function cargarDemoReal(notify = true){
-  const samples = ptParts.slice(0, 3);
-  const d1 = new Date(Date.now() + 5*86400000).toISOString().slice(0,10);
-  const d2 = new Date(Date.now() + 12*86400000).toISOString().slice(0,10);
-  demands = samples.map((p, i) => ({
-    id: Date.now() + i,
-    client: p.client || (clientNames[0] || 'KIA / OEM'),
-    project: p.project || '',
-    part_id: p.id,
-    type: i % 2 === 0 ? 'PEDIDO_FIRME' : 'FORECAST',
-    date: i === 0 ? d1 : d2,
-    qty: 1200 + i * 600
-  }));
-  saveDemands();
-  render();
-  if (notify && !demands.length) alert('No se encontraron PT en parts.');
-}
-
-function addDemand(){
-  const partId = Number(document.getElementById('dPartId').value);
-  const qty = Number(document.getElementById('dQty').value);
-  const date = document.getElementById('dDate').value;
-  if (!partId || qty <= 0 || !date) return alert('Selecciona un N° Parte desde el buscador, fecha y cantidad.');
-  const p = ptParts.find(x => x.id === partId) || {};
-  demands.push({
-    id: Date.now(),
-    client: document.getElementById('dClient').value || p.client || 'SIN CLIENTE',
-    project: document.getElementById('dProject').value || p.project || '',
-    part_id: partId,
-    type: document.getElementById('dType').value,
-    date,
-    qty
-  });
-  saveDemands();
-  render();
-}
-
-function delDemand(id){ demands = demands.filter(d => d.id !== id); saveDemands(); render(); }
-function clearDemand(){ demands = []; saveDemands(); render(); }
-function saveDemands(){
-  localStorage.setItem(LS_KEY, JSON.stringify(demands));
-  try {
-    if (client && client.from) {
-      client.from('system_settings').upsert({
-        key: 'kraem_boceto_demand_v1',
-        category: 'planeacion',
-        value: demands,
-        updated_at: new Date().toISOString()
-      }).then(() => console.log("✅ Demanda MRP sincronizada en Supabase")).catch(e => console.warn(e));
+  if (replaceOpenForecast) {
+    const importedIds = new Set(pendingExcelRows.map(r => Number(r.part_id)));
+    const idsToCancel = demands
+      .filter(d => d.status === 'ABIERTO' && d.tipo_demanda === 'FORECAST' && importedIds.has(Number(d.part_id)))
+      .map(d => d.id);
+    for (let i = 0; i < idsToCancel.length; i += 200) {
+      const chunkIds = idsToCancel.slice(i, i + 200);
+      await client.from('requerimientos').update({ status: 'CANCELADO' }).in('id', chunkIds);
     }
-  } catch (_) {}
+  }
+
+  for (let i = 0; i < pendingExcelRows.length; i += 200) {
+    const chunk = pendingExcelRows.slice(i, i + 200);
+    const { error } = await client.from('requerimientos').insert(chunk);
+    if (error) return alert('Error importando lote a Supabase: ' + error.message);
+  }
+
+  const count = pendingExcelRows.length;
+  pendingExcelRows = [];
+  document.getElementById('excelPreviewBox').innerHTML = `<span class="badge b-ok"><i class="fas fa-check"></i> ${count} requerimientos guardados en public.requerimientos.</span>`;
+  await cargarRequerimientosDB();
+  render();
 }
 
-function explodeBomRecursive(partId, parentQty, accMaterials, depth = 0, seen = new Set()){
-  if (depth > 5 || seen.has(partId)) return;
-  const nextSeen = new Set(seen); nextSeen.add(partId);
-  const children = boms.filter(b => b.parent_id === partId && b.is_active !== false && b.parent_id !== b.child_id);
+/* ==================== CRUD SOBRE public.requerimientos ==================== */
+async function addDemand(){
+  if (!canEditPlan) return alert('Sin permisos para editar Planeación.');
+  const partId = Number(document.getElementById('dPartId').value);
+  const qty = Math.round(Number(document.getElementById('dQty').value));
+  const date = document.getElementById('dDate').value;
+  const dType = document.getElementById('dType').value || 'PEDIDO_FIRME';
+  const notes = (document.getElementById('dNotes').value || '').trim() || null;
+
+  if (!partId || isNaN(qty) || qty <= 0 || !date) return alert('Selecciona un N° Parte válido, fecha y cantidad mayor a 0.');
+  const p = ptParts.find(x => Number(x.id) === partId) || {};
+
+  const payload = {
+    part_id: partId,
+    quantity: qty,
+    due_date: date,
+    status: 'ABIERTO',
+    tipo_demanda: dType,
+    cliente: document.getElementById('dClient').value || p.client || null,
+    proyecto: document.getElementById('dProject').value || p.project || null,
+    notas: notes,
+    origen: 'MANUAL'
+  };
+
+  const { error } = await client.from('requerimientos').insert([payload]).select('*');
+  if (error) return alert('Error al registrar demanda: ' + error.message);
+
+  document.getElementById('dNotes').value = '';
+  await cargarRequerimientosDB();
+  render();
+}
+
+async function convertirAFirme(reqId){
+  if (!canEditPlan) return alert('Sin permisos para editar Planeación.');
+  const { error } = await client.from('requerimientos').update({ tipo_demanda: 'PEDIDO_FIRME' }).eq('id', reqId);
+  if (error) return alert('Error al pasar a firme: ' + error.message);
+  demands = demands.map(d => sameId(d.id, reqId) ? { ...d, tipo_demanda: 'PEDIDO_FIRME' } : d);
+  render();
+}
+
+async function cancelarDemanda(reqId){
+  if (!canEditPlan) return alert('Sin permisos para cancelar demanda.');
+  if (!confirm('¿Cancelar este requerimiento? (Conserva historial de auditoría sin borrar)')) return;
+  const { error } = await client.from('requerimientos').update({ status: 'CANCELADO' }).eq('id', reqId);
+  if (error) return alert('Error al cancelar: ' + error.message);
+  demands = demands.filter(d => !sameId(d.id, reqId));
+  selectedReqIds.delete(String(reqId));
+  render();
+}
+
+function toggleSelectReq(id, checked){
+  const key = String(id);
+  if (checked) selectedReqIds.add(key); else selectedReqIds.delete(key);
+  updateBatchBar();
+}
+
+function toggleSelectAllReqs(checked){
+  document.querySelectorAll('#demBody .req-chk').forEach(cb => {
+    cb.checked = checked;
+    const key = String(cb.getAttribute('data-id'));
+    if (checked) selectedReqIds.add(key); else selectedReqIds.delete(key);
+  });
+  updateBatchBar();
+}
+
+function updateBatchBar(){
+  const bar = document.getElementById('batchBar');
+  const cnt = document.getElementById('batchCount');
+  if (!bar || !cnt) return;
+  cnt.textContent = selectedReqIds.size;
+  bar.style.display = (canEditPlan && selectedReqIds.size > 0) ? 'flex' : 'none';
+}
+
+async function convertirSeleccionAFirme(){
+  if (!canEditPlan || !selectedReqIds.size) return;
+  const ids = [...selectedReqIds].map(id => isNaN(Number(id)) ? id : Number(id));
+  const { error } = await client.from('requerimientos').update({ tipo_demanda: 'PEDIDO_FIRME' }).in('id', ids);
+  if (error) return alert('Error en lote: ' + error.message);
+  selectedReqIds.clear();
+  await cargarRequerimientosDB();
+  render();
+}
+
+async function cancelarSeleccionDemanda(){
+  if (!canEditPlan || !selectedReqIds.size) return;
+  if (!confirm(`¿Cancelar las ${selectedReqIds.size} líneas seleccionadas?`)) return;
+  const ids = [...selectedReqIds].map(id => isNaN(Number(id)) ? id : Number(id));
+  const { error } = await client.from('requerimientos').update({ status: 'CANCELADO' }).in('id', ids);
+  if (error) return alert('Error en lote: ' + error.message);
+  selectedReqIds.clear();
+  await cargarRequerimientosDB();
+  render();
+}
+
+/* ==================== MOTOR MPS + EXPLOSIÓN BOM MULTINIVEL ==================== */
+function explodeBomRecursive(partId, parentQty, accMaterials, accSubs, runningSubPool, isFirm, partsById, depth = 0, seen = new Set()){
+  if (depth > 5 || seen.has(Number(partId)) || parentQty <= 0) return;
+  const nextSeen = new Set(seen); nextSeen.add(Number(partId));
+  const children = boms.filter(b => Number(b.parent_id) === Number(partId) && b.is_active !== false && Number(b.parent_id) !== Number(b.child_id));
 
   for (const rel of children) {
-    const child = allParts.find(p => p.id === rel.child_id);
+    const child = partsById.get(Number(rel.child_id));
     if (!child) continue;
-    const rawQty = Number(rel.usage_qty ?? rel.quantity ?? 1);
+    const rawQty = Number(rel.usage_qty ?? rel.quantity ?? 0);
+    if (!(rawQty > 0)) continue;
     const scrap = Number(rel.scrap_pct ?? child.scrap_pct ?? 0);
-    const need = parentQty * rawQty * (1 + scrap / 100);
+    const grossChild = parentQty * rawQty * (1 + scrap / 100);
 
     if (child.product_type === 'SUB-ENSAMBLE') {
-      explodeBomRecursive(child.id, need, accMaterials, depth + 1, nextSeen);
+      if (isFirm) accSubs[child.id] = (accSubs[child.id] || 0) + grossChild;
+      const pool = runningSubPool[child.id] ?? ((stockMap[child.id] || 0) + (openWoMap[child.id] || 0));
+      const ss = Number(child.safety_stock || 0);
+      const netChild = Math.max(0, grossChild + ss - pool);
+      runningSubPool[child.id] = Math.max(0, pool + netChild - grossChild);
+      if (netChild > 0) {
+        explodeBomRecursive(child.id, netChild, accMaterials, accSubs, runningSubPool, isFirm, partsById, depth + 1, nextSeen);
+      }
     } else {
-      accMaterials[child.id] = (accMaterials[child.id] || 0) + need;
+      const bucket = accMaterials[child.id] || { firm: 0, forecast: 0, earliestDate: null };
+      if (isFirm) bucket.firm += grossChild; else bucket.forecast += grossChild;
+      accMaterials[child.id] = bucket;
     }
   }
 }
 
 function render(){
-  const partsById = new Map(allParts.map(p => [p.id, p]));
-  const runningStock = { ...stockMap };
-  let totalPcs = 0, woCount = 0;
+  const partsById = new Map(allParts.map(p => [Number(p.id), p]));
+  const runningPool = {};
+  const runningSubPool = {};
+  const horizonDays = Number(document.getElementById('cfgForecastDays')?.value || 60);
+  const horizonCutoff = new Date(Date.now() + horizonDays * 86400000).toISOString().slice(0, 10);
+  const roundStdPack = Boolean(document.getElementById('chkRoundStdPack')?.checked);
+
+  let firmOpenCount = 0, firmOpenPcs = 0, fcstOpenCount = 0, fcstOpenPcs = 0, woCount = 0;
   const matNeeds = {};
+  const subNeeds = {};
+  lastFirmMpsTasks = [];
 
-  // 1. Calculamos TODAS las líneas en memoria (soporta 800+ sin lag)
-  const computed = [...demands]
-    .sort((a,b) => a.date.localeCompare(b.date))
-    .map(d => {
-      const p = partsById.get(d.part_id) || { part_number: 'N/D', safety_stock: 0 };
-      const stk = runningStock[d.part_id] || 0;
-      const ss = Number(p.safety_stock || 0);
-      const net = Math.max(0, d.qty + ss - stk);
-      runningStock[d.part_id] = Math.max(0, stk - d.qty);
+  const sortedDemands = [...demands].sort((a, b) => {
+    const dc = String(a.due_date || '').localeCompare(String(b.due_date || ''));
+    if (dc !== 0) return dc;
+    const ta = a.tipo_demanda === 'PEDIDO_FIRME' ? 0 : 1;
+    const tb = b.tipo_demanda === 'PEDIDO_FIRME' ? 0 : 1;
+    if (ta !== tb) return ta - tb;
+    return Number(a.id || 0) - Number(b.id || 0);
+  });
 
-      totalPcs += d.qty;
-      if (net > 0) {
-        woCount++;
-        explodeBomRecursive(p.id, net, matNeeds);
+  const computed = sortedDemands.map(d => {
+    const pid = Number(d.part_id);
+    const p = partsById.get(pid) || { id: pid, part_number: 'N/D', safety_stock: 0, lot_rounding: 1 };
+    const qty = Number(d.quantity || 0);
+    const ss = Number(p.safety_stock || 0);
+    const stdPack = stdPackMap[pid] || Number(p.std_pack || 0);
+    const isOpen = d.status === 'ABIERTO' || d.status === 'open';
+    const isFirm = (d.tipo_demanda || 'PEDIDO_FIRME') === 'PEDIDO_FIRME';
+    const inForecastHorizon = !d.due_date || String(d.due_date) <= horizonCutoff;
+
+    if (!(pid in runningPool)) {
+      runningPool[pid] = (stockMap[pid] || 0) + (openWoMap[pid] || 0);
+    }
+    const availBefore = runningPool[pid];
+    let netExact = 0, woSuggested = 0;
+
+    if (isOpen) {
+      if (isFirm) {
+        firmOpenCount++;
+        firmOpenPcs += qty;
+        netExact = Math.max(0, qty + ss - availBefore);
+        if (netExact > 0) {
+          const minLot = Number(p.min_lot_size || 0);
+          const roundBase = Math.max(1, Number(p.lot_rounding || 1));
+          woSuggested = Math.ceil(Math.max(netExact, minLot) / roundBase) * roundBase;
+          if (roundStdPack && stdPack > 1) woSuggested = Math.ceil(woSuggested / stdPack) * stdPack;
+          woCount++;
+          lastFirmMpsTasks.push({
+            requerimiento_id: d.id,
+            folio_demanda: d.folio_demanda || ('DEM-' + String(d.id).padStart(5, '0')),
+            part_id: pid,
+            part_number: p.part_number,
+            due_date: d.due_date,
+            qty: woSuggested,
+            net_exact: netExact
+          });
+          explodeBomRecursive(pid, woSuggested, matNeeds, subNeeds, runningSubPool, true, partsById);
+          Object.keys(matNeeds).forEach(mid => {
+            const mb = matNeeds[mid];
+            if (!mb.earliestDate || String(d.due_date) < mb.earliestDate) mb.earliestDate = String(d.due_date);
+          });
+        }
+        runningPool[pid] = Math.max(0, availBefore + woSuggested - qty);
+      } else {
+        fcstOpenCount++;
+        fcstOpenPcs += qty;
+        if (inForecastHorizon) {
+          netExact = Math.max(0, qty + ss - availBefore);
+          if (netExact > 0) {
+            explodeBomRecursive(pid, netExact, matNeeds, subNeeds, runningSubPool, false, partsById);
+            Object.keys(matNeeds).forEach(mid => {
+              const mb = matNeeds[mid];
+              if (!mb.earliestDate || String(d.due_date) < mb.earliestDate) mb.earliestDate = String(d.due_date);
+            });
+          }
+          runningPool[pid] = Math.max(0, availBefore + netExact - qty);
+        }
       }
-      return { d, p, stk, ss, net };
-    });
+    }
 
-  // 2. Filtros visuales sobre la tabla MPS
+    return { d, p, pid, qty, availBefore, ss, netExact, woSuggested, isOpen, isFirm, inForecastHorizon };
+  });
+
+  // Filtros visuales de Tab 1
   const qTbl = norm(document.getElementById('qTable').value);
+  const fTipo = document.getElementById('fTipoDem').value;
+  const fSt = document.getElementById('fStatusDem').value;
   const fProj = norm(document.getElementById('fTableProject').value);
   const limit = Number(document.getElementById('fTableLimit').value || 100);
 
   const visible = computed.filter(({ d, p }) => {
-    const proj = norm(d.project || p.project);
-    const txt = norm(`${p.part_number} ${p.part_name} ${p.customer_part_number} ${d.client} ${proj}`);
-    return (!fProj || proj === fProj) && (!qTbl || txt.includes(qTbl));
+    const proj = norm(d.proyecto || p.project);
+    const txt = norm(`${d.folio_demanda || ''} ${p.part_number} ${p.part_name} ${p.customer_part_number} ${d.cliente || p.client || ''} ${proj}`);
+    if (fTipo && d.tipo_demanda !== fTipo) return false;
+    if (fSt && d.status !== fSt) return false;
+    if (fProj && proj !== fProj) return false;
+    if (qTbl && !txt.includes(qTbl)) return false;
+    return true;
   });
 
   const sliced = visible.slice(0, limit);
   const demBody = document.getElementById('demBody');
   if (!sliced.length) {
-    demBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:25px">Sin líneas con los filtros actuales.</td></tr>';
+    demBody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:24px">Sin requerimientos registrados con estos filtros. Captura una demanda o sube un Excel arriba.</td></tr>';
   } else {
-    demBody.innerHTML = sliced.map(({ d, p, stk, ss, net }) => `<tr>
-      <td><strong>${esc(d.client || p.client || '-')}</strong><div style="font-size:11px;color:var(--muted)">${esc(d.project || p.project || 'Sin proyecto')}</div></td>
-      <td><strong>${esc(p.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(p.part_name || '')}</div></td>
-      <td><span class="badge ${d.type==='PEDIDO_FIRME'?'b-ok':'b-info'}">${d.type==='PEDIDO_FIRME'?'FIRME':'FORECAST'}</span></td>
-      <td>${esc(d.date)}</td>
-      <td><strong>${fmt(d.qty)}</strong></td>
-      <td>${fmt(stk)}</td>
-      <td>${fmt(ss)}</td>
-      <td>${net > 0 ? `<span class="badge b-warn">Producir ${fmt(Math.ceil(net))}</span>` : `<span class="badge b-ok">Cubierto c/ Stock</span>`}</td>
-      <td><button class="btn btn-sm" onclick="delDemand(${d.id})"><i class="fas fa-trash"></i></button></td>
+    demBody.innerHTML = sliced.map(({ d, p, qty, availBefore, ss, woSuggested, isOpen, isFirm, inForecastHorizon }) => {
+      const checked = selectedReqIds.has(String(d.id));
+      let mpsBadge = '<span class="badge b-ok">Planeado en Piso</span>';
+      if (isOpen) {
+        if (isFirm) {
+          mpsBadge = woSuggested > 0
+            ? `<span class="badge b-warn">Producir WO ${fmt(woSuggested)}</span>`
+            : `<span class="badge b-ok">Cubierto (WMS/WO)</span>`;
+        } else {
+          mpsBadge = inForecastHorizon
+            ? `<span class="badge b-info">Solo MRP Compra</span>`
+            : `<span class="badge">Fuera Horizonte (${horizonDays}d)</span>`;
+        }
+      }
+      return `<tr>
+        <td>${isOpen && canEditPlan ? `<input type="checkbox" class="req-chk" data-id="${esc(d.id)}" ${checked ? 'checked' : ''} onchange="toggleSelectReq('${esc(d.id)}', this.checked)" style="width:auto">` : ''}</td>
+        <td><strong>${esc(d.folio_demanda || ('DEM-' + d.id))}</strong><div style="font-size:10.5px;color:var(--muted)">${esc(d.origen || 'MANUAL')}</div></td>
+        <td>
+          <span class="badge ${isFirm ? 'b-ok' : 'b-info'}">${isFirm ? 'PEDIDO FIRME' : 'FORECAST'}</span>
+          <div style="margin-top:3px"><span class="badge ${d.status === 'ABIERTO' ? 'b-warn' : 'b-ok'}">${esc(d.status)}</span></div>
+        </td>
+        <td><strong>${esc(d.cliente || p.client || '-')}</strong><div style="font-size:11px;color:var(--muted)">${esc(d.proyecto || p.project || '-')}</div></td>
+        <td><strong>${esc(p.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(p.part_name || '')}</div></td>
+        <td style="white-space:nowrap">${esc(d.due_date || '-')}</td>
+        <td class="num"><strong>${fmt(qty)}</strong></td>
+        <td class="num">${fmt(availBefore)}</td>
+        <td class="num">${fmt(ss)}</td>
+        <td>${mpsBadge}</td>
+        <td style="text-align:right;white-space:nowrap">${canEditPlan && isOpen ? `
+          ${!isFirm ? `<button type="button" class="btn btn-sm btn-success" onclick="convertirAFirme('${esc(d.id)}')" title="Pasar Forecast a Pedido Firme"><i class="fas fa-check"></i> Pasar a Firme</button>` : ''}
+          <button type="button" class="btn btn-sm btn-danger-soft" onclick="cancelarDemanda('${esc(d.id)}')" title="Cancelar requerimiento"><i class="fas fa-ban"></i></button>
+        ` : ''}</td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('tableFootNote').textContent = `Mostrando ${sliced.length} de ${visible.length} líneas filtradas (${computed.length} totales activas en BD).`;
+  updateBatchBar();
+
+  // Tab 2: Sub-ensambles Inyectados Requeridos
+  lastSubRows = Object.keys(subNeeds).map(id => {
+    const subId = Number(id);
+    const sp = partsById.get(subId);
+    if (!sp) return null;
+    const gross = subNeeds[subId];
+    const wip = stockMap[subId] || 0;
+    const openWo = openWoMap[subId] || 0;
+    const ss = Number(sp.safety_stock || 0);
+    const openSubReq = demands.filter(x => x.status === 'ABIERTO' && x.tipo_demanda === 'PEDIDO_FIRME' && Number(x.part_id) === subId).reduce((s, x) => s + Number(x.quantity || 0), 0);
+    const missing = Math.max(0, Math.ceil(gross + ss - wip - openWo - openSubReq));
+    return { sp, gross, wip, openWo, openSubReq, missing };
+  }).filter(Boolean);
+
+  document.getElementById('cntSubTab').textContent = lastSubRows.length;
+  const subBody = document.getElementById('subBody');
+  if (!lastSubRows.length) {
+    subBody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Sin sub-ensambles intermedios explotados para Pedidos Firmes actuales.</td></tr>';
+  } else {
+    subBody.innerHTML = lastSubRows.map(s => `<tr>
+      <td><strong>${esc(s.sp.part_number)}</strong></td>
+      <td>${esc(s.sp.part_name || '')}</td>
+      <td class="num"><strong>${fmt(s.gross)}</strong></td>
+      <td class="num">${fmt(s.wip)}</td>
+      <td class="num">${fmt(s.openWo)}</td>
+      <td class="num">${fmt(s.openSubReq)}</td>
+      <td class="num"><strong style="color:${s.missing > 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(s.missing)}</strong></td>
+      <td><span class="badge ${s.missing > 0 ? 'b-warn' : 'b-ok'}">${s.missing > 0 ? 'INYECTAR WIP' : 'CUBIERTO'}</span></td>
     </tr>`).join('');
   }
-  document.getElementById('tableFootNote').textContent =
-    `Mostrando ${sliced.length} de ${visible.length} líneas filtradas (${computed.length} totales en cálculo MRP).`;
 
-  // 3. Render MRP materiales
+  // Tab 3: Explosión MRP Materiales
   const mrpBody = document.getElementById('mrpBody');
   const qMrp = norm(document.getElementById('qMrp').value);
   const matIds = Object.keys(matNeeds).map(Number);
   let shortCount = 0;
+  lastMrpShortages = [];
 
   const mrpRows = matIds.map(id => {
     const m = partsById.get(id);
     if (!m) return null;
-    const req = matNeeds[id];
+    const mb = matNeeds[id];
+    const reqTotal = mb.firm + mb.forecast;
     const stk = stockMap[id] || 0;
     const ss = Number(m.safety_stock || 0);
-    const deficit = Math.max(0, req + ss - stk);
-    if (deficit > 0) shortCount++;
+    const deficit = Math.max(0, reqTotal + ss - stk);
     let suggested = 0;
     if (deficit > 0) {
+      shortCount++;
       const minLot = Number(m.min_lot_size || 0);
       const roundTo = Math.max(1, Number(m.lot_rounding || 1));
       suggested = Math.ceil(Math.max(deficit, minLot) / roundTo) * roundTo;
     }
-    return { m, req, stk, ss, deficit, suggested };
-  }).filter(x => x && (!qMrp || norm(`${x.m.part_number} ${x.m.part_name} ${x.m.resin_grade}`).includes(qMrp)));
+    const lt = Number(m.lead_time_days || 0);
+    let orderLimit = '-';
+    if (mb.earliestDate) {
+      const dt = new Date(mb.earliestDate + 'T00:00:00');
+      dt.setDate(dt.getDate() - lt);
+      orderLimit = dt.toISOString().slice(0, 10);
+    }
+    const uom = m.unit_of_measure || (m.product_type === 'RESINA' ? 'KG' : 'PZA');
+    if (deficit > 0) {
+      lastMrpShortages.push({
+        part_id: m.id,
+        part_number: m.part_number,
+        part_name: m.part_name || '',
+        product_type: m.product_type || 'MATERIAL',
+        supplier: m.supplier || '',
+        deficit_qty: Number(deficit.toFixed(2)),
+        suggested_qty: suggested,
+        uom,
+        lead_time_days: lt,
+        required_order_date: orderLimit
+      });
+    }
+    return { m, mb, reqTotal, stk, ss, deficit, suggested, lt, orderLimit, uom };
+  }).filter(x => x && (!qMrp || norm(`${x.m.part_number} ${x.m.part_name} ${x.m.resin_grade || ''} ${x.m.supplier || ''}`).includes(qMrp)));
+
+  document.getElementById('cntMrpTab').textContent = mrpRows.length;
+  localStorage.setItem(LS_MRP_SHORTAGE, JSON.stringify({
+    generated_at: new Date().toISOString(),
+    horizon_days: horizonDays,
+    items: lastMrpShortages
+  }));
 
   if (!mrpRows.length) {
-    mrpBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:25px">Sin requerimientos de materiales (o los PT cargados aún no tienen BOM en `bom_structures`).</td></tr>';
+    mrpBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:24px">Sin requerimientos de materiales (o sin BOM ligado).</td></tr>';
   } else {
-    mrpBody.innerHTML = mrpRows.map(({ m, req, stk, ss, deficit, suggested }) => {
-      const uom = m.unit_of_measure || (m.product_type === 'RESINA' ? 'KG' : 'PZA');
-      const locCode = m.default_location_id ? (locsMap[m.default_location_id] || ('ID ' + m.default_location_id)) : 'Sin fija';
-      return `<tr>
-        <td><strong>${esc(m.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(m.part_name || '')}</div></td>
-        <td><span class="badge b-info">${esc(m.product_type)}</span></td>
-        <td><strong>${fmt(req)} ${esc(uom)}</strong></td>
-        <td>${fmt(stk)} ${esc(uom)}</td>
-        <td>${fmt(ss)} ${esc(uom)}</td>
-        <td>${deficit > 0 ? `<span style="color:var(--danger);font-weight:700">-${fmt(deficit)} ${esc(uom)}</span>` : '0'}</td>
-        <td>${suggested > 0 ? `<div style="display:flex;flex-direction:column;gap:3px"><span class="badge b-bad">Comprar ${fmt(suggested)} ${esc(uom)}</span><a href="compras_ordenes.html?import_mrp=1" class="btn btn-sm btn-primary" style="padding:2px 6px;font-size:10px;justify-content:center"><i class="fas fa-cart-plus"></i> Emitir OC</a></div>` : `<span class="badge b-ok">Stock suficiente</span>`}</td>
-        <td>${m.lead_time_days || 0} d</td>
-        <td>${esc(locCode)}</td>
-        <td>${deficit > 0 ? '<span class="badge b-bad">REQUISICIÓN</span>' : '<span class="badge b-ok">OK WMS</span>'}</td>
-      </tr>`;
-    }).join('');
+    mrpBody.innerHTML = mrpRows.map(({ m, mb, reqTotal, stk, ss, deficit, suggested, lt, orderLimit, uom }) => `<tr>
+      <td><strong>${esc(m.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(m.part_name || '')}</div></td>
+      <td><span class="badge b-info">${esc(m.product_type)}</span></td>
+      <td class="num">${fmt(mb.firm)}</td>
+      <td class="num">${fmt(mb.forecast)}</td>
+      <td class="num"><strong>${fmt(reqTotal)} ${esc(uom)}</strong></td>
+      <td class="num">${fmt(stk)}</td>
+      <td class="num">${fmt(ss)}</td>
+      <td class="num">${deficit > 0 ? `<span style="color:var(--danger);font-weight:700">-${fmt(deficit)} ${esc(uom)}</span>` : '0'}</td>
+      <td>${suggested > 0 ? `<span class="badge b-bad">Comprar ${fmt(suggested)} ${esc(uom)}</span>` : `<span class="badge b-ok">Stock suficiente</span>`}</td>
+      <td>${esc(m.supplier || 'Sin proveedor')}<div style="font-size:11px;color:var(--muted)">LT: ${lt} d</div></td>
+      <td style="white-space:nowrap">${esc(orderLimit)}</td>
+      <td>${deficit > 0 ? '<span class="badge b-bad">COMPRAR</span>' : '<span class="badge b-ok">OK WMS</span>'}</td>
+    </tr>`).join('');
   }
 
-  document.getElementById('kDem').textContent = computed.length;
-  document.getElementById('kPcs').textContent = fmt(totalPcs);
+  document.getElementById('kFirmOpen').textContent = firmOpenCount;
+  document.getElementById('kFirmPcs').textContent = `${fmt(firmOpenPcs)} pzas firmes`;
+  document.getElementById('kForecastOpen').textContent = fcstOpenCount;
+  document.getElementById('kFcstPcs').textContent = `${fmt(fcstOpenPcs)} pzas pronóstico`;
   document.getElementById('kWo').textContent = woCount;
   document.getElementById('kShort').textContent = shortCount;
+}
+
+async function generarRequerimientosSubensamble(){
+  if (!canEditPlan) return alert('Sin permisos para editar Planeación.');
+  const toCreate = lastSubRows.filter(s => s.missing > 0);
+  if (!toCreate.length) return alert('No hay sub-ensambles faltantes por requerir.');
+  const dueDef = new Date(Date.now() + 3*86400000).toISOString().slice(0, 10);
+  const rows = toCreate.map(s => ({
+    part_id: s.sp.id,
+    quantity: s.missing,
+    due_date: dueDef,
+    status: 'ABIERTO',
+    tipo_demanda: 'PEDIDO_FIRME',
+    cliente: s.sp.client || null,
+    proyecto: s.sp.project || null,
+    origen: 'EXPLOSION_SUBENSAMBLE',
+    notas: 'Generado automáticamente desde explosión de Pedidos Firmes'
+  }));
+  const { error } = await client.from('requerimientos').insert(rows);
+  if (error) return alert('Error generando requerimientos de sub-ensamble: ' + error.message);
+  await cargarRequerimientosDB();
+  render();
+  alert(`✅ ${rows.length} requerimiento(s) firme(s) de Sub-ensamble creados en BD.`);
+}
+
+function exportarMrpExcel(){
+  if (!lastMrpShortages.length) return alert('No hay materiales en déficit para exportar.');
+  const ws = XLSX.utils.json_to_sheet(lastMrpShortages);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'MRP_COMPRAS');
+  XLSX.writeFile(wb, `MRP_Compras_KRAEM_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function irATableroAps(){
+  localStorage.setItem(LS_APS_MPS, JSON.stringify({ updated_at: new Date().toISOString(), tasks: lastFirmMpsTasks }));
+  window.location.href = 'planeacion_aps_tablero.html';
 }
 
 function updateMrpPlant() {
@@ -771,12 +1133,11 @@ function updateMrpPlant() {
     if (el && p) el.textContent = p.nombre;
   }
 }
+
 document.addEventListener('DOMContentLoaded', () => { init(); updateMrpPlant(); });
 document.addEventListener('kraem:plantchange', updateMrpPlant);
 window.addEventListener('message', (e) => {
-  if (e.data && (e.data.type === 'KRAEM_PLANT_CHANGED' || e.data.type === 'KRAEM_PLANTS_UPDATED')) {
-    updateMrpPlant();
-  }
+  if (e.data && (e.data.type === 'KRAEM_PLANT_CHANGED' || e.data.type === 'KRAEM_PLANTS_UPDATED')) updateMrpPlant();
 });
 </script>
 </body>
