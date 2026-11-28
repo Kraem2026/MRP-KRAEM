@@ -221,7 +221,7 @@ input,select{width:100%;padding:9px 10px;border:1px solid var(--border);border-r
 const LS_DEM = 'kraem_boceto_demand_v1';
 const LS_APS = 'kraem_boceto_aps_v1';
 
-let allParts = [], pts = [], machines = [], molds = [], partMolds = [], moldMachines = [], boms = [], packs = [], stockMap = {};
+let allParts = [], pts = [], machines = [], molds = [], partMolds = [], moldMachines = [], boms = [], packs = [], partRoutings = [], procesos = [], stockMap = {};
 let wos = [];
 let baseDayMs = 0;
 let editIdx = -1;
@@ -249,7 +249,7 @@ function fmtDT(ms){
 async function init(){
   baseDayMs = dayStartMs(todayStr(0));
   try {
-    const [partsData, rMach, moldsData, pmData, rMm, bomData, packsData, rStock] = await Promise.all([
+    const [partsData, rMach, moldsData, pmData, rMm, bomData, packsData, rRout, rProc, rStock] = await Promise.all([
       window.fetchAllRows ? window.fetchAllRows('parts', { filter: q => q.eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('*').eq('obsolete', false).order('part_number').then(r => r.data || []),
       client.from('mes_machines').select('*').eq('active', true).order('machine_code'),
       window.fetchAllRows ? window.fetchAllRows('molds', { orderBy: 'mold_code' }) : client.from('molds').select('*').order('mold_code').then(r => r.data || []),
@@ -257,6 +257,8 @@ async function init(){
       client.from('mold_machines').select('*'),
       window.fetchAllRows ? window.fetchAllRows('bom_structures', { filter: q => q.neq('is_active', false), orderBy: 'id' }) : client.from('bom_structures').select('*').neq('is_active', false).then(r => r.data || []),
       window.fetchAllRows ? window.fetchAllRows('empaques_partes', { select: 'id, part_id, part_number, standard_pack, es_empaque_primario, active, empaques(codigo, tipo_empaque)', filter: q => q.neq('active', false), orderBy: 'id' }) : client.from('empaques_partes').select('id, part_id, part_number, standard_pack, es_empaque_primario, active, empaques(codigo, tipo_empaque)').neq('active', false).then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('part_routings', { filter: q => q.neq('is_active', false), orderBy: 'seq_num' }) : client.from('part_routings').select('*').neq('is_active', false).order('seq_num').then(r => r.data || []),
+      client.from('procesos').select('*'),
       client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0)
     ]);
 
@@ -268,6 +270,8 @@ async function init(){
     moldMachines = rMm.data || [];
     boms = Array.isArray(bomData) ? bomData : (bomData.data || []);
     packs = (Array.isArray(packsData) ? packsData : (packsData.data || [])).filter(x => x.active !== false);
+    partRoutings = (Array.isArray(rRout) ? rRout : (rRout?.data || [])).filter(r => r.is_active !== false);
+    procesos = rProc?.data || [];
     (rStock.data || []).forEach(s => { stockMap[s.part_id] = (stockMap[s.part_id] || 0) + (parseFloat(s.quantity) || 0); });
   } catch (e) { console.warn(e); }
 
@@ -332,19 +336,39 @@ function getPartPackagingLimit(part){
   return { limited, tipo, codigo: pk?.empaques?.codigo || 'ESTÁNDAR', stdPack, maxCont, retDays, maxBatchQty };
 }
 
+function getPartRoutingMeta(partId){
+  const steps = partRoutings
+    .filter(r => Number(r.part_id) === Number(partId) && r.is_active !== false)
+    .sort((a,b) => Number(a.seq_num) - Number(b.seq_num))
+    .map(r => {
+      const proc = procesos.find(pr => String(pr.id) === String(r.proceso_id)) || {};
+      return { ...r, procCode: proc.codigo || '', procTipo: proc.tipo || '', procName: proc.nombre || '' };
+    });
+  const routeChain = steps.map(s => s.procCode).filter(Boolean).join(' → ');
+  const injStep = steps.find(s => s.procTipo === 'INYECCION' || s.procCode === 'PROC-INY') || null;
+  const setupMin = steps.length ? steps.reduce((acc, s) => acc + Number(s.setup_time_min || 0), 0) : null;
+  const postInjSec = steps.filter(s => s.procTipo !== 'INYECCION').reduce((acc, s) => acc + Number(s.std_time_sec || 0), 0);
+  const operatorsReq = steps.length ? Math.max(1, ...steps.map(s => Number(s.operators_req || 1))) : 1;
+  const smedChecklistId = injStep?.checklist_id || null;
+  return { steps, routeChain, injStep, setupMin, postInjSec, operatorsReq, smedChecklistId };
+}
+
 function chooseMoldAndMachine(part, machineIndexFallback){
-  // 1. Buscar molde en `part_molds`
+  const rMeta = getPartRoutingMeta(part.id);
+
+  // 1. Buscar molde en `part_molds` o paso de Inyección de `part_routings`
   const pmRels = partMolds.filter(pm => pm.part_id === part.id);
   const pm = pmRels.find(r => r.is_primary) || pmRels[0];
   let mold = pm ? molds.find(m => m.id === pm.mold_id) : null;
+  if (!mold && rMeta.injStep?.mold_id) mold = molds.find(m => String(m.id) === String(rMeta.injStep.mold_id)) || null;
   if (!mold) mold = molds[machineIndexFallback % molds.length] || molds[0];
 
   const cav = Number(pm?.cavities_for_part || part.cavities || 2);
   let cyc = Number(pm?.cycle_time_sec || part.cycle_time_seg || 30);
   const reqTon = Number(mold?.tonnage_min || mold?.tonnage_req || 0);
-  const setupMin = Number(mold?.setup_time_min || 45);
+  const setupMin = Number((rMeta.injStep && rMeta.injStep.setup_time_min) || mold?.setup_time_min || 45);
 
-  // 2. Buscar máquina en `mold_machines` o por tonelaje compatible
+  // 2. Buscar máquina en `mold_machines`, en `part_routings` o por tonelaje compatible
   const mmRels = mold ? moldMachines.filter(mm => mm.mold_id === mold.id && mm.active !== false) : [];
   let mach = null;
   if (mmRels.length) {
@@ -352,11 +376,14 @@ function chooseMoldAndMachine(part, machineIndexFallback){
     mach = machines.find(m => String(m.id) === String(prim.machine_id));
     if (prim.cycle_time_sec) cyc = Number(prim.cycle_time_sec);
   }
+  if (!mach && rMeta.injStep?.machine_id) {
+    mach = machines.find(m => String(m.id) === String(rMeta.injStep.machine_id)) || null;
+  }
   if (!mach) {
     const compat = machines.filter(m => !reqTon || !m.tonnage || Number(m.tonnage) >= reqTon);
     mach = compat[machineIndexFallback % compat.length] || machines[machineIndexFallback % machines.length];
   }
-  return { mold, mach, cav, cyc, setupMin };
+  return { mold, mach, cav, cyc, setupMin, rMeta };
 }
 
 function generarPropuestaAutomatica(){
@@ -388,7 +415,7 @@ function generarPropuestaAutomatica(){
     if (net <= 0) return;
 
     const packInfo = getPartPackagingLimit(part);
-    const { mold, mach, cav, cyc, setupMin } = chooseMoldAndMachine(part, idx);
+    const { mold, mach, cav, cyc, setupMin, rMeta } = chooseMoldAndMachine(part, idx);
 
     // Si el empaque es limitado (carritos/retornables), dividimos la necesidad en lotes con días de espera
     let remaining = Math.ceil(net);
@@ -399,7 +426,7 @@ function generarPropuestaAutomatica(){
       netTasks.push({
         part, demandDate: d.date, qty: batchQty, wave, totalNet: Math.ceil(net),
         isSplit: packInfo.limited && net > packInfo.maxBatchQty,
-        packInfo, mold, mach, cav, cyc, setupMin
+        packInfo, mold, mach, cav, cyc, setupMin, rMeta
       });
       remaining -= batchQty;
       wave++;
@@ -425,7 +452,11 @@ function generarPropuestaAutomatica(){
     pack_note: t.packInfo.limited
       ? `Limitado: máx ${t.packInfo.maxCont} ${t.packInfo.codigo} (${t.packInfo.maxBatchQty} pzs/ola)`
       : `Ilimitado (${t.packInfo.codigo})`,
-    setup_min: t.setupMin
+    setup_min: t.setupMin,
+    route_chain: t.rMeta?.routeChain || '',
+    operators_req: t.rMeta?.operatorsReq || 1,
+    smed_checklist_id: t.rMeta?.smedChecklistId || null,
+    post_inj_sec: t.rMeta?.postInjSec || 0
   }));
 
   reprogramarCascada();
@@ -669,11 +700,17 @@ function renderTable(){
          </button>`
       : `<span class="badge b-ok"><i class="fas fa-check"></i> Stock Disponible</span>`;
 
+    const rChain = w.route_chain || getPartRoutingMeta(w.part_id).routeChain;
+    const opsReq = w.operators_req || getPartRoutingMeta(w.part_id).operatorsReq || 1;
+    const routeHtml = rChain
+      ? `<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-info">${esc(rChain)}</span><span class="badge b-pin">Ops: ${opsReq}</span></div>`
+      : '';
+
     return `<tr>
       <td><strong>${esc(w.wo)}</strong> ${w.pinned ? '<span class="badge b-pin">Fija</span>' : ''}</td>
       <td>${esc(m.machine_code || m.machine_name)}</td>
       <td>${esc(mo.mold_code || mo.mold_name || '-')}</td>
-      <td><strong>${esc(p.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(p.part_name || '')}<br>Entrega: ${esc(w.demand_date || '-')}</div></td>
+      <td><strong>${esc(p.part_number)}</strong><div style="font-size:11px;color:var(--muted)">${esc(p.part_name || '')}<br>Entrega: ${esc(w.demand_date || '-')}</div>${routeHtml}</td>
       <td><strong>${w.qty.toLocaleString()}</strong> pzs</td>
       <td>${w.effective_setup_min > 0 ? `<span class="badge b-warn">${fmtDT(w.start_ms)} (${w.effective_setup_min}m)</span>` : '<span class="badge b-ok">Mismo molde (0m)</span>'}</td>
       <td><span class="badge b-info">${fmtDT(w.setup_end_ms)} → ${fmtDT(w.end_ms)}</span><div style="font-size:11px;color:var(--muted)">${w.prod_hrs} h prod.</div></td>
@@ -682,6 +719,7 @@ function renderTable(){
       <td>${matStatusHtml}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-sm btn-primary" onclick="abrirModal(${idx})"><i class="fas fa-sliders"></i> Ajustar</button>
+        <a href="planeacion_montaje_moldes.html?wo=${encodeURIComponent(w.wo)}" class="btn btn-sm btn-success" title="Ir a Setup SMED"><i class="fas fa-wrench"></i> SMED</a>
         <button class="btn btn-sm btn-danger" onclick="cancelarDirecto(${idx})" title="Cancelar y reprogramar"><i class="fas fa-ban"></i></button>
       </td>
     </tr>`;
@@ -770,7 +808,7 @@ async function publicarOrdenesAPiso() {
     let successCount = 0;
     for (const w of wos) {
       const folio = w.wo || w.wo_number || ('WO-' + String(w.id).slice(-4));
-      const payload = {
+      const basePayload = {
         folio: folio,
         part_id: w.part_id,
         machine_id: w.machine_id,
@@ -779,9 +817,18 @@ async function publicarOrdenesAPiso() {
         estimated_hours: Number((w.prod_hrs || w.total_hrs || 8).toFixed(1)),
         status: 'PROGRAMADA'
       };
+      const extPayload = {
+        ...basePayload,
+        setup_planned_min: Number(w.effective_setup_min ?? w.setup_min ?? 45),
+        setup_status: Number(w.effective_setup_min) === 0 ? 'MISMO_MOLDE' : 'PENDIENTE'
+      };
 
       if (client && client.from) {
-        const { error } = await client.from('production_orders').insert([payload]);
+        let { error } = await client.from('production_orders').insert([extPayload]);
+        if (error && (error.code === '42703' || error.code === 'PGRST204' || /column|schema cache/i.test(error.message || ''))) {
+          const fb = await client.from('production_orders').insert([basePayload]);
+          error = fb.error;
+        }
         if (!error) successCount++;
       }
     }

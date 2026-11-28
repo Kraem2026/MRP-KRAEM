@@ -8,44 +8,52 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
   <script src="kraem_nav.js"></script>
-  <script src="ingenieria_i18n.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
 :root{
   --primary:#2563eb; --bg:#f8fafc; --card:#ffffff; --text:#1e293b;
   --muted:#64748b; --border:#e2e8f0; --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
+  --surface:#f8fafc; --thead:#f1f5f9;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#0f172a; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --surface:#1e293b; --thead:#1e293b;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text)}
+body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);transition:.2s}
 .container{max-width:1500px;margin:auto}
 .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
 .title-box{display:flex;align-items:center;gap:15px}
-.title-box h1{margin:0;font-size:26px}
+.title-box h1{margin:0;font-size:24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .title-box p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .grid{display:grid;grid-template-columns:420px 1fr;gap:20px;align-items:start}
 @media(max-width:1000px){.grid{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.04);margin-bottom:20px}
 .section-title{font-size:15px;font-weight:700;margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .group{display:flex;flex-direction:column;margin-bottom:12px}
-label{font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase}
-input,select,textarea{padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;background:white;font-family:inherit;width:100%}
-.btn{border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13px}
+label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
+input,select,textarea{padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;width:100%}
+.btn{border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13px}
 .btn-primary{background:var(--primary);color:white}
-.btn-secondary{background:#e2e8f0;color:#334155}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .btn-success{background:var(--success);color:white}
-.btn-danger-soft{background:#fee2e2;color:#991b1b}
+.btn-danger-soft{background:rgba(239,68,68,.14);color:var(--danger)}
 .btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
-.chk-item{padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:.15s}
-.chk-item:hover{border-color:var(--primary);background:#f8fafc}
-.chk-item.active{border-color:var(--primary);background:#eff6ff}
+.chk-item{padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:.15s;background:var(--card)}
+.chk-item:hover{border-color:var(--primary);background:var(--surface)}
+.chk-item.active{border-color:var(--primary);background:rgba(37,99,235,.08)}
 .badge{padding:3px 7px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase}
 .b-smed{background:#fef3c7;color:#92400e}
 .b-ok{background:#dcfce7;color:#166534}
 .b-off{background:#fee2e2;color:#991b1b}
 table{width:100%;border-collapse:collapse}
-th{background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;text-align:left;padding:10px}
+th{background:var(--thead);color:var(--muted);font-size:11px;text-transform:uppercase;text-align:left;padding:10px}
 td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.num{font-variant-numeric:tabular-nums}
 .muted{color:var(--muted);font-size:11px}
 .empty{text-align:center;padding:30px;color:var(--muted)}
 </style>
@@ -54,19 +62,29 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
 <div class="container">
   <div class="header">
     <div class="title-box">
-      <button class="btn btn-secondary" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> Regresar</button>
+      <button class="btn btn-secondary" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> <span id="lblBack">Regresar</span></button>
       <div>
-        <h1><i class="fas fa-clipboard-check" style="color:var(--primary)"></i> Catálogo de Checklists (SMED & Validaciones)</h1>
-        <p>Listas de verificación para Montaje de Moldes, Primera Pieza, Cambio de Material y Auditorías de Proceso</p>
+        <h1>
+          <i class="fas fa-clipboard-check" style="color:var(--primary)"></i>
+          <span id="lblTitle">Catálogo de Checklists (SMED & Validaciones)</span>
+          <span style="font-size:11px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.18);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        </h1>
+        <p id="lblSub">Listas de verificación para Montaje de Moldes, Primera Pieza, Tampografía, Ensamble y Cambio de Material</p>
       </div>
     </div>
-    <button class="btn btn-primary" onclick="nuevoChecklist()"><i class="fas fa-plus"></i> Nuevo Checklist</button>
+    <div class="controls">
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      <button class="btn btn-secondary" onclick="toggleTheme()" title="Cambiar tema"><i id="themeIcon" class="fas fa-moon"></i></button>
+      <button class="btn btn-primary" id="btnNuevoChk" onclick="nuevoChecklist()"><i class="fas fa-plus"></i> <span id="lblNewChk">Nuevo Checklist</span></button>
+    </div>
   </div>
 
   <div class="grid">
     <!-- IZQUIERDA: LISTA + FORM CHECKLIST -->
     <div>
-      <div class="card">
+      <div class="card" id="chkFormCard">
         <div class="section-title"><span><i class="fas fa-pen"></i> <span id="chkFormTitle">Nuevo Checklist</span></span></div>
         <div class="group"><label>Código *</label><input id="c_cod" placeholder="Ej. CHK-SMED-02" style="text-transform:uppercase"></div>
         <div class="group"><label>Nombre *</label><input id="c_nom" placeholder="Ej. Setup Molde Colada Caliente"></div>
@@ -74,6 +92,8 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
           <select id="c_tipo">
             <option value="MONTAJE_MOLDE">Montaje de Molde (SMED)</option>
             <option value="ARRANQUE_PRIMERA_PIEZA">Arranque / Primera Pieza</option>
+            <option value="TAMPOGRAFIA">Tampografía / Pad Printing</option>
+            <option value="ENSAMBLE">Ensamble / Soldadura (Poka-Yoke)</option>
             <option value="CAMBIO_MATERIAL">Cambio de Resina / Color</option>
             <option value="AUDITORIA">Auditoría de Proceso</option>
           </select>
@@ -101,7 +121,7 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
       </div>
 
       <div id="itemsPanel" style="display:none">
-        <div style="display:grid;grid-template-columns:70px 2fr 2fr 120px 110px auto;gap:10px;align-items:end;margin-bottom:16px;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid var(--border)">
+        <div id="itemsAddForm" style="display:grid;grid-template-columns:70px 2fr 2fr 120px 100px auto;gap:10px;align-items:end;margin-bottom:16px;background:var(--surface);padding:12px;border-radius:12px;border:1px solid var(--border)">
           <div class="group" style="margin:0"><label>Orden</label><input id="i_orden" type="number" min="1" value="1"></div>
           <div class="group" style="margin:0"><label>Punto de verificación *</label><input id="i_punto" placeholder="Ej. Verificar torque de bridas"></div>
           <div class="group" style="margin:0"><label>Criterio / Especificación</label><input id="i_crit" placeholder="Ej. 120 Nm en 8 bridas"></div>
@@ -111,7 +131,10 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
           <div class="group" style="margin:0"><label>Obligatorio</label>
             <select id="i_obl"><option value="true">Sí</option><option value="false">No</option></select>
           </div>
-          <button class="btn btn-success" onclick="agregarItem()"><i class="fas fa-plus"></i> Agregar</button>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="btn btn-success" id="btnSaveItem" onclick="agregarItem()"><i class="fas fa-plus"></i> Agregar</button>
+            <button type="button" class="btn btn-secondary" id="btnCancelItem" style="display:none" onclick="limpiarItem()">×</button>
+          </div>
         </div>
 
         <div style="overflow:auto">
@@ -128,22 +151,89 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
 </div>
 
 <script>
-let checklists = [], items = [], editChkId = null, selectedChkId = null;
+let checklists = [], items = [], editChkId = null, editItemId = null, selectedChkId = null;
+let canEditChk = true;
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const val = id => document.getElementById(id).value.trim();
+const val = id => (document.getElementById(id)?.value ?? '').trim();
+const sameId = (a, b) => String(a ?? '') === String(b ?? '');
+
+const CHK_I18N = {
+  es: { back: 'Regresar', title: 'Catálogo de Checklists (SMED & Validaciones)', sub: 'Listas de verificación para Montaje de Moldes, Primera Pieza, Tampografía, Ensamble y Cambio de Material', newBtn: 'Nuevo Checklist' },
+  ko: { back: '돌아가기', title: '체크리스트 카탈로그 (SMED 및 품질 검증)', sub: '금형 장착, 초물 검사, 패드 인쇄, 조립 및 원료 교체용 표준 체크리스트', newBtn: '새 체크리스트' },
+  en: { back: 'Back', title: 'Checklists Catalog (SMED & Quality Gates)', sub: 'Verification checklists for Mold Setup, First Piece, Pad Printing, Assembly & Material Changeover', newBtn: 'New Checklist' }
+};
+
+function setLang(lang) {
+  const l = CHK_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = CHK_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('lblNewChk').textContent = t.newBtn;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+function syncPermissions() {
+  canEditChk = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function')
+    || KraemAuth.canEdit('calidad')
+    || KraemAuth.canEdit('ingenieria');
+  const fc = document.getElementById('chkFormCard');
+  const bn = document.getElementById('btnNuevoChk');
+  const ia = document.getElementById('itemsAddForm');
+  if (fc) fc.style.display = canEditChk ? 'block' : 'none';
+  if (bn) bn.style.display = canEditChk ? 'inline-flex' : 'none';
+  if (ia) ia.style.display = canEditChk ? 'grid' : 'none';
+}
+
+document.addEventListener('kraem:authready', () => {
+  syncPermissions();
+  renderList();
+  renderItems();
+});
 
 async function init(){
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  syncPermissions();
+
   const [rC, rI] = await Promise.all([
     client.from('checklists').select('*').order('codigo'),
     client.from('checklist_items').select('*').order('orden')
   ]);
   if (rC.error) {
     document.getElementById('chkList').innerHTML = `<div class="empty" style="color:var(--danger)">
-      ⚠️ Ejecuta primero <b>ingenieria_fase2_sap.sql</b> en Supabase.<br>${esc(rC.error.message)}</div>`;
+      ⚠️ Error cargando checklists.<br>${esc(rC.error.message)}</div>`;
     return;
   }
   checklists = rC.data || [];
-  items = rI.data || [];
+  items = (rI.data || []).filter(i => i.activo !== false);
+
+  const qp = new URLSearchParams(window.location.search);
+  const qId = qp.get('id');
+  const qCod = (qp.get('codigo') || '').trim().toUpperCase();
+  if (qId) {
+    const found = checklists.find(c => sameId(c.id, qId));
+    if (found) selectedChkId = found.id;
+  } else if (qCod) {
+    const found = checklists.find(c => String(c.codigo || '').toUpperCase() === qCod);
+    if (found) selectedChkId = found.id;
+  }
   if (!selectedChkId && checklists.length) selectedChkId = checklists[0].id;
   renderList();
   renderItems();
@@ -153,19 +243,19 @@ function renderList(){
   const box = document.getElementById('chkList');
   if (!checklists.length) { box.innerHTML = `<div class="empty">Sin checklists registrados.</div>`; return; }
   box.innerHTML = checklists.map(c => {
-    const cnt = items.filter(i => i.checklist_id === c.id).length;
-    return `<div class="chk-item ${selectedChkId === c.id ? 'active' : ''}" onclick="seleccionar(${c.id})">
+    const cnt = items.filter(i => sameId(i.checklist_id, c.id) && i.activo !== false).length;
+    return `<div class="chk-item ${sameId(selectedChkId, c.id) ? 'active' : ''}" onclick="seleccionar(${c.id})">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div>
-          <b>${esc(c.codigo)}</b> <span class="badge b-smed">${esc(c.tipo.replace(/_/g,' '))}</span>
+          <b>${esc(c.codigo)}</b> <span class="badge b-smed">${esc((c.tipo || '').replace(/_/g,' '))}</span>
           <div style="font-weight:600;margin-top:3px">${esc(c.nombre)}</div>
           <div class="muted">${cnt} punto(s) de verificación</div>
         </div>
         <div style="display:flex;gap:5px" onclick="event.stopPropagation()">
-          <button class="btn btn-sm btn-secondary" onclick="editarChecklist(${c.id})"><i class="fas fa-pen"></i></button>
+          ${canEditChk ? `<button class="btn btn-sm btn-secondary" onclick="editarChecklist(${c.id})"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm ${c.activo === false ? 'btn-success' : 'btn-danger-soft'}" onclick="toggleChecklist(${c.id}, ${c.activo !== false})">
             <i class="fas ${c.activo === false ? 'fa-check' : 'fa-ban'}"></i>
-          </button>
+          </button>` : ''}
         </div>
       </div>
     </div>`;
@@ -174,12 +264,13 @@ function renderList(){
 
 function seleccionar(id){
   selectedChkId = id;
+  limpiarItem();
   renderList();
   renderItems();
 }
 
 function renderItems(){
-  const chk = checklists.find(c => c.id === selectedChkId);
+  const chk = checklists.find(c => sameId(c.id, selectedChkId));
   const panel = document.getElementById('itemsPanel');
   if (!chk) {
     panel.style.display = 'none';
@@ -190,20 +281,23 @@ function renderItems(){
   document.getElementById('selTitle').textContent = `${chk.codigo} — ${chk.nombre}`;
   document.getElementById('selSub').textContent = chk.descripcion || `Tipo: ${chk.tipo}`;
 
-  const list = items.filter(i => i.checklist_id === chk.id).sort((a,b) => a.orden - b.orden);
-  document.getElementById('i_orden').value = list.length ? (Math.max(...list.map(x => x.orden)) + 1) : 1;
+  const list = items.filter(i => sameId(i.checklist_id, chk.id) && i.activo !== false).sort((a,b) => Number(a.orden) - Number(b.orden));
+  if (!editItemId) {
+    document.getElementById('i_orden').value = list.length ? (Math.max(...list.map(x => Number(x.orden) || 0)) + 1) : 1;
+  }
 
   const body = document.getElementById('itemsBody');
   if (!list.length) { body.innerHTML = `<tr><td colspan="6" class="empty">Sin puntos configurados. Agrega el primero arriba.</td></tr>`; return; }
 
   body.innerHTML = list.map(i => `<tr>
-    <td><b>${i.orden}</b></td>
+    <td class="num"><b>${i.orden}</b></td>
     <td><b>${esc(i.punto_verificacion)}</b></td>
     <td>${esc(i.criterio_especificacion || '-')}</td>
     <td><span class="badge b-smed">${esc(i.tipo_respuesta)}</span></td>
     <td><span class="badge ${i.obligatorio ? 'b-ok' : 'b-off'}">${i.obligatorio ? 'SÍ' : 'NO'}</span></td>
-    <td style="text-align:right">
-      <button class="btn btn-sm btn-danger-soft" onclick="eliminarItem(${i.id})"><i class="fas fa-trash"></i></button>
+    <td style="text-align:right;white-space:nowrap">
+      ${canEditChk ? `<button class="btn btn-sm btn-secondary" onclick="editarItem(${i.id})"><i class="fas fa-pen"></i></button>
+      <button class="btn btn-sm btn-danger-soft" onclick="eliminarItem(${i.id})"><i class="fas fa-trash"></i></button>` : ''}
     </td>
   </tr>`).join('');
 }
@@ -216,9 +310,9 @@ function nuevoChecklist(){
 }
 
 function editarChecklist(id){
-  const c = checklists.find(x => x.id === id);
+  const c = checklists.find(x => sameId(x.id, id));
   if (!c) return;
-  editChkId = id;
+  editChkId = c.id;
   document.getElementById('chkFormTitle').textContent = 'Editar: ' + c.codigo;
   document.getElementById('c_cod').value = c.codigo || '';
   document.getElementById('c_nom').value = c.nombre || '';
@@ -227,6 +321,7 @@ function editarChecklist(id){
 }
 
 async function guardarChecklist(){
+  if (!canEditChk) return alert('Sin permisos para editar checklists.');
   const codigo = val('c_cod').toUpperCase();
   const nombre = val('c_nom');
   if (!codigo || !nombre) return alert('Código y nombre son obligatorios.');
@@ -240,37 +335,64 @@ async function guardarChecklist(){
     ? await client.from('checklists').update(payload).eq('id', editChkId).select('id').single()
     : await client.from('checklists').insert([{ ...payload, activo: true }]).select('id').single();
   if (res.error) return alert('Error: ' + res.error.message);
-  selectedChkId = res.data.id;
+  if (res.data?.id) selectedChkId = res.data.id;
   nuevoChecklist();
   await init();
 }
 
 async function toggleChecklist(id, actual){
+  if (!canEditChk) return alert('Sin permisos para editar checklists.');
   const { error } = await client.from('checklists').update({ activo: !actual }).eq('id', id);
   if (error) return alert(error.message);
   await init();
 }
 
+function editarItem(id){
+  const it = items.find(x => sameId(x.id, id));
+  if (!it) return;
+  editItemId = it.id;
+  document.getElementById('i_orden').value = it.orden || 1;
+  document.getElementById('i_punto').value = it.punto_verificacion || '';
+  document.getElementById('i_crit').value = it.criterio_especificacion || '';
+  document.getElementById('i_tipo').value = it.tipo_respuesta || 'OK_NOK';
+  document.getElementById('i_obl').value = String(!!it.obligatorio);
+  document.getElementById('btnSaveItem').innerHTML = '<i class="fas fa-save"></i> Actualizar';
+  document.getElementById('btnCancelItem').style.display = 'inline-flex';
+}
+
+function limpiarItem(){
+  editItemId = null;
+  document.getElementById('i_punto').value = '';
+  document.getElementById('i_crit').value = '';
+  document.getElementById('btnSaveItem').innerHTML = '<i class="fas fa-plus"></i> Agregar';
+  document.getElementById('btnCancelItem').style.display = 'none';
+}
+
 async function agregarItem(){
+  if (!canEditChk) return alert('Sin permisos para editar checklists.');
   if (!selectedChkId) return;
   const punto = val('i_punto');
   if (!punto) return alert('Escribe el punto de verificación.');
-  const { error } = await client.from('checklist_items').insert([{
+  const payload = {
     checklist_id: selectedChkId,
     orden: parseInt(document.getElementById('i_orden').value, 10) || 1,
     punto_verificacion: punto,
     criterio_especificacion: val('i_crit') || null,
     tipo_respuesta: val('i_tipo'),
-    obligatorio: val('i_obl') === 'true'
-  }]);
+    obligatorio: val('i_obl') === 'true',
+    activo: true
+  };
+  const { error } = editItemId
+    ? await client.from('checklist_items').update(payload).eq('id', editItemId)
+    : await client.from('checklist_items').insert([payload]);
   if (error) return alert('Error: ' + error.message);
-  document.getElementById('i_punto').value = '';
-  document.getElementById('i_crit').value = '';
+  limpiarItem();
   await init();
 }
 
 async function eliminarItem(id){
-  const { error } = await client.from('checklist_items').delete().eq('id', id);
+  if (!canEditChk) return alert('Sin permisos para editar checklists.');
+  const { error } = await client.from('checklist_items').update({ activo: false }).eq('id', id);
   if (error) return alert(error.message);
   await init();
 }

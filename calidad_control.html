@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Control de Calidad - KRAEM</title>
+    <title>Control de Calidad - Liberación Primera Pieza | KRAEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -10,121 +10,420 @@
     <script src="kraem_nav.js"></script>
 
     <style>
-        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
-        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --border: #334155; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 20px; }
-        .btn { padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; }
-        
-        .grid-quality { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: auto; }
-        @media (max-width: 800px) { .grid-quality { grid-template-columns: 1fr; } }
+        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b; --border: #e2e8f0; --primary: #2563eb; --success: #16a34a; --danger: #dc2626; --warning: #d97706; --surface: #f8fafc; }
+        [data-theme="dark"] { --bg: #020617; --card: #0f172a; --text: #f1f5f9; --muted: #94a3b8; --border: #334155; --surface: #1e293b; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.2s; }
+
+        header { display: flex; justify-content: space-between; align-items: center; max-width: 1320px; margin: 0 auto 20px; flex-wrap: wrap; gap: 12px; }
+        .btn { padding: 9px 14px; border-radius: 9px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: #fff; border: none; }
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .lang-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-weight: 700; font-size: 12px; cursor: pointer; }
+        .lang-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        .grid-quality { display: grid; grid-template-columns: 1.05fr 1fr; gap: 20px; max-width: 1320px; margin: auto; align-items: start; }
+        @media (max-width: 900px) { .grid-quality { grid-template-columns: 1fr; } }
 
         .card { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); }
-        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
-        .bg-success { background: rgba(34, 197, 94, 0.2); color: var(--success); }
-        .bg-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
-        
-        .check-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border); }
-        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        label.fld { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin: 10px 0 4px; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        .lang-btn { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); }
+        .status-badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-block; }
+        .bg-success { background: rgba(22, 163, 74, 0.16); color: var(--success); }
+        .bg-danger { background: rgba(220, 38, 38, 0.16); color: var(--danger); }
+        .bg-info { background: rgba(37, 99, 235, 0.14); color: var(--primary); }
+
+        .check-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: var(--surface); }
+        .check-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; }
+        .check-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; margin-top: 2px; flex-shrink: 0; }
+        .chk-val { width: 135px !important; padding: 6px 8px !important; }
+        .hist-row { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; background: var(--surface); }
+        .num { font-variant-numeric: tabular-nums; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')" title="Volver al Dashboard"><i class="fas fa-arrow-left"></i></button>
-        <h2 id="txt_title">Módulo de Calidad</h2>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')" title="Volver al Dashboard"><i class="fas fa-arrow-left"></i> <span id="lblBack">Dashboard</span></button>
+        <div>
+            <h2 id="txt_title" style="margin:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span>Módulo de Calidad — Primera Pieza</span>
+                <span style="font-size:11px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.18);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
+            </h2>
+        </div>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" width="100%"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" width="100%"></button>
+    <div class="controls">
+        <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+        <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+        <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+        <a href="catalogo_checklists.html?codigo=CHK-ARR-01" class="btn"><i class="fas fa-clipboard-check"></i> CHK-ARR-01</a>
         <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
 </header>
 
 <div class="grid-quality">
     <div class="card">
-        <h3 id="txt_release_title"><i class="fas fa-check-double"></i> Liberación de Primera Pieza</h3>
-        <p id="txt_release_desc" style="font-size: 0.9rem; color: gray;">Autorización para inicio de producción por turno.</p>
-        
-        <div style="margin-top: 15px;">
-            <label id="lbl_part">Número de Parte:</label>
-            <input type="text" id="partInput" placeholder="Ej: 1584..." style="width:100%; padding:10px; margin: 10px 0; border-radius: 8px; border:1px solid var(--border); background: var(--bg); color: var(--text);">
-            
-            <div class="check-item">
-                <span id="txt_check_visual">Inspección Visual (Sin ráfagas/quemados)</span>
-                <input type="checkbox" id="checkVisual">
-            </div>
-            <div class="check-item">
-                <span id="txt_check_dim">Dimensiones Críticas (Según Plano)</span>
-                <input type="checkbox" id="checkDim">
-            </div>
-            <div class="check-item">
-                <span id="txt_check_weight">Peso de la Pieza (Gramaje)</span>
-                <input type="checkbox" id="checkWeight">
-            </div>
-
-            <button class="btn" style="width:100%; margin-top:20px; justify-content: center; background: var(--primary); color:white; border:none;" onclick="saveInspection()">
-                <i class="fas fa-save"></i> <span id="txt_btn_save">Guardar Liberación</span>
-            </button>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+            <h3 id="txt_release_title" style="margin:0;"><i class="fas fa-check-double" style="color:var(--primary)"></i> Liberación de Primera Pieza</h3>
+            <span id="activeChecklistBadge" class="status-badge bg-info">CHK-ARR-01</span>
         </div>
+        <p id="txt_release_desc" style="font-size: 13px; color: var(--muted); margin:6px 0 12px;">Autorización auditada para arranque de producción por turno (enlazada a Ingeniería & Checklist Maestro).</p>
+
+        <div class="row-2">
+            <div>
+                <label class="fld" id="lbl_part" for="partInput">Número de Parte *</label>
+                <input type="text" id="partInput" list="dlCalParts" placeholder="Buscar N/P..." oninput="onPartSelect()">
+                <datalist id="dlCalParts"></datalist>
+            </div>
+            <div>
+                <label class="fld" for="woInput">Orden de Producción (WO)</label>
+                <input type="text" id="woInput" list="dlCalWos" placeholder="Opcional: ej. WO-1001">
+                <datalist id="dlCalWos"></datalist>
+            </div>
+        </div>
+
+        <div class="row-2">
+            <div>
+                <label class="fld" for="machineInput">Máquina (MES)</label>
+                <select id="machineInput"><option value="">-- Seleccione máquina --</option></select>
+            </div>
+            <div>
+                <label class="fld">Peso Nominal Ficha Técnica</label>
+                <div id="partWeightTargetBadge" style="padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);font-weight:700;font-size:13px" class="num">- g</div>
+            </div>
+        </div>
+
+        <label class="fld" style="margin-top:14px;">Puntos de Inspección Obligatorios</label>
+        <div id="checkItemsContainer"></div>
+
+        <label class="fld" for="notesInput">Observaciones / Comentarios de Calidad</label>
+        <input type="text" id="notesInput" placeholder="Ej. Primera pieza conforme a plano, lote resina verificado">
+
+        <button class="btn btn-primary" id="btnSaveInspection" style="width:100%; margin-top:16px; justify-content: center; padding:12px;" onclick="saveInspection()">
+            <i class="fas fa-save"></i> <span id="txt_btn_save">Guardar Liberación</span>
+        </button>
     </div>
 
     <div class="card">
-        <h3 id="txt_recent_title"><i class="fas fa-history"></i> Inspecciones Recientes</h3>
-        <div id="inspectionsList" style="margin-top: 15px;">
-            <div style="text-align:center; padding: 20px; color: gray;" id="txt_loading">Cargando registros...</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 id="txt_recent_title" style="margin:0;"><i class="fas fa-history" style="color:var(--primary)"></i> Inspecciones Recientes</h3>
+            <button class="btn" style="padding:6px 10px;font-size:12px;" onclick="loadInspections()"><i class="fas fa-rotate"></i></button>
+        </div>
+        <div id="inspectionsList">
+            <div style="text-align:center; padding: 20px; color: var(--muted);" id="txt_loading">Cargando registros...</div>
         </div>
     </div>
 </div>
 
 <script>
-    let currentLang = localStorage.getItem('lang') || 'es';
+    let currentLang = localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es';
+    let parts = [], machines = [], productionOrders = [], checklists = [], checkItems = [];
+    let selectedPart = null, activeChecklist = null, renderedChecks = [];
+    let canEditCalidad = true;
+
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const sameId = (a, b) => String(a ?? '') === String(b ?? '');
+
     const translations = {
         es: {
-            title: "Módulo de Calidad", releaseTitle: "Liberación de Primera Pieza", 
-            releaseDesc: "Autorización para inicio de producción.", lblPart: "Número de Parte:",
-            cVisual: "Inspección Visual", cDim: "Dimensiones Críticas", cWeight: "Peso de Pieza",
-            btnSave: "Guardar Liberación", recent: "Inspecciones Recientes"
+            back: "Dashboard",
+            title: "Módulo de Calidad — Primera Pieza",
+            releaseTitle: "Liberación de Primera Pieza",
+            releaseDesc: "Autorización auditada para arranque de producción por turno (enlazada a Ingeniería & Checklist Maestro).",
+            lblPart: "Número de Parte *",
+            btnSave: "Guardar Liberación",
+            recent: "Inspecciones Recientes"
         },
         ko: {
-            title: "품질 관리 모듈", releaseTitle: "초물 검사 승인", 
-            releaseDesc: "생산 시작 전 품질 승인 양식입니다.", lblPart: "부품 번호:",
-            cVisual: "외관 검사", cDim: "주요 치수 검사", cWeight: "중량 측정",
-            btnSave: "검사 결과 저장", recent: "최근 검사 이력"
+            back: "대시보드",
+            title: "품질 관리 모듈 — 초물 검사",
+            releaseTitle: "초물 검사 승인",
+            releaseDesc: "교대조 생산 시작 전 품질 검증 및 감사 승인 (엔지니어링 마스터 체크리스트 연동).",
+            lblPart: "부품 번호 *",
+            btnSave: "검사 결과 저장",
+            recent: "최근 검사 이력"
+        },
+        en: {
+            back: "Dashboard",
+            title: "Quality Control — First Piece Release",
+            releaseTitle: "First Piece Inspection Release",
+            releaseDesc: "Audited pre-production release per shift linked to Engineering master checklists.",
+            lblPart: "Part Number *",
+            btnSave: "Save Release",
+            recent: "Recent Inspections"
         }
     };
 
     function setLang(lang) {
-        currentLang = lang;
-        localStorage.setItem('lang', lang);
-        const l = translations[lang];
-        document.getElementById('txt_title').innerText = l.title;
-        document.getElementById('txt_release_title').innerHTML = `<i class="fas fa-check-double"></i> ${l.releaseTitle}`;
+        currentLang = translations[lang] ? lang : 'es';
+        localStorage.setItem('lang', currentLang);
+        localStorage.setItem('kraem_lang', currentLang);
+        document.documentElement.setAttribute('lang', currentLang);
+        const l = translations[currentLang];
+        document.getElementById('lblBack').textContent = l.back;
+        document.getElementById('txt_title').querySelector('span').textContent = l.title;
+        document.getElementById('txt_release_title').innerHTML = `<i class="fas fa-check-double" style="color:var(--primary)"></i> ${l.releaseTitle}`;
         document.getElementById('txt_release_desc').innerText = l.releaseDesc;
         document.getElementById('lbl_part').innerText = l.lblPart;
-        document.getElementById('txt_check_visual').innerText = l.cVisual;
-        document.getElementById('txt_check_dim').innerText = l.cDim;
-        document.getElementById('txt_check_weight').innerText = l.cWeight;
         document.getElementById('txt_btn_save').innerText = l.btnSave;
-        document.getElementById('txt_recent_title').innerHTML = `<i class="fas fa-history"></i> ${l.recent}`;
+        document.getElementById('txt_recent_title').innerHTML = `<i class="fas fa-history" style="color:var(--primary)"></i> ${l.recent}`;
+        ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === currentLang));
     }
 
-    async function saveInspection() {
-        // Lógica para insertar en Supabase (Pendiente conectar con ID real)
-        alert("Inspección Guardada Correctamente");
+    function applyTheme() {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 
     function toggleTheme() {
         const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
+        applyTheme();
     }
 
-    setLang(currentLang);
+    function syncPermissions() {
+        canEditCalidad = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('calidad');
+        const btn = document.getElementById('btnSaveInspection');
+        if (btn) btn.style.display = canEditCalidad ? 'inline-flex' : 'none';
+    }
+
+    document.addEventListener('kraem:authready', syncPermissions);
+
+    async function cargarPartesCanonicas() {
+        if (window.fetchAllRows) {
+            try {
+                const data = await window.fetchAllRows('parts', {
+                    select: 'id, part_number, part_name, product_type, part_weight_gr, runner_weight_gr, is_archived_duplicate, obsolete',
+                    filter: q => q.eq('obsolete', false).eq('is_archived_duplicate', false),
+                    orderBy: 'part_number'
+                });
+                return (Array.isArray(data) ? data : (data?.data || []));
+            } catch (_) {
+                const fb = await window.fetchAllRows('parts', {
+                    select: 'id, part_number, part_name, product_type, part_weight_gr, runner_weight_gr, obsolete',
+                    filter: q => q.eq('obsolete', false),
+                    orderBy: 'part_number'
+                });
+                return (Array.isArray(fb) ? fb : (fb?.data || [])).filter(p => !p.is_archived_duplicate);
+            }
+        }
+        const { data } = await client.from('parts').select('id, part_number, part_name, product_type, part_weight_gr, runner_weight_gr, is_archived_duplicate, obsolete').eq('obsolete', false);
+        return (data || []).filter(p => !p.is_archived_duplicate);
+    }
+
+    function buildRenderedChecks() {
+        const dbItems = activeChecklist
+            ? checkItems.filter(i => sameId(i.checklist_id, activeChecklist.id) && i.activo !== false).sort((a,b) => Number(a.orden || 0) - Number(b.orden || 0))
+            : [];
+        if (dbItems.length) {
+            renderedChecks = dbItems.map(i => ({
+                item_id: i.id,
+                orden: i.orden,
+                texto: i.punto_verificacion,
+                criterio: i.criterio_especificacion || '',
+                tipo_respuesta: i.tipo_respuesta || 'OK_NOK',
+                obligatorio: i.obligatorio !== false,
+                done: false,
+                val: ''
+            }));
+        } else {
+            renderedChecks = [
+                { orden: 1, texto: 'Inspección Visual (Sin ráfagas/quemados)', criterio: '', tipo_respuesta: 'OK_NOK', obligatorio: true, done: false, val: '' },
+                { orden: 2, texto: 'Dimensiones Críticas (Según Plano)', criterio: '', tipo_respuesta: 'OK_NOK', obligatorio: true, done: false, val: '' },
+                { orden: 3, texto: 'Peso de la Pieza (Gramaje)', criterio: '', tipo_respuesta: 'NUMERICO', obligatorio: true, done: false, val: '' }
+            ];
+        }
+    }
+
+    function renderChecklistUi() {
+        const box = document.getElementById('checkItemsContainer');
+        const nominalWeight = selectedPart && Number(selectedPart.part_weight_gr || 0) > 0 ? Number(selectedPart.part_weight_gr) : null;
+        document.getElementById('partWeightTargetBadge').textContent = nominalWeight !== null ? `${nominalWeight} g` : '- g';
+
+        box.innerHTML = renderedChecks.map((c, idx) => {
+            const isNum = c.tipo_respuesta === 'NUMERICO';
+            const isText = c.tipo_respuesta === 'TEXTO';
+            const weightTag = (isNum && nominalWeight !== null && /peso|gram/i.test(c.texto || ''))
+                ? ` <span class="status-badge bg-info">Nominal: ${nominalWeight} g</span>`
+                : '';
+            return `<div class="check-item">
+                <label class="check-left" style="cursor:pointer;">
+                    <input type="checkbox" class="cal-chk" ${c.done ? 'checked' : ''} onchange="renderedChecks[${idx}].done = this.checked">
+                    <div>
+                        <div style="font-size:13px;font-weight:600;">${esc(c.orden)}. ${esc(c.texto)}${weightTag}</div>
+                        ${c.criterio ? `<div style="font-size:11px;color:var(--muted);">${esc(c.criterio)}</div>` : ''}
+                    </div>
+                </label>
+                ${(isNum || isText) ? `<input type="${isNum ? 'number' : 'text'}" step="any" class="chk-val" value="${esc(c.val || '')}" placeholder="${isNum ? 'g / med.' : 'Texto...'}" oninput="renderedChecks[${idx}].val = this.value">` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    function onPartSelect() {
+        const valStr = (document.getElementById('partInput').value || '').trim().toUpperCase();
+        selectedPart = parts.find(p => String(p.part_number || '').toUpperCase() === valStr) || null;
+        renderChecklistUi();
+    }
+
+    async function init() {
+        applyTheme();
+        setLang(currentLang);
+        syncPermissions();
+
+        const [rawParts, rMach, rPo, rChk, rItems] = await Promise.all([
+            cargarPartesCanonicas(),
+            client.from('mes_machines').select('id, machine_code, machine_name, active').eq('active', true).order('machine_code'),
+            client.from('production_orders').select('id, folio, part_id, machine_id').order('id', { ascending: false }).limit(50),
+            client.from('checklists').select('*').eq('activo', true).order('codigo'),
+            client.from('checklist_items').select('*').neq('activo', false).order('orden')
+        ]);
+
+        parts = (rawParts || []).filter(p => ['PT', 'SUB-ENSAMBLE', 'SUBENSAMBLE'].includes(String(p.product_type || '').toUpperCase()) || !p.product_type);
+        machines = rMach.data || [];
+        productionOrders = rPo.data || [];
+        checklists = rChk.data || [];
+        checkItems = (rItems.data || []).filter(i => i.activo !== false);
+
+        document.getElementById('dlCalParts').innerHTML = parts.map(p => `<option value="${esc(p.part_number)}">${esc(p.part_name || '')}</option>`).join('');
+        document.getElementById('dlCalWos').innerHTML = productionOrders.map(w => `<option value="${esc(w.folio || ('OP-' + w.id))}"></option>`).join('');
+        document.getElementById('machineInput').innerHTML = '<option value="">-- Seleccione máquina --</option>'
+            + machines.map(m => `<option value="${m.id}">${esc(m.machine_code)} - ${esc(m.machine_name)}</option>`).join('');
+
+        activeChecklist = checklists.find(c => c.codigo === 'CHK-ARR-01')
+            || checklists.find(c => c.tipo === 'ARRANQUE_PRIMERA_PIEZA')
+            || checklists[0] || null;
+        if (activeChecklist) {
+            document.getElementById('activeChecklistBadge').textContent = activeChecklist.codigo || 'CHK-ARR-01';
+        }
+        buildRenderedChecks();
+
+        const qp = new URLSearchParams(window.location.search);
+        const qPartId = qp.get('part_id');
+        const qWo = qp.get('wo');
+        const qMachId = qp.get('machine_id');
+        if (qPartId) {
+            const pFound = parts.find(p => sameId(p.id, qPartId));
+            if (pFound) {
+                selectedPart = pFound;
+                document.getElementById('partInput').value = pFound.part_number;
+            }
+        }
+        if (qWo) document.getElementById('woInput').value = qWo;
+        if (qMachId) document.getElementById('machineInput').value = String(qMachId);
+
+        renderChecklistUi();
+        await loadInspections();
+    }
+
+    async function saveInspection() {
+        if (!canEditCalidad) return alert('Sin permisos para registrar liberaciones de Calidad.');
+        const partStr = (document.getElementById('partInput').value || '').trim();
+        if (!selectedPart && partStr) {
+            selectedPart = parts.find(p => String(p.part_number || '').toUpperCase() === partStr.toUpperCase()) || null;
+        }
+        if (!selectedPart) return alert('Selecciona un Número de Parte válido del catálogo.');
+
+        const missing = renderedChecks.some(c => {
+            if (!c.obligatorio) return false;
+            if (!c.done) return true;
+            if ((c.tipo_respuesta === 'NUMERICO' || c.tipo_respuesta === 'TEXTO') && !String(c.val ?? '').trim()) return true;
+            return false;
+        });
+        if (missing) return alert('Completa todos los puntos obligatorios de inspección (incluyendo mediciones numéricas/texto).');
+
+        const machId = document.getElementById('machineInput').value || null;
+        const machObj = machines.find(m => sameId(m.id, machId)) || null;
+        const woFolio = (document.getElementById('woInput').value || '').trim() || null;
+        const poObj = woFolio ? productionOrders.find(po => String(po.folio || '').toUpperCase() === woFolio.toUpperCase()) : null;
+        const notes = (document.getElementById('notesInput').value || '').trim() || null;
+        const userEmail = window.KraemAuth?.user?.email || 'Calidad';
+
+        if (activeChecklist?.id) {
+            const { error: exErr } = await client.from('checklist_executions').insert([{
+                checklist_id: activeChecklist.id,
+                production_order_id: poObj?.id || null,
+                wo_folio: woFolio,
+                part_id: selectedPart.id,
+                machine_id: machId ? Number(machId) : null,
+                execution_type: 'ARRANQUE_PRIMERA_PIEZA',
+                status: 'APROBADO',
+                responses: renderedChecks.map(c => ({ orden: c.orden, item_id: c.item_id || null, texto: c.texto, tipo: c.tipo_respuesta, done: !!c.done, valor: c.val || null })),
+                notes,
+                executed_by_email: userEmail
+            }]);
+            if (exErr) return alert('Error guardando ejecución de checklist: ' + exErr.message);
+        }
+
+        const { error: qiErr } = await client.from('quality_inspections').insert([{
+            part_id: selectedPart.id,
+            inspector_name: userEmail,
+            machine_number: machObj ? machObj.machine_code : null,
+            status: 'APROBADO',
+            visual_check: true,
+            dimensional_check: true,
+            notes: notes ? `${woFolio ? '[WO ' + woFolio + '] ' : ''}${notes}` : (woFolio ? `Liberación Primera Pieza WO ${woFolio}` : 'Liberación Primera Pieza')
+        }]);
+        if (qiErr) console.warn('Aviso quality_inspections:', qiErr.message);
+
+        alert('✅ Liberación de Primera Pieza guardada correctamente.');
+        await loadInspections();
+    }
+
+    async function loadInspections() {
+        const listEl = document.getElementById('inspectionsList');
+        const [{ data: execs }, { data: qis }] = await Promise.all([
+            client.from('checklist_executions').select('*').eq('execution_type', 'ARRANQUE_PRIMERA_PIEZA').order('created_at', { ascending: false }).limit(15),
+            client.from('quality_inspections').select('*').order('created_at', { ascending: false }).limit(15)
+        ]);
+
+        const rows = (execs && execs.length) ? execs.map(e => ({
+            part_id: e.part_id,
+            wo: e.wo_folio,
+            machine: (machines.find(m => sameId(m.id, e.machine_id)) || {}).machine_code || '-',
+            status: e.status || 'APROBADO',
+            by: e.executed_by_email || 'Calidad',
+            notes: e.notes || '',
+            date: e.created_at
+        })) : (qis || []).map(q => ({
+            part_id: q.part_id,
+            wo: null,
+            machine: q.machine_number || '-',
+            status: q.status || 'APROBADO',
+            by: q.inspector_name || 'Calidad',
+            notes: q.notes || '',
+            date: q.created_at
+        }));
+
+        if (!rows.length) {
+            listEl.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--muted);">Aún no hay inspecciones de primera pieza registradas.</div>`;
+            return;
+        }
+
+        listEl.innerHTML = rows.map(r => {
+            const pt = parts.find(p => sameId(p.id, r.part_id)) || {};
+            const dt = r.date ? new Date(r.date).toLocaleString('es-MX', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+            return `<div class="hist-row">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                    <div>
+                        <strong>${esc(pt.part_number || ('PT #' + (r.part_id || '?')))}</strong>
+                        ${r.wo ? `<span class="status-badge bg-info" style="margin-left:4px">${esc(r.wo)}</span>` : ''}
+                    </div>
+                    <span class="status-badge ${r.status === 'RECHAZADO' ? 'bg-danger' : 'bg-success'}">${esc(r.status)}</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px">
+                    Máquina: <strong>${esc(r.machine)}</strong> · Por: ${esc(r.by)} ${dt ? '· ' + esc(dt) : ''}
+                </div>
+                ${r.notes ? `<div style="font-size:12px;margin-top:3px">${esc(r.notes)}</div>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>

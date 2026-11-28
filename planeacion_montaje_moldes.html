@@ -3,180 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRAEM ERP | Boceto Montaje de Moldes (SMED)</title>
+<title>KRAEM ERP | Estación Montaje de Moldes (SMED) & Liberación Pre-Arranque</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-  <script src="kraem_nav.js"></script>
+<script src="kraem_nav.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
 :root{
   --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
   --primary:#2563eb; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+  --surface:#f8fafc; --thead:#f1f5f9;
 }
 [data-theme="dark"]{
-  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --bg:#020617; --card:#0f172a; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --surface:#1e293b; --thead:#1e293b;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
-.container{max-width:1480px;margin:auto}
-.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:18px}
+body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;transition:.2s}
+.container{max-width:1520px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:9px 14px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
 .btn-primary{background:var(--primary);color:#fff;border:none}
 .btn-success{background:var(--success);color:#fff;border:none}
+.btn-warn{background:var(--warning);color:#fff;border:none}
 .btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
-.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:start}
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 15px;border-left:4px solid var(--primary)}
+.kpi .t{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.kpi .v{font-size:21px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:1.1fr 1.15fr;gap:18px;align-items:start}
 @media(max-width:1050px){.grid{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px}
 .card h3{margin:0 0 12px;font-size:15px}
-.setup-card{border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--bg);cursor:pointer;transition:.15s}
-.setup-card.active{border-color:var(--primary);box-shadow:0 0 0 2px rgba(37,99,235,0.2)}
-.badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.setup-card{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface);cursor:pointer;transition:.15s}
+.setup-card.active{border-color:var(--primary);box-shadow:0 0 0 2px rgba(37,99,235,0.22)}
+.badge{padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
 .b-ok{background:#dcfce7;color:#166534}
 .b-warn{background:#fef3c7;color:#92400e}
 .b-bad{background:#fee2e2;color:#991b1b}
 .b-info{background:#e0f2fe;color:#075985}
-.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--bg)}
-.check-item input{width:18px;height:18px;margin-top:2px;cursor:pointer}
-.gate-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.check-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--surface)}
+.check-left{display:flex;align-items:flex-start;gap:10px;flex:1}
+.check-item input[type="checkbox"]{width:18px;height:18px;margin-top:2px;cursor:pointer;flex-shrink:0}
+.chk-val-input{width:140px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:12.5px}
+.gate-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;gap:8px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+label.fld{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+select,input,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font-size:13px;font-family:inherit}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+th{background:var(--thead);color:var(--muted);font-size:11px;text-transform:uppercase}
+.num{font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <div style="display:flex;align-items:center;gap:12px">
-      <a href="planeacion_hub.html" class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html'); return false;"><i class="fas fa-arrow-left"></i> Cockpit</a>
+      <a href="planeacion_hub.html" class="btn btn-back" onclick="KraemNav.back('planeacion_hub.html'); return false;"><i class="fas fa-arrow-left"></i> <span id="lblBack">Cockpit</span></a>
       <div>
-        <h1 style="margin:0;font-size:22px"><i class="fas fa-wrench" style="color:var(--success)"></i> Montaje de Moldes (SMED) & Liberación a Producción (Boceto)</h1>
-        <small style="color:var(--muted)">Cola de setups desde el Tablero APS, validación PM/WMS y checklists de `catalogo_checklists.html`.</small>
+        <h1 style="margin:0;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span><i class="fas fa-wrench" style="color:var(--success)"></i> <span id="lblTitle">Montaje de Moldes (SMED) & Liberación Pre-Arranque</span></span>
+          <span style="font-size:11px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.18);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        </h1>
+        <small id="lblSub" style="color:var(--muted)">Cola en vivo desde production_orders, validación CR01, salud PM, surtido WMS y checklists auditados.</small>
       </div>
     </div>
-    <div style="display:flex;gap:8px">
+    <div class="controls">
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
       <a href="planeacion_aps_tablero.html" class="btn"><i class="fas fa-calendar-week"></i> Tablero APS</a>
       <a href="catalogo_checklists.html" class="btn"><i class="fas fa-clipboard-check"></i> Checklists Maestro</a>
-      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+      <button class="btn" onclick="toggleTheme()" title="Tema"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t" id="lblKpiPend">Setups Pendientes</div><div class="v" id="kpiPendientes">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t" id="lblKpiLib">Órdenes Liberadas</div><div class="v" id="kpiLiberadas">0</div></div>
+    <div class="kpi" style="border-left-color:var(--primary)"><div class="t" id="lblKpiProm">SMED Prom. Real</div><div class="v" id="kpiSmedProm">0 min</div></div>
+    <div class="kpi" style="border-left-color:var(--danger)"><div class="t" id="lblKpiPm">Alertas PM Molde</div><div class="v" id="kpiAlertasPm">0</div></div>
   </div>
 
   <div class="grid">
     <!-- COLA DE CAMBIOS DE MOLDE -->
     <div class="card">
-      <h3><i class="fas fa-list-ol" style="color:var(--primary)"></i> Cola Programada de Cambios de Molde</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px">
+        <h3 style="margin:0"><i class="fas fa-list-ol" style="color:var(--primary)"></i> <span id="lblQueueTitle">Cola Programada de Cambios de Molde</span></h3>
+        <button class="btn btn-sm" onclick="init()"><i class="fas fa-rotate"></i></button>
+      </div>
       <div id="queueList">Cargando cola de montajes...</div>
     </div>
 
     <!-- ESTACIÓN SMED + CHECKLIST + LIBERACIÓN -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <h3 style="margin:0"><i class="fas fa-clipboard-check" style="color:var(--success)"></i> Validación Pre-Arranque & Checklist SMED</h3>
-        <span id="selStatusBadge" class="badge b-warn">EN SETUP</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap">
+        <h3 style="margin:0"><i class="fas fa-clipboard-check" style="color:var(--success)"></i> <span id="lblGateTitle">Validación Pre-Arranque & Checklist SMED</span></h3>
+        <span id="selStatusBadge" class="badge b-warn">PENDIENTE</span>
       </div>
-      <div id="selHeader" style="font-size:13px;color:var(--muted);margin-bottom:12px">Selecciona una orden de montaje de la izquierda.</div>
+      <div id="selHeader" style="font-size:13px;color:var(--muted);margin-bottom:10px">Selecciona una orden de montaje de la izquierda.</div>
+      <div id="selRouteBar" style="margin-bottom:12px"></div>
 
       <div style="margin-bottom:14px">
-        <div class="gate-row"><span>1. Compatibilidad Máquina ↔ Molde (Tonelaje / Barras)</span><span id="gCompat" class="badge b-ok">OK</span></div>
+        <div class="gate-row"><span>1. Compatibilidad Máquina ↔ Molde (CR01: Tonelaje / Barras / Peso)</span><span id="gCompat" class="badge b-ok">OK</span></div>
         <div class="gate-row"><span>2. Salud PM del Molde (Disparos actuales vs Intervalo)</span><span id="gPm" class="badge b-ok">OK</span></div>
         <div class="gate-row"><span>3. Material Surtido por WMS a pie de máquina</span><span id="gWms" class="badge b-warn">Pendiente Confirmar</span></div>
       </div>
 
-      <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:6px">Checklist SMED / Cambio de Molde</label>
+      <div class="form-row" style="margin-bottom:12px">
+        <div>
+          <label class="fld" for="selChecklistId">Checklist Aplicable (Ruta / Tipo)</label>
+          <select id="selChecklistId" onchange="onChecklistChange()"></select>
+        </div>
+        <div>
+          <label class="fld" for="setupRealMin">Tiempo Setup Real (min)</label>
+          <input type="number" id="setupRealMin" min="0" step="1" value="45">
+        </div>
+      </div>
+
+      <label class="fld">Puntos Obligatorios de Verificación</label>
       <div id="checkContainer"></div>
 
-      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-        <button class="btn" onclick="toggleWmsKit()"><i class="fas fa-dolly"></i> Confirmar Surtido WMS</button>
-        <button class="btn btn-success" style="flex:1;justify-content:center" onclick="liberarArranque()">
-          <i class="fas fa-play-circle"></i> Liberar Máquina a Producción (Boceto)
-        </button>
+      <div style="margin-top:10px">
+        <label class="fld" for="setupNotes">Observaciones de Setup / Técnico</label>
+        <input type="text" id="setupNotes" placeholder="Opcional: torque aplicado, temperatura colada, no. lote tinta/resina...">
       </div>
+
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button type="button" class="btn" id="btnWmsKit" onclick="toggleWmsKit()"><i class="fas fa-dolly"></i> Confirmar Surtido WMS</button>
+        <button type="button" class="btn btn-success" id="btnLiberarSmed" style="flex:1;justify-content:center" onclick="liberarArranque()">
+          <i class="fas fa-play-circle"></i> Liberar Máquina a Producción
+        </button>
+        <a id="btnGoMes" href="produccion_captura.html" class="btn btn-primary" style="display:none"><i class="fas fa-industry"></i> Ir a Captura MES →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL RECIENTE DE LIBERACIONES SMED -->
+  <div class="card">
+    <h3><i class="fas fa-clock-rotate-left" style="color:var(--primary)"></i> Historial Reciente de Liberaciones SMED</h3>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr><th>Fecha</th><th>WO</th><th>Parte</th><th>Máquina</th><th>Molde</th><th>Checklist</th><th>Duración</th><th>Estatus</th></tr>
+        </thead>
+        <tbody id="smedHistoryBody"><tr><td colspan="8" style="text-align:center;color:var(--muted)">Cargando historial...</td></tr></tbody>
+      </table>
     </div>
   </div>
 </div>
 
 <script>
 const LS_APS = 'kraem_boceto_aps_v1';
-let setups = [], checklistItems = [], molds = [], machines = [], pts = [];
+let setups = [], checklists = [], allChecklistItems = [], molds = [], machines = [], pts = [], partRoutings = [], procesos = [], moldMachines = [], smedHistory = [];
 let selectedIdx = 0;
+let canEditSmed = true;
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sameId = (a, b) => String(a ?? '') === String(b ?? '');
+
+const SMED_I18N = {
+  es: { back: 'Cockpit', title: 'Montaje de Moldes (SMED) & Liberación Pre-Arranque', sub: 'Cola en vivo desde production_orders, validación CR01, salud PM, surtido WMS y checklists auditados.', queue: 'Cola Programada de Cambios de Molde', gate: 'Validación Pre-Arranque & Checklist SMED', kPend: 'Setups Pendientes', kLib: 'Órdenes Liberadas', kProm: 'SMED Prom. Real', kPm: 'Alertas PM Molde' },
+  ko: { back: '조종실', title: '금형 교체 (SMED) 및 가동 전 승인', sub: 'production_orders 실시간 대기열, CR01 호환성, 금형 PM, WMS 자재 및 체크리스트 검증.', queue: '금형 교체 작업 대기열', gate: '가동 전 검증 및 SMED 체크리스트', kPend: '대기 중 셋업', kLib: '승인 완료', kProm: '평균 실제 셋업', kPm: '금형 PM 알림' },
+  en: { back: 'Cockpit', title: 'Mold Setup (SMED) & Pre-Start Release', sub: 'Live queue from production_orders, CR01 check, Mold PM health, WMS kit & audited checklists.', queue: 'Scheduled Mold Changeover Queue', gate: 'Pre-Start Validation & SMED Checklist', kPend: 'Pending Setups', kLib: 'Released Orders', kProm: 'Avg Actual SMED', kPm: 'Mold PM Alerts' }
+};
+
+function setLang(lang) {
+  const l = SMED_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = SMED_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('lblQueueTitle').textContent = t.queue;
+  document.getElementById('lblGateTitle').textContent = t.gate;
+  document.getElementById('lblKpiPend').textContent = t.kPend;
+  document.getElementById('lblKpiLib').textContent = t.kLib;
+  document.getElementById('lblKpiProm').textContent = t.kProm;
+  document.getElementById('lblKpiPm').textContent = t.kPm;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+function syncPermissions() {
+  canEditSmed = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function')
+    || KraemAuth.canEdit('planeacion')
+    || KraemAuth.canEdit('produccion')
+    || KraemAuth.canEdit('calidad');
+  const btnLib = document.getElementById('btnLiberarSmed');
+  if (btnLib) btnLib.style.display = canEditSmed ? 'inline-flex' : 'none';
+}
+
+document.addEventListener('kraem:authready', () => {
+  syncPermissions();
+});
+
+async function cargarPartesCanonicas() {
+  if (window.fetchAllRows) {
+    try {
+      const data = await window.fetchAllRows('parts', {
+        select: 'id, part_number, part_name, cycle_time_seg, is_archived_duplicate',
+        filter: q => q.eq('is_archived_duplicate', false),
+        orderBy: 'part_number'
+      });
+      return Array.isArray(data) ? data : (data?.data || []);
+    } catch (_) {
+      const fb = await window.fetchAllRows('parts', { select: 'id, part_number, part_name, cycle_time_seg', orderBy: 'part_number' });
+      return (Array.isArray(fb) ? fb : (fb?.data || [])).filter(p => !p.is_archived_duplicate);
+    }
+  }
+  const { data } = await client.from('parts').select('id, part_number, part_name, cycle_time_seg, is_archived_duplicate');
+  return (data || []).filter(p => !p.is_archived_duplicate);
+}
+
+function buildChecksForChecklist(checklistId) {
+  const list = allChecklistItems
+    .filter(i => sameId(i.checklist_id, checklistId) && i.activo !== false)
+    .sort((a,b) => Number(a.orden || 0) - Number(b.orden || 0));
+  if (list.length) {
+    return list.map(i => ({
+      item_id: i.id,
+      orden: i.orden,
+      text: i.punto_verificacion || i.item_text || 'Verificación',
+      criterio: i.criterio_especificacion || '',
+      tipo_respuesta: i.tipo_respuesta || 'OK_NOK',
+      critical: i.obligatorio !== false,
+      done: false,
+      val: ''
+    }));
+  }
+  return [
+    { orden: 1, text: 'Desmontar molde anterior y limpiar platinas', criterio: 'Sin rebabas ni grasa', tipo_respuesta: 'OK_NOK', critical: true, done: false, val: '' },
+    { orden: 2, text: 'Fijación de bridas y torque de grapas', criterio: 'Torque nominal completo', tipo_respuesta: 'OK_NOK', critical: true, done: false, val: '' },
+    { orden: 3, text: 'Conexión de circuitos y purga libre de contaminación', criterio: 'Sin fugas bajo presión', tipo_respuesta: 'OK_NOK', critical: true, done: false, val: '' },
+    { orden: 4, text: 'Aprobación de Primera Pieza antes de corrida', criterio: 'Validación dimensional/visual', tipo_respuesta: 'OK_NOK', critical: true, done: false, val: '' }
+  ];
+}
 
 async function init(){
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  syncPermissions();
+
   try {
-    const [rMolds, rMach, rParts, rChk, rItems] = await Promise.all([
-      client.from('molds').select('*'),
-      client.from('mes_machines').select('*').eq('active', true),
-      window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name', orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name'),
-      client.from('checklists').select('*').eq('active', true),
-      client.from('checklist_items').select('*').order('step_order')
+    const [rPo, rMolds, rMach, rawParts, rRout, rProc, rMm, rChk, rItems, rExec] = await Promise.all([
+      client.from('production_orders').select('*').order('id', { ascending: false }).limit(50),
+      window.fetchAllRows ? window.fetchAllRows('molds', { orderBy: 'mold_code' }) : client.from('molds').select('*').then(r => r.data || []),
+      client.from('mes_machines').select('*').eq('active', true).order('machine_code'),
+      cargarPartesCanonicas(),
+      window.fetchAllRows ? window.fetchAllRows('part_routings', { filter: q => q.neq('is_active', false), orderBy: 'seq_num' }) : client.from('part_routings').select('*').neq('is_active', false).order('seq_num').then(r => r.data || []),
+      client.from('procesos').select('*'),
+      client.from('mold_machines').select('*').neq('active', false),
+      client.from('checklists').select('*').eq('activo', true).order('codigo'),
+      client.from('checklist_items').select('*').neq('activo', false).order('orden'),
+      client.from('checklist_executions').select('*').eq('execution_type', 'MONTAJE_MOLDE').order('created_at', { ascending: false }).limit(20)
     ]);
-    molds = rMolds.data || [];
+
+    molds = (Array.isArray(rMolds) ? rMolds : (rMolds?.data || [])).filter(m => m.active !== false);
     machines = rMach.data || [];
-    pts = Array.isArray(rParts) ? rParts : (rParts.data || []);
+    pts = rawParts || [];
+    partRoutings = (Array.isArray(rRout) ? rRout : (rRout?.data || [])).filter(r => r.is_active !== false);
+    procesos = rProc.data || [];
+    moldMachines = rMm.data || [];
+    checklists = rChk.data || [];
+    allChecklistItems = (rItems.data || []).filter(i => i.activo !== false);
+    smedHistory = rExec.data || [];
 
-    const chks = rChk.data || [];
-    const smedChk = chks.find(c => /SMED|MOLDE|MONTAJE/i.test(c.checklist_type || c.checklist_name || '')) || chks[0];
-    if (smedChk && rItems.data) {
-      checklistItems = rItems.data.filter(i => i.checklist_id === smedChk.id).map(i => ({ text: i.item_text, critical: i.is_critical, done: false }));
+    const selChk = document.getElementById('selChecklistId');
+    if (selChk) {
+      selChk.innerHTML = checklists.length
+        ? checklists.map(c => `<option value="${esc(c.id)}">${esc(c.codigo)} · ${esc(c.nombre)}</option>`).join('')
+        : '<option value="">CHK-SMED-01 (Estándar)</option>';
     }
-  } catch (e) { console.warn(e); }
 
-  if (!checklistItems.length) {
-    checklistItems = [
-      { text: 'Desmontar molde anterior y purgar cilindro / boquilla', critical: true, done: false },
-      { text: 'Verificar limpieza de platinas, bridas y cáncamo de izaje', critical: true, done: false },
-      { text: 'Montar molde, dar torque a grapas y conectar agua/aceite/colada caliente', critical: true, done: false },
-      { text: 'Cargar hoja de proceso y validar resina seca en tolva (WMS)', critical: true, done: false },
-      { text: 'Aprobar Primera Pieza con Calidad antes de corrida', critical: true, done: false }
-    ];
-  }
+    const poList = (rPo.data || []).filter(po => !['CANCELADA', 'CERRADA'].includes(String(po.status || '').toUpperCase()));
+    const defSmed = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'smed_default_min', 45)) : 45;
+    const defaultSmedChk = checklists.find(c => c.codigo === 'CHK-SMED-01') || checklists.find(c => c.tipo === 'MONTAJE_MOLDE') || checklists[0] || null;
 
-  let aps = [];
-  try { aps = JSON.parse(localStorage.getItem(LS_APS) || '[]'); } catch { aps = []; }
+    let queueSource = poList.map(po => ({
+      po_id: po.id,
+      wo: po.folio || ('WO-' + String(po.id).padStart(4, '0')),
+      part_id: po.part_id,
+      machine_id: po.machine_id,
+      mold_id: po.mold_id,
+      qty: Number(po.quantity_planned || 0),
+      setup_min: Number(po.setup_planned_min ?? defSmed),
+      setup_status: po.setup_status || (po.smed_execution_id ? 'LIBERADO' : 'PENDIENTE'),
+      smed_execution_id: po.smed_execution_id || null,
+      created_at: po.created_at
+    }));
 
-  const defSmed = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'smed_default_min', 45)) : 45;
-  if (aps.length) {
-    setups = aps.map(w => {
-      const m = machines.find(x => String(x.id) === String(w.machine_id)) || { machine_code: 'INJ-01', machine_name: 'Inyectora', tonnage: 150 };
-      const mo = molds.find(x => String(x.id) === String(w.mold_id)) || { mold_code: 'MLD-100', mold_name: 'Molde Asignado', shots_current: 18000, shots_pm_limit: 50000, tonnage_min: 120 };
-      const p = pts.find(x => x.id === w.part_id) || { part_number: 'PT-' + w.part_id };
+    if (!queueSource.length) {
+      let fb = [];
+      try {
+        const { data: ss } = await client.from('system_settings').select('value').eq('key', 'kraem_aps_wos_v1').maybeSingle();
+        if (ss && Array.isArray(ss.value)) fb = ss.value;
+      } catch (_) {}
+      if (!fb.length) {
+        try { fb = JSON.parse(localStorage.getItem(LS_APS) || '[]'); } catch { fb = []; }
+      }
+      queueSource = fb.map(w => ({
+        po_id: null,
+        wo: w.wo || 'WO-1001',
+        part_id: w.part_id,
+        machine_id: w.machine_id,
+        mold_id: w.mold_id,
+        qty: Number(w.qty || 0),
+        setup_min: Number(w.effective_setup_min ?? w.setup_min ?? defSmed),
+        setup_status: Number(w.effective_setup_min) === 0 ? 'MISMO_MOLDE' : 'PENDIENTE',
+        smed_execution_id: null
+      }));
+    }
+
+    setups = queueSource.map(item => {
+      const mach = machines.find(x => sameId(x.id, item.machine_id)) || {};
+      const mold = molds.find(x => sameId(x.id, item.mold_id)) || {};
+      const part = pts.find(x => sameId(x.id, item.part_id)) || {};
+      const steps = partRoutings.filter(r => sameId(r.part_id, item.part_id)).sort((a,b) => Number(a.seq_num) - Number(b.seq_num));
+      const injStep = steps.find(s => {
+        const pr = procesos.find(p => sameId(p.id, s.proceso_id));
+        return pr && (pr.tipo === 'INYECCION' || pr.codigo === 'PROC-INY');
+      });
+      const routeChain = steps.map(s => (procesos.find(p => sameId(p.id, s.proceso_id)) || {}).codigo).filter(Boolean).join(' → ');
+      const targetChkId = injStep?.checklist_id || defaultSmedChk?.id || null;
+      const exec = smedHistory.find(e => (item.po_id && sameId(e.production_order_id, item.po_id)) || (e.wo_folio && e.wo_folio === item.wo));
+      const finalStatus = (item.setup_status === 'LIBERADO' || exec) ? 'LIBERADA' : (item.setup_status === 'MISMO_MOLDE' ? 'LIBERADA' : 'PENDIENTE');
+
       return {
-        wo: w.wo, date: w.date, qty: w.qty, setup_min: w.setup_min || defSmed,
-        machine: m.machine_code || m.machine_name, machTon: Number(m.tonnage || 0),
-        mold: mo.mold_code || mo.mold_name, reqTon: Number(mo.tonnage_min || mo.tonnage_req || 0),
-        shots: Number(mo.shots_current ?? mo.current_shots ?? 0), pmMax: Number(mo.shots_pm_limit ?? mo.pm_interval_shots ?? 50000),
-        part: p.part_number, wmsReady: false, status: 'EN SETUP',
-        checks: checklistItems.map(c => ({ ...c }))
+        po_id: item.po_id,
+        wo: item.wo,
+        qty: item.qty,
+        setup_min: Number(item.setup_min || injStep?.setup_time_min || mold.setup_time_min || defSmed),
+        part_id: item.part_id || null,
+        part: part.part_number || ('PT-' + (item.part_id || '?')),
+        part_name: part.part_name || '',
+        machine_id: mach.id || item.machine_id || null,
+        machine: mach.machine_code ? `${mach.machine_code} · ${mach.machine_name || ''}` : ('MAQ-' + (item.machine_id || '?')),
+        machTon: Number(mach.tonnage || 0),
+        machTieH: Number(mach.tie_bar_h_mm || 0),
+        machTieV: Number(mach.tie_bar_v_mm || 0),
+        machMaxWeight: Number(mach.max_mold_weight_kg || 0),
+        mold_id: mold.id || item.mold_id || null,
+        mold: mold.mold_code ? `${mold.mold_code}` : (mold.mold_name || 'Sin molde'),
+        mold_name: mold.mold_name || '',
+        reqTonMin: Number(mold.tonnage_min || mold.tonnage_req || 0),
+        reqTonMax: Number(mold.tonnage_max || 0),
+        moldW: Number(mold.ancho_mm || 0),
+        moldH: Number(mold.alto_mm || 0),
+        moldWeight: Number(mold.peso_kg || 0),
+        shots: Number(mold.shots_current ?? mold.current_shots ?? 0),
+        pmMax: Number(mold.shots_pm_limit ?? mold.pm_interval_shots ?? 50000),
+        routeChain,
+        checklist_id: targetChkId,
+        wmsReady: finalStatus === 'LIBERADA',
+        status: finalStatus,
+        checks: buildChecksForChecklist(targetChkId)
       };
     });
-  } else {
-    setups = [
-      {
-        wo: 'WO-1001', date: new Date().toISOString().slice(0,10), qty: 2400, setup_min: 45,
-        machine: 'INJ-01 (150T)', machTon: 150, mold: 'MLD-100', reqTon: 140,
-        shots: 42000, pmMax: 50000, part: 'DEMO-PT-100', wmsReady: true, status: 'EN SETUP',
-        checks: checklistItems.map(c => ({ ...c }))
-      },
-      {
-        wo: 'WO-1002', date: new Date().toISOString().slice(0,10), qty: 1800, setup_min: 60,
-        machine: 'INJ-02 (300T)', machTon: 300, mold: 'MLD-205', reqTon: 260,
-        shots: 49500, pmMax: 50000, part: 'DEMO-PT-200', wmsReady: false, status: 'PENDIENTE',
-        checks: checklistItems.map(c => ({ ...c }))
-      }
-    ];
-  }
+
+    const qWo = (new URLSearchParams(window.location.search).get('wo') || '').trim().toUpperCase();
+    if (qWo) {
+      const idx = setups.findIndex(s => String(s.wo || '').toUpperCase() === qWo);
+      if (idx >= 0) selectedIdx = idx;
+    }
+    if (selectedIdx >= setups.length) selectedIdx = 0;
+
+  } catch (e) { console.warn('SMED init error:', e); }
+
+  renderKpis();
   renderQueue();
   renderDetail();
+  renderSmedHistory();
+}
+
+function renderKpis(){
+  const pend = setups.filter(s => s.status !== 'LIBERADA').length;
+  const lib = setups.filter(s => s.status === 'LIBERADA').length;
+  const pmWarnPct = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'pm_alert_pct', 90)) : 90;
+  const alertsPm = setups.filter(s => s.pmMax > 0 && (s.shots / s.pmMax) * 100 >= pmWarnPct).length;
+  const durs = smedHistory.map(e => Number(e.setup_duration_min || 0)).filter(n => n > 0);
+  const avg = durs.length ? (durs.reduce((a,b) => a + b, 0) / durs.length).toFixed(0) : '0';
+
+  document.getElementById('kpiPendientes').textContent = pend;
+  document.getElementById('kpiLiberadas').textContent = lib;
+  document.getElementById('kpiSmedProm').textContent = `${avg} min`;
+  document.getElementById('kpiAlertasPm').textContent = alertsPm;
 }
 
 function renderQueue(){
   const q = document.getElementById('queueList');
+  if (!setups.length) {
+    q.innerHTML = `<div style="text-align:center;color:var(--muted);padding:25px">Sin órdenes de producción activas pendientes de montaje. Publica un plan desde el <a href="planeacion_aps_tablero.html">Tablero APS</a>.</div>`;
+    return;
+  }
   q.innerHTML = setups.map((s, i) => `
     <div class="setup-card ${i === selectedIdx ? 'active' : ''}" onclick="selectSetup(${i})">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <strong>${esc(s.wo)} · ${esc(s.machine)}</strong>
-        <span class="badge ${s.status === 'LIBERADA' ? 'b-ok' : (s.status === 'EN SETUP' ? 'b-warn' : 'b-info')}">${esc(s.status)}</span>
+        <span class="badge ${s.status === 'LIBERADA' ? 'b-ok' : 'b-warn'}">${esc(s.status)}</span>
       </div>
       <div style="font-size:13px;margin-top:5px">Molde: <strong>${esc(s.mold)}</strong> → Parte: <strong>${esc(s.part)}</strong> (${s.qty.toLocaleString()} pzs)</div>
       <div style="font-size:11.5px;color:var(--muted);margin-top:4px">
-        Tiempo SMED meta: ${s.setup_min} min · PM: ${s.shots.toLocaleString()} / ${s.pmMax.toLocaleString()} disp.
+        Setup Meta: ${s.setup_min} min · PM: ${s.shots.toLocaleString()} / ${s.pmMax.toLocaleString()} disp.${s.routeChain ? ' · Ruta: ' + esc(s.routeChain) : ''}
       </div>
     </div>
   `).join('');
@@ -184,20 +430,54 @@ function renderQueue(){
 
 function selectSetup(i){ selectedIdx = i; renderQueue(); renderDetail(); }
 
-function renderDetail(){
+function onChecklistChange(){
   const s = setups[selectedIdx];
   if (!s) return;
+  const chkId = document.getElementById('selChecklistId').value;
+  s.checklist_id = chkId ? Number(chkId) : null;
+  s.checks = buildChecksForChecklist(s.checklist_id);
+  renderChecklistItems();
+}
+
+function evaluateCr01(s){
+  const issues = [];
+  if (s.machTon > 0) {
+    if (s.reqTonMin > 0 && s.machTon < s.reqTonMin) issues.push(`Tonelaje ${s.machTon}T < mín ${s.reqTonMin}T`);
+    if (s.reqTonMax > 0 && s.machTon > s.reqTonMax) issues.push(`Tonelaje ${s.machTon}T > máx ${s.reqTonMax}T`);
+  }
+  if ((s.machTieH > 0 && s.moldW > 0 && s.moldW > s.machTieH) || (s.machTieV > 0 && s.moldH > 0 && s.moldH > s.machTieV)) {
+    issues.push(`Molde ${s.moldW}×${s.moldH}mm > barras ${s.machTieH}×${s.machTieV}mm`);
+  }
+  if (s.machMaxWeight > 0 && s.moldWeight > 0 && s.moldWeight > s.machMaxWeight) {
+    issues.push(`Peso ${s.moldWeight}kg > máx ${s.machMaxWeight}kg`);
+  }
+  return issues;
+}
+
+function renderDetail(){
+  const s = setups[selectedIdx];
+  const btnMes = document.getElementById('btnGoMes');
+  if (!s) {
+    document.getElementById('selHeader').textContent = 'Sin órdenes seleccionadas.';
+    document.getElementById('checkContainer').innerHTML = '';
+    if (btnMes) btnMes.style.display = 'none';
+    return;
+  }
+
   document.getElementById('selHeader').innerHTML =
     `Orden <strong>${esc(s.wo)}</strong> · Máquina <strong>${esc(s.machine)}</strong> · Molde <strong>${esc(s.mold)}</strong> (${esc(s.part)})`;
+  document.getElementById('selRouteBar').innerHTML = s.routeChain
+    ? `<span class="badge b-info"><i class="fas fa-route"></i> Ruta: ${esc(s.routeChain)}</span>`
+    : '';
 
   const st = document.getElementById('selStatusBadge');
   st.textContent = s.status;
   st.className = 'badge ' + (s.status === 'LIBERADA' ? 'b-ok' : 'b-warn');
 
-  const tonBad = s.reqTon > 0 && s.machTon > 0 && s.machTon < s.reqTon;
+  const crIssues = evaluateCr01(s);
   const gCompat = document.getElementById('gCompat');
-  gCompat.textContent = tonBad ? `Falta tonelaje (${s.machTon}T < ${s.reqTon}T)` : 'Compatible';
-  gCompat.className = 'badge ' + (tonBad ? 'b-bad' : 'b-ok');
+  gCompat.textContent = crIssues.length ? crIssues.join(' | ') : 'Compatible CR01';
+  gCompat.className = 'badge ' + (crIssues.length ? 'b-bad' : 'b-ok');
 
   const pmRatio = s.pmMax > 0 ? s.shots / s.pmMax : 0;
   const pmWarnPct = window.KraemSettings ? Number(KraemSettings.get('planeacion', 'pm_alert_pct', 90)) : 90;
@@ -210,33 +490,164 @@ function renderDetail(){
   gWms.textContent = s.wmsReady ? 'Kit Surtido OK' : 'Pendiente Confirmar';
   gWms.className = 'badge ' + (s.wmsReady ? 'b-ok' : 'b-warn');
 
-  document.getElementById('checkContainer').innerHTML = s.checks.map((c, idx) => `
-    <label class="check-item">
-      <input type="checkbox" ${c.done ? 'checked' : ''} onchange="toggleCheck(${idx})">
-      <div>
-        <div style="font-size:13px;font-weight:600">${esc(c.text)}</div>
-        ${c.critical ? '<span style="font-size:10.5px;color:var(--danger);font-weight:700">Paso crítico obligatorio</span>' : ''}
-      </div>
-    </label>
-  `).join('');
+  const selChk = document.getElementById('selChecklistId');
+  if (selChk && s.checklist_id) selChk.value = String(s.checklist_id);
+  document.getElementById('setupRealMin').value = s.setup_min || 45;
+
+  if (btnMes) {
+    if (s.status === 'LIBERADA') {
+      btnMes.style.display = 'inline-flex';
+      btnMes.href = `produccion_captura.html?wo=${encodeURIComponent(s.wo)}`;
+    } else {
+      btnMes.style.display = 'none';
+    }
+  }
+  renderChecklistItems();
 }
 
-function toggleCheck(idx){ setups[selectedIdx].checks[idx].done = !setups[selectedIdx].checks[idx].done; }
-function toggleWmsKit(){ setups[selectedIdx].wmsReady = !setups[selectedIdx].wmsReady; renderDetail(); }
-
-function liberarArranque(){
+function renderChecklistItems(){
   const s = setups[selectedIdx];
-  const pendingCrit = s.checks.some(c => c.critical && !c.done);
-  if (pendingCrit) return alert('Completa todos los pasos críticos del checklist SMED antes de liberar.');
+  if (!s) return;
+  document.getElementById('checkContainer').innerHTML = s.checks.map((c, idx) => {
+    const needsInput = c.tipo_respuesta === 'NUMERICO' || c.tipo_respuesta === 'TEXTO';
+    return `<div class="check-item">
+      <label class="check-left" style="cursor:pointer">
+        <input type="checkbox" class="chk-done" ${c.done ? 'checked' : ''} onchange="toggleCheck(${idx}, this.checked)">
+        <div>
+          <div style="font-size:13px;font-weight:600">${c.orden ? esc(c.orden) + '. ' : ''}${esc(c.text)}</div>
+          ${c.criterio ? `<div style="font-size:11.5px;color:var(--muted)">${esc(c.criterio)}</div>` : ''}
+          ${c.critical ? '<span style="font-size:10.5px;color:var(--danger);font-weight:700">Paso crítico obligatorio</span>' : ''}
+        </div>
+      </label>
+      ${needsInput ? `<input type="${c.tipo_respuesta === 'NUMERICO' ? 'number' : 'text'}" step="any" class="chk-val-input" value="${esc(c.val || '')}" placeholder="${c.tipo_respuesta === 'NUMERICO' ? 'Valor...' : 'Registro...'}" oninput="setCheckVal(${idx}, this.value)">` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleCheck(idx, checked){
+  if (!setups[selectedIdx]) return;
+  setups[selectedIdx].checks[idx].done = typeof checked === 'boolean' ? checked : !setups[selectedIdx].checks[idx].done;
+}
+
+function setCheckVal(idx, valStr){
+  if (!setups[selectedIdx]) return;
+  setups[selectedIdx].checks[idx].val = valStr;
+}
+
+function toggleWmsKit(){
+  if (!setups[selectedIdx]) return;
+  setups[selectedIdx].wmsReady = !setups[selectedIdx].wmsReady;
+  renderDetail();
+}
+
+async function liberarArranque(){
+  if (!canEditSmed) return alert('Sin permisos para liberar SMED.');
+  const s = setups[selectedIdx];
+  if (!s) return;
+  const pendingCrit = s.checks.some(c => {
+    if (!c.critical) return false;
+    if (!c.done) return true;
+    if ((c.tipo_respuesta === 'NUMERICO' || c.tipo_respuesta === 'TEXTO') && !String(c.val ?? '').trim()) return true;
+    return false;
+  });
+  if (pendingCrit) return alert('Completa todos los pasos críticos obligatorios (incluyendo valores numéricos/texto) del checklist SMED antes de liberar.');
   if (!s.wmsReady) return alert('Confirma que WMS ya surtió el kit de material a máquina.');
+
+  const chkId = Number(document.getElementById('selChecklistId').value || s.checklist_id || checklists[0]?.id);
+  if (!chkId) return alert('No hay un checklist válido seleccionado en catálogo.');
+
+  const setupDur = Number(document.getElementById('setupRealMin').value || s.setup_min || 45);
+  const notes = (document.getElementById('setupNotes').value || '').trim() || null;
+  const userEmail = window.KraemAuth?.user?.email || null;
+
+  const execPayload = {
+    checklist_id: chkId,
+    production_order_id: s.po_id || null,
+    wo_folio: s.wo,
+    part_id: s.part_id || null,
+    mold_id: s.mold_id || null,
+    machine_id: s.machine_id || null,
+    execution_type: 'MONTAJE_MOLDE',
+    status: 'APROBADO',
+    setup_duration_min: setupDur,
+    wms_kit_confirmed: true,
+    responses: s.checks.map(c => ({ orden: c.orden, item_id: c.item_id || null, texto: c.text, tipo: c.tipo_respuesta, done: !!c.done, valor: c.val || null })),
+    notes,
+    executed_by_email: userEmail
+  };
+
+  const { data: execData, error: execErr } = await client
+    .from('checklist_executions')
+    .insert([execPayload])
+    .select('id')
+    .single();
+  if (execErr) return alert('Error al guardar checklist SMED: ' + execErr.message);
+
+  const execId = execData?.id || null;
+  const nowIso = new Date().toISOString();
+
+  if (s.po_id) {
+    const { error: poErr } = await client
+      .from('production_orders')
+      .update({
+        setup_status: 'LIBERADO',
+        smed_released_at: nowIso,
+        smed_execution_id: execId
+      })
+      .eq('id', s.po_id);
+    if (poErr) console.warn('Aviso actualizando PO SMED:', poErr.message);
+  }
+
+  if (s.mold_id && s.machine_id) {
+    try {
+      await client
+        .from('molds')
+        .update({ current_status: 'EN_ALMACEN', current_machine_id: null })
+        .eq('current_machine_id', s.machine_id)
+        .neq('id', s.mold_id);
+      await client
+        .from('molds')
+        .update({ current_status: 'MONTADO', current_machine_id: s.machine_id })
+        .eq('id', s.mold_id);
+    } catch (mErr) { console.warn('Aviso actualizando estatus molde:', mErr); }
+  }
+
   s.status = 'LIBERADA';
+  smedHistory.unshift({ ...execPayload, id: execId, created_at: nowIso });
+  renderKpis();
   renderQueue();
   renderDetail();
-  alert(`Boceto: ${s.wo} en ${s.machine} liberada a Producción (en Fase 3 actualizará mes_machines y producción en vivo).`);
+  renderSmedHistory();
+  alert(`✅ ${s.wo} en ${s.machine} liberada para Arranque MES.`);
+}
+
+function renderSmedHistory(){
+  const body = document.getElementById('smedHistoryBody');
+  if (!body) return;
+  if (!smedHistory.length) {
+    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px">Aún sin liberaciones SMED registradas.</td></tr>';
+    return;
+  }
+  body.innerHTML = smedHistory.map(e => {
+    const pt = pts.find(p => sameId(p.id, e.part_id)) || {};
+    const mq = machines.find(m => sameId(m.id, e.machine_id)) || {};
+    const mo = molds.find(m => sameId(m.id, e.mold_id)) || {};
+    const ch = checklists.find(c => sameId(c.id, e.checklist_id)) || {};
+    const dt = e.created_at ? new Date(e.created_at).toLocaleString('es-MX', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
+    return `<tr>
+      <td class="num">${esc(dt)}</td>
+      <td><b>${esc(e.wo_folio || '-')}</b></td>
+      <td>${esc(pt.part_number || e.part_id || '-')}</td>
+      <td>${esc(mq.machine_code || e.machine_id || '-')}</td>
+      <td>${esc(mo.mold_code || e.mold_id || '-')}</td>
+      <td><span class="badge b-info">${esc(ch.codigo || e.checklist_id || '-')}</span></td>
+      <td class="num">${e.setup_duration_min ?? '-'} min</td>
+      <td><span class="badge b-ok">${esc(e.status || 'APROBADO')}</span></td>
+    </tr>`;
+  }).join('');
 }
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
-

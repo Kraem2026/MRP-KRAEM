@@ -8,62 +8,84 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
   <script src="kraem_nav.js"></script>
-  <script src="ingenieria_i18n.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
 :root{
   --primary:#2563eb; --bg:#f8fafc; --card:#ffffff; --text:#1e293b;
   --muted:#64748b; --border:#e2e8f0; --success:#22c55e; --warning:#f59e0b; --danger:#ef4444;
+  --surface:#f8fafc; --thead:#f1f5f9;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#0f172a; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --surface:#1e293b; --thead:#1e293b;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text)}
+body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);transition:.2s}
 .container{max-width:1550px;margin:auto}
 .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
 .title-box{display:flex;align-items:center;gap:15px}
-.title-box h1{margin:0;font-size:26px}
+.title-box h1{margin:0;font-size:24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .title-box p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.tab-btn{padding:11px 18px;border-radius:12px;border:1px solid var(--border);background:white;font-weight:700;cursor:pointer;color:var(--muted)}
+.tab-btn{padding:11px 18px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-weight:700;cursor:pointer;color:var(--muted)}
 .tab-btn.active{background:var(--primary);color:white;border-color:var(--primary)}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.04);margin-bottom:20px}
-.grid-routing{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 4px 12px rgba(0,0,0,.04);margin-bottom:18px}
+.grid-routing{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
 @media(max-width:1000px){.grid-routing{grid-template-columns:1fr}}
 .pt-list{max-height:540px;overflow:auto;margin-top:10px}
 .pt-item{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;border-radius:8px}
-.pt-item:hover{background:#f1f5f9}
+.pt-item:hover{background:var(--surface)}
 .pt-item.active{background:var(--primary);color:white}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
 .group{display:flex;flex-direction:column}
-label{font-size:11px;font-weight:700;color:#475569;margin-bottom:4px;text-transform:uppercase}
-input,select,textarea{padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-size:13px;background:white;font-family:inherit;width:100%}
-.btn{border:none;border-radius:10px;padding:10px 15px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13px}
+label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase}
+input,select,textarea{padding:9px 10px;border:1px solid var(--border);border-radius:10px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;width:100%}
+.btn{border:none;border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13px;text-decoration:none}
 .btn-primary{background:var(--primary);color:white}
-.btn-secondary{background:#e2e8f0;color:#334155}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
 .btn-success{background:var(--success);color:white}
-.btn-danger-soft{background:#fee2e2;color:#991b1b}
+.btn-danger-soft{background:rgba(239,68,68,.14);color:var(--danger)}
 .btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse}
-th{background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;text-align:left;padding:10px}
-td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
-.badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700}
+th{background:var(--thead);color:var(--muted);font-size:11px;text-transform:uppercase;text-align:left;padding:9px 10px}
+td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.num{font-variant-numeric:tabular-nums}
+.badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px}
 .b-ok{background:#dcfce7;color:#166534}
 .b-warn{background:#fef3c7;color:#92400e}
 .b-info{background:#e0f2fe;color:#0369a1}
 .muted{color:var(--muted);font-size:11px}
-.empty{text-align:center;padding:30px;color:var(--muted)}
+.empty{text-align:center;padding:24px;color:var(--muted)}
+.route-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.rk-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px}
+.rk-lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;font-weight:700}
+.rk-val{font-size:16px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <div class="title-box">
-      <button class="btn btn-secondary" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> Regresar</button>
+      <button class="btn btn-secondary" id="btnBack" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> <span id="lblBack">Regresar</span></button>
       <div>
-        <h1><i class="fas fa-gears" style="color:var(--primary)"></i> Procesos, Hojas de Ruta & Versiones (SAP CA01/C223)</h1>
-        <p>Secuencia de operaciones estándar por Número de Parte conectando Áreas, Moldes, Máquinas, Empaque y Checklists</p>
+        <h1>
+          <i class="fas fa-gears" style="color:var(--primary)"></i>
+          <span id="lblTitle">Procesos, Hojas de Ruta & Versiones (SAP CA01/C223)</span>
+          <span style="font-size:11px;font-weight:700;color:#93c5fd;background:rgba(59,130,246,0.18);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
+        </h1>
+        <p id="lblSub">Secuencia de operaciones estándar por Número de Parte conectando Áreas, Moldes, Máquinas, Empaque y Checklists</p>
       </div>
+    </div>
+    <div class="controls">
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      <button class="btn btn-secondary" onclick="toggleTheme()" title="Cambiar tema"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
   </div>
 
@@ -97,8 +119,19 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
 
       <!-- HOJA DE RUTA (CA01) -->
       <div class="card">
-        <h3 style="margin:0 0 12px"><i class="fas fa-list-ol"></i> Hoja de Ruta de Operaciones</h3>
-        <div id="routingForm" style="display:none;background:#f8fafc;padding:14px;border-radius:12px;border:1px solid var(--border);margin-bottom:15px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <h3 style="margin:0"><i class="fas fa-list-ol"></i> <span id="lblRoutingTitle">Hoja de Ruta de Operaciones</span></h3>
+          <span id="routeChainBadge" class="badge b-info" style="display:none"></span>
+        </div>
+
+        <div id="routingKpis" class="route-kpis" style="display:none">
+          <div class="rk-box"><div class="rk-lbl">Operaciones</div><div class="rk-val" id="rkSteps">0</div></div>
+          <div class="rk-box"><div class="rk-lbl">Setup Total</div><div class="rk-val" id="rkSetup">0 min</div></div>
+          <div class="rk-box"><div class="rk-lbl">Post-Inyección</div><div class="rk-val" id="rkPost">0 s</div></div>
+          <div class="rk-box"><div class="rk-lbl">Ops Máx.</div><div class="rk-val" id="rkOps">1</div></div>
+        </div>
+
+        <div id="routingForm" style="display:none;background:var(--surface);padding:14px;border-radius:12px;border:1px solid var(--border);margin-bottom:15px">
           <div class="form-grid">
             <div class="group"><label>Secuencia *</label><input id="r_seq" type="number" step="10" value="10"></div>
             <div class="group"><label>Proceso *</label><select id="r_proc" onchange="onProcesoChange()"></select></div>
@@ -111,8 +144,9 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
             <div class="group"><label>Operadores req.</label><input id="r_ops" type="number" min="1" value="1"></div>
           </div>
           <div class="group" style="margin-top:10px"><label>Instrucciones / Notas de Operación</label><input id="r_notas" placeholder="Ej. Colocar 2 clips antes de empacar en carro"></div>
-          <div style="margin-top:12px;display:flex;justify-content:flex-end">
-            <button class="btn btn-success" onclick="agregarPasoRuta()"><i class="fas fa-plus"></i> Agregar Operación</button>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+            <button type="button" class="btn btn-secondary" id="btnCancelPaso" style="display:none" onclick="limpiarPasoRuta()">Cancelar Edición</button>
+            <button type="button" class="btn btn-success" id="btnSavePaso" onclick="agregarPasoRuta()"><i class="fas fa-plus"></i> Agregar / Actualizar Operación</button>
           </div>
         </div>
 
@@ -130,30 +164,31 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
 
   <!-- TAB 2: CATÁLOGO MAESTRO DE PROCESOS -->
   <div id="tabProc" style="display:none">
-    <div class="card">
+    <div class="card" id="procFormCard">
       <h3 style="margin:0 0 12px"><span id="pFormTitle">Nuevo Proceso Estándar</span></h3>
       <div class="form-grid">
-        <div class="group"><label>Código *</label><input id="p_cod" placeholder="Ej. PROC-PIN" style="text-transform:uppercase"></div>
-        <div class="group"><label>Nombre *</label><input id="p_nom" placeholder="Ej. Pintura / Primer"></div>
+        <div class="group"><label>Código *</label><input id="p_cod" placeholder="Ej. PROC-TAM" style="text-transform:uppercase"></div>
+        <div class="group"><label>Nombre *</label><input id="p_nom" placeholder="Ej. Tampografía / Pad Printing"></div>
         <div class="group"><label>Tipo</label>
-          <select id="p_tipo"><option>INYECCION</option><option>ACABADO</option><option>SOLDADURA</option><option>ENSAMBLE</option><option>INSPECCION</option><option>EMPAQUE</option><option>OTRO</option></select>
+          <select id="p_tipo"><option value="INYECCION">INYECCION</option><option value="TAMPOGRAFIA">TAMPOGRAFIA</option><option value="ACABADO">ACABADO</option><option value="SOLDADURA">SOLDADURA</option><option value="ENSAMBLE">ENSAMBLE</option><option value="INSPECCION">INSPECCION</option><option value="EMPAQUE">EMPAQUE</option><option value="OTRO">OTRO</option></select>
         </div>
         <div class="group"><label>Área Default</label><select id="p_area"></select></div>
+        <div class="group"><label>Checklist Default</label><select id="p_chk_default"></select></div>
         <div class="group"><label>Setup Estándar (min)</label><input id="p_setup" type="number" value="0"></div>
         <div class="group"><label>¿Requiere Molde?</label><select id="p_molde"><option value="false">No</option><option value="true">Sí</option></select></div>
         <div class="group"><label>¿Requiere Checklist?</label><select id="p_chk"><option value="false">No</option><option value="true">Sí</option></select></div>
       </div>
       <div class="group" style="margin-top:10px"><label>Descripción</label><input id="p_desc"></div>
       <div style="margin-top:12px;display:flex;gap:10px">
-        <button class="btn btn-primary" onclick="guardarProceso()"><i class="fas fa-save"></i> Guardar Proceso</button>
-        <button class="btn btn-secondary" onclick="limpiarProceso()">Limpiar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarProceso()"><i class="fas fa-save"></i> Guardar Proceso</button>
+        <button type="button" class="btn btn-secondary" onclick="limpiarProceso()">Limpiar</button>
       </div>
     </div>
 
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Área</th><th>Setup</th><th>Molde</th><th>Checklist</th><th>Estatus</th><th style="text-align:right">Acciones</th></tr></thead>
+          <thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Área</th><th>Checklist Default</th><th>Setup</th><th>Molde</th><th>Checklist</th><th>Estatus</th><th style="text-align:right">Acciones</th></tr></thead>
           <tbody id="procBody"></tbody>
         </table>
       </div>
@@ -163,9 +198,59 @@ td{padding:10px;border-bottom:1px solid var(--border);font-size:13px;vertical-al
 
 <script>
 let parts = [], procesos = [], areas = [], molds = [], machines = [], checklists = [], routings = [], versions = [];
-let selectedPartId = null, editProcId = null;
+let selectedPartId = null, editProcId = null, editRoutingId = null;
+let canEditIng = true;
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const val = id => document.getElementById(id).value.trim();
+const val = id => (document.getElementById(id)?.value ?? '').trim();
+const sameId = (a, b) => String(a ?? '') === String(b ?? '');
+
+const PROC_I18N = {
+  es: { back: 'Regresar', title: 'Procesos, Hojas de Ruta & Versiones (SAP CA01/C223)', sub: 'Secuencia de operaciones estándar por Número de Parte conectando Áreas, Moldes, Máquinas, Empaque y Checklists', tabRuta: '1. Hojas de Ruta y Versiones por N/P', tabProc: '2. Catálogo Maestro de Procesos', rTitle: 'Hoja de Ruta de Operaciones' },
+  ko: { back: '돌아가기', title: '공정, 라우팅 및 생산 버전 (SAP CA01/C223)', sub: '부품 번호별 표준 공정 순서 및 금형, 설비, 포장, 체크리스트 연동 관리', tabRuta: '1. 부품별 라우팅 및 생산 버전', tabProc: '2. 마스터 공정 카탈로그', rTitle: '공정 라우팅 순서' },
+  en: { back: 'Back', title: 'Processes, Routings & Production Versions (SAP CA01/C223)', sub: 'Standard operation routing per Part Number linking Areas, Molds, Machines, Packaging & Checklists', tabRuta: '1. Routings & Production Versions by P/N', tabProc: '2. Master Process Catalog', rTitle: 'Operation Routing Sheet' }
+};
+
+function setLang(lang) {
+  const l = PROC_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = PROC_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('tabBtnRuta').innerHTML = `<i class="fas fa-route"></i> ${t.tabRuta}`;
+  document.getElementById('tabBtnProc').innerHTML = `<i class="fas fa-sliders"></i> ${t.tabProc}`;
+  document.getElementById('lblRoutingTitle').textContent = t.rTitle;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+function syncPermissions() {
+  canEditIng = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('ingenieria');
+  const pf = document.getElementById('procFormCard');
+  if (pf) pf.style.display = canEditIng ? 'block' : 'none';
+  const rf = document.getElementById('routingForm');
+  if (rf && selectedPartId) rf.style.display = canEditIng ? 'block' : 'none';
+}
+
+document.addEventListener('kraem:authready', () => {
+  syncPermissions();
+  renderRoutings();
+  renderProcesos();
+});
 
 function switchTab(t){
   document.getElementById('tabRuta').style.display = t === 'ruta' ? 'grid' : 'none';
@@ -174,43 +259,82 @@ function switchTab(t){
   document.getElementById('tabBtnProc').classList.toggle('active', t === 'proc');
 }
 
+async function cargarPartesCanonicas() {
+  if (window.fetchAllRows) {
+    try {
+      const data = await window.fetchAllRows('parts', {
+        select: 'id, part_number, part_name, product_type, project, is_archived_duplicate',
+        filter: q => q.or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%').eq('obsolete', false).eq('is_archived_duplicate', false),
+        orderBy: 'part_number'
+      });
+      return Array.isArray(data) ? data : (data?.data || []);
+    } catch (_) {
+      const fb = await window.fetchAllRows('parts', {
+        select: 'id, part_number, part_name, product_type, project',
+        filter: q => q.or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%').eq('obsolete', false),
+        orderBy: 'part_number'
+      });
+      return (Array.isArray(fb) ? fb : (fb?.data || [])).filter(p => !p.is_archived_duplicate);
+    }
+  }
+  const { data } = await client.from('parts').select('id, part_number, part_name, product_type, project, is_archived_duplicate').or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%').eq('obsolete', false).order('part_number');
+  return (data || []).filter(p => !p.is_archived_duplicate);
+}
+
 async function init(){
-  const [rP, rPr, rAr, rMo, rMa, rCh] = await Promise.all([
-    window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, project', filter: q => q.or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%').eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name, product_type, project').or('product_type.ilike.%PT%,product_type.ilike.%SUB%,product_type.ilike.%ASSY%').eq('obsolete', false).order('part_number'),
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  syncPermissions();
+
+  const [rawParts, rPr, rAr, rawMolds, rawMachines, rCh] = await Promise.all([
+    cargarPartesCanonicas(),
     client.from('procesos').select('*').order('codigo'),
-    client.from('areas').select('id, area_name').eq('active', true).order('area_name'),
-    client.from('molds').select('id, mold_code, mold_name, name, active').order('mold_code'),
-    client.from('mes_machines').select('id, machine_code, machine_name, active').order('machine_code'),
-    client.from('checklists').select('id, codigo, nombre, activo').order('codigo')
+    client.from('areas').select('id, area_name, active').eq('active', true).order('area_name'),
+    window.fetchAllRows ? window.fetchAllRows('molds', { select: 'id, mold_code, mold_name, name, setup_time_min, active', orderBy: 'mold_code' }) : client.from('molds').select('id, mold_code, mold_name, name, setup_time_min, active').order('mold_code').then(r => r.data || []),
+    window.fetchAllRows ? window.fetchAllRows('mes_machines', { select: 'id, machine_code, machine_name, active', orderBy: 'machine_code' }) : client.from('mes_machines').select('id, machine_code, machine_name, active').order('machine_code').then(r => r.data || []),
+    client.from('checklists').select('id, codigo, nombre, tipo, activo').order('codigo')
   ]);
 
   if (rPr.error) {
     document.getElementById('partsList').innerHTML = `<div class="empty" style="color:var(--danger)">
-      ⚠️ Ejecuta primero <b>ingenieria_fase2_sap.sql</b> en Supabase.<br>${esc(rPr.error.message)}</div>`;
+      ⚠️ Ejecuta primero las migraciones de Ingeniería en Supabase.<br>${esc(rPr.error.message)}</div>`;
     return;
   }
 
-  parts = Array.isArray(rP) ? rP : (rP.data || []);
+  parts = rawParts || [];
   procesos = rPr.data || [];
   areas = rAr.data || [];
-  molds = (rMo.data || []).filter(m => m.active !== false);
-  machines = (rMa.data || []).filter(m => m.active !== false);
+  molds = (Array.isArray(rawMolds) ? rawMolds : (rawMolds?.data || [])).filter(m => m.active !== false);
+  machines = (Array.isArray(rawMachines) ? rawMachines : (rawMachines?.data || [])).filter(m => m.active !== false);
   checklists = (rCh.data || []).filter(c => c.activo !== false);
 
   fillSelects();
   renderParts();
   renderProcesos();
+
+  const qp = new URLSearchParams(window.location.search);
+  const pid = qp.get('part_id');
+  if (pid) {
+    const match = parts.find(p => sameId(p.id, pid));
+    if (match) {
+      document.getElementById('qPart').value = match.part_number || '';
+      renderParts();
+      await selectPart(match.id);
+    }
+  }
 }
 
 function fillSelects(){
   const procOpts = `<option value="">Seleccione...</option>` + procesos.filter(p => p.activo !== false).map(p => `<option value="${p.id}">${esc(p.codigo)} - ${esc(p.nombre)}</option>`).join('');
   const areaOpts = `<option value="">-- Ninguna --</option>` + areas.map(a => `<option value="${a.id}">${esc(a.area_name)}</option>`).join('');
+  const chkOpts = `<option value="">-- Sin checklist --</option>` + checklists.map(c => `<option value="${c.id}">${esc(c.codigo)} - ${esc(c.nombre)}</option>`).join('');
   document.getElementById('r_proc').innerHTML = procOpts;
   document.getElementById('r_area').innerHTML = areaOpts;
   document.getElementById('p_area').innerHTML = areaOpts;
+  document.getElementById('r_chk').innerHTML = chkOpts;
+  document.getElementById('p_chk_default').innerHTML = chkOpts;
   document.getElementById('r_mold').innerHTML = `<option value="">-- N/A --</option>` + molds.map(m => `<option value="${esc(m.id)}">${esc(m.mold_code || '')} - ${esc(m.mold_name || m.name || '')}</option>`).join('');
   document.getElementById('r_mach').innerHTML = `<option value="">-- N/A --</option>` + machines.map(m => `<option value="${esc(m.id)}">${esc(m.machine_code)} - ${esc(m.machine_name)}</option>`).join('');
-  document.getElementById('r_chk').innerHTML = `<option value="">-- Sin checklist --</option>` + checklists.map(c => `<option value="${c.id}">${esc(c.codigo)} - ${esc(c.nombre)}</option>`).join('');
 }
 
 function renderParts(){
@@ -218,8 +342,8 @@ function renderParts(){
   const list = parts.filter(p => `${p.part_number||''} ${p.part_name||''} ${p.project||''}`.toUpperCase().includes(q));
   const box = document.getElementById('partsList');
   if (!list.length) { box.innerHTML = `<div class="empty">Sin partes encontradas.</div>`; return; }
-  box.innerHTML = list.map(p => `
-    <div class="pt-item ${selectedPartId === p.id ? 'active' : ''}" onclick="selectPart(${p.id})">
+  box.innerHTML = list.slice(0, 250).map(p => `
+    <div class="pt-item ${sameId(selectedPartId, p.id) ? 'active' : ''}" onclick="selectPart(${p.id})">
       <b>${esc(p.part_number)}</b> <span class="badge b-info">${esc(p.product_type)}</span>
       <div style="font-size:12px;opacity:.85">${esc(p.part_name || '')} ${p.project ? '| ' + esc(p.project) : ''}</div>
     </div>`).join('');
@@ -227,20 +351,22 @@ function renderParts(){
 
 async function selectPart(id){
   selectedPartId = id;
+  limpiarPasoRuta();
   renderParts();
-  const p = parts.find(x => x.id === id);
+  const p = parts.find(x => sameId(x.id, id));
+  if (!p) return;
   document.getElementById('verTitle').textContent = `Versiones de Fabricación: ${p.part_number}`;
   document.getElementById('verSub').textContent = `${p.part_name || ''} • Combinaciones válidas para Planeación, Montaje de Moldes y WMS`;
-  document.getElementById('routingForm').style.display = 'block';
+  document.getElementById('routingForm').style.display = canEditIng ? 'block' : 'none';
 
   const [rR, rV] = await Promise.all([
     client.from('part_routings').select('*').eq('part_id', id).order('seq_num'),
     client.from('v_production_versions').select('*').eq('part_id', id)
   ]);
-  routings = rR.data || [];
+  routings = (rR.data || []).filter(r => r.is_active !== false);
   versions = rV.data || [];
 
-  const maxSeq = routings.length ? Math.max(...routings.map(r => r.seq_num)) : 0;
+  const maxSeq = routings.length ? Math.max(...routings.map(r => Number(r.seq_num) || 0)) : 0;
   document.getElementById('r_seq').value = maxSeq + 10;
 
   renderVersions();
@@ -251,76 +377,146 @@ function renderVersions(){
   const body = document.getElementById('verBody');
   const valid = versions.filter(v => v.mold_id || v.machine_id);
   if (!valid.length) {
-    body.innerHTML = `<tr><td colspan="8" class="empty">Aún sin versión Molde + Máquina. Asígnalo en <a href="catalogo_moldes.html">Maestro de Moldes</a>.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="8" class="empty">Aún sin versión Molde + Máquina. Asígnalo en <a href="catalogo_moldes.html?part_id=${esc(selectedPartId)}">Maestro de Moldes</a>.</td></tr>`;
     return;
   }
   body.innerHTML = valid.map(v => `<tr>
     <td><b>${esc(v.mold_code || '-')}</b><div class="muted">${esc(v.mold_name || '')}</div></td>
     <td>${v.machine_code ? `<b>${esc(v.machine_code)}</b>` : '<span class="muted">Sin máquina</span>'}</td>
-    <td>${v.cycle_time_sec || '-'}</td>
-    <td>${v.cavities_for_part || '-'}</td>
-    <td><b>${v.pcs_per_hour || '-'}</b></td>
-    <td>${v.mold_setup_min || 0} min</td>
+    <td class="num">${v.cycle_time_sec || '-'}</td>
+    <td class="num">${v.cavities_for_part || '-'}</td>
+    <td class="num"><b>${v.pcs_per_hour || '-'}</b></td>
+    <td class="num">${v.mold_setup_min || 0} min</td>
     <td>${v.official_std_pack ? `<span class="badge b-ok">${v.official_std_pack} pzs (${esc(v.empaque_codigo)})</span>` : '<span class="badge b-warn">Sin empaque</span>'}</td>
     <td>${v.default_location_code ? `<b>${esc(v.default_location_code)}</b>` : '<span class="muted">-</span>'}</td>
   </tr>`).join('');
 }
 
 function renderRoutings(){
+  const kpiBox = document.getElementById('routingKpis');
+  const chainBadge = document.getElementById('routeChainBadge');
   const body = document.getElementById('rutaBody');
-  if (!routings.length) { body.innerHTML = `<tr><td colspan="9" class="empty">Sin hoja de ruta definida para este N/P.</td></tr>`; return; }
-  body.innerHTML = routings.map(r => {
-    const pr = procesos.find(x => x.id === r.proceso_id) || {};
-    const ar = areas.find(x => x.id === r.area_id);
-    const mo = molds.find(x => String(x.id) === String(r.mold_id));
-    const ma = machines.find(x => String(x.id) === String(r.machine_id));
-    const ch = checklists.find(x => x.id === r.checklist_id);
+  if (!routings.length) {
+    if (kpiBox) kpiBox.style.display = 'none';
+    if (chainBadge) chainBadge.style.display = 'none';
+    body.innerHTML = `<tr><td colspan="9" class="empty">Sin hoja de ruta definida para este N/P.</td></tr>`;
+    return;
+  }
+
+  const ordered = [...routings].sort((a,b) => Number(a.seq_num) - Number(b.seq_num));
+  const chain = ordered.map(r => (procesos.find(x => sameId(x.id, r.proceso_id)) || {}).codigo).filter(Boolean).join(' → ');
+  const totSetup = ordered.reduce((s, r) => s + Number(r.setup_time_min || 0), 0);
+  const postInj = ordered.filter(r => (procesos.find(x => sameId(x.id, r.proceso_id)) || {}).tipo !== 'INYECCION').reduce((s, r) => s + Number(r.std_time_sec || 0), 0);
+  const maxOps = Math.max(1, ...ordered.map(r => Number(r.operators_req || 1)));
+
+  if (kpiBox) {
+    kpiBox.style.display = 'grid';
+    document.getElementById('rkSteps').textContent = ordered.length;
+    document.getElementById('rkSetup').textContent = `${totSetup} min`;
+    document.getElementById('rkPost').textContent = `${postInj} s`;
+    document.getElementById('rkOps').textContent = maxOps;
+  }
+  if (chainBadge && chain) {
+    chainBadge.style.display = 'inline-flex';
+    chainBadge.textContent = chain;
+  }
+
+  body.innerHTML = ordered.map(r => {
+    const pr = procesos.find(x => sameId(x.id, r.proceso_id)) || {};
+    const ar = areas.find(x => sameId(x.id, r.area_id));
+    const mo = molds.find(x => sameId(x.id, r.mold_id));
+    const ma = machines.find(x => sameId(x.id, r.machine_id));
+    const ch = checklists.find(x => sameId(x.id, r.checklist_id));
     return `<tr>
-      <td><b>${r.seq_num}</b></td>
-      <td><b>${esc(pr.nombre || r.proceso_id)}</b>${r.notas ? `<div class="muted">${esc(r.notas)}</div>` : ''}</td>
+      <td class="num"><b>${r.seq_num}</b></td>
+      <td><b>${esc(pr.nombre || r.proceso_id)}</b> ${pr.codigo ? `<span class="badge b-info">${esc(pr.codigo)}</span>` : ''}${r.notas ? `<div class="muted">${esc(r.notas)}</div>` : ''}</td>
       <td>${ar ? esc(ar.area_name) : '-'}</td>
       <td>${mo ? esc(mo.mold_code) : '-'} / ${ma ? esc(ma.machine_code) : '-'}</td>
-      <td>${r.std_time_sec || 0} s</td>
-      <td>${r.setup_time_min || 0} min</td>
-      <td>${r.operators_req || 1}</td>
-      <td>${ch ? `<span class="badge b-info">${esc(ch.codigo)}</span>` : '-'}</td>
-      <td style="text-align:right"><button class="btn btn-sm btn-danger-soft" onclick="eliminarPaso(${r.id})"><i class="fas fa-trash"></i></button></td>
+      <td class="num">${r.std_time_sec || 0} s</td>
+      <td class="num">${r.setup_time_min || 0} min</td>
+      <td class="num">${r.operators_req || 1}</td>
+      <td>${ch ? `<a href="catalogo_checklists.html?id=${esc(ch.id)}" class="badge b-info" style="text-decoration:none">${esc(ch.codigo)}</a>` : '-'}</td>
+      <td style="text-align:right;white-space:nowrap">${canEditIng ? `
+        <button class="btn btn-sm btn-secondary" onclick="editarPasoRuta(${r.id})" title="Editar paso"><i class="fas fa-pen"></i></button>
+        <button class="btn btn-sm btn-danger-soft" onclick="eliminarPaso(${r.id})" title="Desactivar paso"><i class="fas fa-trash"></i></button>
+      ` : ''}</td>
     </tr>`;
   }).join('');
 }
 
 function onProcesoChange(){
-  const pr = procesos.find(x => String(x.id) === val('r_proc'));
+  const pr = procesos.find(x => sameId(x.id, val('r_proc')));
   if (!pr) return;
   if (pr.area_id) document.getElementById('r_area').value = pr.area_id;
-  if (pr.std_setup_min) document.getElementById('r_setup').value = pr.std_setup_min;
+  if (pr.std_setup_min !== null && pr.std_setup_min !== undefined) document.getElementById('r_setup').value = pr.std_setup_min;
+  document.getElementById('r_chk').value = pr.default_checklist_id || '';
+  if (pr.tipo === 'INYECCION' && versions.length) {
+    const pv = versions.find(v => v.mold_is_primary) || versions[0];
+    if (pv.mold_id) document.getElementById('r_mold').value = pv.mold_id;
+    if (pv.machine_id) document.getElementById('r_mach').value = pv.machine_id;
+    if (pv.cycle_time_sec) {
+      const cav = Math.max(1, Number(pv.cavities_for_part || 1));
+      document.getElementById('r_time').value = (Number(pv.cycle_time_sec) / cav).toFixed(2);
+    }
+    if (pv.mold_setup_min) document.getElementById('r_setup').value = pv.mold_setup_min;
+  }
+}
+
+function editarPasoRuta(id){
+  const r = routings.find(x => sameId(x.id, id));
+  if (!r) return;
+  editRoutingId = r.id;
+  document.getElementById('r_seq').value = r.seq_num || 10;
+  document.getElementById('r_proc').value = r.proceso_id || '';
+  document.getElementById('r_area').value = r.area_id || '';
+  document.getElementById('r_mold').value = r.mold_id || '';
+  document.getElementById('r_mach').value = r.machine_id || '';
+  document.getElementById('r_chk').value = r.checklist_id || '';
+  document.getElementById('r_time').value = r.std_time_sec ?? 0;
+  document.getElementById('r_setup').value = r.setup_time_min ?? 0;
+  document.getElementById('r_ops').value = r.operators_req ?? 1;
+  document.getElementById('r_notas').value = r.notas || '';
+  const cancelBtn = document.getElementById('btnCancelPaso');
+  if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+}
+
+function limpiarPasoRuta(){
+  editRoutingId = null;
+  document.getElementById('r_notas').value = '';
+  const cancelBtn = document.getElementById('btnCancelPaso');
+  if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
 async function agregarPasoRuta(){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   if (!selectedPartId) return;
   const procId = val('r_proc');
   if (!procId) return alert('Selecciona un proceso.');
-  const { error } = await client.from('part_routings').insert([{
+  const payload = {
     part_id: selectedPartId,
     seq_num: parseInt(document.getElementById('r_seq').value, 10) || 10,
     proceso_id: Number(procId),
     area_id: val('r_area') ? Number(val('r_area')) : null,
-    mold_id: val('r_mold') || null,
-    machine_id: val('r_mach') || null,
+    mold_id: val('r_mold') ? Number(val('r_mold')) : null,
+    machine_id: val('r_mach') ? Number(val('r_mach')) : null,
     checklist_id: val('r_chk') ? Number(val('r_chk')) : null,
     std_time_sec: Number(document.getElementById('r_time').value) || 0,
     setup_time_min: Number(document.getElementById('r_setup').value) || 0,
     operators_req: parseInt(document.getElementById('r_ops').value, 10) || 1,
     notas: val('r_notas') || null,
     is_active: true
-  }]);
+  };
+  const { error } = editRoutingId
+    ? await client.from('part_routings').update(payload).eq('id', editRoutingId)
+    : await client.from('part_routings').upsert([payload], { onConflict: 'part_id,seq_num' });
   if (error) return alert('Error: ' + error.message);
-  document.getElementById('r_notas').value = '';
+  limpiarPasoRuta();
   await selectPart(selectedPartId);
 }
 
 async function eliminarPaso(id){
-  const { error } = await client.from('part_routings').delete().eq('id', id);
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
+  const { error } = await client.from('part_routings').update({ is_active: false }).eq('id', id);
   if (error) return alert(error.message);
   await selectPart(selectedPartId);
 }
@@ -329,20 +525,22 @@ async function eliminarPaso(id){
 function renderProcesos(){
   const body = document.getElementById('procBody');
   body.innerHTML = procesos.map(p => {
-    const ar = areas.find(a => a.id === p.area_id);
+    const ar = areas.find(a => sameId(a.id, p.area_id));
+    const chk = checklists.find(c => sameId(c.id, p.default_checklist_id));
     return `<tr style="${p.activo === false ? 'opacity:.55' : ''}">
       <td><b>${esc(p.codigo)}</b></td>
       <td><b>${esc(p.nombre)}</b><div class="muted">${esc(p.descripcion || '')}</div></td>
       <td><span class="badge b-info">${esc(p.tipo)}</span></td>
       <td>${ar ? esc(ar.area_name) : '-'}</td>
-      <td>${p.std_setup_min || 0} min</td>
+      <td>${chk ? `<span class="badge b-info">${esc(chk.codigo)}</span>` : '-'}</td>
+      <td class="num">${p.std_setup_min || 0} min</td>
       <td>${p.requiere_molde ? 'Sí' : 'No'}</td>
       <td>${p.requiere_checklist ? 'Sí' : 'No'}</td>
       <td><span class="badge ${p.activo !== false ? 'b-ok' : 'b-warn'}">${p.activo !== false ? 'ACTIVO' : 'INACTIVO'}</span></td>
-      <td style="text-align:right;white-space:nowrap">
+      <td style="text-align:right;white-space:nowrap">${canEditIng ? `
         <button class="btn btn-sm btn-secondary" onclick="editarProceso(${p.id})"><i class="fas fa-pen"></i></button>
         <button class="btn btn-sm btn-danger-soft" onclick="toggleProceso(${p.id}, ${p.activo !== false})"><i class="fas ${p.activo === false ? 'fa-check' : 'fa-ban'}"></i></button>
-      </td>
+      ` : ''}</td>
     </tr>`;
   }).join('');
 }
@@ -353,17 +551,19 @@ function limpiarProceso(){
   ['p_cod','p_nom','p_desc'].forEach(k => document.getElementById(k).value = '');
   document.getElementById('p_setup').value = 0;
   document.getElementById('p_area').value = '';
+  document.getElementById('p_chk_default').value = '';
 }
 
 function editarProceso(id){
-  const p = procesos.find(x => x.id === id);
+  const p = procesos.find(x => sameId(x.id, id));
   if (!p) return;
-  editProcId = id;
+  editProcId = p.id;
   document.getElementById('pFormTitle').textContent = 'Editar Proceso: ' + p.codigo;
   document.getElementById('p_cod').value = p.codigo || '';
   document.getElementById('p_nom').value = p.nombre || '';
-  document.getElementById('p_tipo').value = p.tipo || 'PRODUCCION';
+  document.getElementById('p_tipo').value = p.tipo || 'INYECCION';
   document.getElementById('p_area').value = p.area_id || '';
+  document.getElementById('p_chk_default').value = p.default_checklist_id || '';
   document.getElementById('p_setup').value = p.std_setup_min ?? 0;
   document.getElementById('p_molde').value = String(!!p.requiere_molde);
   document.getElementById('p_chk').value = String(!!p.requiere_checklist);
@@ -371,6 +571,7 @@ function editarProceso(id){
 }
 
 async function guardarProceso(){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   const codigo = val('p_cod').toUpperCase();
   const nombre = val('p_nom');
   if (!codigo || !nombre) return alert('Código y nombre son obligatorios.');
@@ -378,6 +579,7 @@ async function guardarProceso(){
     codigo, nombre,
     tipo: val('p_tipo'),
     area_id: val('p_area') ? Number(val('p_area')) : null,
+    default_checklist_id: val('p_chk_default') ? Number(val('p_chk_default')) : null,
     std_setup_min: Number(document.getElementById('p_setup').value) || 0,
     requiere_molde: val('p_molde') === 'true',
     requiere_checklist: val('p_chk') === 'true',
@@ -392,6 +594,7 @@ async function guardarProceso(){
 }
 
 async function toggleProceso(id, actual){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   const { error } = await client.from('procesos').update({ activo: !actual }).eq('id', id);
   if (error) return alert(error.message);
   await init();

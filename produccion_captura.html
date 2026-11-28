@@ -598,6 +598,9 @@ button{
                 </div>
                 <button class="btn btn-sm btn-secondary" onclick="limpiarSeleccionWO()"><i class="fas fa-times"></i> Cambiar / Limpiar</button>
             </div>
+
+            <!-- Panel Operativo de Hoja de Ruta, SMED y 1ra Pieza -->
+            <div id="woRoutingPanel" style="display:none;margin-top:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:rgba(37,99,235,0.06)"></div>
         </div>
 
         <div class="card">
@@ -863,6 +866,9 @@ let activeRuns = [];
 let currentCierreRun = null;
 let currentZebraData = null;
 let partMolds = [];
+let procesos = [];
+let partRoutings = [];
+let checklistExecutions = [];
 let selectedLoadedWo = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -920,11 +926,23 @@ async function init(){
             partMolds = (pmData || []).filter(pm => pm.active !== false);
         } catch (_) {}
 
-        // 5. Cargar Partes canónicas
+        // 5. Cargar Partes canónicas (con gramaje, colada, resina, cavidades y ciclo)
         const rawParts = window.fetchAllRows
-            ? await window.fetchAllRows('parts', { select: 'id,part_number,part_name,product_type,is_archived_duplicate', orderBy: 'part_number' })
-            : ((await client.from('parts').select('id,part_number,part_name,product_type,is_archived_duplicate').limit(1000)).data || []);
+            ? await window.fetchAllRows('parts', { select: 'id,part_number,part_name,product_type,part_weight_gr,runner_weight_gr,resin_grade,color,cavities,cycle_time_seg,is_archived_duplicate', orderBy: 'part_number' })
+            : ((await client.from('parts').select('id,part_number,part_name,product_type,part_weight_gr,runner_weight_gr,resin_grade,color,cavities,cycle_time_seg,is_archived_duplicate').limit(1000)).data || []);
         parts = (rawParts || []).filter(p => !p.is_archived_duplicate);
+
+        // 5b. Cargar Rutas Estándar (CA01) y Ejecuciones SMED / 1ra Pieza
+        try {
+            const [rProc, rRout, rExec] = await Promise.all([
+                client.from('procesos').select('*'),
+                window.fetchAllRows ? window.fetchAllRows('part_routings', { filter: q => q.neq('is_active', false), orderBy: 'seq_num' }) : client.from('part_routings').select('*').neq('is_active', false).order('seq_num').then(r => r.data || []),
+                client.from('checklist_executions').select('id, wo_folio, production_order_id, part_id, machine_id, mold_id, execution_type, status, setup_duration_min, created_at').order('created_at', { ascending: false }).limit(50)
+            ]);
+            procesos = rProc?.data || [];
+            partRoutings = (Array.isArray(rRout) ? rRout : (rRout?.data || [])).filter(r => r.is_active !== false);
+            checklistExecutions = rExec?.data || [];
+        } catch (_) {}
 
         // 6. Cargar Empleados
         const { data: employeesData } = await client.from('rh_empleados').select('id,nombre_completo').order('nombre_completo');
@@ -952,6 +970,9 @@ async function init(){
         // Fila inicial de partes y operadores
         addOutputRow();
         addOperatorRow();
+
+        const woParam = new URLSearchParams(window.location.search).get('wo');
+        if (woParam) cargarDatosDesdeWO(woParam);
 
         document.getElementById('sessionInfo').innerHTML = '<i class="fas fa-check-circle" style="color:var(--success)"></i> Conectado';
 
@@ -1067,6 +1088,9 @@ async function cargarWOsProgramadas() {
                 quantity_planned: item.quantity_planned || item.quantity || 0,
                 status: item.status || 'PROGRAMADA',
                 estimated_hours: item.estimated_hours || 8,
+                setup_status: item.setup_status || 'PENDIENTE',
+                setup_planned_min: item.setup_planned_min ?? null,
+                smed_execution_id: item.smed_execution_id || null,
                 raw: item
             };
         });
@@ -1145,6 +1169,75 @@ function renderWoCards(filterMachineId) {
     }).join('');
 }
 
+function renderWoRoutingPanel(wo) {
+    const panel = document.getElementById('woRoutingPanel');
+    if (!panel) return;
+    if (!wo || !wo.part_id) {
+        panel.style.display = 'none';
+        panel.innerHTML = '';
+        return;
+    }
+
+    const steps = partRoutings
+        .filter(r => String(r.part_id) === String(wo.part_id) && r.is_active !== false)
+        .sort((a,b) => Number(a.seq_num || 0) - Number(b.seq_num || 0));
+
+    const opsReq = steps.length ? Math.max(1, ...steps.map(s => Number(s.operators_req || 1))) : 1;
+    const stepBadges = steps.map(s => {
+        const pr = procesos.find(p => String(p.id) === String(s.proceso_id)) || {};
+        return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(37,99,235,0.14);color:var(--primary)">${esc(s.seq_num)} ${esc(pr.codigo || pr.nombre || s.proceso_id)}</span>`;
+    }).join(' <span style="color:var(--muted)">→</span> ');
+
+    const notesHtml = steps.filter(s => s.notas).map(s => {
+        const pr = procesos.find(p => String(p.id) === String(s.proceso_id)) || {};
+        return `<div>• <strong>${esc(pr.codigo || s.seq_num)}:</strong> ${esc(s.notas)}</div>`;
+    }).join('');
+
+    const smedMatch = checklistExecutions.find(e =>
+        e.execution_type === 'MONTAJE_MOLDE'
+        && e.status === 'APROBADO'
+        && (
+            (wo.id && String(e.production_order_id) === String(wo.id))
+            || (wo.folio && String(e.wo_folio || '').toUpperCase() === String(wo.folio).toUpperCase())
+            || (wo.mold_id && wo.machine_id && String(e.mold_id) === String(wo.mold_id) && String(e.machine_id) === String(wo.machine_id))
+        )
+    );
+    const isSmedOk = wo.setup_status === 'LIBERADO' || wo.setup_status === 'MISMO_MOLDE' || Boolean(smedMatch);
+    const fpMatch = checklistExecutions.find(e =>
+        e.execution_type === 'ARRANQUE_PRIMERA_PIEZA'
+        && e.status === 'APROBADO'
+        && (
+            (wo.folio && String(e.wo_folio || '').toUpperCase() === String(wo.folio).toUpperCase())
+            || (wo.part_id && String(e.part_id) === String(wo.part_id))
+        )
+    );
+
+    const smedUrl = `planeacion_montaje_moldes.html?wo=${encodeURIComponent(wo.folio || '')}`;
+    const calUrl = `calidad_control.html?part_id=${encodeURIComponent(wo.part_id)}&wo=${encodeURIComponent(wo.folio || '')}&machine_id=${encodeURIComponent(wo.machine_id || '')}`;
+
+    panel.style.display = 'block';
+    panel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+            <strong style="font-size:12.5px;display:flex;align-items:center;gap:6px;">
+                <i class="fas fa-route" style="color:var(--primary)"></i> Hoja de Ruta Estándar & Estado Pre-Arranque
+            </strong>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <span style="padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(139,92,246,0.14);color:#7c3aed;">Ops req: ${opsReq}</span>
+                ${isSmedOk
+                    ? `<span style="padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;background:rgba(22,163,74,0.18);color:#16a34a;"><i class="fas fa-check-circle"></i> SMED LIBERADO</span>`
+                    : `<a href="${smedUrl}" style="padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;background:rgba(217,119,6,0.18);color:#d97706;text-decoration:none;"><i class="fas fa-wrench"></i> SMED PENDIENTE →</a>`}
+                ${fpMatch
+                    ? `<span style="padding:3px 8px;border-radius:6px;font-size:11px;font-weight:800;background:rgba(22,163,74,0.18);color:#16a34a;"><i class="fas fa-check-double"></i> 1RA PIEZA OK</span>`
+                    : `<a href="${calUrl}" style="padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(37,99,235,0.14);color:var(--primary);text-decoration:none;"><i class="fas fa-clipboard-check"></i> Liberación 1ra Pieza →</a>`}
+            </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">
+            ${stepBadges || '<span style="font-size:11.5px;color:var(--muted)">Sin pasos de ruta registrados para este N/P.</span>'}
+        </div>
+        ${notesHtml ? `<div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4">${notesHtml}</div>` : ''}
+    `;
+}
+
 function cargarDatosDesdeWO(folio) {
     if (!folio) {
         limpiarSeleccionWO();
@@ -1184,7 +1277,23 @@ function cargarDatosDesdeWO(folio) {
     const opSel = document.getElementById('opSelect');
     if (opSel) opSel.value = folio;
 
-    // 4. Auto-llenar Parte a Producir en outputsContainer
+    const partObj = parts.find(p => String(p.id) === String(wo.part_id));
+    const pm = partMolds.find(r => String(r.part_id) === String(wo.part_id) && (!wo.mold_id || String(r.mold_id) === String(wo.mold_id)));
+    const realPartWeight = Number(pm?.part_weight_gr || partObj?.part_weight_gr || 0);
+
+    // 3b. Auto-llenar ciclo, colada, resina y color reales de Ingeniería
+    const ctEl = document.getElementById('cycleTime');
+    const cycleVal = Number(pm?.cycle_time_sec || partObj?.cycle_time_seg || 0);
+    if (ctEl && cycleVal > 0) ctEl.value = cycleVal;
+    const rwEl = document.getElementById('runnerWeight');
+    const runnerVal = Number(pm?.runner_weight_gr || partObj?.runner_weight_gr || 0);
+    if (rwEl && runnerVal > 0) rwEl.value = runnerVal;
+    const resEl = document.getElementById('resinType');
+    if (resEl && partObj?.resin_grade) resEl.value = partObj.resin_grade;
+    const colEl = document.getElementById('resinColor');
+    if (colEl && partObj?.color) colEl.value = partObj.color;
+
+    // 4. Auto-llenar Parte a Producir en outputsContainer con su peso real (g) y Meta aparte
     const outputsContainer = document.getElementById('outputsContainer');
     if (outputsContainer && wo.part_id) {
         outputsContainer.innerHTML = '';
@@ -1212,16 +1321,32 @@ function cargarDatosDesdeWO(folio) {
                 </div>
                 <div>
                     <label>Cavidades <span class="autoplan-tag">MOLDE</span></label>
-                    <input type="number" class="cavitiesInput" value="${wo.cavities || 1}" min="1">
+                    <input type="number" class="cavitiesInput" value="${wo.cavities || pm?.cavities_for_part || partObj?.cavities || 1}" min="1">
+                </div>
+                <div>
+                    <label>Peso Pieza (g)</label>
+                    <input type="number" class="pieceWeightInput" step="0.1" value="${realPartWeight}">
                 </div>
                 <div>
                     <label>Meta Cantidad Plan</label>
-                    <input type="number" class="pieceWeightInput" value="${wo.quantity_planned || 0}" readonly title="Cantidad planificada en la orden">
+                    <input type="number" class="plannedQtyDisplay" value="${wo.quantity_planned || 0}" readonly title="Cantidad planificada en la orden">
                 </div>
             </div>
         `;
         outputsContainer.appendChild(div);
     }
+
+    // 4b. Ajustar filas de operadores requeridos según Hoja de Ruta
+    const stepsForPart = partRoutings.filter(r => String(r.part_id) === String(wo.part_id) && r.is_active !== false);
+    const opsReq = stepsForPart.length ? Math.max(1, ...stepsForPart.map(s => Number(s.operators_req || 1))) : 1;
+    if (employees.length > 0 && opsReq > 1) {
+        while (document.querySelectorAll('#operatorsContainer .operator-row').length < opsReq) {
+            addOperatorRow();
+        }
+    }
+
+    // 4c. Mostrar Hoja de Ruta y estatus SMED / 1ra Pieza
+    renderWoRoutingPanel(wo);
 
     // 5. Sugerir Turno según la hora actual
     const curHour = new Date().getHours();
@@ -1305,6 +1430,8 @@ function limpiarSeleccionWO() {
     selectedLoadedWo = null;
     const banner = document.getElementById('woLoadedAlert');
     if (banner) banner.style.display = 'none';
+    const rPanel = document.getElementById('woRoutingPanel');
+    if (rPanel) { rPanel.style.display = 'none'; rPanel.innerHTML = ''; }
     const quickSel = document.getElementById('quickWoSelect');
     if (quickSel) quickSel.value = '';
     const opSel = document.getElementById('opSelect');

@@ -230,6 +230,32 @@
                 </div>
             </div>
 
+            <!-- HOJA DE RUTA DE MANUFACTURA (CA01) -->
+            <div class="card">
+                <div class="card-title">
+                    <span><i class="fas fa-route"></i> Hoja de Ruta de Manufactura (SAP CA01)</span>
+                    <a id="btnRoutingLink" href="catalogo_procesos.html" class="btn btn-sm"><i class="fas fa-gears"></i> Configurar Ruta</a>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Seq</th>
+                                <th>Proceso</th>
+                                <th>Molde / Máquina</th>
+                                <th>Tiempo / pza</th>
+                                <th>Setup SMED</th>
+                                <th>Ops</th>
+                                <th>Checklist</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routingTableBody">
+                            <tr><td colspan="7" style="text-align:center;">Cargando hoja de ruta...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
 
     </div>
@@ -271,6 +297,8 @@
         document.getElementById('valType').innerText = pType;
         const moldsCatBtn = document.getElementById('btnMoldsCatalogLink');
         if (moldsCatBtn) moldsCatBtn.href = `catalogo_moldes.html?part_id=${p.id}`;
+        const routingBtn = document.getElementById('btnRoutingLink');
+        if (routingBtn) routingBtn.href = `catalogo_procesos.html?part_id=${p.id}`;
         const bomHeaderBtn = document.getElementById('btnBomHeaderLink');
         const bomTreeBtn = document.getElementById('btnBomTreeLink');
         if (pType === 'PT' || pType === 'SUB-ENSAMBLE') {
@@ -314,6 +342,47 @@
 
         // 4. Moldes donde se fabrica esta parte
         await loadMolds(p.id);
+
+        // 5. Hoja de Ruta (SAP CA01)
+        await loadPartRoutings(p.id);
+    }
+
+    async function loadPartRoutings(id) {
+        const body = document.getElementById('routingTableBody');
+        if (!body) return;
+        const { data, error } = await client
+            .from('part_routings')
+            .select('id, seq_num, std_time_sec, setup_time_min, operators_req, notas, is_active, procesos(codigo, nombre, tipo), molds(mold_code), mes_machines(machine_code), checklists(id, codigo, nombre)')
+            .eq('part_id', id)
+            .order('seq_num');
+
+        if (error) {
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--secondary);">No se pudo cargar la hoja de ruta: ${escF(error.message)}</td></tr>`;
+            return;
+        }
+        const rows = (data || []).filter(r => r.is_active !== false);
+        if (!rows.length) {
+            body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--secondary);">Sin pasos de ruta configurados. <a href="catalogo_procesos.html?part_id=${id}">Definir en Procesos & Rutas</a></td></tr>`;
+            return;
+        }
+        body.innerHTML = rows.map(r => {
+            const procName = r.procesos?.nombre || r.procesos?.codigo || 'Proceso';
+            const procCode = r.procesos?.codigo || '';
+            const toolStr = `${r.molds?.mold_code || '-'} / ${r.mes_machines?.machine_code || '-'}`;
+            const chkBadge = r.checklists?.id
+                ? `<a href="catalogo_checklists.html?id=${escF(r.checklists.id)}" class="badge badge-level" style="text-decoration:none">${escF(r.checklists.codigo || 'Checklist')}</a>`
+                : '<span style="color:var(--secondary);">-</span>';
+            return `
+                <tr>
+                    <td><strong>${escF(r.seq_num)}</strong></td>
+                    <td><strong>${escF(procName)}</strong> ${procCode ? `<span class="badge badge-level">${escF(procCode)}</span>` : ''}${r.notas ? `<br><small style="color:var(--secondary);">${escF(r.notas)}</small>` : ''}</td>
+                    <td>${escF(toolStr)}</td>
+                    <td>${Number(r.std_time_sec || 0)} s</td>
+                    <td>${Number(r.setup_time_min || 0)} min</td>
+                    <td>${Number(r.operators_req || 1)}</td>
+                    <td>${chkBadge}</td>
+                </tr>`;
+        }).join('');
     }
 
     async function loadMolds(id) {
@@ -518,7 +587,8 @@
             kpiPack: 'Standard Pack',
             specs: 'Especificaciones de Ingeniería / Inyección',
             bom: 'Estructura de Materiales (BOM)',
-            molds: 'Moldes de Fabricación'
+            molds: 'Moldes de Fabricación',
+            routing: 'Hoja de Ruta de Manufactura (SAP CA01)'
         },
         ko: {
             back: '카탈로그로 돌아가기',
@@ -529,7 +599,8 @@
             kpiPack: '표준 포장 수량',
             specs: '엔지니어링 / 사출 사양',
             bom: '자재 명세서 (BOM)',
-            molds: '금형 매트릭스'
+            molds: '금형 매트릭스',
+            routing: '제조 공정 라우팅 (SAP CA01)'
         },
         en: {
             back: 'Back to Catalog',
@@ -540,7 +611,8 @@
             kpiPack: 'Standard Pack',
             specs: 'Engineering / Molding Specifications',
             bom: 'Bill of Materials (BOM)',
-            molds: 'Manufacturing Molds'
+            molds: 'Manufacturing Molds',
+            routing: 'Manufacturing Routing (SAP CA01)'
         }
     };
 
@@ -561,6 +633,7 @@
         if (cardTitles[1]) cardTitles[1].innerHTML = `<i class="fas fa-cogs"></i> ${t.specs}`;
         if (cardTitles[2] && cardTitles[2].querySelector('span')) cardTitles[2].querySelector('span').innerHTML = `<i class="fas fa-sitemap"></i> ${t.bom}`;
         if (cardTitles[3] && cardTitles[3].querySelector('span')) cardTitles[3].querySelector('span').innerHTML = `<i class="fas fa-cubes"></i> ${t.molds}`;
+        if (cardTitles[4] && cardTitles[4].querySelector('span')) cardTitles[4].querySelector('span').innerHTML = `<i class="fas fa-route"></i> ${t.routing}`;
         localStorage.setItem('lang', l);
         localStorage.setItem('kraem_lang', l);
         document.documentElement.setAttribute('lang', l);
