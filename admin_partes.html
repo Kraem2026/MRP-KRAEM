@@ -2,109 +2,166 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catálogo de Ingeniería - KRAEM by APEX SYSTEM</title>
+    <title>Maestro de N/P & Materiales - KRAEM by APEX SYSTEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="config.js"></script>
     <script src="kraem_nav.js"></script>
-  <script src="ingenieria_i18n.js"></script>
-    
+    <script src="ingenieria_i18n.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
-        :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --secondary: #64748b; --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; }
-        [data-theme="dark"] { --bg: #020617; --card: #1e293b; --text: #f1f5f9; --secondary: #94a3b8; --border: #334155; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
-        
-        header { display: flex; justify-content: space-between; align-items: center; max-width: 1300px; margin: 0 auto 20px auto; flex-wrap: wrap; gap: 10px; }
-        
-        .btn { padding: 10px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: 14px; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 6px; }
-        
-        .search-container { background: var(--card); padding: 15px; border-radius: 16px; border: 1px solid var(--border); max-width: 1300px; margin: 0 auto 20px auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
-        input, select { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); outline: none; }
+        :root {
+            --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --secondary: #64748b;
+            --border: #e2e8f0; --primary: #2563eb; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b;
+        }
+        [data-theme="dark"] {
+            --bg: #020617; --card: #1e293b; --text: #f1f5f9; --secondary: #94a3b8; --border: #334155;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.25s; }
+        .wrap { max-width: 1480px; margin: 0 auto; }
 
-        .table-container { background: var(--card); border-radius: 16px; border: 1px solid var(--border); max-width: 1300px; margin: auto; overflow-x: auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 900px; }
-        th { background: #1e293b; color: white; padding: 15px; font-size: 11px; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
-        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+        .btn { padding: 9px 15px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-size: 13px; transition: 0.2s; }
+        .btn:hover:not(:disabled) { border-color: var(--primary); }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: #fff; border: none; }
+        .btn-secondary { background: var(--bg); color: var(--text); }
+        .btn-sm { padding: 5px 9px; font-size: 12px; border-radius: 7px; }
+
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .lang-btn { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
+        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 13px 16px; border-left: 4px solid var(--primary); }
+        .kpi-t { font-size: 11px; font-weight: 800; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+        .kpi-v { font-size: 24px; font-weight: 900; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+        .search-container { background: var(--card); padding: 14px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 16px; display: grid; grid-template-columns: 2fr 1.3fr 1fr 1fr; gap: 12px; }
+        @media (max-width: 960px) { .search-container { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 600px) { .search-container { grid-template-columns: 1fr; } }
+
+        input, select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); outline: none; font-size: 13px; width: 100%; font-family: inherit; }
+        input:focus, select:focus { border-color: var(--primary); }
+
+        .table-container { background: var(--card); border-radius: 14px; border: 1px solid var(--border); overflow-x: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.06); }
+        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 1180px; }
+        th { background: #1e293b; color: #fff; padding: 11px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 12.5px; vertical-align: middle; }
+        tr:hover td { background: rgba(37, 99, 235, 0.04); }
+
+        .muted { font-size: 11px; color: var(--secondary); margin-top: 2px; }
         .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .dot-active { background: var(--success); }
         .dot-obs { background: var(--danger); }
 
-        .controls { display: flex; gap: 10px; align-items: center; }
-        .lang-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 1px solid var(--border); overflow: hidden; padding: 0; background: var(--card); }
-        .lang-btn img { width: 100%; height: 100%; object-fit: cover; }
+        .badge { padding: 3px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; white-space: nowrap; display: inline-block; }
+        .b-pt { background: #dbeafe; color: #1e40af; }
+        .b-sub { background: #ede9fe; color: #5b21b6; }
+        .b-res { background: #fef3c7; color: #b45309; }
+        .b-comp { background: #e0f2fe; color: #0369a1; }
+        .b-ok { background: #dcfce7; color: #166534; }
+        .b-low { background: #fee2e2; color: #991b1b; }
+        .b-neutral { background: rgba(148,163,184,0.16); color: var(--secondary); }
 
-        .badge-type { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; background: #e0f2fe; color: #0369a1; }
-        .btn-qr-gen { background: #5b21b6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-qr-gen { background: #5b21b6; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
 
-        .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center; z-index:2000; backdrop-filter: blur(3px); }
-        .modal-content { background:var(--card); padding:25px; border-radius:16px; max-width:300px; width:90%; border: 1px solid var(--border); color: var(--text); text-align: center; }
+        .pager { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-top: 12px; flex-wrap: wrap; gap: 10px; }
+        .pager-info { font-size: 12.5px; font-weight: 600; color: var(--secondary); font-variant-numeric: tabular-nums; }
+        .pager-btns { display: flex; gap: 8px; align-items: center; }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(3px); padding: 16px; }
+        .modal-content { background: var(--card); padding: 24px; border-radius: 16px; max-width: 320px; width: 100%; border: 1px solid var(--border); color: var(--text); text-align: center; }
+        .modal-mrp { max-width: 820px; text-align: left; max-height: 92vh; overflow-y: auto; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px; }
+        .group { display: flex; flex-direction: column; }
+        .group label { font-size: 11px; font-weight: 700; color: var(--secondary); margin-bottom: 5px; text-transform: uppercase; }
         #qrcode { display: flex; justify-content: center; margin: 15px 0; }
     </style>
 </head>
 <body>
+<div class="wrap">
+    <header>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')" title="Volver al Dashboard"><i class="fas fa-arrow-left"></i></button>
+            <button class="btn" onclick="KraemNav.home()" title="Inicio"><i class="fas fa-home"></i></button>
+            <h2 style="margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap" id="txt_title">
+                <span id="txt_title_main">Maestro de N/P & Materiales</span>
+                <span style="font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;letter-spacing:0.5px">by APEX SYSTEM</span>
+            </h2>
+        </div>
+        <div class="controls">
+            <a href="ingenieria_nuevo_np.html" class="btn btn-primary" id="btn_new">
+                <i class="fas fa-plus"></i> Nuevo N.P.
+            </a>
+            <button class="lang-btn" onclick="setLang('es')" title="Español"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
+            <button class="lang-btn" onclick="setLang('ko')" title="한국어"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+            <button class="lang-btn" onclick="setLang('en')" title="English"><img src="https://flagcdn.com/w80/us.png" alt="US"></button>
+            <button class="btn" onclick="toggleTheme()" title="Tema"><i id="themeIcon" class="fas fa-moon"></i></button>
+        </div>
+    </header>
 
-<header>
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <button class="btn btn-back" onclick="KraemNav.back('ingenieria_catalogos.html')" title="Volver a Catálogos"><i class="fas fa-arrow-left"></i></button>
-        <button class="btn" onclick="KraemNav.home()" title="Inicio"><i class="fas fa-home"></i></button>
-        <h2 style="margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap" id="txt_title">
-            <span>Catálogo Maestro</span>
-            <span style="font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;letter-spacing:0.5px">by APEX SYSTEM</span>
-        </h2>
+    <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-t" id="lbl_kpi_total">Total en Filtro</div><div class="kpi-v" id="kpiTotal">0</div></div>
+        <div class="kpi" style="border-left-color:#5b21b6"><div class="kpi-t" id="lbl_kpi_pt">PT / Sub-ensambles</div><div class="kpi-v" id="kpiPtSub">-</div></div>
+        <div class="kpi" style="border-left-color:#0369a1"><div class="kpi-t" id="lbl_kpi_mat">Resinas / Componentes</div><div class="kpi-v" id="kpiMat">-</div></div>
+        <div class="kpi" style="border-left-color:var(--danger)"><div class="kpi-t" id="lbl_kpi_low">Bajo Stock Seguridad</div><div class="kpi-v" id="kpiLow">-</div></div>
     </div>
-    <div class="controls">
-        <a href="ingenieria_nuevo_np.html" class="btn btn-primary" id="btn_new">
-            <i class="fas fa-plus"></i> Nuevo N.P.
-        </a>
-        <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
-        <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
-        <button class="lang-btn" onclick="setLang('en')" title="English"><img src="https://flagcdn.com/w80/us.png" alt="US"></button>
-        <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+
+    <div class="search-container">
+        <input type="text" id="searchPart" placeholder="Buscar N° Parte, nombre, grado, cliente o proveedor..." oninput="debouncedSearch()">
+        <input type="text" id="searchProject" placeholder="Filtrar Proyecto o Cliente..." oninput="debouncedSearch()">
+        <select id="filterType" onchange="onFilterChange()">
+            <option value="" id="opt_type_all">Todos los tipos</option>
+            <option value="MATERIALES" id="opt_type_mats">Materiales (Resinas + Comp.)</option>
+            <option value="PT">PT (Producto Terminado)</option>
+            <option value="SUB-ENSAMBLE">Sub-ensamble</option>
+            <option value="RESINA">Resina</option>
+            <option value="COMPONENTE">Componente</option>
+        </select>
+        <select id="filterStatus" onchange="onFilterChange()">
+            <option value="" id="opt_all">Todos los estatus</option>
+            <option value="false" id="opt_active">Activos</option>
+            <option value="true" id="opt_obs">Obsoletos</option>
+            <option value="LOW_STOCK" id="opt_low">Bajo Stock Seguridad</option>
+        </select>
     </div>
-</header>
 
-<div class="search-container">
-    <input type="text" id="searchPart" placeholder="N° Parte o Nombre..." onkeyup="searchOnSupabase()">
-    <input type="text" id="searchProject" placeholder="Proyecto..." onkeyup="searchOnSupabase()">
-    <select id="filterType" onchange="searchOnSupabase()">
-        <option value="">Todos los tipos</option>
-        <option value="PT">PT (Producto Terminado)</option>
-        <option value="SUB-ENSAMBLE">Sub-ensamble</option>
-        <option value="COMPONENTE">Componente</option>
-        <option value="RESINA">Resina</option>
-    </select>
-    <select id="filterStatus" onchange="searchOnSupabase()">
-        <option value="" id="opt_all">Todos los estatus</option>
-        <option value="false" id="opt_active">Activos</option>
-        <option value="true" id="opt_obs">Obsoletos</option>
-    </select>
-</div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th id="th_part">N° Parte</th>
+                    <th id="th_desc">Descripción / Grado</th>
+                    <th id="th_cli_sup">Cliente / Proveedor</th>
+                    <th id="th_proj">Proyecto</th>
+                    <th id="th_type">Tipo</th>
+                    <th id="th_stock">Stock WMS / Seg.</th>
+                    <th id="th_mrp">Parámetros MRP</th>
+                    <th id="th_status">Estatus</th>
+                    <th id="th_actions" style="text-align:right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="partsBody">
+                <tr><td colspan="9" style="text-align:center; padding:28px; color:var(--secondary);">Cargando catálogo...</td></tr>
+            </tbody>
+        </table>
+    </div>
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th id="th_part">N° Parte</th>
-                <th id="th_desc">Descripción</th>
-                <th id="th_proj">Proyecto</th>
-                <th id="th_type">Tipo</th>
-                <th id="th_status">Estatus</th>
-                <th>Etiqueta</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody id="partsBody"></tbody>
-    </table>
+    <div class="pager">
+        <div class="pager-info" id="pageInfo">Mostrando 0 de 0 registros</div>
+        <div class="pager-btns">
+            <button type="button" class="btn btn-sm" id="btnPrev" onclick="changePage(-1)" disabled><i class="fas fa-chevron-left"></i> Anterior</button>
+            <button type="button" class="btn btn-sm" id="btnNext" onclick="changePage(1)" disabled>Siguiente <i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
 </div>
 
 <!-- Modal de Código QR -->
-<div id="qrModal" class="modal" onclick="if(event.target==this)cerrarQrModal()">
+<div id="qrModal" class="modal" onclick="if(event.target===this)cerrarQrModal()">
     <div class="modal-content">
         <h3 id="qrTitle" style="font-size: 16px; margin-top: 0; font-weight: 700;">Código QR Parte</h3>
         <div id="qrcode"></div>
@@ -113,110 +170,376 @@
     </div>
 </div>
 
+<!-- Modal Parámetros MRP & Logística -->
+<div id="modalMrp" class="modal" onclick="if(event.target===this)cerrarModalMrp()">
+    <div class="modal-content modal-mrp">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; gap:10px;">
+            <div>
+                <h3 id="mTitle" style="margin:0;">Parámetros MRP / Logística</h3>
+                <div class="muted" id="mSub"></div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="cerrarModalMrp()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <datalist id="dl_clientes"></datalist>
+        <datalist id="dl_proveedores"></datalist>
+
+        <div class="form-grid">
+            <div class="group"><label>Cliente Final</label><input id="e_client" list="dl_clientes" placeholder="Seleccionar o escribir..."></div>
+            <div class="group"><label>Proveedor Principal</label><input id="e_sup" list="dl_proveedores" placeholder="Seleccionar o escribir..."></div>
+            <div class="group"><label>Grado / Spec Resina</label><input id="e_grade"></div>
+            <div class="group">
+                <label>Estatus Ingeniería</label>
+                <select id="e_eng_status">
+                    <option value="ACTIVO">ACTIVO</option>
+                    <option value="PROTOTIPO">PROTOTIPO</option>
+                    <option value="ECN">ECN</option>
+                    <option value="OBSOLETO">OBSOLETO</option>
+                </select>
+            </div>
+            <div class="group"><label>Ubicación Default WMS</label><select id="e_loc"></select></div>
+            <div class="group"><label>Standard Pack (Pzs/Cont.)</label><input id="e_std_pack" type="number" step="1" min="0"></div>
+            <div class="group"><label>Stock de Seguridad</label><input id="e_ss" type="number" step="0.01" min="0"></div>
+            <div class="group"><label>Lote Mínimo Compra/Prod.</label><input id="e_min" type="number" step="0.01" min="0"></div>
+            <div class="group"><label>Múltiplo / Redondeo</label><input id="e_round" type="number" step="0.01" min="1"></div>
+            <div class="group"><label>Lead Time (días)</label><input id="e_lt" type="number" min="0"></div>
+            <div class="group"><label>% Merma / Scrap Estándar</label><input id="e_scrap" type="number" step="0.1" min="0"></div>
+            <div class="group"><label>% Remolido Permitido</label><input id="e_regrind" type="number" step="0.1" min="0" max="100"></div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+            <button type="button" class="btn btn-secondary" onclick="cerrarModalMrp()">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btnSaveMrp" onclick="guardarMrp()"><i class="fas fa-save"></i> Guardar Parámetros</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    const PAGE_SIZE = 50;
     let currentLang = localStorage.getItem('lang') || 'es';
-    let searchTimeout;
+    let searchTimeout = null;
     let currentQrText = '';
+    let currentPage = 1;
+    let totalCount = 0;
+    let pageRows = [];
+    let stockByPart = {};
+    let locationsCache = [];
+    let editMrpId = null;
+    let canEditIng = true;
+
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 
     const translations = {
         es: {
-            title: "Catálogo Maestro de Ingeniería", new: "Nuevo N.P.",
-            pPart: "N° Parte o Nombre...", pProj: "Filtrar Proyecto...",
-            optAll: "Todos los estatus", optActive: "Activos", optObs: "Obsoletos",
-            thPart: "N° Parte", thDesc: "Descripción", thProj: "Proyecto", thType: "Tipo", thStatus: "Estatus",
-            act: "Activo", obs: "Obsoleto", noRes: "Sin resultados."
+            title: "Maestro de N/P & Materiales", new: "Nuevo N.P.",
+            pPart: "Buscar N° Parte, nombre, grado, cliente o proveedor...",
+            pProj: "Filtrar Proyecto o Cliente...",
+            optTypeAll: "Todos los tipos", optTypeMats: "Materiales (Resinas + Comp.)",
+            optAll: "Todos los estatus", optActive: "Activos", optObs: "Obsoletos", optLow: "Bajo Stock Seguridad",
+            thPart: "N° Parte", thDesc: "Descripción / Grado", thCliSup: "Cliente / Proveedor",
+            thProj: "Proyecto", thType: "Tipo", thStock: "Stock WMS / Seg.", thMrp: "Parámetros MRP", thStatus: "Estatus", thActions: "Acciones",
+            kpiTotal: "Total en Filtro", kpiPt: "PT / Sub-ensambles", kpiMat: "Resinas / Componentes", kpiLow: "Bajo Stock Seguridad",
+            act: "Activo", obs: "Obsoleto", noRes: "Sin resultados para los filtros actuales."
         },
         ko: {
-            title: "마스터 엔지니어링 카탈로그", new: "새 부품 등록",
-            pPart: "부품 번호 또는 이름...", pProj: "프로젝트 필터...",
-            optAll: "모든 상태", optActive: "활성", optObs: "단종",
-            thPart: "부품 번호", thDesc: "설명", thProj: "프로젝트", thType: "유형", thStatus: "상태",
-            act: "활성", obs: "단종", noRes: "결과가 없습니다."
+            title: "마스터 품번 & 자재 관리", new: "새 품번 등록",
+            pPart: "품번, 품명, 그레이드, 고객 또는 공급사 검색...",
+            pProj: "프로젝트 또는 고객 필터...",
+            optTypeAll: "모든 유형", optTypeMats: "자재 (원재료 + 부품)",
+            optAll: "모든 상태", optActive: "활성", optObs: "단종", optLow: "안전재고 미달",
+            thPart: "품번", thDesc: "품명 / 그레이드", thCliSup: "고객 / 공급사",
+            thProj: "프로젝트", thType: "유형", thStock: "WMS 재고 / 안전재고", thMrp: "MRP 파라미터", thStatus: "상태", thActions: "작업",
+            kpiTotal: "조회 건수", kpiPt: "완제품 / 반제품", kpiMat: "원재료 / 부자재", kpiLow: "안전재고 미달",
+            act: "활성", obs: "단종", noRes: "검색 결과가 없습니다."
         },
         en: {
-            title: "Master Engineering Catalog", new: "New Part",
-            pPart: "Part # or Name...", pProj: "Filter Project...",
-            optAll: "All statuses", optActive: "Active", optObs: "Obsolete",
-            thPart: "Part Number", thDesc: "Description", thProj: "Project", thType: "Type", thStatus: "Status",
-            act: "Active", obs: "Obsolete", noRes: "No results."
+            title: "Master Part & Materials Catalog", new: "New Part",
+            pPart: "Search Part #, name, grade, client or supplier...",
+            pProj: "Filter Project or Client...",
+            optTypeAll: "All types", optTypeMats: "Materials (Resins + Comp.)",
+            optAll: "All statuses", optActive: "Active", optObs: "Obsolete", optLow: "Below Safety Stock",
+            thPart: "Part Number", thDesc: "Description / Grade", thCliSup: "Client / Supplier",
+            thProj: "Project", thType: "Type", thStock: "WMS Stock / SS", thMrp: "MRP Params", thStatus: "Status", thActions: "Actions",
+            kpiTotal: "Filtered Total", kpiPt: "FG / Sub-assemblies", kpiMat: "Resins / Components", kpiLow: "Below Safety Stock",
+            act: "Active", obs: "Obsolete", noRes: "No results match current filters."
         }
     };
 
+    function syncEditPermissions() {
+        canEditIng = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('ingenieria');
+        const btnNew = document.getElementById('btn_new');
+        if (btnNew) btnNew.style.display = canEditIng ? 'inline-flex' : 'none';
+        const btnSave = document.getElementById('btnSaveMrp');
+        if (btnSave) btnSave.style.display = canEditIng ? 'inline-flex' : 'none';
+    }
+
     async function init() {
         applyTheme();
-        setLang(currentLang);
+        syncEditPermissions();
+
+        const params = new URLSearchParams(window.location.search);
+        const tipoParam = (params.get('tipo') || '').toUpperCase();
+        if (tipoParam) {
+            const sel = document.getElementById('filterType');
+            if ([...sel.options].some(o => o.value === tipoParam)) {
+                sel.value = tipoParam;
+            }
+        }
+
+        await preloadCatalogs();
+        await Promise.all([loadGlobalKpis(), setLang(currentLang, true)]);
+    }
+
+    document.addEventListener('kraem:authready', () => {
+        syncEditPermissions();
+        renderTable(pageRows);
+    });
+
+    async function preloadCatalogs() {
+        try {
+            const [rLocs, rCli, rProv] = await Promise.all([
+                client.from('locations').select('id, location_code, location_name, type, active').eq('active', true).order('location_code'),
+                client.from('clientes').select('nombre, activo').order('nombre'),
+                client.from('proveedores').select('nombre_comercial, activo').order('nombre_comercial')
+            ]);
+            locationsCache = (rLocs.data || []).filter(l => l.type !== 'Móvil' && l.type !== 'Contenedor');
+            const selLoc = document.getElementById('e_loc');
+            if (selLoc) {
+                selLoc.innerHTML = `<option value="">-- Sin ubicación fija --</option>` +
+                    locationsCache.map(l => `<option value="${l.id}">${esc(l.location_code)}${l.location_name ? ' (' + esc(l.location_name) + ')' : ''}</option>`).join('');
+            }
+            const dlCli = document.getElementById('dl_clientes');
+            if (dlCli) {
+                dlCli.innerHTML = (rCli.data || []).filter(c => c.activo !== false).map(c => `<option value="${esc(c.nombre)}">`).join('');
+            }
+            const dlProv = document.getElementById('dl_proveedores');
+            if (dlProv) {
+                dlProv.innerHTML = (rProv.data || []).filter(p => p.activo !== false).map(p => `<option value="${esc(p.nombre_comercial)}">`).join('');
+            }
+        } catch (e) {
+            console.warn('Error precargando catálogos MRP:', e);
+        }
+    }
+
+    async function loadGlobalKpis() {
+        try {
+            const [cPt, cMat, rSs] = await Promise.all([
+                client.from('parts').select('id', { count: 'exact', head: true }).in('product_type', ['PT', 'SUB-ENSAMBLE']).eq('obsolete', false),
+                client.from('parts').select('id', { count: 'exact', head: true }).in('product_type', ['RESINA', 'COMPONENTE']).eq('obsolete', false),
+                client.from('parts').select('id, safety_stock').eq('obsolete', false).gt('safety_stock', 0)
+            ]);
+            if (typeof cPt.count === 'number') document.getElementById('kpiPtSub').textContent = cPt.count.toLocaleString();
+            if (typeof cMat.count === 'number') document.getElementById('kpiMat').textContent = cMat.count.toLocaleString();
+
+            const ssParts = rSs.data || [];
+            if (!ssParts.length) {
+                document.getElementById('kpiLow').textContent = '0';
+                return;
+            }
+            const ssIds = ssParts.map(p => p.id);
+            const ssStock = {};
+            for (let i = 0; i < ssIds.length; i += 200) {
+                const chunk = ssIds.slice(i, i + 200);
+                const { data: rows } = await client.from('v_inventory_by_location').select('part_id, quantity').in('part_id', chunk).gt('quantity', 0);
+                (rows || []).forEach(r => {
+                    ssStock[r.part_id] = (ssStock[r.part_id] || 0) + (parseFloat(r.quantity) || 0);
+                });
+            }
+            const lowCnt = ssParts.filter(p => (ssStock[p.id] || 0) < Number(p.safety_stock || 0)).length;
+            document.getElementById('kpiLow').textContent = lowCnt.toLocaleString();
+        } catch (e) {
+            console.warn('Error cargando KPIs globales:', e);
+        }
+    }
+
+    function applyPartFilters(query, forceActiveOnly) {
+        const partQ = document.getElementById('searchPart').value.trim();
+        const projQ = document.getElementById('searchProject').value.trim();
+        const typeQ = document.getElementById('filterType').value;
+        const statusQ = document.getElementById('filterStatus').value;
+
+        if (partQ) {
+            query = query.or(`part_number.ilike.%${partQ}%,part_name.ilike.%${partQ}%,resin_grade.ilike.%${partQ}%,supplier.ilike.%${partQ}%,client.ilike.%${partQ}%`);
+        }
+        if (projQ) {
+            query = query.or(`project.ilike.%${projQ}%,client.ilike.%${projQ}%`);
+        }
+        if (typeQ === 'MATERIALES') {
+            query = query.in('product_type', ['RESINA', 'COMPONENTE']);
+        } else if (typeQ) {
+            query = query.eq('product_type', typeQ);
+        }
+        if (forceActiveOnly || statusQ === 'false') {
+            query = query.eq('obsolete', false);
+        } else if (statusQ === 'true') {
+            query = query.eq('obsolete', true);
+        }
+        return query;
+    }
+
+    function debouncedSearch() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            currentPage = 1;
+            searchOnSupabase();
+        }, 280);
+    }
+
+    function onFilterChange() {
+        currentPage = 1;
+        searchOnSupabase();
+    }
+
+    function changePage(delta) {
+        const maxPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+        const next = Math.min(maxPage, Math.max(1, currentPage + delta));
+        if (next === currentPage) return;
+        currentPage = next;
+        searchOnSupabase();
+    }
+
+    async function fetchStockForPartIds(ids) {
+        const map = {};
+        if (!ids || !ids.length) return map;
+        for (let i = 0; i < ids.length; i += 200) {
+            const chunk = ids.slice(i, i + 200);
+            const { data } = await client
+                .from('v_inventory_by_location')
+                .select('part_id, quantity')
+                .in('part_id', chunk)
+                .gt('quantity', 0);
+            (data || []).forEach(r => {
+                map[r.part_id] = (map[r.part_id] || 0) + (parseFloat(r.quantity) || 0);
+            });
+        }
+        return map;
     }
 
     async function searchOnSupabase() {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(async () => {
-            const partQ = document.getElementById('searchPart').value.trim();
-            const projQ = document.getElementById('searchProject').value.trim();
-            const typeQ = document.getElementById('filterType').value;
-            const statusQ = document.getElementById('filterStatus').value;
+        const body = document.getElementById('partsBody');
+        const statusQ = document.getElementById('filterStatus').value;
+        const from = (currentPage - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
 
-            let query = client.from('parts').select('*');
+        try {
+            if (statusQ === 'LOW_STOCK') {
+                let qLow = applyPartFilters(client.from('parts').select('*').gt('safety_stock', 0), true);
+                const { data: ssData, error: ssErr } = await qLow.order('part_number', { ascending: true });
+                if (ssErr) throw ssErr;
+                const candidates = ssData || [];
+                const stMap = await fetchStockForPartIds(candidates.map(p => p.id));
+                const filtered = candidates.filter(p => (stMap[p.id] || 0) < Number(p.safety_stock || 0));
+                totalCount = filtered.length;
+                const maxPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+                if (currentPage > maxPage) currentPage = maxPage;
+                const sliceFrom = (currentPage - 1) * PAGE_SIZE;
+                pageRows = filtered.slice(sliceFrom, sliceFrom + PAGE_SIZE);
+                stockByPart = stMap;
+            } else {
+                let q = applyPartFilters(client.from('parts').select('*', { count: 'exact' }), false);
+                const { data, count, error } = await q
+                    .order('part_number', { ascending: true })
+                    .range(from, to);
+                if (error) throw error;
+                pageRows = data || [];
+                totalCount = typeof count === 'number' ? count : pageRows.length;
+                stockByPart = await fetchStockForPartIds(pageRows.map(p => p.id));
+            }
+            document.getElementById('kpiTotal').textContent = totalCount.toLocaleString();
+            updatePager();
+            renderTable(pageRows);
+        } catch (err) {
+            console.error('Error cargando partes:', err);
+            body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--danger);padding:24px;">Error: ${esc(err.message)}</td></tr>`;
+        }
+    }
 
-            if (partQ) {
-                query = query.or(`part_number.ilike.%${partQ}%,part_name.ilike.%${partQ}%`);
-            }
-            if (projQ) {
-                query = query.ilike('project', `%${projQ}%`);
-            }
-            if (typeQ) {
-                query = query.eq('product_type', typeQ);
-            }
-            if (statusQ !== "") {
-                query = query.eq('obsolete', statusQ === "true");
-            }
+    function updatePager() {
+        const maxPage = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+        const fromIdx = totalCount === 0 ? 0 : ((currentPage - 1) * PAGE_SIZE + 1);
+        const toIdx = Math.min(totalCount, currentPage * PAGE_SIZE);
+        document.getElementById('pageInfo').textContent = `Mostrando ${fromIdx}–${toIdx} de ${totalCount.toLocaleString()} registros (Pág. ${currentPage}/${maxPage})`;
+        document.getElementById('btnPrev').disabled = currentPage <= 1;
+        document.getElementById('btnNext').disabled = currentPage >= maxPage;
+    }
 
-            const { data, error } = await query
-                .order('id', { ascending: false })
-                .limit(100);
-
-            if (error) return console.error('Error:', error);
-            renderTable(data);
-        }, 300);
+    function typeBadgeClass(t) {
+        const up = String(t || 'PT').toUpperCase();
+        if (up === 'RESINA') return 'b-res';
+        if (up === 'COMPONENTE') return 'b-comp';
+        if (up === 'SUB-ENSAMBLE') return 'b-sub';
+        return 'b-pt';
     }
 
     function renderTable(list) {
         const body = document.getElementById('partsBody');
         const l = translations[currentLang] || translations.es;
-        
+
         if (!list || list.length === 0) {
-            body.innerHTML = `<tr><td colspan="7" style="text-align:center;">${l.noRes}</td></tr>`;
+            body.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--secondary);">${esc(l.noRes)}</td></tr>`;
             return;
         }
 
-        body.innerHTML = list.map(p => `
+        body.innerHTML = list.map(p => {
+            const pType = p.product_type || 'PT';
+            const uom = p.unit_of_measure || p.uom || (pType === 'RESINA' ? 'KG' : 'PZA');
+            const stk = stockByPart[p.id] || 0;
+            const ss = Number(p.safety_stock || 0);
+            const isLow = ss > 0 && stk < ss;
+            const loc = locationsCache.find(x => Number(x.id) === Number(p.default_location_id));
+            const engSt = (p.engineering_status || (p.obsolete ? 'OBSOLETO' : 'ACTIVO')).toUpperCase();
+            const isObs = p.obsolete === true || engSt === 'OBSOLETO';
+
+            const mrpLine1 = `SS: ${ss} · Min: ${p.min_lot_size || 0} · ×${p.lot_rounding || 1} · LT: ${p.lead_time_days || 0}d`;
+            const mrpLine2 = `Pack: ${p.std_pack || 0} · Scrap: ${p.scrap_pct || 0}% · ${loc ? esc(loc.location_code) : 'Sin ubic.'}`;
+
+            return `
             <tr>
-                <td onclick="location.href='part_ficha_tecnica.html?id=${p.id}'" style="cursor:pointer; color:var(--primary);">
-                    <strong>${p.part_number}</strong>
-                </td>
-                <td>${p.part_name || '---'}</td>
-                <td>${p.project || '---'}</td>
-                <td><span class="badge-type">${p.product_type || 'PT'}</span></td>
                 <td>
-                    <span class="status-dot ${p.obsolete ? 'dot-obs' : 'dot-active'}"></span>
-                    ${p.obsolete ? l.obs : l.act}
-                </td>
-                <td>
-                    <button class="btn-qr-gen" onclick="verQRParte('${p.part_number}')">
-                        <i class="fas fa-qrcode"></i> QR
-                    </button>
-                </td>
-                <td style="display: flex; gap: 8px;">
-                    <!-- BOTÓN VER FICHA TÉCNICA -->
-                    <a href="part_ficha_tecnica.html?id=${p.id}" class="btn btn-sm" title="Ver Ficha Técnica Completa">
-                        <i class="fas fa-eye"></i>
-                    </a>
-                    <!-- BOTÓN EDITAR -->
-                    <a href="ingenieria_nuevo_np.html?id=${p.id}" class="btn btn-sm" title="Editar Ficha / BOM">
-                        <i class="fas fa-edit"></i>
+                    <a href="part_ficha_tecnica.html?id=${p.id}" style="color:var(--primary); font-weight:800; text-decoration:none;">
+                        ${esc(p.part_number)}
                     </a>
                 </td>
-            </tr>
-        `).join('');
+                <td>
+                    <strong>${esc(p.part_name || '---')}</strong>
+                    ${(p.resin_grade || p.resin_type) ? `<div class="muted">${esc(p.resin_grade || p.resin_type)}</div>` : ''}
+                </td>
+                <td>
+                    <div>${esc(p.client || '-')}</div>
+                    ${p.supplier ? `<div class="muted">Prov: ${esc(p.supplier)}</div>` : ''}
+                </td>
+                <td>${esc(p.project || '-')}</td>
+                <td><span class="badge ${typeBadgeClass(pType)}">${esc(pType)}</span></td>
+                <td>
+                    <span class="badge ${isLow ? 'b-low' : 'b-ok'}">${stk.toFixed(1)} ${esc(uom)}</span>
+                    <div class="muted">Seg: ${ss} ${esc(uom)}</div>
+                </td>
+                <td>
+                    <div style="font-size:11.5px; font-weight:600;">${esc(mrpLine1)}</div>
+                    <div class="muted">${mrpLine2}</div>
+                </td>
+                <td>
+                    <span class="status-dot ${isObs ? 'dot-obs' : 'dot-active'}"></span>
+                    <span>${isObs ? esc(l.obs) : esc(engSt)}</span>
+                </td>
+                <td style="text-align:right; white-space:nowrap;">
+                    <div style="display:inline-flex; gap:6px; align-items:center;">
+                        <button type="button" class="btn-qr-gen" onclick="verQRParteById(${p.id})" title="Código QR"><i class="fas fa-qrcode"></i></button>
+                        <a href="part_ficha_tecnica.html?id=${p.id}" class="btn btn-sm" title="Ver Ficha Técnica"><i class="fas fa-eye"></i></a>
+                        ${canEditIng ? `
+                        <button type="button" class="btn btn-sm btn-primary" onclick="abrirMrp(${p.id})" title="Editar Parámetros MRP"><i class="fas fa-sliders"></i> MRP</button>
+                        <a href="ingenieria_nuevo_np.html?id=${p.id}" class="btn btn-sm" title="Editar Ficha"><i class="fas fa-edit"></i></a>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function verQRParteById(id) {
+        const p = pageRows.find(x => Number(x.id) === Number(id));
+        if (!p) return;
+        verQRParte(p.part_number);
     }
 
     function verQRParte(numParte) {
@@ -224,16 +547,16 @@
         document.getElementById('qrTitle').innerText = "N° Parte: " + numParte;
         const container = document.getElementById('qrcode');
         container.innerHTML = '';
-        
+
         new QRCode(container, {
             text: numParte,
             width: 180,
             height: 180,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
         });
-        
+
         document.getElementById('qrModal').style.display = 'flex';
     }
 
@@ -251,25 +574,93 @@
         }
     }
 
-    function setLang(lang) {
+    function abrirMrp(id) {
+        const p = pageRows.find(x => Number(x.id) === Number(id));
+        if (!p) return;
+        editMrpId = p.id;
+        document.getElementById('mTitle').textContent = `Parámetros MRP / Logística: ${p.part_number}`;
+        document.getElementById('mSub').textContent = `${p.part_name || ''} (${p.product_type || 'PT'})`;
+        document.getElementById('e_client').value = p.client || '';
+        document.getElementById('e_sup').value = p.supplier || '';
+        document.getElementById('e_grade').value = p.resin_grade || '';
+        document.getElementById('e_eng_status').value = p.engineering_status || (p.obsolete ? 'OBSOLETO' : 'ACTIVO');
+        document.getElementById('e_loc').value = p.default_location_id || '';
+        document.getElementById('e_std_pack').value = p.std_pack ?? 0;
+        document.getElementById('e_ss').value = p.safety_stock ?? 0;
+        document.getElementById('e_min').value = p.min_lot_size ?? 0;
+        document.getElementById('e_round').value = p.lot_rounding ?? 1;
+        document.getElementById('e_lt').value = p.lead_time_days ?? 0;
+        document.getElementById('e_scrap').value = p.scrap_pct ?? 0;
+        document.getElementById('e_regrind').value = p.regrind_pct ?? 0;
+        document.getElementById('modalMrp').style.display = 'flex';
+    }
+
+    function cerrarModalMrp() {
+        document.getElementById('modalMrp').style.display = 'none';
+        editMrpId = null;
+    }
+
+    async function guardarMrp() {
+        if (!canEditIng || !editMrpId) return alert('Sin permisos para editar Ingeniería.');
+        const val = id => document.getElementById(id).value.trim();
+        const engStatus = val('e_eng_status') || 'ACTIVO';
+        const payload = {
+            client: val('e_client') || null,
+            supplier: val('e_sup') || null,
+            resin_grade: val('e_grade') || null,
+            engineering_status: engStatus,
+            obsolete: engStatus === 'OBSOLETO',
+            default_location_id: val('e_loc') ? Number(val('e_loc')) : null,
+            std_pack: parseInt(document.getElementById('e_std_pack').value, 10) || 0,
+            safety_stock: Number(document.getElementById('e_ss').value) || 0,
+            min_lot_size: Number(document.getElementById('e_min').value) || 0,
+            lot_rounding: Math.max(1, Number(document.getElementById('e_round').value) || 1),
+            lead_time_days: parseInt(document.getElementById('e_lt').value, 10) || 0,
+            scrap_pct: Number(document.getElementById('e_scrap').value) || 0,
+            regrind_pct: Number(document.getElementById('e_regrind').value) || 0
+        };
+        const { error } = await client.from('parts').update(payload).eq('id', editMrpId);
+        if (error) {
+            alert('Error guardando parámetros MRP:\n' + error.message);
+            return;
+        }
+        cerrarModalMrp();
+        await Promise.all([loadGlobalKpis(), searchOnSupabase()]);
+    }
+
+    async function setLang(lang, skipThemeCheck) {
         currentLang = translations[lang] ? lang : 'es';
         localStorage.setItem('lang', currentLang);
         const l = translations[currentLang];
-        
-        document.getElementById('txt_title').innerText = l.title;
-        document.getElementById('btn_new').innerHTML = `<i class="fas fa-plus"></i> ${l.new}`;
+
+        document.getElementById('txt_title_main').textContent = l.title;
+        document.getElementById('btn_new').innerHTML = `<i class="fas fa-plus"></i> ${esc(l.new)}`;
         document.getElementById('searchPart').placeholder = l.pPart;
         document.getElementById('searchProject').placeholder = l.pProj;
-        document.getElementById('opt_all').innerText = l.optAll;
-        document.getElementById('opt_active').innerText = l.optActive;
-        document.getElementById('opt_obs').innerText = l.optObs;
-        document.getElementById('th_part').innerText = l.thPart;
-        document.getElementById('th_desc').innerText = l.thDesc;
-        document.getElementById('th_proj').innerText = l.thProj;
-        document.getElementById('th_type').innerText = l.thType;
-        document.getElementById('th_status').innerText = l.thStatus;
-        
-        searchOnSupabase(); 
+        document.getElementById('opt_type_all').textContent = l.optTypeAll;
+        document.getElementById('opt_type_mats').textContent = l.optTypeMats;
+        document.getElementById('opt_all').textContent = l.optAll;
+        document.getElementById('opt_active').textContent = l.optActive;
+        document.getElementById('opt_obs').textContent = l.optObs;
+        document.getElementById('opt_low').textContent = l.optLow;
+        document.getElementById('th_part').textContent = l.thPart;
+        document.getElementById('th_desc').textContent = l.thDesc;
+        document.getElementById('th_cli_sup').textContent = l.thCliSup;
+        document.getElementById('th_proj').textContent = l.thProj;
+        document.getElementById('th_type').textContent = l.thType;
+        document.getElementById('th_stock').textContent = l.thStock;
+        document.getElementById('th_mrp').textContent = l.thMrp;
+        document.getElementById('th_status').textContent = l.thStatus;
+        document.getElementById('th_actions').textContent = l.thActions;
+        document.getElementById('lbl_kpi_total').textContent = l.kpiTotal;
+        document.getElementById('lbl_kpi_pt').textContent = l.kpiPt;
+        document.getElementById('lbl_kpi_mat').textContent = l.kpiMat;
+        document.getElementById('lbl_kpi_low').textContent = l.kpiLow;
+
+        localStorage.setItem('lang', currentLang);
+        localStorage.setItem('kraem_lang', currentLang);
+        document.documentElement.setAttribute('lang', currentLang);
+        await searchOnSupabase();
     }
 
     function toggleTheme() {
@@ -277,6 +668,9 @@
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
         document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        if (typeof window.normalizeDarkSurfaces === 'function') {
+            try { window.normalizeDarkSurfaces(); } catch (_) {}
+        }
     }
 
     function applyTheme() {
@@ -287,6 +681,5 @@
 
     init();
 </script>
-
 </body>
 </html>

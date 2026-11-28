@@ -2,158 +2,363 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catálogo de Defectos - KRAEM</title>
+    <title>Catálogo de Defectos - KRAEM by APEX SYSTEM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="kraem_nav.js"></script>
-  <script src="ingenieria_i18n.js"></script>
+    <script src="config.js"></script>
+    <script src="kraem_nav.js"></script>
+    <script src="ingenieria_i18n.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a; --danger: #ef4444; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 15px; }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .form-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
-        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
-        .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
-        th { background: #1e293b; color: white; padding: 12px; text-align: left; font-size: 12px; }
-        td { padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
-        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        :root {
+            --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+            --text: #0f172a; --muted: #64748b; --danger: #ef4444; --success: #16a34a;
+        }
+        [data-theme="dark"] {
+            --bg: #020617; --card: #1e293b; --border: #334155; --text: #f1f5f9; --muted: #94a3b8;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .wrap { max-width: 1120px; margin: 0 auto; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+        .title-box { display: flex; align-items: center; gap: 12px; }
+        .btn { padding: 9px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; text-decoration: none; }
+        .btn-primary { background: var(--primary); color: #fff; border: none; }
+        .btn-secondary { background: var(--bg); color: var(--text); }
+        .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 7px; }
+        .card { background: var(--card); padding: 18px; border-radius: 14px; border: 1px solid var(--border); margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 12px; align-items: end; }
+        .filters { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+        @media (max-width: 820px) { .form-grid, .filters { grid-template-columns: 1fr; } }
+        label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; }
+        input, select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; width: 100%; background: var(--bg); color: var(--text); font-size: 13px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 680px; }
+        th { background: #1e293b; color: #fff; padding: 11px 12px; text-align: left; font-size: 11px; text-transform: uppercase; }
+        td { padding: 11px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; display: inline-block; }
         .bg-scrap { background: #fee2e2; color: #991b1b; }
         .bg-retrabajo { background: #fef9c3; color: #854d0e; }
+        .bg-cat { background: #e0f2fe; color: #0369a1; }
+        .st-act { background: #dcfce7; color: #166534; }
+        .st-inact { background: rgba(148,163,184,0.2); color: var(--muted); }
     </style>
 </head>
 <body>
+<div class="wrap">
+    <div class="header">
+        <div class="title-box">
+            <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')" title="Volver al Dashboard"><i class="fas fa-arrow-left"></i> Volver</button>
+            <div>
+                <h2 style="margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span><i class="fas fa-ban" style="color:var(--danger)"></i> Catálogo Maestro de Defectos</span>
+                    <span class="badge bg-cat" id="cntBadge">0 defectos</span>
+                </h2>
+                <small style="color:var(--muted);">Fuente única operativa (`public.defects` sincronizada con `defect`) para Calidad, Producción MES y Pareto</small>
+            </div>
+        </div>
+    </div>
 
-<div class="header">
-    <a href="ingenieria_catalogos.html" class="btn-back" onclick="KraemNav.back('ingenieria_catalogos.html'); return false;" style="color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 600;"><i class="fas fa-arrow-left"></i> Volver a Catálogos</a>
-    <h2 style="margin:0">🚫 Catálogo de Defectos</h2>
+    <div class="card" id="formCard">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <strong id="formTitle"><i class="fas fa-plus-circle" style="color:var(--primary)"></i> Nuevo Defecto</strong>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnCancelarEdit" onclick="limpiarForm()" style="display:none;"><i class="fas fa-times"></i> Cancelar edición</button>
+        </div>
+        <div class="form-grid">
+            <div>
+                <label>Nombre del Defecto *</label>
+                <input type="text" id="defecto_nombre" placeholder="Ej. MARCA DE GAS, MANCHA TINTA" style="text-transform: uppercase;">
+            </div>
+            <div>
+                <label>Categoría / Proceso</label>
+                <select id="defecto_categoria">
+                    <option value="INYECCION">INYECCIÓN</option>
+                    <option value="TAMPOGRAFIA">TAMPOGRAFÍA</option>
+                    <option value="ENSAMBLE">ENSAMBLE</option>
+                    <option value="EMPAQUE">EMPAQUE</option>
+                    <option value="CALIDAD">CALIDAD GENERAL</option>
+                </select>
+            </div>
+            <div>
+                <label>Destino Sugerido</label>
+                <select id="defecto_destino">
+                    <option value="SCRAP">SCRAP</option>
+                    <option value="RETRABAJO">RETRABAJO</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-primary" id="btn_guardar" onclick="guardarDefecto()">
+                    <i class="fas fa-save"></i> <span id="btnGuardarTxt">Agregar Defecto</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="filters">
+            <input type="text" id="qSearch" placeholder="🔍 Buscar defecto..." oninput="renderTabla()">
+            <select id="fCat" onchange="renderTabla()">
+                <option value="">Todas las categorías</option>
+                <option value="INYECCION">INYECCIÓN</option>
+                <option value="TAMPOGRAFIA">TAMPOGRAFÍA</option>
+                <option value="ENSAMBLE">ENSAMBLE</option>
+                <option value="EMPAQUE">EMPAQUE</option>
+                <option value="CALIDAD">CALIDAD GENERAL</option>
+            </select>
+            <select id="fStatus" onchange="renderTabla()">
+                <option value="true">Solo activos</option>
+                <option value="false">Solo inactivos</option>
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Defecto</th>
+                        <th>Categoría</th>
+                        <th>Destino Sugerido</th>
+                        <th>Estatus</th>
+                        <th style="text-align:right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="lista_defectos">
+                    <tr><td colspan="6" style="text-align:center; padding:24px; color:var(--muted);">Cargando catálogo...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-
-<div class="form-card">
-    <label style="font-size: 12px; font-weight: bold;">Nuevo Tipo de Defecto</label>
-    <input type="text" id="defecto_nombre" placeholder="Ej. MARCA DE GAS" style="text-transform: uppercase;">
-    
-    <label style="font-size: 12px; font-weight: bold;">Destino Sugerido</label>
-    <select id="defecto_destino">
-        <option value="SCRAP">SCRAP</option>
-        <option value="RETRABAJO">RETRABAJO</option>
-    </select>
-    
-    <button class="btn-add" id="btn_guardar" onclick="agregarDefecto()">
-        <i class="fas fa-plus"></i> AGREGAR AL CATÁLOGO
-    </button>
-</div>
-
-<table>
-    <thead>
-        <tr>
-            <th>Defecto</th>
-            <th>Destino</th>
-            <th>Acción</th>
-        </tr>
-    </thead>
-    <tbody id="lista_defectos">
-        <tr><td colspan="3" style="text-align:center;">Cargando catálogo...</td></tr>
-    </tbody>
-</table>
 
 <script>
-    // Configuración de Supabase
     const _client = client;
+    const META_KEY = 'calidad_defectos_meta';
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+    let defectosList = [];
+    let metaMap = {};
+    let editId = null;
+    let editActive = true;
+    let canEditCalidad = true;
+
+    function syncPerms() {
+        canEditCalidad = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('calidad');
+        const fc = document.getElementById('formCard');
+        if (fc) fc.style.display = canEditCalidad ? 'block' : 'none';
+    }
+
+    function inferDefaults(nombre) {
+        const up = String(nombre || '').toUpperCase();
+        if (up.includes('ETIQUETA')) return { categoria: 'EMPAQUE', destino_sugerido: 'RETRABAJO', activo: true };
+        if (['SERIGRAFIA MAL', 'MAL PINTADO', 'MANCHA'].includes(up)) return { categoria: 'TAMPOGRAFIA', destino_sugerido: 'SCRAP', activo: true };
+        if (up.includes('ULTRASONICO')) return { categoria: 'ENSAMBLE', destino_sugerido: 'SCRAP', activo: true };
+        if (['MAL REBABEO', 'MAL CORTE', 'REBABA'].includes(up)) return { categoria: 'INYECCION', destino_sugerido: 'RETRABAJO', activo: true };
+        return { categoria: 'INYECCION', destino_sugerido: 'SCRAP', activo: true };
+    }
+
+    async function cargarMetaFallback() {
+        metaMap = {};
+        try {
+            const { data } = await _client.from('system_settings').select('value').eq('key', META_KEY).maybeSingle();
+            if (data && data.value && typeof data.value === 'object') {
+                metaMap = data.value;
+            }
+        } catch (_) {}
+    }
+
+    async function guardarMetaFallback(id, meta) {
+        metaMap[String(id)] = meta;
+        try {
+            await _client.from('system_settings').upsert({
+                key: META_KEY,
+                category: 'calidad',
+                value: metaMap,
+                updated_by: (window.KraemAuth && KraemAuth.user && KraemAuth.user.email) || 'system',
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'key' });
+        } catch (e) {
+            console.warn('No se pudo persistir meta fallback:', e);
+        }
+    }
 
     async function cargarDefectos() {
         try {
+            await cargarMetaFallback();
             const { data, error } = await _client
-                .from('catalogo_defectos')
+                .from('defects')
                 .select('*')
-                .order('nombre_defecto', { ascending: true });
+                .order('id', { ascending: true });
 
             if (error) throw error;
 
-            const tabla = document.getElementById('lista_defectos');
-            tabla.innerHTML = '';
-
-            if (data.length === 0) {
-                tabla.innerHTML = '<tr><td colspan="3" style="text-align:center;">No hay defectos registrados.</td></tr>';
-                return;
-            }
-
-            data.forEach(d => {
-                const badgeClass = d.destino_sugerido === 'SCRAP' ? 'bg-scrap' : 'bg-retrabajo';
-                tabla.innerHTML += `
-                    <tr>
-                        <td><strong>${d.nombre_defecto}</strong></td>
-                        <td><span class="badge ${badgeClass}">${d.destino_sugerido}</span></td>
-                        <td>
-                            <button onclick="eliminarDefecto(${d.id})" style="border:none; background:none; color:var(--danger); cursor:pointer;">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
+            defectosList = (data || []).map(row => {
+                const name = row.Defect_name || row.defect_name || '';
+                const inf = inferDefaults(name);
+                const m = metaMap[String(row.id)] || {};
+                return {
+                    id: row.id,
+                    Defect_name: name,
+                    categoria: row.categoria || m.categoria || inf.categoria,
+                    destino_sugerido: row.destino_sugerido || m.destino_sugerido || inf.destino_sugerido,
+                    activo: row.activo !== undefined ? (row.activo !== false) : (m.activo !== undefined ? (m.activo !== false) : true)
+                };
             });
+
+            renderTabla();
         } catch (err) {
-            console.error("Error cargando:", err);
-            alert("No se pudo cargar el catálogo. Verifica la consola.");
+            console.error('Error cargando defectos:', err);
+            document.getElementById('lista_defectos').innerHTML =
+                `<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:20px;">Error cargando catálogo: ${esc(err.message)}</td></tr>`;
         }
     }
 
-    async function agregarDefecto() {
-        const btn = document.getElementById('btn_guardar');
-        const nombre = document.getElementById('defecto_nombre').value.toUpperCase().trim();
-        const destino = document.getElementById('defecto_destino').value;
+    function renderTabla() {
+        const q = (document.getElementById('qSearch').value || '').trim().toUpperCase();
+        const cat = document.getElementById('fCat').value;
+        const st = document.getElementById('fStatus').value;
 
-        if (!nombre) {
-            alert("Escribe el nombre del defecto");
+        const activosTotal = defectosList.filter(d => d.activo !== false).length;
+        document.getElementById('cntBadge').textContent = `${activosTotal} activos / ${defectosList.length} total`;
+
+        const rows = defectosList.filter(d => {
+            const matchQ = !q || String(d.Defect_name).toUpperCase().includes(q);
+            const matchCat = !cat || d.categoria === cat;
+            const matchSt = st === '' || String(d.activo !== false) === st;
+            return matchQ && matchCat && matchSt;
+        });
+
+        const tabla = document.getElementById('lista_defectos');
+        if (!rows.length) {
+            tabla.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted);">No hay defectos con los filtros actuales.</td></tr>';
             return;
         }
 
+        tabla.innerHTML = rows.map(d => {
+            const badgeDest = d.destino_sugerido === 'RETRABAJO' ? 'bg-retrabajo' : 'bg-scrap';
+            const act = d.activo !== false;
+            return `
+                <tr style="${act ? '' : 'opacity:0.55;'}">
+                    <td>#${d.id}</td>
+                    <td><strong>${esc(d.Defect_name)}</strong></td>
+                    <td><span class="badge bg-cat">${esc(d.categoria)}</span></td>
+                    <td><span class="badge ${badgeDest}">${esc(d.destino_sugerido)}</span></td>
+                    <td><span class="badge ${act ? 'st-act' : 'st-inact'}">${act ? 'ACTIVO' : 'INACTIVO'}</span></td>
+                    <td style="text-align:right;white-space:nowrap;">
+                        ${canEditCalidad ? `
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="editarDefecto(${d.id})" title="Editar"><i class="fas fa-pen"></i></button>
+                        <button type="button" class="btn btn-sm ${act ? 'bg-scrap' : 'st-act'}" style="border:none;" onclick="toggleDefecto(${d.id})" title="${act ? 'Desactivar' : 'Activar'}">
+                            <i class="fas ${act ? 'fa-ban' : 'fa-check'}"></i>
+                        </button>
+                        ` : '<span style="font-size:11px;color:var(--muted);">Solo lectura</span>'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function editarDefecto(id) {
+        const d = defectosList.find(x => Number(x.id) === Number(id));
+        if (!d) return;
+        editId = d.id;
+        editActive = d.activo !== false;
+        document.getElementById('formTitle').innerHTML = `<i class="fas fa-edit" style="color:var(--primary)"></i> Editando Defecto #${d.id}`;
+        document.getElementById('btnGuardarTxt').textContent = 'Actualizar Defecto';
+        document.getElementById('btnCancelarEdit').style.display = 'inline-flex';
+        document.getElementById('defecto_nombre').value = d.Defect_name || '';
+        document.getElementById('defecto_categoria').value = d.categoria || 'INYECCION';
+        document.getElementById('defecto_destino').value = d.destino_sugerido || 'SCRAP';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function limpiarForm() {
+        editId = null;
+        editActive = true;
+        document.getElementById('formTitle').innerHTML = `<i class="fas fa-plus-circle" style="color:var(--primary)"></i> Nuevo Defecto`;
+        document.getElementById('btnGuardarTxt').textContent = 'Agregar Defecto';
+        document.getElementById('btnCancelarEdit').style.display = 'none';
+        document.getElementById('defecto_nombre').value = '';
+        document.getElementById('defecto_categoria').value = 'INYECCION';
+        document.getElementById('defecto_destino').value = 'SCRAP';
+    }
+
+    function isSchemaMissingErr(err) {
+        return err && (/PGRST204/i.test(err.code || '') || /column .* does not exist|could not find the .* column/i.test(err.message || ''));
+    }
+
+    async function guardarDefecto() {
+        if (!canEditCalidad) return alert('Sin permisos para editar el catálogo de defectos.');
+        const btn = document.getElementById('btn_guardar');
+        const nombre = document.getElementById('defecto_nombre').value.trim();
+        const categoria = document.getElementById('defecto_categoria').value || 'INYECCION';
+        const destino = document.getElementById('defecto_destino').value || 'SCRAP';
+
+        if (!nombre) return alert('Escribe el nombre del defecto.');
+
+        const dup = defectosList.some(d => Number(d.id) !== Number(editId || -1) && String(d.Defect_name).toUpperCase() === nombre.toUpperCase());
+        if (dup) return alert(`Ya existe el defecto "${nombre}" en el catálogo.`);
+
         btn.disabled = true;
-        btn.innerText = "Guardando...";
-
         try {
-            const { error } = await _client
-                .from('catalogo_defectos')
-                .insert([{ 
-                    nombre_defecto: nombre, 
-                    destino_sugerido: destino 
-                }]);
+            const fullPayload = {
+                Defect_name: nombre,
+                categoria: categoria,
+                destino_sugerido: destino,
+                activo: editId ? editActive : true
+            };
 
-            if (error) throw error;
+            if (editId) {
+                let { error } = await _client.from('defects').update(fullPayload).eq('id', editId);
+                if (error && isSchemaMissingErr(error)) {
+                    const res2 = await _client.from('defects').update({ Defect_name: nombre }).eq('id', editId);
+                    if (res2.error) throw res2.error;
+                    await guardarMetaFallback(editId, { categoria, destino_sugerido: destino, activo: editActive });
+                } else if (error) {
+                    throw error;
+                }
+            } else {
+                let { data: insData, error } = await _client.from('defects').insert([fullPayload]).select('id').single();
+                if (error && isSchemaMissingErr(error)) {
+                    const res2 = await _client.from('defects').insert([{ Defect_name: nombre }]).select('id').single();
+                    if (res2.error) throw res2.error;
+                    if (res2.data && res2.data.id) {
+                        await guardarMetaFallback(res2.data.id, { categoria, destino_sugerido: destino, activo: true });
+                    }
+                } else if (error) {
+                    throw error;
+                }
+            }
 
-            alert("✅ Defecto agregado correctamente");
-            document.getElementById('defecto_nombre').value = '';
-            cargarDefectos();
+            limpiarForm();
+            await cargarDefectos();
         } catch (err) {
-            console.error("Error al insertar:", err);
-            alert("Error al guardar: " + (err.message || "Problema de conexión o permisos"));
+            console.error('Error guardando defecto:', err);
+            alert('Error guardando defecto: ' + (err.message || err));
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-plus"></i> AGREGAR AL CATÁLOGO';
         }
     }
 
-    async function eliminarDefecto(id) {
-        if (confirm('¿Deseas eliminar este defecto del catálogo?')) {
-            try {
-                const { error } = await _client
-                    .from('catalogo_defectos')
-                    .delete()
-                    .eq('id', id);
-                
-                if (error) throw error;
-                cargarDefectos();
-            } catch (err) {
-                alert("Error al eliminar: " + err.message);
+    async function toggleDefecto(id) {
+        if (!canEditCalidad) return alert('Sin permisos para modificar estatus.');
+        const d = defectosList.find(x => Number(x.id) === Number(id));
+        if (!d) return;
+        const nextAct = !(d.activo !== false);
+        try {
+            let { error } = await _client.from('defects').update({ activo: nextAct }).eq('id', id);
+            if (error && isSchemaMissingErr(error)) {
+                await guardarMetaFallback(id, { categoria: d.categoria, destino_sugerido: d.destino_sugerido, activo: nextAct });
+            } else if (error) {
+                throw error;
             }
+            await cargarDefectos();
+        } catch (err) {
+            alert('Error cambiando estatus: ' + err.message);
         }
     }
 
-    // Ejecutar al cargar la página
-    document.addEventListener('DOMContentLoaded', cargarDefectos);
+    document.addEventListener('kraem:authready', () => { syncPerms(); renderTabla(); });
+    window.onload = () => { syncPerms(); cargarDefectos(); };
 </script>
-
 </body>
 </html>

@@ -287,7 +287,7 @@ tr:hover{
         <div class="title-box">
 
             <button class="btn btn-back"
-                onclick="location.href='ingenieria_catalogos.html'">
+                onclick="KraemNav.back('dashboard.html')">
 
                 <i class="fas fa-arrow-left"></i>
                 Regresar
@@ -404,29 +404,14 @@ tr:hover{
                 <label>Status Máquina</label>
 
                 <select id="maintenance_status">
-
-                    <option value="Disponible">
-                        Disponible
-                    </option>
-
-                    <option value="Producción">
-                        Producción
-                    </option>
-
-                    <option value="Setup">
-                        Setup
-                    </option>
-
-                    <option value="Mantenimiento">
-                        Mantenimiento
-                    </option>
-
-                    <option value="Parada">
-                        Parada
-                    </option>
-
+                    <option value="Disponible">Disponible</option>
+                    <option value="Mantenimiento">Mantenimiento</option>
+                    <option value="Setup Largo">Setup Largo</option>
+                    <option value="Falta Refacción">Falta Refacción</option>
+                    <option value="Calidad">Calidad</option>
+                    <option value="Fuera Servicio">Fuera Servicio</option>
                 </select>
-
+            </div>
             </div>
 
             <div class="form-group">
@@ -508,7 +493,7 @@ tr:hover{
 
                     <tr>
 
-                        <td colspan="11" class="empty">
+                        <td colspan="13" class="empty">
 
                             Cargando...
 
@@ -579,29 +564,21 @@ async function cargarAreasGenerales(){
 }
 
 function getStatusClass(status){
-
     switch(status){
-
         case 'Disponible':
             return 'status-disponible';
-
-        case 'Mantenimiento':
-            return 'status-mantenimiento';
-
-        case 'Producción':
-            return 'status-produccion';
-
-        case 'Setup':
+        case 'Setup Largo':
             return 'status-setup';
-
-        case 'Parada':
+        case 'Mantenimiento':
+        case 'Falta Refacción':
+        case 'Calidad':
+            return 'status-mantenimiento';
+        case 'Fuera Servicio':
             return 'status-parada';
-
         default:
             return 'status-parada';
     }
 }
-
 async function load(){
 
     const body =
@@ -609,7 +586,7 @@ async function load(){
 
     body.innerHTML = `
         <tr>
-            <td colspan="11" class="empty">
+            <td colspan="13" class="empty">
                 Cargando...
             </td>
         </tr>
@@ -630,7 +607,7 @@ async function load(){
 
             body.innerHTML = `
                 <tr>
-                    <td colspan="11" class="empty">
+                    <td colspan="13" class="empty">
                         No hay máquinas registradas
                     </td>
                 </tr>
@@ -723,7 +700,7 @@ async function load(){
 
         body.innerHTML = `
             <tr>
-                <td colspan="11"
+                <td colspan="13"
                     class="empty"
                     style="color:red;">
 

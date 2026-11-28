@@ -191,13 +191,12 @@ tr:hover{
         <div class="title-box">
 
             <button class="btn btn-back"
-                onclick="location.href='ingenieria_catalogos.html'">
+                onclick="KraemNav.back('dashboard.html')">
 
                 <i class="fas fa-arrow-left"></i>
                 Regresar
 
             </button>
-
             <h1>Administración de Áreas</h1>
 
         </div>
@@ -269,7 +268,8 @@ tr:hover{
 <script>
 
 let editId = null;
-
+let editActive = true;
+let areasCache = [];
 async function cargarAreasGenerales(){
 
     const sel = document.getElementById('area_general_id');
@@ -332,7 +332,8 @@ async function load(){
 
         if(error) throw error;
 
-        if(!data || data.length === 0){
+        areasCache = data || [];
+        if(areasCache.length === 0){
 
             body.innerHTML = `
                 <tr>
@@ -345,19 +346,20 @@ async function load(){
             return;
         }
 
-        body.innerHTML = data.map(a => `
+        const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        body.innerHTML = areasCache.map(a => `
 
             <tr>
 
                 <td>${a.id}</td>
 
                 <td>
-                    ${a.areas_generales?.nombre || '-'}
+                    ${esc(a.areas_generales?.nombre || '-')}
                 </td>
 
-                <td>${a.area_code}</td>
+                <td>${esc(a.area_code)}</td>
 
-                <td>${a.area_name}</td>
+                <td>${esc(a.area_name)}</td>
 
                 <td>
                     <span class="status ${a.active ? 'active' : 'inactive'}">
@@ -368,7 +370,7 @@ async function load(){
                 <td>
 
                     <button class="action-btn btn-edit"
-                        onclick='editar(${JSON.stringify(a)})'>
+                        onclick="editar(${a.id})">
 
                         <i class="fas fa-edit"></i>
 
@@ -386,7 +388,6 @@ async function load(){
             </tr>
 
         `).join('');
-
     }catch(err){
 
         console.error(err);
@@ -401,9 +402,12 @@ async function load(){
     }
 }
 
-function editar(a){
+function editar(id){
+    const a = areasCache.find(x => Number(x.id) === Number(id));
+    if (!a) return;
 
     editId = a.id;
+    editActive = a.active !== false;
 
     document.getElementById('area_general_id').value =
         a.area_general_id || '';
@@ -444,7 +448,7 @@ async function guardarArea(){
 
         area_name: areaName,
 
-        active: true
+        active: editId ? editActive : true
     };
 
     try{
@@ -484,7 +488,6 @@ async function guardarArea(){
         alert(err.message);
     }
 }
-
 async function toggle(id,state){
 
     await client
@@ -500,6 +503,7 @@ async function toggle(id,state){
 function limpiar(){
 
     editId = null;
+    editActive = true;
 
     document.getElementById('area_general_id').value = '';
 

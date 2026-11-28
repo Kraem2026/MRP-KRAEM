@@ -350,7 +350,7 @@ tr:hover{
     </div>
 
     <button class="btn btn-secondary"
-      onclick="location.href='ingenieria_catalogos.html'">
+      onclick="KraemNav.back('dashboard.html')">
 
       <i class="fas fa-arrow-left"></i>
       Volver
@@ -372,10 +372,10 @@ tr:hover{
         <label>Tipo de Registro</label>
         <select id="reg_type" onchange="alternarCamposTipo()">
           <option value="Fijo">📍 Ubicación Fija (Carril / Rack)</option>
+          <option value="PISO">🟦 Piso / WIP (Área Abierta)</option>
           <option value="Móvil">🛒 Contenedor Móvil (Carrito / Palet)</option>
         </select>
       </div>
-
       <div class="group">
         <label>Área General</label>
 
@@ -515,6 +515,7 @@ tr:hover{
 
 let todasAreas = [];
 let editandoId = null;
+let locationsCache = [];
 let qrcodeGenerator = null; // Instancia global del generador QR
 let codigoQRExtraido = ""; // Almacenar temporalmente el código actual para nombrar la descarga
 
@@ -630,10 +631,10 @@ async function load(){
     return;
   }
 
+  locationsCache = data || [];
   body.innerHTML = '';
 
-  if(!data || data.length === 0){
-
+  if(locationsCache.length === 0){
     body.innerHTML = `
       <tr>
         <td colspan="9" class="empty">
@@ -641,21 +642,15 @@ async function load(){
         </td>
       </tr>
     `;
-
     return;
   }
 
-  data.forEach(l => {
-
-    const areaGeneral =
-      l.areas?.areas_generales?.nombre || '<span style="color:#94a3b8">N/A</span>';
-
-    const area =
-      l.areas?.area_name || '<span style="color:#94a3b8">N/A</span>';
-
+  locationsCache.forEach(l => {
+    const areaGeneral = l.areas?.areas_generales?.nombre || '<span style="color:#94a3b8">N/A</span>';
+    const area = l.areas?.area_name || '<span style="color:#94a3b8">N/A</span>';
     const esMovil = l.type === 'Móvil' || l.type === 'Contenedor';
     const badgeClass = esMovil ? 'badge-movil' : 'badge-fijo';
-    const badgeText = esMovil ? '🛒 MÓVIL' : '📍 FIJO';
+    const badgeText = esMovil ? '🛒 MÓVIL' : (l.type === 'PISO' ? '🟦 PISO' : '📍 FIJO');
     let badgeStOp = '';
     if (esMovil) {
       if (l.status_operativo === 'EN_REPARACION') badgeStOp = `<br><span style="background:#fef3c7; color:#b45309; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:bold;">🟡 REPARACIÓN</span>`;
@@ -664,85 +659,34 @@ async function load(){
     }
 
     body.innerHTML += `
-
       <tr>
-
-        <td>
-          <span class="badge-tipo ${badgeClass}">${badgeText}</span>
-        </td>
-
-        <td>
-          <strong>${areaGeneral}</strong>
-        </td>
-
+        <td><span class="badge-tipo ${badgeClass}">${badgeText}</span></td>
+        <td><strong>${areaGeneral}</strong></td>
         <td>${area}</td>
-
-        <td>
-          <strong>${l.location_code}</strong>
-        </td>
-
+        <td><strong>${l.location_code}</strong></td>
         <td>${l.location_name || '-'}${badgeStOp}</td>
-
         <td>
-
           <span class="badge ${l.active ? 'active' : 'inactive'}">
-
             ${l.active ? 'ACTIVA' : 'INACTIVA'}
-
           </span>
-
         </td>
-
         <td>
-
-          <button
-            class="action-btn ${l.active ? 'btn-on' : 'btn-off'}"
-            onclick="toggle(${l.id}, ${l.active})"
-          >
-
+          <button class="action-btn ${l.active ? 'btn-on' : 'btn-off'}" onclick="toggle(${l.id}, ${l.active})">
             ${l.active ? 'Desactivar' : 'Activar'}
-
           </button>
-
         </td>
-
         <td>
-          <button
-            class="action-btn btn-qr"
-            onclick="abrirModalQR('${l.location_code}')"
-          >
+          <button class="action-btn btn-qr" onclick="abrirModalQR('${String(l.location_code || '').replace(/'/g, "\\'")}')">
             <i class="fas fa-qrcode"></i> QR
           </button>
         </td>
-
         <td>
-
-          <button
-            class="action-btn btn-edit"
-            onclick="editarUbicacion(
-              ${l.id},
-              '${l.location_code}',
-              '${l.location_name || ''}',
-              ${l.area_id || 'null'},
-              ${l.areas?.area_general_id || 'null'},
-              '${l.type || 'Fijo'}'
-            )"
-          >
-
-            Editar
-
-          </button>
-
+          <button class="action-btn btn-edit" onclick="editarUbicacion(${l.id})">Editar</button>
         </td>
-
       </tr>
-
     `;
-
   });
-
 }
-
 // FUNCIONES PARA CONTROLAR LA GENERACIÓN E IMPRESIÓN DEL QR
 function abrirModalQR(codigo) {
   codigoQRExtraido = codigo; // Guardar el código actual
@@ -796,119 +740,81 @@ function descargarCodigoQR() {
   }
 }
 
-function editarUbicacion(
-  id,
-  code,
-  name,
-  area,
-  areaGeneral,
-  type
-){
+async function editarUbicacion(id){
+  const loc = locationsCache.find(x => Number(x.id) === Number(id));
+  if (!loc) return;
 
-  editandoId = id;
-  
-  reg_type.value = (type === 'Móvil' || type === 'Contenedor') ? 'Móvil' : 'Fijo';
+  editandoId = loc.id;
+  if (loc.type === 'Móvil' || loc.type === 'Contenedor') reg_type.value = 'Móvil';
+  else if (loc.type === 'PISO') reg_type.value = 'PISO';
+  else reg_type.value = 'Fijo';
+
   alternarCamposTipo();
 
-  if(reg_type.value === 'Fijo') {
-    area_general_id.value = areaGeneral;
-    cargarAreas();
-    setTimeout(() => {
-      area_id.value = area;
-    }, 200);
+  if (reg_type.value === 'Móvil') {
+    if (document.getElementById('status_operativo')) document.getElementById('status_operativo').value = loc.status_operativo || 'OPERATIVO';
+    if (document.getElementById('motivo_estado')) document.getElementById('motivo_estado').value = loc.motivo_estado || '';
+  } else {
+    const agId = loc.areas?.area_general_id || '';
+    area_general_id.value = agId;
+    await cargarAreas();
+    area_id.value = loc.area_id || '';
   }
 
-  location_code.value = code;
-  location_name.value = name;
-
+  location_code.value = loc.location_code || '';
+  location_name.value = loc.location_name || '';
   btn_text.innerText = 'Actualizar Ubicación';
 
-  window.scrollTo({
-    top:0,
-    behavior:'smooth'
-  });
-
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function crearUbicacion(){
-
   const tipoValue = reg_type.value;
+  if (tipoValue !== 'Móvil' && !area_id.value) return alert('Seleccione un área');
+  if (!location_code.value) return alert('Ingrese código');
 
-  if(tipoValue === 'Fijo' && !area_id.value)
-    return alert('Seleccione un área');
-
-  if(!location_code.value)
-    return alert('Ingrese código');
-
-  let error;
-  const areaAsignada = tipoValue === 'Fijo' ? area_id.value : null;
+  const areaAsignada = tipoValue !== 'Móvil' ? area_id.value : null;
+  const orig = editandoId ? locationsCache.find(x => Number(x.id) === Number(editandoId)) : null;
+  const preservedType = (orig && orig.type === 'Contenedor' && tipoValue === 'Móvil') ? 'Contenedor' : tipoValue;
 
   const datos = {
     area_id: areaAsignada,
     location_code: location_code.value.toUpperCase().trim(),
     location_name: location_name.value.trim(),
-    type: tipoValue,
+    type: preservedType,
     qr_code: location_code.value.toUpperCase().trim(),
     status_operativo: (tipoValue === 'Móvil' && document.getElementById('status_operativo')) ? document.getElementById('status_operativo').value : 'OPERATIVO',
-    motivo_estado: (tipoValue === 'Móvil' && document.getElementById('motivo_estado')) ? document.getElementById('motivo_estado').value.trim() : null
+    motivo_estado: (tipoValue === 'Móvil' && document.getElementById('motivo_estado')) ? (document.getElementById('motivo_estado').value.trim() || null) : null
   };
 
-  if(editandoId){
-
-    const res = await client
-      .from('locations')
-      .update(datos)
-      .eq('id', editandoId);
-
+  let error;
+  if (editandoId) {
+    const res = await client.from('locations').update(datos).eq('id', editandoId);
     error = res.error;
-
   } else {
-
-    const res = await client
-      .from('locations')
-      .insert({
-        ...datos,
-        active: true
-      });
-
+    const res = await client.from('locations').insert({ ...datos, active: true });
     error = res.error;
-
   }
 
-  if(error){
-    alert(error.message);
-    return;
-  }
+  if (error) { alert(error.message); return; }
 
-  alert(
-    editandoId
-      ? 'Registro actualizado'
-      : 'Registro creado con éxito'
-  );
-
+  alert(editandoId ? 'Registro actualizado' : 'Registro creado con éxito');
   limpiarFormulario();
   load();
 }
 
 function limpiarFormulario(){
-
   editandoId = null;
-
   reg_type.value = 'Fijo';
-  area_general_id.disabled = false;
-  area_id.disabled = false;
-
+  alternarCamposTipo();
   area_general_id.value = '';
-  area_id.innerHTML =
-    '<option value="">Seleccione área general...</option>';
-
+  area_id.innerHTML = '<option value="">Seleccione área general...</option>';
   location_code.value = '';
   location_name.value = '';
-
+  if (document.getElementById('status_operativo')) document.getElementById('status_operativo').value = 'OPERATIVO';
+  if (document.getElementById('motivo_estado')) document.getElementById('motivo_estado').value = '';
   btn_text.innerText = 'Guardar Ubicación';
-
 }
-
 async function toggle(id, state){
 
   await client

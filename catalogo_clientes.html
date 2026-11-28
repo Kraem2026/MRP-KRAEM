@@ -55,19 +55,22 @@ tr:hover td{background:#f8fafc}
 <div class="container">
   <div class="header">
     <div class="title-box">
-      <button class="btn btn-secondary" onclick="location.href='dashboard.html'"><i class="fas fa-arrow-left"></i> Menú</button>
+      <button class="btn btn-secondary" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> Menú</button>
       <div>
         <div style="display:flex;align-items:baseline;gap:6px">
           <span style="font-size:18px;font-weight:900">KRAEM</span>
           <span style="font-size:9.5px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 6px;border-radius:4px;text-transform:uppercase">by APEX SYSTEM</span>
         </div>
-        <h1 style="margin:2px 0 0;font-size:24px"><i class="fas fa-building" style="color:var(--primary)"></i> Catálogo de Clientes Finales</h1>
+        <h1 style="margin:2px 0 0;font-size:24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span><i class="fas fa-building" style="color:var(--primary)"></i> Catálogo de Clientes Finales</span>
+          <span class="badge st-act" id="clientCountBadge" style="font-size:11px;">0 clientes</span>
+        </h1>
         <p>Clientes, plantas destino, RFC fiscal y días de tránsito (base para Forecast, Embarques y WMS)</p>
       </div>
     </div>
     <div style="display:flex;gap:8px">
       <a href="catalogo_proveedores.html" class="btn btn-secondary"><i class="fas fa-truck-field"></i> Directorio Proveedores</a>
-      <button class="btn btn-primary" onclick="nuevo()"><i class="fas fa-plus"></i> Nuevo Cliente</button>
+      <button class="btn btn-primary" id="btnNuevoCliente" onclick="nuevo()"><i class="fas fa-plus"></i> Nuevo Cliente</button>
     </div>
   </div>
 
@@ -112,16 +115,33 @@ tr:hover td{background:#f8fafc}
 </div>
 
 <script>
-let lista = [], editId = null;
+let lista = [], editId = null, canEditClientes = true;
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const val = id => document.getElementById(id).value.trim();
 
+function syncPermisos(){
+  canEditClientes = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('planeacion');
+  const bNew = document.getElementById('btnNuevoCliente');
+  const bSave = document.getElementById('btnGuardar');
+  if (bNew) bNew.style.display = canEditClientes ? 'inline-flex' : 'none';
+  if (bSave) { bSave.disabled = !canEditClientes; bSave.style.display = canEditClientes ? 'inline-flex' : 'none'; }
+}
+
+function splitRfcObs(c){
+  const obsRaw = String(c.observaciones || '');
+  const m = obsRaw.match(/^\[RFC:\s*([^\]]+)\]\s*(.*)$/i);
+  const rfc = (c.rfc || (m ? m[1] : '') || '').trim();
+  const obsClean = c.rfc ? obsRaw : (m ? m[2] : obsRaw);
+  return { rfc, obsClean };
+}
+
 async function cargar(){
+  syncPermisos();
   const body = document.getElementById('body');
   const { data, error } = await client.from('clientes').select('*').order('nombre');
   if (error) {
     body.innerHTML = `<tr><td colspan="8" class="empty" style="color:var(--danger)">
-      ⚠️ Ejecuta primero <b>ingenieria_fase2_sap.sql</b> en el SQL Editor de Supabase.<br><br>Detalle: ${esc(error.message)}</td></tr>`;
+      ⚠️ Error consultando clientes: ${esc(error.message)}</td></tr>`;
     return;
   }
   lista = data || [];
@@ -129,32 +149,41 @@ async function cargar(){
 }
 
 function render(){
+  const activos = lista.filter(c => c.activo !== false).length;
+  const badge = document.getElementById('clientCountBadge');
+  if (badge) badge.textContent = `${activos} activos / ${lista.length} total`;
+
   const q = val('q').toUpperCase();
   const act = val('fAct');
   const rows = lista.filter(c => {
-    const txt = `${c.codigo||''} ${c.nombre||''} ${c.rfc||''} ${c.planta||''} ${c.contacto||''}`.toUpperCase();
+    const { rfc } = splitRfcObs(c);
+    const txt = `${c.codigo||''} ${c.nombre||''} ${rfc} ${c.planta||''} ${c.contacto||''}`.toUpperCase();
     return (!q || txt.includes(q)) && (act === '' || String(c.activo !== false) === act);
   });
   const body = document.getElementById('body');
   if (!rows.length) { body.innerHTML = `<tr><td colspan="8" class="empty">Sin clientes registrados.</td></tr>`; return; }
 
-  body.innerHTML = rows.map(c => `
+  body.innerHTML = rows.map(c => {
+    const { rfc, obsClean } = splitRfcObs(c);
+    return `
     <tr style="${c.activo === false ? 'opacity:.55' : ''}">
       <td><b>${esc(c.codigo)}</b></td>
-      <td><b>${esc(c.nombre)}</b>${c.rfc ? ` <span class="badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;font-size:10px">${esc(c.rfc)}</span>` : ''}${c.observaciones ? `<div class="muted">${esc(c.observaciones)}</div>` : ''}</td>
+      <td><b>${esc(c.nombre)}</b>${rfc ? ` <span class="badge" style="background:rgba(59,130,246,0.15);color:#2563eb;font-size:10px">${esc(rfc)}</span>` : ''}${obsClean ? `<div class="muted">${esc(obsClean)}</div>` : ''}</td>
       <td>${esc(c.planta || '-')}</td>
       <td>${esc(c.contacto || '-')}</td>
       <td>${esc(c.telefono || '-')}<div class="muted">${esc(c.email || '')}</div></td>
       <td>${c.dias_transito ?? 1} día(s)</td>
       <td><span class="badge ${c.activo !== false ? 'st-act' : 'st-inact'}">${c.activo !== false ? 'ACTIVO' : 'INACTIVO'}</span></td>
       <td style="text-align:right;white-space:nowrap">
+        ${canEditClientes ? `
         <button class="btn btn-sm btn-secondary" onclick="editar(${c.id})"><i class="fas fa-pen"></i></button>
         <button class="btn btn-sm ${c.activo === false ? 'btn-success' : 'btn-danger-soft'}" onclick="toggle(${c.id}, ${c.activo !== false})">
           <i class="fas ${c.activo === false ? 'fa-check' : 'fa-ban'}"></i>
         </button>
+        ` : '<span class="muted">Solo lectura</span>'}
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function nuevo(){ limpiar(); window.scrollTo({top:0, behavior:'smooth'}); document.getElementById('f_codigo').focus(); }
@@ -172,56 +201,74 @@ function limpiar(){
 function editar(id){
   const c = lista.find(x => x.id === id);
   if (!c) return;
+  const { rfc, obsClean } = splitRfcObs(c);
   editId = c.id;
   document.getElementById('formTitle').textContent = 'Editar Cliente: ' + c.codigo;
   document.getElementById('f_codigo').value = c.codigo || '';
   document.getElementById('f_nombre').value = c.nombre || '';
-  if (document.getElementById('f_rfc')) document.getElementById('f_rfc').value = c.rfc || '';
+  if (document.getElementById('f_rfc')) document.getElementById('f_rfc').value = rfc;
   document.getElementById('f_planta').value = c.planta || '';
   document.getElementById('f_contacto').value = c.contacto || '';
   document.getElementById('f_tel').value = c.telefono || '';
   document.getElementById('f_email').value = c.email || '';
   document.getElementById('f_dias').value = c.dias_transito ?? 1;
-  document.getElementById('f_obs').value = c.observaciones || '';
+  document.getElementById('f_obs').value = obsClean;
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
 async function guardar(){
+  if (!canEditClientes) return alert('Sin permisos para editar clientes.');
   const codigo = val('f_codigo').toUpperCase();
   const nombre = val('f_nombre');
   if (!codigo || !nombre) return alert('Código y nombre del cliente son obligatorios.');
 
-  const payload = {
+  const rfcVal = (document.getElementById('f_rfc') ? val('f_rfc').toUpperCase() : '') || '';
+  const obsRaw = val('f_obs').replace(/^\[RFC:\s*[^\]]+\]\s*/i, '');
+
+  const basePayload = {
     codigo, nombre,
-    rfc: (document.getElementById('f_rfc') ? val('f_rfc').toUpperCase() : null) || null,
     planta: val('f_planta') || null,
     contacto: val('f_contacto') || null,
     telefono: val('f_tel') || null,
     email: val('f_email') || null,
     dias_transito: Number(document.getElementById('f_dias').value) || 0,
-    observaciones: val('f_obs') || null,
+    observaciones: obsRaw || null,
     updated_at: new Date().toISOString()
   };
 
   const btn = document.getElementById('btnGuardar');
   btn.disabled = true;
-  const res = editId
-    ? await client.from('clientes').update(payload).eq('id', editId)
-    : await client.from('clientes').insert([{ ...payload, activo: true }]);
-  btn.disabled = false;
+  try {
+    const payload = { ...basePayload, rfc: rfcVal || null };
+    let res = editId
+      ? await client.from('clientes').update(payload).eq('id', editId)
+      : await client.from('clientes').insert([{ ...payload, activo: true }]);
 
-  if (res.error) return alert('Error: ' + res.error.message);
-  limpiar();
-  await cargar();
+    if (res.error && /rfc|PGRST204|column/i.test(res.error.message || res.error.code || '')) {
+      const obsWithRfc = rfcVal ? `[RFC: ${rfcVal}]${obsRaw ? ' ' + obsRaw : ''}` : (obsRaw || null);
+      const fallbackPayload = { ...basePayload, observaciones: obsWithRfc };
+      res = editId
+        ? await client.from('clientes').update(fallbackPayload).eq('id', editId)
+        : await client.from('clientes').insert([{ ...fallbackPayload, activo: true }]);
+    }
+
+    if (res.error) return alert('Error: ' + res.error.message);
+    limpiar();
+    await cargar();
+  } finally {
+    btn.disabled = !canEditClientes;
+  }
 }
 
 async function toggle(id, actual){
+  if (!canEditClientes) return alert('Sin permisos para editar clientes.');
   if (!confirm(`¿Deseas ${actual ? 'desactivar' : 'activar'} este cliente?`)) return;
   const { error } = await client.from('clientes').update({ activo: !actual }).eq('id', id);
   if (error) return alert(error.message);
   await cargar();
 }
 
+document.addEventListener('kraem:authready', () => { syncPermisos(); render(); });
 document.addEventListener('DOMContentLoaded', cargar);
 </script>
 </body>

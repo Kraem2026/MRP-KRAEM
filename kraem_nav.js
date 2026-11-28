@@ -10,85 +10,81 @@
   var KraemNav = {
     // Mapa jerárquico oficial de módulos y sus padres
     hierarchy: {
-      // Catálogos e Ingeniería
-      'catalogo_plantas.html': { parent: 'ingenieria_catalogos.html', title: 'Catálogo de Plantas & Sedes', group: 'Ingeniería' },
-      'admin_areas.html': { parent: 'ingenieria_catalogos.html', title: 'Áreas de Planta', group: 'Ingeniería' },
-      'catalogo_areas_generales.html': { parent: 'ingenieria_catalogos.html', title: 'Áreas Generales', group: 'Ingeniería' },
-      'catalogo_materiales.html': { parent: 'ingenieria_catalogos.html', title: 'Materiales & Resinas', group: 'Ingeniería' },
-      'catalogo_moldes.html': { parent: 'ingenieria_catalogos.html', title: 'Moldes & Herramentales', group: 'Ingeniería' },
-      'catalogo_procesos.html': { parent: 'ingenieria_catalogos.html', title: 'Procesos de Producción', group: 'Ingeniería' },
-      // 1. Operaciones & Planta
-      'admin_defectos.html': { parent: 'ingenieria_catalogos.html', title: 'Catálogo de Defectos', group: '1. Ingeniería' },
-      'admin_maquinas.html': { parent: 'ingenieria_catalogos.html', title: 'Prensas & Maquinaria', group: '1. Ingeniería' },
-      'admin_empaques.html': { parent: 'ingenieria_catalogos.html', title: 'Empaques & Embalajes', group: '1. Ingeniería' },
-      'catalogo_checklists.html': { parent: 'ingenieria_catalogos.html', title: 'Checklists de Calidad', group: '1. Ingeniería' },
-      'admin_partes.html': { parent: 'ingenieria_catalogos.html', title: 'Números de Parte', group: '1. Ingeniería' },
-      'ingenieria_nuevo_np.html': { parent: 'admin_partes.html', title: 'Alta Número de Parte', group: '1. Ingeniería' },
-      'part_ficha_tecnica.html': { parent: 'admin_partes.html', title: 'Ficha Técnica', group: '1. Ingeniería' },
-      'ingenieria_bom.html': { parent: 'ingenieria_catalogos.html', title: 'Estructura de Materiales (BOM)', group: '1. Ingeniería' },
-      'catalogo_moldes.html': { parent: 'ingenieria_catalogos.html', title: 'Matriz de Moldes', group: '1. Ingeniería' },
-      'admin_areas.html': { parent: 'ingenieria_catalogos.html', title: 'Áreas de Planta', group: '1. Ingeniería' },
-      'ingenieria_catalogos.html': { parent: 'dashboard.html', title: 'Catálogos Maestros de Ingeniería', group: '1. Ingeniería' },
+      // 1.1 Ingeniería & BOM
+      'admin_partes.html': { parent: 'dashboard.html', title: 'Maestro de N/P & Materiales', group: '1.1 Ingeniería' },
+      'catalogo_materiales.html': { parent: 'admin_partes.html', title: 'Materiales & Parámetros MRP', group: '1.1 Ingeniería' },
+      'ingenieria_nuevo_np.html': { parent: 'admin_partes.html', title: 'Alta / Edición N° de Parte', group: '1.1 Ingeniería' },
+      'part_ficha_tecnica.html': { parent: 'admin_partes.html', title: 'Ficha Técnica Maestra', group: '1.1 Ingeniería' },
+      'ingenieria_bom.html': { parent: 'dashboard.html', title: 'Estructura de Materiales (BOM)', group: '1.1 Ingeniería' },
+      'catalogo_moldes.html': { parent: 'dashboard.html', title: 'Matriz de Moldes', group: '1.1 Ingeniería' },
+      'admin_maquinas.html': { parent: 'dashboard.html', title: 'Prensas & Centros de Trabajo', group: '1.1 Ingeniería' },
+      'catalogo_procesos.html': { parent: 'dashboard.html', title: 'Rutas & Procesos', group: '1.1 Ingeniería' },
+      'admin_empaques.html': { parent: 'dashboard.html', title: 'Estándar de Empaques', group: '1.1 Ingeniería' },
+      'ingenieria_catalogos.html': { parent: 'dashboard.html', title: 'Dashboard Operativo', group: 'General' },
 
-      // WMS e Inventarios
-      'inventarios.html': { parent: 'wms_operaciones.html', title: 'Inventario Maestro', group: '1. WMS' },
-      'inventarios_ubicacion.html': { parent: 'inventarios.html', title: 'Inventario por Ubicación', group: '1. WMS' },
-      'captura_inventario.html': { parent: 'inventarios.html', title: 'Ajuste de Inventario', group: '1. WMS' },
-      'admin_ubicaciones.html': { parent: 'inventarios.html', title: 'Catálogo de Ubicaciones WMS', group: '1. WMS' },
-      'consulta_fifo.html': { parent: 'wms_operaciones.html', title: 'Consulta FIFO & Lotes', group: '1. WMS' },
-      'conteos_menu.html': { parent: 'wms_operaciones.html', title: 'Conteos Físicos & Cíclicos', group: '1. WMS' },
-      'ciclicos_lista.html': { parent: 'conteos_menu.html', title: 'Lista de Conteos Cíclicos', group: '1. WMS' },
-      'wms_operaciones.html': { parent: 'dashboard.html', title: 'Estación Operativa WMS', group: '1. WMS' },
-      'historial.html': { parent: 'wms_operaciones.html', title: 'Historial Maestro de Movimientos', group: '1. WMS' },
+      // 1.4 WMS e Inventarios
+      'inventarios.html': { parent: 'wms_operaciones.html', title: 'Inventario Maestro', group: '1.4 WMS' },
+      'inventarios_ubicacion.html': { parent: 'inventarios.html', title: 'Inventario por Ubicación', group: '1.4 WMS' },
+      'captura_inventario.html': { parent: 'inventarios.html', title: 'Ajuste de Inventario', group: '1.4 WMS' },
+      'admin_ubicaciones.html': { parent: 'dashboard.html', title: 'Ubicaciones & Flota Carros', group: '1.4 WMS' },
+      'consulta_fifo.html': { parent: 'wms_operaciones.html', title: 'Consulta FIFO & Lotes', group: '1.4 WMS' },
+      'conteos_menu.html': { parent: 'wms_operaciones.html', title: 'Conteos Físicos & Cíclicos', group: '1.4 WMS' },
+      'ciclicos_lista.html': { parent: 'conteos_menu.html', title: 'Lista de Conteos Cíclicos', group: '1.4 WMS' },
+      'wms_operaciones.html': { parent: 'dashboard.html', title: 'Estación Operativa WMS', group: '1.4 WMS' },
+      'historial.html': { parent: 'wms_operaciones.html', title: 'Historial Maestro de Movimientos', group: '1.4 WMS' },
 
       // Planeación & MRP
-      'planeacion_hub.html': { parent: 'dashboard.html', title: 'Cockpit de Planeación & Control ERP', group: '1. Planeación' },
-      'planeacion_mrp_forecast.html': { parent: 'planeacion_hub.html', title: 'Forecast, Demanda & Explosión MRP', group: '1. Planeación' },
-      'planeacion_requerimientos.html': { parent: 'planeacion_hub.html', title: 'Requerimientos de Demanda', group: '1. Planeación' },
-      'planeacion_produccion.html': { parent: 'planeacion_requerimientos.html', title: 'Planeación de Producción', group: '1. Planeación' },
-      'planeacion_propuesta.html': { parent: 'planeacion_requerimientos.html', title: 'Propuesta de Producción (APS)', group: '1. Planeación' },
-      'planeacion_aps_tablero.html': { parent: 'planeacion_hub.html', title: 'Tablero APS de Inyección', group: '1. Planeación' },
-      'planeacion_montaje_moldes.html': { parent: 'planeacion_hub.html', title: 'SMED Montaje de Moldes', group: '1. Planeación' },
-      'planeacion_calendario_maquinas.html': { parent: 'planeacion_hub.html', title: 'Calendario de Máquinas', group: '1. Planeación' },
-      'planeacion_forecast.html': { parent: 'planeacion_hub.html', title: 'Forecast de Demanda', group: '2. Comercial' },
-      'Planeacion.html': { parent: 'planeacion_hub.html', title: 'Planeación Histórica', group: '1. Planeación' },
+      'planeacion_hub.html': { parent: 'dashboard.html', title: 'Cockpit de Planeación & Control ERP', group: '1.2 Planeación' },
+      'planeacion_mrp_forecast.html': { parent: 'planeacion_hub.html', title: 'Forecast, Demanda & Explosión MRP', group: '1.2 Planeación' },
+      'planeacion_requerimientos.html': { parent: 'planeacion_hub.html', title: 'Requerimientos de Demanda', group: '1.2 Planeación' },
+      'planeacion_produccion.html': { parent: 'planeacion_requerimientos.html', title: 'Planeación de Producción', group: '1.2 Planeación' },
+      'planeacion_propuesta.html': { parent: 'planeacion_requerimientos.html', title: 'Propuesta de Producción (APS)', group: '1.2 Planeación' },
+      'planeacion_aps_tablero.html': { parent: 'planeacion_hub.html', title: 'Tablero APS de Inyección', group: '1.2 Planeación' },
+      'planeacion_montaje_moldes.html': { parent: 'planeacion_hub.html', title: 'SMED Montaje de Moldes', group: '1.2 Planeación' },
+      'planeacion_calendario_maquinas.html': { parent: 'planeacion_hub.html', title: 'Calendario de Máquinas', group: '1.2 Planeación' },
+      'planeacion_forecast.html': { parent: 'planeacion_hub.html', title: 'Forecast de Demanda', group: '2.1 Comercial' },
+      'Planeacion.html': { parent: 'planeacion_hub.html', title: 'Planeación Histórica', group: '1.2 Planeación' },
 
       // Compras
-      'compras_ordenes.html': { parent: 'dashboard.html', title: 'Órdenes de Compra (OCs)', group: '1. Compras' },
-      'compras_recibo.html': { parent: 'compras_ordenes.html', title: 'Recibo de Mercancía WMS', group: '1. Compras' },
-      'catalogo_proveedores.html': { parent: 'compras_ordenes.html', title: 'Catálogo de Proveedores', group: '1. Compras' },
+      'compras_ordenes.html': { parent: 'dashboard.html', title: 'Órdenes de Compra (OCs)', group: '1.5 Compras' },
+      'compras_recibo.html': { parent: 'compras_ordenes.html', title: 'Recibo de Mercancía WMS', group: '1.5 Compras' },
+      'catalogo_proveedores.html': { parent: 'compras_ordenes.html', title: 'Catálogo de Proveedores', group: '1.5 Compras' },
 
-      // Comercial
-      'catalogo_clientes.html': { parent: 'dashboard.html', title: 'Catálogo de Clientes', group: '2. Comercial' },
+      // 2.1 Comercial
+      'catalogo_clientes.html': { parent: 'dashboard.html', title: 'Catálogo de Clientes', group: '2.1 Comercial' },
 
-      // Calidad
-      'calidad_control.html': { parent: 'dashboard.html', title: 'Control de Calidad & ISO', group: '1. Calidad' },
-      'inspeccion_captura.html': { parent: 'calidad_control.html', title: 'Inspección de Calidad', group: '1. Calidad' },
-      'control_documental_iso.html': { parent: 'calidad_control.html', title: 'Control Documental ISO 9001', group: '1. Calidad' },
+      // 1.6 Calidad & SGC
+      'calidad_control.html': { parent: 'dashboard.html', title: 'Control de Calidad & ISO', group: '1.6 Calidad' },
+      'inspeccion_captura.html': { parent: 'calidad_control.html', title: 'Inspección de Calidad', group: '1.6 Calidad' },
+      'control_documental_iso.html': { parent: 'calidad_control.html', title: 'Control Documental ISO 9001', group: '1.6 Calidad' },
+      'admin_defectos.html': { parent: 'dashboard.html', title: 'Catálogo de Defectos', group: '1.6 Calidad' },
+      'catalogo_checklists.html': { parent: 'dashboard.html', title: 'Checklists SGC & SMED', group: '1.6 Calidad' },
 
       // Producción Piso
-      'produccion_captura.html': { parent: 'dashboard.html', title: 'MES Captura & Cierre de Producción', group: '1. Producción' },
-      'produccion_inspeccion_captura.html': { parent: 'produccion_captura.html', title: 'Inspección en Piso', group: '1. Producción' },
+      'produccion_captura.html': { parent: 'dashboard.html', title: 'MES Captura & Cierre de Producción', group: '1.3 Producción' },
+      'produccion_inspeccion_captura.html': { parent: 'produccion_captura.html', title: 'Inspección en Piso', group: '1.3 Producción' },
 
       // Finanzas & Costos
-      'dashboard_kpi.html': { parent: 'dashboard.html', title: 'Monitor Gerencial & OEE', group: '3. Finanzas' },
-      'analisis.html': { parent: 'dashboard.html', title: 'Análisis de Costos & Defectos', group: '3. Finanzas' },
+      'dashboard_kpi.html': { parent: 'dashboard.html', title: 'Monitor Gerencial & OEE', group: '3.1 Finanzas' },
+      'analisis.html': { parent: 'dashboard.html', title: 'Análisis de Costos & Defectos', group: '3.1 Finanzas' },
 
       // Recursos Humanos & 5S
-      'rh_empleados.html': { parent: 'admin_rh.html', title: 'Expedientes de Empleados', group: '4. Personal' },
-      'rh_asistencia.html': { parent: 'admin_rh.html', title: 'Control de Asistencia', group: '4. Personal' },
-      'rh_reporte_asistencia.html': { parent: 'rh_asistencia.html', title: 'Reporte de Asistencia', group: '4. Personal' },
-      'rh_capacitacion.html': { parent: 'admin_rh.html', title: 'Capacitaciones & Cursos', group: '4. Personal' },
-      'rh_turnos.html': { parent: 'admin_rh.html', title: 'Asignación de Turnos', group: '4. Personal' },
-      'rh_solicitudes.html': { parent: 'admin_rh.html', title: 'Solicitudes & Permisos', group: '4. Personal' },
-      'rh_matriz_habilidades.html': { parent: 'admin_rh.html', title: 'Matriz de Habilidades', group: '4. Personal' },
-      'rh_evaluacion_5s.html': { parent: 'admin_rh.html', title: 'Evaluaciones 5S', group: '4. Personal' },
-      'dashboard_5s.html': { parent: 'admin_rh.html', title: 'Dashboard 5S', group: '4. Personal' },
-      'admin_rh.html': { parent: 'dashboard.html', title: 'Portal de Recursos Humanos & 5S', group: '4. Personal' },
+      'rh_empleados.html': { parent: 'admin_rh.html', title: 'Expedientes de Empleados', group: '4.1 Personal' },
+      'rh_asistencia.html': { parent: 'admin_rh.html', title: 'Control de Asistencia', group: '4.1 Personal' },
+      'rh_reporte_asistencia.html': { parent: 'rh_asistencia.html', title: 'Reporte de Asistencia', group: '4.1 Personal' },
+      'rh_capacitacion.html': { parent: 'admin_rh.html', title: 'Capacitaciones & Cursos', group: '4.1 Personal' },
+      'rh_turnos.html': { parent: 'admin_rh.html', title: 'Asignación de Turnos', group: '4.1 Personal' },
+      'rh_solicitudes.html': { parent: 'admin_rh.html', title: 'Solicitudes & Permisos', group: '4.1 Personal' },
+      'rh_matriz_habilidades.html': { parent: 'admin_rh.html', title: 'Matriz de Habilidades', group: '4.1 Personal' },
+      'rh_evaluacion_5s.html': { parent: 'admin_rh.html', title: 'Evaluaciones 5S', group: '4.1 Personal' },
+      'dashboard_5s.html': { parent: 'admin_rh.html', title: 'Dashboard 5S', group: '4.1 Personal' },
+      'admin_rh.html': { parent: 'dashboard.html', title: 'Portal de Recursos Humanos & 5S', group: '4.1 Personal' },
 
-      // Gobernanza & Configuración
-      'catalogo_plantas.html': { parent: 'dashboard.html', title: 'Catálogo de Plantas & Sedes', group: '5. Gobernanza' },
-      'configuracion_sistema.html': { parent: 'dashboard.html', title: 'Configuración del Sistema', group: '5. Gobernanza' },
+      // 5.1 Gobernanza & Configuración
+      'catalogo_plantas.html': { parent: 'dashboard.html', title: 'Catálogo de Plantas & Sedes', group: '5.1 Gobernanza' },
+      'catalogo_areas_generales.html': { parent: 'dashboard.html', title: 'Macro-Áreas de Planta', group: '5.1 Gobernanza' },
+      'admin_areas.html': { parent: 'dashboard.html', title: 'Subáreas Operativas', group: '5.1 Gobernanza' },
+      'configuracion_sistema.html': { parent: 'dashboard.html', title: 'Configuración del Sistema', group: '5.1 Gobernanza' },
       'dashboard.html': { parent: null, title: 'Dashboard Operativo', group: 'General' }
     },
 

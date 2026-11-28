@@ -74,9 +74,10 @@
             </div>
         </div>
         <div class="controls">
-            <a id="btnEditLink" href="#" class="btn btn-primary"><i class="fas fa-edit"></i> Editar Ficha Técnica / BOM</a>
-            <button class="lang-btn" onclick="setLang('es')"><img src="https://flagcdn.com/w80/mx.png"></button>
-            <button class="lang-btn" onclick="setLang('ko')"><img src="https://flagcdn.com/w80/kr.png"></button>
+            <a id="btnEditLink" href="#" class="btn btn-primary"><i class="fas fa-edit"></i> <span id="lblBtnEdit">Editar Ficha Técnica / BOM</span></a>
+            <button class="lang-btn" onclick="setLang('es')" title="Español"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
+            <button class="lang-btn" onclick="setLang('ko')" title="한국어"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+            <button class="lang-btn" onclick="setLang('en')" title="English"><img src="https://flagcdn.com/w80/us.png" alt="US"></button>
             <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
         </div>
     </header>
@@ -277,14 +278,18 @@
         document.getElementById('valCavities').innerText = `${p.cavities || 1} Cav.`;
         document.getElementById('valCycleTime').innerText = `${p.cycle_time_seg || 0} s`;
         
-        // Pesos: se almacenan SIEMPRE en gramos (ver ingenieria_nuevo_np / carga Excel BOM).
-        const partGr = parseFloat(p.part_weight_gr || 0);
-        const runnerGr = parseFloat(p.runner_weight_gr || 0);
-        
+        function toDisplayGrams(raw) {
+            const n = parseFloat(raw || 0);
+            if (!n || Number.isNaN(n)) return 0;
+            // Corrección de datos importados previamente en KG (< 1 kg guardado en *_gr)
+            return (n > 0 && n < 1) ? (n * 1000) : n;
+        }
+        const partGr = toDisplayGrams(p.part_weight_gr);
+        const runnerGr = toDisplayGrams(p.runner_weight_gr);
+
         document.getElementById('valPartWeight').innerText = `${partGr.toFixed(1)} g`;
         document.getElementById('valRunnerWeight').innerText = `${runnerGr.toFixed(1)} g`;
         document.getElementById('valTotalWeight').innerText = `${(partGr + runnerGr).toFixed(1)} g`;
-
         await loadStandardPack(p);
 
         // 2. Consultar Inventario (misma fuente que el WMS)
@@ -384,44 +389,77 @@
     }
 
     async function loadBomStructure(id, productType) {
-        const isParent = (productType === 'PT' || productType === 'SUB-ENSAMBLE');
-        let query = client.from('bom_structures')
-                          .select('*, child:parts!bom_structures_child_id_fkey(*), parent:parts!bom_structures_parent_id_fkey(*)');
-
-        if (isParent) {
-            query = query.eq('parent_id', id);
-        } else {
-            query = query.eq('child_id', id);
-        }
-
-        const { data: bomData, error } = await query;
         const body = document.getElementById('bomTableBody');
+        const { data: childRows } = await client
+            .from('bom_structures')
+            .select('*, child:parts!bom_structures_child_id_fkey(*)')
+            .eq('parent_id', id);
 
-        if (!bomData || bomData.length === 0) {
-            body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--secondary);">Este número de parte no tiene componentes asociados en el BOM.</td></tr>`;
+        const realChildren = (childRows || []).filter(b => Number(b.parent_id) !== Number(b.child_id) && b.child);
+        const selfRows = (childRows || []).filter(b => Number(b.parent_id) === Number(b.child_id));
+
+        if (realChildren.length > 0) {
+            body.innerHTML = realChildren.map(b => {
+                const item = b.child;
+                return `
+                    <tr>
+                        <td><span class="badge badge-level">Lvl ${b.bom_level || 1}</span></td>
+                        <td>
+                            <a href="part_ficha_tecnica.html?id=${item.id}" style="color:var(--primary); font-weight:bold; text-decoration:none;">
+                                ${item.part_number || 'N/A'}
+                            </a>
+                        </td>
+                        <td>${item.part_name || ''}</td>
+                        <td><span class="badge badge-level">${item.product_type || '-'}</span></td>
+                        <td><strong>${b.usage_qty || b.quantity || 1}</strong></td>
+                        <td>${b.unit || item.unit_of_measure || 'EA'}</td>
+                    </tr>`;
+            }).join('');
             return;
         }
 
-        body.innerHTML = bomData.map(b => {
-            const item = isParent ? b.child : b.parent;
-            if (!item) return '';
-            return `
-                <tr>
-                    <td><span class="badge badge-level">Lvl ${b.bom_level || 1}</span></td>
-                    <td>
-                        <a href="part_ficha_tecnica.html?id=${item.id}" style="color:var(--primary); font-weight:bold; text-decoration:none;">
-                            ${item.part_number || 'N/A'}
-                        </a>
-                    </td>
-                    <td>${item.part_name || ''}</td>
-                    <td><span class="badge badge-level">${item.product_type || '-'}</span></td>
-                    <td><strong>${b.usage_qty || b.quantity || 1}</strong></td>
-                    <td>${b.unit || item.unit_of_measure || 'EA'}</td>
-                </tr>
-            `;
-        }).join('');
-    }
+        if (productType === 'RESINA' || productType === 'COMPONENTE') {
+            const { data: parentRows } = await client
+                .from('bom_structures')
+                .select('*, parent:parts!bom_structures_parent_id_fkey(*)')
+                .eq('child_id', id);
+            const usedInParents = (parentRows || []).filter(b => Number(b.parent_id) !== Number(b.child_id) && b.parent);
+            if (usedInParents.length > 0) {
+                body.innerHTML = usedInParents.map(b => {
+                    const item = b.parent;
+                    return `
+                        <tr>
+                            <td><span class="badge badge-level">Usado en</span></td>
+                            <td>
+                                <a href="part_ficha_tecnica.html?id=${item.id}" style="color:var(--primary); font-weight:bold; text-decoration:none;">
+                                    ${item.part_number || 'N/A'}
+                                </a>
+                            </td>
+                            <td>${item.part_name || ''}</td>
+                            <td><span class="badge badge-level">${item.product_type || '-'}</span></td>
+                            <td><strong>${b.usage_qty || b.quantity || 1}</strong></td>
+                            <td>${b.unit || item.unit_of_measure || 'EA'}</td>
+                        </tr>`;
+                }).join('');
+                return;
+            }
+        }
 
+        const grades = [...new Set(selfRows.map(b => (b.material_grade || '').trim()).filter(Boolean))];
+        if (grades.length > 0) {
+            body.innerHTML = grades.map(g => `
+                <tr>
+                    <td><span class="badge badge-level">Resina</span></td>
+                    <td colspan="2"><strong>${g}</strong> <small style="color:var(--secondary);">(Grado registrado en BOM pendiente de enlace a SKU)</small></td>
+                    <td><span class="badge badge-level">RESINA</span></td>
+                    <td><strong>${selfRows[0].net_weight_kg || selfRows[0].usage_qty || 1}</strong></td>
+                    <td>${selfRows[0].unit || 'KG'}</td>
+                </tr>`).join('');
+            return;
+        }
+
+        body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--secondary);">Este número de parte no tiene componentes asociados en el BOM.</td></tr>`;
+    }
     function toggleTheme() {
         const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', theme);
@@ -435,7 +473,66 @@
         document.getElementById('themeIcon').className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
     }
 
+    const FICHA_I18N = {
+        es: {
+            back: 'Volver al Catálogo',
+            editBtn: 'Editar Ficha Técnica / BOM',
+            kpiStock: 'Inventario Actual Total',
+            kpiDemand: 'Demanda / Salida Prom. Diaria',
+            kpiCov: 'Cobertura de Inventario',
+            kpiPack: 'Standard Pack',
+            specs: 'Especificaciones de Ingeniería / Inyección',
+            bom: 'Estructura de Materiales (BOM)',
+            molds: 'Moldes de Fabricación'
+        },
+        ko: {
+            back: '카탈로그로 돌아가기',
+            editBtn: '기술 사양 / BOM 편집',
+            kpiStock: '현재 총 재고',
+            kpiDemand: '일일 평균 출고량',
+            kpiCov: '재고 보유 일수',
+            kpiPack: '표준 포장 수량',
+            specs: '엔지니어링 / 사출 사양',
+            bom: '자재 명세서 (BOM)',
+            molds: '금형 매트릭스'
+        },
+        en: {
+            back: 'Back to Catalog',
+            editBtn: 'Edit Spec / BOM',
+            kpiStock: 'Total Current Inventory',
+            kpiDemand: 'Avg. Daily Demand / Outflow',
+            kpiCov: 'Inventory Coverage',
+            kpiPack: 'Standard Pack',
+            specs: 'Engineering / Molding Specifications',
+            bom: 'Bill of Materials (BOM)',
+            molds: 'Manufacturing Molds'
+        }
+    };
+
+    function setLang(lang) {
+        const l = FICHA_I18N[lang] ? lang : 'es';
+        localStorage.setItem('lang', l);
+        const t = FICHA_I18N[l];
+        const backBtn = document.querySelector('header a[href="admin_partes.html"]');
+        if (backBtn) backBtn.innerHTML = `<i class="fas fa-arrow-left"></i> ${t.back}`;
+        const editLbl = document.getElementById('lblBtnEdit');
+        if (editLbl) editLbl.textContent = t.editBtn;
+        const kpiTitles = document.querySelectorAll('.kpi-grid .kpi-title');
+        if (kpiTitles[0]) kpiTitles[0].innerHTML = `<i class="fas fa-boxes-stacked"></i> ${t.kpiStock}`;
+        if (kpiTitles[1]) kpiTitles[1].innerHTML = `<i class="fas fa-chart-line"></i> ${t.kpiDemand}`;
+        if (kpiTitles[2]) kpiTitles[2].innerHTML = `<i class="fas fa-calendar-day"></i> ${t.kpiCov}`;
+        if (kpiTitles[3]) kpiTitles[3].innerHTML = `<i class="fas fa-box-open"></i> ${t.kpiPack}`;
+        const cardTitles = document.querySelectorAll('.ficha-main-grid .card-title');
+        if (cardTitles[1]) cardTitles[1].innerHTML = `<i class="fas fa-cogs"></i> ${t.specs}`;
+        if (cardTitles[2] && cardTitles[2].querySelector('span')) cardTitles[2].querySelector('span').innerHTML = `<i class="fas fa-sitemap"></i> ${t.bom}`;
+        if (cardTitles[3] && cardTitles[3].querySelector('span')) cardTitles[3].querySelector('span').innerHTML = `<i class="fas fa-cubes"></i> ${t.molds}`;
+        localStorage.setItem('lang', l);
+        localStorage.setItem('kraem_lang', l);
+        document.documentElement.setAttribute('lang', l);
+    }
+
     init();
+    setLang(localStorage.getItem('lang') || 'es');
 </script>
 </body>
 </html>
