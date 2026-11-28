@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
   <script src="kraem_nav.js"></script>
-  <script src="ingenieria_i18n.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
@@ -16,39 +15,50 @@
   --primary:#2563eb; --primary-dark:#1d4ed8; --bg:#f8fafc; --card:#ffffff; --text:#1e293b;
   --muted:#64748b; --border:#e2e8f0; --success:#22c55e; --warning:#f59e0b; --danger:#ef4444; --purple:#7c3aed;
 }
+[data-theme="dark"]{
+  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+}
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text)}
+body{margin:0;padding:20px;background:var(--bg);font-family:'Segoe UI',sans-serif;color:var(--text);transition:.25s}
 .container{max-width:1600px;margin:auto}
 .header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;margin-bottom:20px}
 .title-box{display:flex;align-items:center;gap:15px}
-.title-box h1{margin:0;font-size:26px}
+.title-box h1{margin:0;font-size:24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .title-box p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lang-btn{width:34px;height:34px;border-radius:50%;cursor:pointer;border:1px solid var(--border);overflow:hidden;padding:0;background:var(--card)}
+.lang-btn img{width:100%;height:100%;object-fit:cover}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.04);margin-bottom:20px}
 .section-title{font-size:16px;font-weight:700;margin:0 0 15px;display:flex;align-items:center;gap:8px}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
 .group{display:flex;flex-direction:column}
-label{font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase}
-input,select,textarea{padding:11px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;background:white;font-family:inherit}
+label{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
+input,select,textarea{padding:10px 11px;border:1px solid var(--border);border-radius:10px;font-size:13.5px;background:var(--bg);color:var(--text);font-family:inherit}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)}
-.btn{border:none;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13px;transition:.2s}
-.btn:hover{transform:translateY(-1px)}
-.btn-primary{background:var(--primary);color:white}
-.btn-secondary{background:#e2e8f0;color:#334155}
-.btn-success{background:var(--success);color:white}
+.btn{border:1px solid var(--border);border-radius:10px;padding:10px 15px;cursor:pointer;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13px;transition:.2s;background:var(--card);color:var(--text)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:white;border:none}
+.btn-secondary{background:var(--bg);color:var(--text)}
+.btn-success{background:var(--success);color:white;border:none}
 .btn-sm{padding:6px 10px;font-size:12px;border-radius:8px}
-.btn-danger-soft{background:#fee2e2;color:#991b1b}
-.btn-blue-soft{background:#dbeafe;color:#1d4ed8}
-.btn-purple-soft{background:#ede9fe;color:var(--purple)}
+.btn-danger-soft{background:#fee2e2;color:#991b1b;border:none}
+.btn-blue-soft{background:#dbeafe;color:#1d4ed8;border:none}
+.btn-purple-soft{background:#ede9fe;color:var(--purple);border:none}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 18px;border-left:4px solid var(--primary)}
 .kpi .t{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
-.kpi .v{font-size:24px;font-weight:800;margin-top:4px}
+.kpi .v{font-size:24px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
 .filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:15px}
 .table-wrap{overflow:auto}
 table{width:100%;border-collapse:collapse;min-width:1200px}
-th{background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;text-align:left;padding:12px}
-td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
-tr:hover td{background:#f8fafc}
+th{background:rgba(148,163,184,0.12);color:var(--muted);font-size:11px;text-transform:uppercase;text-align:left;padding:11px 12px}
+td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+tr:hover td{background:rgba(37,99,235,0.04)}
+.pager{display:flex;justify-content:space-between;align-items:center;padding-top:14px;margin-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;gap:10px}
+.pager-info{font-size:12.5px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.pager-btns{display:flex;gap:8px;align-items:center}
+.info-box{background:rgba(37,99,235,0.08);color:var(--primary);padding:9px 12px;border-radius:10px;font-size:12px;margin-top:10px}
 .badge{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap}
 .st-EN_ALMACEN{background:#e0f2fe;color:#0369a1}
 .st-MONTADO{background:#dcfce7;color:#166534}
@@ -59,8 +69,8 @@ tr:hover td{background:#f8fafc}
 .pm-bar div{height:100%}
 .muted{color:var(--muted);font-size:11px}
 .empty{text-align:center;padding:35px;color:var(--muted)}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:1000;padding:15px}
-.modal-content{background:white;border-radius:16px;padding:22px;width:100%;max-width:950px;max-height:90vh;overflow:auto}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;justify-content:center;align-items:center;z-index:1000;padding:15px}
+.modal-content{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:950px;max-height:90vh;overflow:auto}
 .modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px}
 .modal-head h3{margin:0}
 .warn-box{background:#fef3c7;color:#92400e;padding:10px 12px;border-radius:10px;font-size:12px;margin-top:10px}
@@ -73,21 +83,27 @@ tr:hover td{background:#f8fafc}
 
   <div class="header">
     <div class="title-box">
-      <button class="btn btn-secondary" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> Regresar</button>
+      <button class="btn btn-secondary" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> <span id="lblBackMolds">Regresar</span></button>
       <div>
-        <h1><i class="fas fa-cubes" style="color:var(--primary)"></i> Maestro de Moldes</h1>
-        <p>Moldes, cavidades, matriz Molde ↔ Parte y Molde ↔ Máquina (base para Planeación y Montaje de Moldes)</p>
+        <h1><i class="fas fa-cubes" style="color:var(--primary)"></i> <span id="txtTitleMolds">Maestro de Moldes</span> <span style="font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;letter-spacing:0.5px;">by APEX SYSTEM</span></h1>
+        <p id="txtSubMolds">Moldes, cavidades, matriz Molde ↔ Parte y Molde ↔ Máquina (base para Planeación y Montaje de Moldes)</p>
       </div>
     </div>
-    <button class="btn btn-primary" onclick="nuevoMolde()"><i class="fas fa-plus"></i> Nuevo Molde</button>
+    <div class="controls">
+      <button class="btn btn-primary" id="btnNuevoMolde" onclick="nuevoMolde()"><i class="fas fa-plus"></i> <span id="lblBtnNuevoMolde">Nuevo Molde</span></button>
+      <button class="lang-btn" onclick="setLang('es')" title="Español"><img src="https://flagcdn.com/w80/mx.png" alt="MX"></button>
+      <button class="lang-btn" onclick="setLang('ko')" title="한국어"><img src="https://flagcdn.com/w80/kr.png" alt="KR"></button>
+      <button class="lang-btn" onclick="setLang('en')" title="English"><img src="https://flagcdn.com/w80/us.png" alt="US"></button>
+      <button class="btn btn-secondary" onclick="toggleTheme()" title="Tema"><i id="themeIcon" class="fas fa-moon"></i></button>
+    </div>
   </div>
 
   <!-- KPIs -->
   <div class="kpi-grid">
-    <div class="kpi"><div class="t">Moldes activos</div><div class="v" id="kpiTotal">0</div></div>
-    <div class="kpi" style="border-left-color:var(--success)"><div class="t">Montados en máquina</div><div class="v" id="kpiMontados">0</div></div>
-    <div class="kpi" style="border-left-color:var(--warning)"><div class="t">En taller / bloqueados</div><div class="v" id="kpiTaller">0</div></div>
-    <div class="kpi" style="border-left-color:var(--danger)"><div class="t">PM vencido o ≥ 90%</div><div class="v" id="kpiPM">0</div></div>
+    <div class="kpi"><div class="t" id="lblKpiTotalM">Moldes activos</div><div class="v" id="kpiTotal">0</div></div>
+    <div class="kpi" style="border-left-color:var(--success)"><div class="t" id="lblKpiMontM">Montados en máquina</div><div class="v" id="kpiMontados">0</div></div>
+    <div class="kpi" style="border-left-color:var(--warning)"><div class="t" id="lblKpiTallM">En taller / bloqueados</div><div class="v" id="kpiTaller">0</div></div>
+    <div class="kpi" style="border-left-color:var(--danger)"><div class="t" id="lblKpiPmM">PM vencido o ≥ 90%</div><div class="v" id="kpiPM">0</div></div>
   </div>
 
   <!-- FORMULARIO -->
@@ -143,10 +159,10 @@ tr:hover td{background:#f8fafc}
 
   <!-- LISTADO -->
   <div class="card">
-    <div class="section-title"><i class="fas fa-list"></i> Moldes registrados</div>
+    <div class="section-title"><i class="fas fa-list"></i> <span id="lblListTitle">Moldes registrados</span></div>
     <div class="filters">
-      <input id="q" placeholder="🔍 Buscar código, nombre, cliente, proyecto o número de parte..." oninput="render()">
-      <select id="fStatus" onchange="render()">
+      <input id="q" placeholder="🔍 Buscar código, nombre, cliente, proyecto o número de parte..." oninput="onFilterChange()">
+      <select id="fStatus" onchange="onFilterChange()">
         <option value="">Todos los estatus</option>
         <option value="EN_ALMACEN">En almacén</option>
         <option value="MONTADO">Montado</option>
@@ -154,7 +170,7 @@ tr:hover td{background:#f8fafc}
         <option value="BLOQUEADO">Bloqueado</option>
         <option value="BAJA">Baja</option>
       </select>
-      <select id="fActivo" onchange="render()">
+      <select id="fActivo" onchange="onFilterChange()">
         <option value="true">Solo activos</option>
         <option value="false">Solo inactivos</option>
         <option value="">Todos</option>
@@ -164,13 +180,20 @@ tr:hover td{background:#f8fafc}
       <table>
         <thead>
           <tr>
-            <th>Código</th><th>Nombre</th><th>Cliente / Proyecto</th><th>Cav. (act/tot)</th>
-            <th>Tonelaje</th><th>Setup</th><th>Estatus / Máquina</th><th>Golpes / PM</th>
-            <th>N/P</th><th>Máquinas</th><th style="text-align:right">Acciones</th>
+            <th id="th_m_code">Código</th><th id="th_m_name">Nombre</th><th id="th_m_cli">Cliente / Proyecto</th><th id="th_m_cav">Cav. (act/tot)</th>
+            <th id="th_m_ton">Tonelaje</th><th id="th_m_setup">Setup</th><th id="th_m_status">Estatus / Máquina</th><th id="th_m_pm">Golpes / PM</th>
+            <th id="th_m_np">N/P</th><th id="th_m_maq">Máquinas</th><th id="th_m_acc" style="text-align:right">Acciones</th>
           </tr>
         </thead>
         <tbody id="body"><tr><td colspan="11" class="empty">Cargando...</td></tr></tbody>
       </table>
+    </div>
+    <div class="pager">
+      <div class="pager-info" id="pageInfo">Mostrando 0 de 0 moldes</div>
+      <div class="pager-btns">
+        <button type="button" class="btn btn-secondary btn-sm" id="btnPrev" onclick="cambiarPagina(-1)" disabled><i class="fas fa-chevron-left"></i> Anterior</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnNext" onclick="cambiarPagina(1)" disabled>Siguiente <i class="fas fa-chevron-right"></i></button>
+      </div>
     </div>
   </div>
 </div>
@@ -183,8 +206,8 @@ tr:hover td{background:#f8fafc}
       <button class="btn btn-secondary btn-sm" onclick="cerrarModal('modalPartes')"><i class="fas fa-times"></i></button>
     </div>
 
-    <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr auto;align-items:end">
-      <div class="group"><label>Número de parte *</label><input id="mp_part" list="dlParts" placeholder="Escribe o selecciona..." style="text-transform:uppercase"></div>
+    <div class="form-grid" id="mpAddGrid" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr auto;align-items:end">
+      <div class="group"><label>Número de parte *</label><input id="mp_part" list="dlParts" oninput="onMoldPartInput()" placeholder="Escribe o selecciona..." style="text-transform:uppercase"></div>
       <div class="group"><label>Lado</label><select id="mp_side"><option>NA</option><option>LH</option><option>RH</option></select></div>
       <div class="group"><label>Cav. de esta parte *</label><input type="number" min="1" id="mp_cav" value="1"></div>
       <div class="group"><label>Ciclo (s)</label><input type="number" step="0.1" id="mp_cycle"></div>
@@ -213,7 +236,7 @@ tr:hover td{background:#f8fafc}
       <button class="btn btn-secondary btn-sm" onclick="cerrarModal('modalMaquinas')"><i class="fas fa-times"></i></button>
     </div>
 
-    <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end">
+    <div class="form-grid" id="mmAddGrid" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end">
       <div class="group"><label>Máquina *</label><select id="mm_machine" onchange="validarTonelaje()"></select></div>
       <div class="group"><label>Ciclo en esta máquina (s)</label><input type="number" step="0.1" id="mm_cycle"></div>
       <div class="group"><label>Tipo</label><select id="mm_primary"><option value="true">Principal</option><option value="false">Alterna</option></select></div>
@@ -231,30 +254,131 @@ tr:hover td{background:#f8fafc}
 </div>
 
 <script>
+const PAGE_SIZE = 50;
 let molds = [], partMolds = [], moldMachines = [], parts = [], machines = [];
 let editId = null, currentMoldId = null;
+let currentPage = 1;
+let canEditIng = true;
+let supportsArchivedCol = true;
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num = id => { const v = document.getElementById(id).value; return v === '' ? null : Number(v); };
 const val = id => document.getElementById(id).value.trim();
 const sameId = (a, b) => String(a) === String(b);
+const isMissingArchColErr = err => !!err && (err.code === '42703' || err.code === 'PGRST204' || String(err.message || '').includes('is_archived_duplicate'));
+
+const MOLDS_I18N = {
+  es: {
+    back: 'Regresar',
+    title: 'Maestro de Moldes',
+    sub: 'Moldes, cavidades, matriz Molde ↔ Parte y Molde ↔ Máquina (base para Planeación y Montaje de Moldes)',
+    btnNew: 'Nuevo Molde',
+    kpiTotal: 'Moldes activos', kpiMont: 'Montados en máquina', kpiTall: 'En taller / bloqueados', kpiPm: 'PM vencido o ≥ 90%',
+    formNew: 'Nuevo Molde', listTitle: 'Moldes registrados',
+    qPh: '🔍 Buscar código, nombre, cliente, proyecto o número de parte...',
+    thCode: 'Código', thName: 'Nombre', thCli: 'Cliente / Proyecto', thCav: 'Cav. (act/tot)',
+    thTon: 'Tonelaje', thSetup: 'Setup', thStatus: 'Estatus / Máquina', thPm: 'Golpes / PM',
+    thNp: 'N/P', thMaq: 'Máquinas', thAcc: 'Acciones'
+  },
+  ko: {
+    back: '돌아가기',
+    title: '금형 마스터 관리',
+    sub: '금형, 캐비티, 금형 ↔ 품번 매트릭스 및 호환 설비 관리 (APS/SMED 기준정보)',
+    btnNew: '신규 금형',
+    kpiTotal: '활성 금형 수', kpiMont: '설비 장착 중', kpiTall: '수리 / 대기', kpiPm: 'PM 도래 (≥90%)',
+    formNew: '신규 금형 등록', listTitle: '등록된 금형 목록',
+    qPh: '🔍 금형 코드, 명칭, 고객, 프로젝트, 품번(N/P) 검색...',
+    thCode: '금형 코드', thName: '금형명', thCli: '고객 / 프로젝트', thCav: '캐비티 (가용/전체)',
+    thTon: '형체력', thSetup: '교체(SMED)', thStatus: '상태 / 설비', thPm: '쇼트수 / PM',
+    thNp: '품번', thMaq: '설비', thAcc: '관리'
+  },
+  en: {
+    back: 'Back',
+    title: 'Mold Master Catalog',
+    sub: 'Molds, cavities, Mold ↔ Part matrix and Mold ↔ Machine compatibility (APS & SMED master)',
+    btnNew: 'New Mold',
+    kpiTotal: 'Active molds', kpiMont: 'Mounted on press', kpiTall: 'In toolroom / blocked', kpiPm: 'PM overdue or ≥ 90%',
+    formNew: 'New Mold', listTitle: 'Registered molds',
+    qPh: '🔍 Search code, name, client, project or part number...',
+    thCode: 'Code', thName: 'Name', thCli: 'Client / Project', thCav: 'Cav. (act/tot)',
+    thTon: 'Tonnage', thSetup: 'Setup', thStatus: 'Status / Machine', thPm: 'Shots / PM',
+    thNp: 'P/N', thMaq: 'Machines', thAcc: 'Actions'
+  }
+};
+
+function syncEditPermissions(){
+  canEditIng = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('ingenieria');
+  const btnN = document.getElementById('btnNuevoMolde');
+  if (btnN) btnN.style.display = canEditIng ? 'inline-flex' : 'none';
+  const fc = document.getElementById('formCard');
+  if (fc) fc.style.display = canEditIng ? 'block' : 'none';
+  const mpAdd = document.getElementById('mpAddGrid');
+  if (mpAdd) mpAdd.style.display = canEditIng ? 'grid' : 'none';
+  const mmAdd = document.getElementById('mmAddGrid');
+  if (mmAdd) mmAdd.style.display = canEditIng ? 'grid' : 'none';
+}
+
+document.addEventListener('kraem:authready', () => {
+  syncEditPermissions();
+  render();
+});
 
 async function init(){
+  applyTheme();
+  syncEditPermissions();
+  setLang(localStorage.getItem('lang') || 'es');
   await Promise.all([cargarPartes(), cargarMaquinas()]);
   await cargarTodo();
   toggleMaquinaActual();
+
+  const qp = new URLSearchParams(window.location.search);
+  const moldIdParam = qp.get('mold_id');
+  const partIdParam = qp.get('part_id');
+  if (moldIdParam) {
+    const mObj = molds.find(m => sameId(m.id, moldIdParam));
+    if (mObj) document.getElementById('q').value = mObj.mold_code || '';
+  } else if (partIdParam) {
+    const pObj = parts.find(p => sameId(p.id, partIdParam));
+    if (pObj) document.getElementById('q').value = pObj.part_number || '';
+  }
+  if (moldIdParam || partIdParam) {
+    currentPage = 1;
+    render();
+  }
 }
 
-async function cargarPartes(){
-  const data = window.fetchAllRows ? await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type', orderBy: 'part_number' }) : ((await client.from('parts').select('id, part_number, part_name, product_type').order('part_number')).data || []);
-  parts = data || [];
-  document.getElementById('dlParts').innerHTML = parts
-    .filter(p => !['RESINA','COMPONENTE'].includes((p.product_type||'').toUpperCase()))
-    .map(p => `<option value="${esc(p.part_number)}">${esc(p.part_name || '')} (${esc(p.product_type || 'PT')})</option>`).join('');
+async function cargarPartes(retried = false){
+  try {
+    const selCols = supportsArchivedCol
+      ? 'id, part_number, part_name, product_type, cavities, cycle_time_seg, part_weight_gr, runner_weight_gr, is_archived_duplicate'
+      : 'id, part_number, part_name, product_type, cavities, cycle_time_seg, part_weight_gr, runner_weight_gr';
+    const data = window.fetchAllRows
+      ? await window.fetchAllRows('parts', {
+          select: selCols,
+          filter: q => supportsArchivedCol ? q.eq('is_archived_duplicate', false) : q,
+          orderBy: 'part_number'
+        })
+      : ((await (supportsArchivedCol
+          ? client.from('parts').select(selCols).eq('is_archived_duplicate', false).order('part_number')
+          : client.from('parts').select(selCols).order('part_number'))).data || []);
+    parts = (Array.isArray(data) ? data : []).filter(p => !p.is_archived_duplicate);
+    document.getElementById('dlParts').innerHTML = parts
+      .filter(p => !['RESINA','COMPONENTE'].includes((p.product_type||'').toUpperCase()))
+      .map(p => `<option value="${esc(p.part_number)}">${esc(p.part_name || '')} (${esc(p.product_type || 'PT')})</option>`).join('');
+  } catch (err) {
+    if (!retried && supportsArchivedCol && isMissingArchColErr(err)) {
+      supportsArchivedCol = false;
+      return cargarPartes(true);
+    }
+    console.error('Error cargando partes en Maestro de Moldes:', err);
+  }
 }
 
 async function cargarMaquinas(){
-  const { data } = await client.from('mes_machines').select('id, machine_code, machine_name, tonnage, production_area, active').order('machine_code');
+  const { data } = await client
+    .from('mes_machines')
+    .select('id, machine_code, machine_name, tonnage, production_area, tie_bar_h_mm, tie_bar_v_mm, max_mold_weight_kg, active')
+    .order('machine_code');
   machines = (data || []).filter(m => m.active !== false);
   const opts = machines.map(m => `<option value="${esc(m.id)}">${esc(m.machine_code)} - ${esc(m.machine_name || '')} ${m.tonnage ? '('+esc(m.tonnage)+' ton)' : ''}</option>`).join('');
   document.getElementById('f_maq_actual').innerHTML = `<option value="">-- Ninguna --</option>` + opts;
@@ -263,20 +387,20 @@ async function cargarMaquinas(){
 
 async function cargarTodo(){
   const body = document.getElementById('body');
-  const [rM, rPM, rMM] = await Promise.all([
-    client.from('molds').select('*').order('mold_code'),
-    client.from('part_molds').select('*'),
-    client.from('mold_machines').select('*')
-  ]);
-  if (rM.error) {
+  try {
+    const [mData, pmData, mmData] = await Promise.all([
+      window.fetchAllRows ? window.fetchAllRows('molds', { orderBy: 'mold_code' }) : client.from('molds').select('*').order('mold_code').then(r => { if (r.error) throw r.error; return r.data || []; }),
+      window.fetchAllRows ? window.fetchAllRows('part_molds', { orderBy: 'id' }) : client.from('part_molds').select('*').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('mold_machines', { orderBy: 'id' }) : client.from('mold_machines').select('*').then(r => r.data || [])
+    ]);
+    molds = Array.isArray(mData) ? mData : (mData?.data || []);
+    partMolds = Array.isArray(pmData) ? pmData : (pmData?.data || []);
+    moldMachines = Array.isArray(mmData) ? mmData : (mmData?.data || []);
+    render();
+  } catch (err) {
     body.innerHTML = `<tr><td colspan="11" class="empty" style="color:var(--danger)">
-      ⚠️ Ejecuta primero <b>ingenieria_fase1_moldes.sql</b> en el SQL Editor de Supabase.<br><br>Detalle: ${esc(rM.error.message)}</td></tr>`;
-    return;
+      ⚠️ Ejecuta primero <b>ingenieria_fase1_moldes.sql</b> e <b>ingenieria_fase3_unificacion.sql</b>.<br><br>Detalle: ${esc(err.message)}</td></tr>`;
   }
-  molds = rM.data || [];
-  partMolds = rPM.data || [];
-  moldMachines = rMM.data || [];
-  render();
 }
 
 function pmInfo(m){
@@ -288,13 +412,23 @@ function pmInfo(m){
     <div class="pm-bar"><div style="width:${Math.min(pct,100)}%;background:${color}"></div></div>` };
 }
 
+function onFilterChange(){
+  currentPage = 1;
+  render();
+}
+
+function cambiarPagina(delta){
+  currentPage = Math.max(1, currentPage + delta);
+  render();
+}
+
 function render(){
   const q = val('q').toUpperCase();
   const st = val('fStatus');
   const act = val('fActivo');
 
   const lista = molds.filter(m => {
-    const partsTxt = partMolds.filter(pm => sameId(pm.mold_id, m.id))
+    const partsTxt = partMolds.filter(pm => sameId(pm.mold_id, m.id) && pm.active !== false)
       .map(pm => (parts.find(p => sameId(p.id, pm.part_id)) || {}).part_number || '').join(' ');
     const txt = `${m.mold_code||''} ${m.mold_name||m.name||''} ${m.cliente||''} ${m.project||''} ${partsTxt}`.toUpperCase();
     return (!q || txt.includes(q))
@@ -304,15 +438,32 @@ function render(){
 
   // KPIs (sobre activos)
   const activos = molds.filter(m => m.active !== false);
-  document.getElementById('kpiTotal').textContent = activos.length;
-  document.getElementById('kpiMontados').textContent = activos.filter(m => m.current_status === 'MONTADO').length;
-  document.getElementById('kpiTaller').textContent = activos.filter(m => ['EN_TALLER','BLOQUEADO'].includes(m.current_status)).length;
-  document.getElementById('kpiPM').textContent = activos.filter(m => (pmInfo(m).pct ?? 0) >= 90).length;
+  document.getElementById('kpiTotal').textContent = activos.length.toLocaleString();
+  document.getElementById('kpiMontados').textContent = activos.filter(m => m.current_status === 'MONTADO').length.toLocaleString();
+  document.getElementById('kpiTaller').textContent = activos.filter(m => ['EN_TALLER','BLOQUEADO'].includes(m.current_status)).length.toLocaleString();
+  document.getElementById('kpiPM').textContent = activos.filter(m => (pmInfo(m).pct ?? 0) >= 90).length.toLocaleString();
+
+  const totalLista = lista.length;
+  const maxPage = Math.max(1, Math.ceil(totalLista / PAGE_SIZE));
+  if (currentPage > maxPage) currentPage = maxPage;
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageLista = lista.slice(startIdx, startIdx + PAGE_SIZE);
+
+  const pageInfoEl = document.getElementById('pageInfo');
+  if (pageInfoEl) {
+    const fromN = totalLista === 0 ? 0 : startIdx + 1;
+    const toN = Math.min(totalLista, startIdx + PAGE_SIZE);
+    pageInfoEl.textContent = `Mostrando ${fromN}–${toN} de ${totalLista.toLocaleString()} moldes (Pág. ${currentPage}/${maxPage})`;
+  }
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  if (btnPrev) btnPrev.disabled = currentPage <= 1;
+  if (btnNext) btnNext.disabled = currentPage >= maxPage;
 
   const body = document.getElementById('body');
-  if (!lista.length) { body.innerHTML = `<tr><td colspan="11" class="empty">No hay moldes con los filtros actuales.</td></tr>`; return; }
+  if (!pageLista.length) { body.innerHTML = `<tr><td colspan="11" class="empty">No hay moldes con los filtros actuales.</td></tr>`; return; }
 
-  body.innerHTML = lista.map(m => {
+  body.innerHTML = pageLista.map(m => {
     const status = m.current_status || 'EN_ALMACEN';
     const maq = machines.find(x => sameId(x.id, m.current_machine_id));
     const nP = partMolds.filter(pm => sameId(pm.mold_id, m.id) && pm.active !== false).length;
@@ -332,9 +483,10 @@ function render(){
       <td><button class="btn btn-sm btn-blue-soft" onclick="abrirPartes('${esc(m.id)}')"><i class="fas fa-barcode"></i> ${nP}</button></td>
       <td><button class="btn btn-sm btn-purple-soft" onclick="abrirMaquinas('${esc(m.id)}')"><i class="fas fa-industry"></i> ${nM}</button></td>
       <td style="text-align:right;white-space:nowrap">
+        ${canEditIng ? `
         <button class="btn btn-sm btn-secondary" title="Editar" onclick="editar('${esc(m.id)}')"><i class="fas fa-pen"></i></button>
         <button class="btn btn-sm ${m.active === false ? 'btn-success' : 'btn-danger-soft'}" title="${m.active === false ? 'Activar' : 'Desactivar'}"
-          onclick="toggleActivo('${esc(m.id)}', ${m.active !== false})"><i class="fas ${m.active === false ? 'fa-check' : 'fa-ban'}"></i></button>
+          onclick="toggleActivo('${esc(m.id)}', ${m.active !== false})"><i class="fas ${m.active === false ? 'fa-check' : 'fa-ban'}"></i></button>` : '<span class="muted">Solo lectura</span>'}
       </td>
     </tr>`;
   }).join('');
@@ -379,6 +531,7 @@ function editar(id){
 }
 
 async function guardarMolde(){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   const code = val('f_code').toUpperCase();
   const name = val('f_name');
   const cav = num('f_cav');
@@ -427,6 +580,7 @@ async function guardarMolde(){
 }
 
 async function toggleActivo(id, activo){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   if (!confirm(`¿Deseas ${activo ? 'desactivar' : 'activar'} este molde?`)) return;
   const { error } = await client.from('molds').update({ active: !activo }).eq('id', id);
   if (error) return alert(error.message);
@@ -434,12 +588,28 @@ async function toggleActivo(id, activo){
 }
 
 // ---------------- MATRIZ MOLDE ↔ PARTE ----------------
+function onMoldPartInput(){
+  const pn = val('mp_part').toUpperCase();
+  const p = parts.find(x => (x.part_number || '').toUpperCase() === pn);
+  if (!p) return;
+  const nm = String(p.part_name || '');
+  let side = 'NA';
+  if (/(^|[^A-Z])LH([^A-Z]|$)/i.test(nm) && !/LH\s*\/\s*RH/i.test(nm)) side = 'LH';
+  else if (/(^|[^A-Z])RH([^A-Z]|$)/i.test(nm) && !/LH\s*\/\s*RH/i.test(nm)) side = 'RH';
+  document.getElementById('mp_side').value = side;
+  document.getElementById('mp_cav').value = p.cavities || 1;
+  document.getElementById('mp_cycle').value = p.cycle_time_seg > 0 ? p.cycle_time_seg : '';
+  document.getElementById('mp_wp').value = p.part_weight_gr > 0 ? p.part_weight_gr : '';
+  document.getElementById('mp_wr').value = p.runner_weight_gr ?? '';
+}
+
 function abrirPartes(id){
   currentMoldId = id;
   const m = molds.find(x => sameId(x.id, id));
   document.getElementById('mpTitle').textContent = `Partes del molde ${m.mold_code}`;
   document.getElementById('mpSub').textContent = `${m.mold_name || m.name || ''} • ${m.cavities_active ?? m.cavities} cavidades activas`;
   ['mp_part','mp_cycle','mp_wp','mp_wr'].forEach(k => document.getElementById(k).value = '');
+  document.getElementById('mp_side').value = 'NA';
   document.getElementById('mp_cav').value = 1;
   renderPartes();
   document.getElementById('modalPartes').style.display = 'flex';
@@ -447,12 +617,24 @@ function abrirPartes(id){
 
 function renderPartes(){
   const m = molds.find(x => sameId(x.id, currentMoldId));
-  const rels = partMolds.filter(pm => sameId(pm.mold_id, currentMoldId));
-  const sumCav = rels.filter(r => r.active !== false).reduce((s, r) => s + Number(r.cavities_for_part || 0), 0);
+  const rels = partMolds.filter(pm => sameId(pm.mold_id, currentMoldId) && pm.active !== false);
+  const bySide = { LH: [], RH: [], NA: [] };
+  rels.forEach(r => {
+    const s = ['LH', 'RH'].includes((r.side || '').toUpperCase()) ? r.side.toUpperCase() : 'NA';
+    bySide[s].push(Number(r.cavities_for_part || 0));
+  });
+  const maxOf = arr => arr.length ? Math.max(...arr) : 0;
+  const effectiveCav = maxOf(bySide.LH) + maxOf(bySide.RH) + maxOf(bySide.NA);
+  const distinctSides = (bySide.LH.length ? 1 : 0) + (bySide.RH.length ? 1 : 0) + (bySide.NA.length ? 1 : 0);
   const cavAct = Number(m.cavities_active ?? m.cavities ?? 1);
 
-  document.getElementById('mpWarn').innerHTML = sumCav !== cavAct && rels.length
-    ? `<div class="warn-box">⚠️ La suma de cavidades por parte (<b>${sumCav}</b>) no coincide con las cavidades activas del molde (<b>${cavAct}</b>). Revisa la matriz.</div>` : '';
+  let warnHtml = '';
+  if (rels.length && effectiveCav !== cavAct) {
+    warnHtml = `<div class="warn-box">⚠️ Las cavidades efectivas por lado (<b>${effectiveCav}</b>) no coinciden con las cavidades activas del molde (<b>${cavAct}</b>). Revisa la matriz.</div>`;
+  } else if (rels.length > distinctSides) {
+    warnHtml = `<div class="info-box">ℹ️ Este molde comparte cavidad entre ${rels.length} variantes de color / versión (cavidades efectivas: <b>${effectiveCav}</b>).</div>`;
+  }
+  document.getElementById('mpWarn').innerHTML = warnHtml;
 
   const body = document.getElementById('mpBody');
   if (!rels.length) { body.innerHTML = `<tr><td colspan="10" class="empty">Sin números de parte asignados.</td></tr>`; return; }
@@ -470,38 +652,48 @@ function renderPartes(){
       <td>${r.part_weight_gr ?? '-'}</td>
       <td>${r.runner_weight_gr ?? '-'}</td>
       <td><span class="badge ${r.is_primary ? 'st-MONTADO' : 'st-EN_TALLER'}">${r.is_primary ? 'PRINCIPAL' : 'ALTERNO'}</span></td>
-      <td><button class="btn btn-sm btn-danger-soft" onclick="quitarParte('${esc(r.id)}')"><i class="fas fa-trash"></i></button></td>
+      <td>${canEditIng ? `<button class="btn btn-sm btn-danger-soft" onclick="quitarParte('${esc(r.id)}')"><i class="fas fa-trash"></i></button>` : ''}</td>
     </tr>`;
   }).join('');
 }
 
 async function agregarParte(){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   const pn = val('mp_part').toUpperCase();
   const p = parts.find(x => (x.part_number || '').toUpperCase() === pn);
   if (!p) return alert('El número de parte no existe en el catálogo. Dálo de alta primero en Ingeniería.');
   const cav = num('mp_cav');
   if (!cav || cav < 1) return alert('Indica las cavidades de esta parte (≥1).');
-  if (partMolds.some(r => sameId(r.mold_id, currentMoldId) && sameId(r.part_id, p.id))) return alert('Esa parte ya está asignada a este molde.');
+  if (partMolds.some(r => sameId(r.mold_id, currentMoldId) && sameId(r.part_id, p.id) && r.active !== false)) {
+    return alert('Esa parte ya está asignada a este molde.');
+  }
 
-  const { error } = await client.from('part_molds').insert([{
-    mold_id: currentMoldId, part_id: p.id, side: val('mp_side'),
-    cavities_for_part: cav, cycle_time_sec: num('mp_cycle'),
-    part_weight_gr: num('mp_wp'), runner_weight_gr: num('mp_wr'),
-    is_primary: val('mp_primary') === 'true', active: true
-  }]);
+  const fields = {
+    side: val('mp_side'),
+    cavities_for_part: cav,
+    cycle_time_sec: num('mp_cycle'),
+    part_weight_gr: num('mp_wp'),
+    runner_weight_gr: num('mp_wr'),
+    is_primary: val('mp_primary') === 'true',
+    active: true
+  };
+  const inactiveRow = partMolds.find(r => sameId(r.mold_id, currentMoldId) && sameId(r.part_id, p.id) && r.active === false);
+  const { error } = inactiveRow
+    ? await client.from('part_molds').update(fields).eq('id', inactiveRow.id)
+    : await client.from('part_molds').insert([{ ...fields, mold_id: currentMoldId, part_id: p.id }]);
   if (error) return alert('Error: ' + error.message);
 
-  const { data } = await client.from('part_molds').select('*');
-  partMolds = data || [];
+  partMolds = window.fetchAllRows ? await window.fetchAllRows('part_molds', { orderBy: 'id' }) : ((await client.from('part_molds').select('*')).data || []);
   ['mp_part','mp_cycle','mp_wp','mp_wr'].forEach(k => document.getElementById(k).value = '');
   renderPartes(); render();
 }
 
 async function quitarParte(id){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   if (!confirm('¿Quitar esta parte del molde?')) return;
-  const { error } = await client.from('part_molds').delete().eq('id', id);
+  const { error } = await client.from('part_molds').update({ active: false }).eq('id', id);
   if (error) return alert(error.message);
-  partMolds = partMolds.filter(r => !sameId(r.id, id));
+  partMolds = partMolds.map(r => sameId(r.id, id) ? { ...r, active: false } : r);
   renderPartes(); render();
 }
 
@@ -523,17 +715,30 @@ function validarTonelaje(){
   const maq = machines.find(x => sameId(x.id, val('mm_machine')));
   const box = document.getElementById('mmWarn');
   box.innerHTML = '';
-  if (!m || !maq || !maq.tonnage) return true;
-  const t = Number(maq.tonnage);
-  if ((m.tonnage_min && t < m.tonnage_min) || (m.tonnage_max && t > m.tonnage_max)) {
-    box.innerHTML = `<div class="warn-box">⚠️ La máquina ${esc(maq.machine_code)} tiene <b>${t} ton</b>, fuera del rango del molde (${m.tonnage_min || '?'} – ${m.tonnage_max || '?'} ton).</div>`;
+  if (!m || !maq) return true;
+  const warns = [];
+  if (maq.tonnage) {
+    const t = Number(maq.tonnage);
+    if ((m.tonnage_min && t < Number(m.tonnage_min)) || (m.tonnage_max && t > Number(m.tonnage_max))) {
+      warns.push(`Tonelaje de ${esc(maq.machine_code)} (${t} ton) fuera de rango (${m.tonnage_min || '?'} – ${m.tonnage_max || '?'} ton).`);
+    }
+  }
+  if ((maq.tie_bar_h_mm && m.ancho_mm && Number(m.ancho_mm) > Number(maq.tie_bar_h_mm))
+      || (maq.tie_bar_v_mm && m.alto_mm && Number(m.alto_mm) > Number(maq.tie_bar_v_mm))) {
+    warns.push(`Dimensiones del molde (${m.ancho_mm || '?'}×${m.alto_mm || '?'} mm) exceden entre-barras de ${esc(maq.machine_code)} (${maq.tie_bar_h_mm || '?'}×${maq.tie_bar_v_mm || '?'} mm).`);
+  }
+  if (maq.max_mold_weight_kg && m.peso_kg && Number(m.peso_kg) > Number(maq.max_mold_weight_kg)) {
+    warns.push(`Peso del molde (${m.peso_kg} kg) excede el máximo de grúa/platina de ${esc(maq.machine_code)} (${maq.max_mold_weight_kg} kg).`);
+  }
+  if (warns.length) {
+    box.innerHTML = `<div class="warn-box">⚠️ ${warns.join('<br>⚠️ ')}</div>`;
     return false;
   }
   return true;
 }
 
 function renderMaquinas(){
-  const rels = moldMachines.filter(r => sameId(r.mold_id, currentMoldId));
+  const rels = moldMachines.filter(r => sameId(r.mold_id, currentMoldId) && r.active !== false);
   const body = document.getElementById('mmBody');
   if (!rels.length) { body.innerHTML = `<tr><td colspan="7" class="empty">Sin máquinas asignadas.</td></tr>`; return; }
   body.innerHTML = rels.map(r => {
@@ -545,36 +750,84 @@ function renderMaquinas(){
       <td>${esc(maq.production_area || '-')}</td>
       <td>${r.cycle_time_sec ? esc(r.cycle_time_sec) + ' s' : '<span class="muted">usa ciclo de la parte</span>'}</td>
       <td><span class="badge ${r.is_primary ? 'st-MONTADO' : 'st-EN_ALMACEN'}">${r.is_primary ? 'PRINCIPAL' : 'ALTERNA'}</span></td>
-      <td><button class="btn btn-sm btn-danger-soft" onclick="quitarMaquina('${esc(r.id)}')"><i class="fas fa-trash"></i></button></td>
+      <td>${canEditIng ? `<button class="btn btn-sm btn-danger-soft" onclick="quitarMaquina('${esc(r.id)}')"><i class="fas fa-trash"></i></button>` : ''}</td>
     </tr>`;
   }).join('');
 }
 
 async function agregarMaquina(){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   const machineId = val('mm_machine');
   if (!machineId) return alert('Selecciona una máquina.');
-  if (moldMachines.some(r => sameId(r.mold_id, currentMoldId) && sameId(r.machine_id, machineId))) return alert('Esa máquina ya está asignada.');
-  if (!validarTonelaje() && !confirm('El tonelaje está fuera de rango. ¿Asignar de todos modos?')) return;
+  if (moldMachines.some(r => sameId(r.mold_id, currentMoldId) && sameId(r.machine_id, machineId) && r.active !== false)) {
+    return alert('Esa máquina ya está asignada.');
+  }
+  if (!validarTonelaje() && !confirm('Hay advertencias de compatibilidad CR01 (tonelaje / barras / peso). ¿Asignar de todos modos?')) return;
 
   const isPrimary = val('mm_primary') === 'true';
-  const { error } = await client.from('mold_machines').insert([{
-    mold_id: currentMoldId, machine_id: machineId, cycle_time_sec: num('mm_cycle'), is_primary: isPrimary, active: true
-  }]);
+  const inactiveRow = moldMachines.find(r => sameId(r.mold_id, currentMoldId) && sameId(r.machine_id, machineId) && r.active === false);
+  const fields = { cycle_time_sec: num('mm_cycle'), is_primary: isPrimary, active: true };
+  const { error } = inactiveRow
+    ? await client.from('mold_machines').update(fields).eq('id', inactiveRow.id)
+    : await client.from('mold_machines').insert([{ mold_id: currentMoldId, machine_id: machineId, ...fields }]);
   if (error) return alert('Error: ' + error.message);
-
-  // NOTA: molds.compatible_machine (legado de Planeación) apunta a la tabla `machines`,
-  // no a `mes_machines`. Se sincronizará cuando se unifiquen ambas tablas (Fase 1-B).
 
   await cargarTodo();
   renderMaquinas();
 }
 
 async function quitarMaquina(id){
+  if (!canEditIng) return alert('Sin permisos para editar Ingeniería.');
   if (!confirm('¿Quitar esta máquina de la lista de compatibles?')) return;
-  const { error } = await client.from('mold_machines').delete().eq('id', id);
+  const { error } = await client.from('mold_machines').update({ active: false }).eq('id', id);
   if (error) return alert(error.message);
-  moldMachines = moldMachines.filter(r => !sameId(r.id, id));
+  moldMachines = moldMachines.map(r => sameId(r.id, id) ? { ...r, active: false } : r);
   renderMaquinas(); render();
+}
+
+function setLang(lang){
+  const safeLang = MOLDS_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', safeLang);
+  localStorage.setItem('kraem_lang', safeLang);
+  document.documentElement.setAttribute('lang', safeLang);
+  const t = MOLDS_I18N[safeLang];
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setTxt('lblBackMolds', t.back);
+  setTxt('txtTitleMolds', t.title);
+  setTxt('txtSubMolds', t.sub);
+  setTxt('lblBtnNuevoMolde', t.btnNew);
+  setTxt('lblKpiTotalM', t.kpiTotal);
+  setTxt('lblKpiMontM', t.kpiMont);
+  setTxt('lblKpiTallM', t.kpiTall);
+  setTxt('lblKpiPmM', t.kpiPm);
+  if (!editId) setTxt('formTitle', t.formNew);
+  setTxt('lblListTitle', t.listTitle);
+  setTxt('th_m_code', t.thCode);
+  setTxt('th_m_name', t.thName);
+  setTxt('th_m_cli', t.thCli);
+  setTxt('th_m_cav', t.thCav);
+  setTxt('th_m_ton', t.thTon);
+  setTxt('th_m_setup', t.thSetup);
+  setTxt('th_m_status', t.thStatus);
+  setTxt('th_m_pm', t.thPm);
+  setTxt('th_m_np', t.thNp);
+  setTxt('th_m_maq', t.thMaq);
+  setTxt('th_m_acc', t.thAcc);
+  const qEl = document.getElementById('q');
+  if (qEl) qEl.placeholder = t.qPh;
+}
+
+function toggleTheme(){
+  const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+  document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function applyTheme(){
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeIcon').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 function cerrarModal(id){ document.getElementById(id).style.display = 'none'; }

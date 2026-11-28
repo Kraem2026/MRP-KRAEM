@@ -160,12 +160,21 @@ async function runPlanningEngine(){
     return;
   }
 
-  // 2. Obtener máquinas disponibles
-  const { data: allMachines } = await client
-    .from('machines')
-    .select('id, machine_name, status')
-    .order('id');
-  const machineList = allMachines || [];
+  // 2. Obtener máquinas activas unificadas y matriz molde <-> máquina
+  const [rMes, rMm] = await Promise.all([
+    client.from('mes_machines').select('id, machine_code, machine_name, status, active').eq('active', true).order('machine_code'),
+    client.from('mold_machines').select('mold_id, machine_id, cycle_time_sec, is_primary, active').neq('active', false)
+  ]);
+  let machineList = (rMes.data || []).map(m => ({
+    id: m.id,
+    machine_name: m.machine_code ? `${m.machine_code} - ${m.machine_name || ''}` : m.machine_name,
+    status: m.status || 'AVAILABLE'
+  }));
+  if (!machineList.length) {
+    const { data: allMachines } = await client.from('machines').select('id, machine_name, status').order('id');
+    machineList = allMachines || [];
+  }
+  const moldMachinesList = rMm.data || [];
 
   let results = [];
   let machineIndex = 0;
@@ -177,7 +186,9 @@ async function runPlanningEngine(){
       .select(`
         mold_id,
         cycle_time_sec,
-        molds ( id, mold_name, cavities, compatible_machine )
+        cavities_for_part,
+        is_primary,
+        molds ( id, mold_code, mold_name, cavities, compatible_machine )
       `)
       .eq('part_id', r.part_id)
       .eq('active', true);
@@ -185,15 +196,21 @@ async function runPlanningEngine(){
     let planned = false;
 
     if(molds && molds.length > 0){
-      for(const pm of molds){
-        const cav = pm.molds?.cavities || 1;
-        const cycle = pm.cycle_time_sec || 35;
+      const sortedMolds = [...molds].sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0));
+      for(const pm of sortedMolds){
+        const cav = pm.cavities_for_part || pm.molds?.cavities || 1;
+        const mmRel = moldMachinesList.filter(x => String(x.mold_id) === String(pm.mold_id))
+          .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))[0];
+        const cycle = Number(mmRel?.cycle_time_sec || pm.cycle_time_sec || 35);
         const qtyReal = Math.ceil((r.qty_with_buffer || 1) * 1.05);
         let hours = ((qtyReal / cav) * cycle) / 3600;
         hours = Math.max(0.1, hours * 1.15);
 
-        // Validar capacidad de máquina
-        const machineId = pm.molds?.compatible_machine || (machineList[0] ? machineList[0].id : 1);
+        const machObj = machineList.find(m => String(m.id) === String(mmRel?.machine_id || pm.molds?.compatible_machine))
+          || machineList[machineIndex % Math.max(1, machineList.length)]
+          || null;
+        if (!mmRel && !pm.molds?.compatible_machine && machineList.length) machineIndex++;
+        const machineId = machObj ? machObj.id : Number(pm.molds?.compatible_machine || 1);
         const targetDate = r.due_date || new Date().toISOString().slice(0,10);
 
         results.push({
@@ -201,8 +218,9 @@ async function runPlanningEngine(){
           part_id: r.part_id,
           part_number: r.part_number,
           machine_id: machineId,
+          machine_name: machObj ? machObj.machine_name : ('Máquina #' + machineId),
           mold_id: pm.mold_id,
-          mold_name: pm.molds?.mold_name || ('Molde #' + pm.mold_id),
+          mold_name: pm.molds?.mold_code ? `${pm.molds.mold_code} (${pm.molds.mold_name || ''})` : (pm.molds?.mold_name || ('Molde #' + pm.mold_id)),
           production_date: targetDate,
           hours: hours.toFixed(2),
           qty: qtyReal,

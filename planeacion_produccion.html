@@ -179,16 +179,27 @@ async function loadData(){
 
 /* ================== MÁQUINAS ================== */
 async function loadMachines(){
-  const {data} = await client
-    .from('machines')
-    .select('id, machine_name, status')
-    .order('machine_name');
+  let { data } = await client
+    .from('mes_machines')
+    .select('id, machine_code, machine_name, status, maintenance_status, active')
+    .eq('active', true)
+    .order('machine_code');
+
+  if (!data || !data.length) {
+    const resLeg = await client
+      .from('machines')
+      .select('id, machine_code, machine_name, status')
+      .order('machine_name');
+    data = resLeg.data || [];
+  }
 
   machine.innerHTML =
     '<option value="">Selecciona máquina...</option>' +
-    (data || []).map(m =>
-      `<option value="${m.id}">${m.machine_name} (${m.status || 'AVAILABLE'})</option>`
-    ).join('');
+    (data || []).map(m => {
+      const label = m.machine_code ? `${m.machine_code} - ${m.machine_name || ''}` : (m.machine_name || `MAQ-${m.id}`);
+      const st = m.maintenance_status || m.status || 'Disponible';
+      return `<option value="${m.id}">${label} (${st})</option>`;
+    }).join('');
 }
 
 /* ================== MOLDES POR PARTE ================== */

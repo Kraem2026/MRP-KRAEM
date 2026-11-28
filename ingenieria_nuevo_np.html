@@ -178,11 +178,19 @@
                         <input type="number" id="std_pack">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label id="l_def_loc">Ubicación Default WMS</label>
-                    <select id="default_location_id">
-                        <option value="">-- Sin ubicación fija --</option>
-                    </select>
+                <div class="form-grid" style="gap:10px;">
+                    <div class="form-group">
+                        <label id="l_empaque">Empaque Oficial (WMS)</label>
+                        <select id="empaque_id">
+                            <option value="">-- Carro / Empaque Default --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="l_def_loc">Ubicación Default WMS</label>
+                        <select id="default_location_id">
+                            <option value="">-- Sin ubicación fija --</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-grid" style="gap:10px;">
                     <div class="form-group">
@@ -320,11 +328,12 @@
     }
 
     async function preloadAvailableParts() {
-        const [rParts, rLocs, rCli, rProv] = await Promise.all([
+        const [rParts, rLocs, rCli, rProv, rEmp] = await Promise.all([
             window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type, unit_of_measure, part_weight_gr, runner_weight_gr, obsolete, engineering_status', orderBy: 'part_number' }) : client.from('parts').select('id, part_number, part_name, product_type, unit_of_measure, part_weight_gr, runner_weight_gr, obsolete, engineering_status').order('part_number'),
             client.from('locations').select('id, location_code, location_name, type, active').eq('active', true).order('location_code'),
             client.from('clientes').select('nombre, activo').order('nombre'),
-            client.from('proveedores').select('nombre_comercial, activo').order('nombre_comercial')
+            client.from('proveedores').select('nombre_comercial, activo').order('nombre_comercial'),
+            client.from('empaques').select('id, codigo, nombre, activo').order('codigo')
         ]);
 
         const rawParts = Array.isArray(rParts) ? rParts : (rParts.data || []);
@@ -361,6 +370,13 @@
             const fixedLocs = (rLocs.data || []).filter(l => l.type !== 'Móvil' && l.type !== 'Contenedor');
             locSelect.innerHTML = '<option value="">-- Sin ubicación fija --</option>' +
                 fixedLocs.map(l => `<option value="${l.id}">${escNp(l.location_code)}${l.location_name ? ' (' + escNp(l.location_name) + ')' : ''}</option>`).join('');
+        }
+
+        const empSelect = document.getElementById('empaque_id');
+        if (empSelect) {
+            const activeEmp = (rEmp.data || []).filter(e => e.activo !== false);
+            empSelect.innerHTML = '<option value="">-- Carro / Empaque Default --</option>' +
+                activeEmp.map(e => `<option value="${escNp(e.id)}">${escNp(e.codigo)} - ${escNp(e.nombre || '')}</option>`).join('');
         }
     }
 
@@ -407,6 +423,30 @@
                     document.getElementById('upload_icon').style.display = 'none';
                     document.getElementById('upload_txt').style.display = 'none';
                 }
+
+                try {
+                    let { data: epRows } = await client
+                        .from('empaques_partes')
+                        .select('empaque_id, standard_pack, es_empaque_primario, active')
+                        .eq('part_id', p.id)
+                        .neq('active', false);
+                    if ((!epRows || !epRows.length) && p.part_number) {
+                        const resEpPn = await client
+                            .from('empaques_partes')
+                            .select('empaque_id, standard_pack, es_empaque_primario, active')
+                            .eq('part_number', p.part_number)
+                            .neq('active', false);
+                        epRows = resEpPn.data || [];
+                    }
+                    const primEp = (epRows || []).find(r => r.es_empaque_primario) || (epRows || [])[0];
+                    if (primEp) {
+                        const empEl = document.getElementById('empaque_id');
+                        if (empEl) empEl.value = primEp.empaque_id || '';
+                        if (!p.std_pack && primEp.standard_pack) {
+                            document.getElementById('std_pack').value = primEp.standard_pack;
+                        }
+                    }
+                } catch (_) {}
 
                 await loadExistingBom(p.id, p.product_type);
             }
@@ -592,6 +632,25 @@
         }
 
         await saveBomRelations(savedPartId, productType);
+
+        const selectedEmpId = document.getElementById('empaque_id') ? document.getElementById('empaque_id').value.trim() : '';
+        if (payload.std_pack > 0 && selectedEmpId && savedPartId) {
+            await client.from('empaques_partes')
+                .update({ es_empaque_primario: false })
+                .eq('part_id', savedPartId)
+                .eq('es_empaque_primario', true)
+                .neq('empaque_id', selectedEmpId);
+            await client.from('empaques_partes').upsert([{
+                empaque_id: selectedEmpId,
+                part_id: savedPartId,
+                part_number: payload.part_number,
+                part_name: payload.part_name,
+                standard_pack: payload.std_pack,
+                es_empaque_primario: true,
+                active: true
+            }], { onConflict: 'empaque_id,part_number' });
+        }
+
         location.href = 'admin_partes.html';
     }
 

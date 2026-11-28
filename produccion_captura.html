@@ -890,35 +890,41 @@ async function init(){
             }
         } catch (_) {}
 
-        // 3. Cargar Máquinas (Unificado: 'machines' con fallback/merge a 'mes_machines')
-        let rawMachines = (await client.from('machines').select('*').order('machine_name')).data || [];
+        // 3. Cargar Máquinas (Fuente única mes_machines unificada por id con fallback a machines)
+        const mesData = (await client.from('mes_machines').select('*').order('machine_code')).data || [];
+        let rawMachines = mesData.filter(m => m.active !== false).map(m => ({
+            id: m.id,
+            machine_code: m.machine_code,
+            machine_name: m.machine_code ? `${m.machine_code} - ${m.machine_name || ''}` : (m.machine_name || ('MAQ-' + m.id)),
+            area_id: m.area_general_id || m.area_id,
+            area_general_id: m.area_general_id,
+            status: m.status || 'AVAILABLE'
+        }));
         if (!rawMachines.length) {
-            const mesData = (await client.from('mes_machines').select('*').order('machine_code')).data || [];
-            rawMachines = mesData.map(m => ({
-                id: m.id,
-                machine_name: m.machine_code || m.machine_name || ('MAQ-' + m.id),
-                area_id: m.area_general_id || m.area_id,
-                status: m.status || 'AVAILABLE'
-            }));
+            rawMachines = (await client.from('machines').select('*').order('machine_name')).data || [];
         }
         machines = rawMachines;
         renderMachines();
 
-        // 4. Cargar Moldes
-        const { data: moldsData } = await client.from('molds').select('*').order('id');
-        molds = moldsData || [];
+        // 4. Cargar Moldes (sin límite de 1000 filas)
+        molds = window.fetchAllRows
+            ? await window.fetchAllRows('molds', { orderBy: 'mold_code' })
+            : ((await client.from('molds').select('*').order('id')).data || []);
         document.getElementById('moldSelect').innerHTML = '<option value="">Seleccione molde</option>' +
-            molds.map(m => `<option value="${m.id}" data-cav="${m.cavities || 1}">${esc(m.mold_name || m.mold_code || m.name || ('Molde #' + m.id))}</option>`).join('');
+            molds.filter(m => m.active !== false).map(m => `<option value="${m.id}" data-cav="${m.cavities || 1}">${esc(m.mold_code ? (m.mold_code + ' · ' + (m.mold_name || m.name || '')) : (m.mold_name || m.name || ('Molde #' + m.id)))}</option>`).join('');
 
         try {
-            const { data: pmData } = await client.from('part_molds').select('*');
-            partMolds = pmData || [];
+            const pmData = window.fetchAllRows
+                ? await window.fetchAllRows('part_molds', { filter: q => q.eq('active', true), orderBy: 'id' })
+                : ((await client.from('part_molds').select('*')).data || []);
+            partMolds = (pmData || []).filter(pm => pm.active !== false);
         } catch (_) {}
 
-        // 5. Cargar Partes
-        parts = window.fetchAllRows 
-            ? await window.fetchAllRows('parts', { select: 'id,part_number,part_name,product_type', orderBy: 'part_number' })
-            : ((await client.from('parts').select('id,part_number,part_name,product_type').limit(1000)).data || []);
+        // 5. Cargar Partes canónicas
+        const rawParts = window.fetchAllRows
+            ? await window.fetchAllRows('parts', { select: 'id,part_number,part_name,product_type,is_archived_duplicate', orderBy: 'part_number' })
+            : ((await client.from('parts').select('id,part_number,part_name,product_type,is_archived_duplicate').limit(1000)).data || []);
+        parts = (rawParts || []).filter(p => !p.is_archived_duplicate);
 
         // 6. Cargar Empleados
         const { data: employeesData } = await client.from('rh_empleados').select('id,nombre_completo').order('nombre_completo');
@@ -1318,6 +1324,7 @@ async function crearWODemoRapida() {
     const demoFolio = 'OP-' + Math.floor(1000 + Math.random() * 9000);
 
     const payload = {
+        folio: demoFolio,
         part_id: demoPart.id,
         machine_id: demoMaq.id,
         mold_id: demoMold ? demoMold.id : null,

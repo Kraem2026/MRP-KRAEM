@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
   <script src="kraem_nav.js"></script>
-  <script src="ingenieria_i18n.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -126,13 +125,13 @@ tr:hover td { background:rgba(37,99,235,0.02); }
     <div class="top-left">
       <a href="dashboard.html" class="btn-back" onclick="KraemNav.back('dashboard.html'); return false;" title="Volver al Dashboard"><i class="fas fa-arrow-left"></i></a>
       <div class="title-box">
-        <h1 id="txtTitle">📦 Catálogo de Empaques y Gestión de Flota</h1>
+        <h1 style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><span id="txtTitle">📦 Catálogo de Empaques y Gestión de Flota</span> <span style="font-size:10px; font-weight:800; color:var(--primary); background:rgba(37,99,235,0.12); padding:2px 7px; border-radius:4px; letter-spacing:0.5px;">by APEX SYSTEM</span></h1>
         <p id="txtSub">Control de los 107 Carros en Planta (Capacidad, Mantenimiento y Daños), Cajas Retornables y Cartón</p>
       </div>
     </div>
     <div class="controls">
       <button class="btn btn-purple" onclick="abrirModalFlota()"><i class="fas fa-dolly"></i> <span id="txtBtnFlota">Gestionar Flota de Carros</span></button>
-      <button class="btn btn-primary" onclick="abrirModalEmpaque()"><i class="fas fa-plus"></i> <span id="txtBtnNuevo">Nuevo Empaque</span></button>
+      <button class="btn btn-primary" id="btnNuevoEmpaque" onclick="abrirModalEmpaque()"><i class="fas fa-plus"></i> <span id="txtBtnNuevo">Nuevo Empaque</span></button>
       <button class="lang-btn" onclick="setLang('es')" title="Español (MX)"><img src="https://flagcdn.com/w80/mx.png"></button>
       <button class="lang-btn" onclick="setLang('ko')" title="한국어 (KO)"><img src="https://flagcdn.com/w80/kr.png"></button>
       <button class="lang-btn" onclick="setLang('en')" title="English (US)"><img src="https://flagcdn.com/w80/us.png"></button>
@@ -389,7 +388,7 @@ tr:hover td { background:rgba(37,99,235,0.02); }
     </div>
 
     <!-- Formulario para agregar una parte a este empaque -->
-    <div style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:15px;">
+    <div id="asocAddForm" style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:15px;">
       <h5 style="margin:0 0 8px 0; font-size:12px; text-transform:uppercase; color:var(--text-secondary);">➕ Asignar Número de Parte a este Contenedor</h5>
       <div class="asoc-grid-movil" style="display:grid; grid-template-columns: 2fr 1fr 1fr auto; gap:8px; align-items:flex-end;">
         <div>
@@ -466,23 +465,74 @@ let allPartes = [];
 let allRelaciones = [];
 let allCarrosFisicos = []; // Ubicaciones de tipo Móvil / Carro en locations
 let currentEmpaqueIdParaPartes = null;
+let canEditEmp = true;
+let supportsArchivedColEmp = true;
+
+const escEmp = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const isMissingArchErrEmp = err => !!err && (err.code === '42703' || err.code === 'PGRST204' || String(err.message || '').includes('is_archived_duplicate'));
+
+function syncEditPermissionsEmp() {
+  canEditEmp = !(window.KraemAuth && typeof KraemAuth.canEdit === 'function') || KraemAuth.canEdit('ingenieria');
+  const btnN = document.getElementById('btnNuevoEmpaque');
+  if (btnN) btnN.style.display = canEditEmp ? 'inline-flex' : 'none';
+  const btnG = document.getElementById('btnGuardarEmpaque');
+  if (btnG) btnG.style.display = canEditEmp ? 'inline-flex' : 'none';
+  const asocForm = document.getElementById('asocAddForm');
+  if (asocForm) asocForm.style.display = canEditEmp ? 'block' : 'none';
+}
+
+document.addEventListener('kraem:authready', () => {
+  syncEditPermissionsEmp();
+  if (allEmpaques.length) filtrarEmpaques();
+});
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
+  syncEditPermissionsEmp();
   await cargarCatalogos();
   await cargarEmpaques();
   await cargarFlotaCarros();
+  const qp = new URLSearchParams(window.location.search);
+  const qStr = (qp.get('q') || '').trim();
+  const partIdParam = qp.get('part_id');
+  if (qStr) {
+    document.getElementById('fSearch').value = qStr;
+    filtrarEmpaques();
+  } else if (partIdParam) {
+    const pObj = allPartes.find(p => String(p.id) === String(partIdParam));
+    const rel = allRelaciones.find(r => String(r.part_id) === String(partIdParam) || (pObj && r.part_number === pObj.part_number));
+    const emp = rel ? allEmpaques.find(e => String(e.id) === String(rel.empaque_id)) : null;
+    if (emp) {
+      document.getElementById('fSearch').value = emp.codigo;
+      filtrarEmpaques();
+    }
+  }
 });
 
-// Cargar catálogo de partes para el buscador de asociación
-async function cargarCatalogos() {
-  const partes = window.fetchAllRows 
-    ? await window.fetchAllRows('parts', { select: 'id, part_number, part_name, product_type', orderBy: 'part_number' })
-    : ((await client.from('parts').select('id, part_number, part_name, product_type')).data || []);
-  if (partes) {
-    allPartes = partes;
-    const dl = document.getElementById('dlPartes');
-    dl.innerHTML = partes.map(p => `<option value="${p.part_number}">${p.part_name || ''} (${p.product_type || 'PT'})</option>`).join('');
+// Cargar catálogo de partes canónicas para el buscador de asociación
+async function cargarCatalogos(retried = false) {
+  try {
+    const selCols = supportsArchivedColEmp ? 'id, part_number, part_name, product_type, is_archived_duplicate' : 'id, part_number, part_name, product_type';
+    const partes = window.fetchAllRows
+      ? await window.fetchAllRows('parts', {
+          select: selCols,
+          filter: q => supportsArchivedColEmp ? q.eq('is_archived_duplicate', false) : q,
+          orderBy: 'part_number'
+        })
+      : ((await (supportsArchivedColEmp
+          ? client.from('parts').select(selCols).eq('is_archived_duplicate', false)
+          : client.from('parts').select(selCols))).data || []);
+    if (partes) {
+      allPartes = (Array.isArray(partes) ? partes : []).filter(p => !p.is_archived_duplicate);
+      const dl = document.getElementById('dlPartes');
+      dl.innerHTML = allPartes.map(p => `<option value="${escEmp(p.part_number)}">${escEmp(p.part_name || '')} (${escEmp(p.product_type || 'PT')})</option>`).join('');
+    }
+  } catch (err) {
+    if (!retried && supportsArchivedColEmp && isMissingArchErrEmp(err)) {
+      supportsArchivedColEmp = false;
+      return cargarCatalogos(true);
+    }
+    console.warn('Error cargando partes en empaques:', err);
   }
 }
 
@@ -496,7 +546,7 @@ async function cargarEmpaques() {
     const rels = window.fetchAllRows
       ? await window.fetchAllRows('empaques_partes', { orderBy: 'id' })
       : ((await client.from('empaques_partes').select('*')).data || []);
-    allRelaciones = rels || [];
+    allRelaciones = (rels || []).filter(r => r.active !== false);
     allEmpaques = empaques || [];
 
     poblarFiltroClientes();
@@ -505,7 +555,7 @@ async function cargarEmpaques() {
     console.error("Error al cargar empaques:", err);
     tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--danger); padding:30px;">
       ⚠️ Recuerda ejecutar el script <b>empaques.sql</b> en el SQL Editor de Supabase.<br><br>
-      Detalle: ${err.message}
+      Detalle: ${escEmp(err.message)}
     </td></tr>`;
   }
 }
@@ -655,11 +705,12 @@ function renderTable(lista) {
             ${e.activo ? 'ACTIVO' : 'INACTIVO'}
           </span>
         </td>
-        <td style="text-align:right;">
+        <td style="text-align:right; white-space:nowrap;">
+          ${canEditEmp ? `
           <button class="btn btn-sm" onclick="editarEmpaque('${e.id}')" title="Editar"><i class="fas fa-pen"></i></button>
           <button class="btn btn-sm" onclick="toggleActivoEmpaque('${e.id}', ${e.activo})" title="${e.activo ? 'Desactivar' : 'Activar'}" style="color:${e.activo ? 'var(--danger)' : 'var(--success)'};">
             <i class="fas ${e.activo ? 'fa-ban' : 'fa-check'}"></i>
-          </button>
+          </button>` : '<span style="color:var(--text-secondary); font-size:11px;">Solo lectura</span>'}
         </td>
       </tr>
     `;
@@ -809,6 +860,7 @@ function ajustarTipoEmpaque() {
 // Guardar Empaque (Insert o Update)
 async function guardarEmpaque(e) {
   e.preventDefault();
+  if (!canEditEmp) return alert("Sin permisos para editar Ingeniería.");
   const id = document.getElementById('empId').value;
   const payload = {
     codigo: document.getElementById('empCodigo').value.trim().toUpperCase(),
@@ -853,6 +905,7 @@ function editarEmpaque(id) {
 }
 
 async function toggleActivoEmpaque(id, estadoActual) {
+  if (!canEditEmp) return alert("Sin permisos para editar Ingeniería.");
   if (!confirm(`¿Deseas ${estadoActual ? 'desactivar' : 'activar'} este contenedor?`)) return;
   const { error } = await client.from('empaques').update({ activo: !estadoActual }).eq('id', id);
   if (error) alert("Error: " + error.message);
@@ -882,7 +935,7 @@ function cerrarModalPartes() {
 
 function renderPartesAsociadas() {
   const tbody = document.getElementById('asocPartesBody');
-  const partesEmpaque = allRelaciones.filter(r => r.empaque_id === currentEmpaqueIdParaPartes);
+  const partesEmpaque = allRelaciones.filter(r => r.active !== false && String(r.empaque_id) === String(currentEmpaqueIdParaPartes));
 
   if (partesEmpaque.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px; color:var(--text-secondary);">Aún no hay Números de Parte vinculados a este empaque. Asigna uno arriba.</td></tr>`;
@@ -891,22 +944,65 @@ function renderPartesAsociadas() {
 
   tbody.innerHTML = partesEmpaque.map(r => `
     <tr>
-      <td><strong>${r.part_number}</strong></td>
-      <td>${r.part_name || '-'}</td>
-      <td style="text-align:right; font-weight:700; color:var(--primary); font-size:14px;">${r.standard_pack.toLocaleString()} pzs</td>
+      <td><strong>${escEmp(r.part_number)}</strong></td>
+      <td>${escEmp(r.part_name || '-')}</td>
+      <td style="text-align:right; font-weight:700; color:var(--primary); font-size:14px; font-variant-numeric:tabular-nums;">${Number(r.standard_pack || 0).toLocaleString()} pzs</td>
       <td>
         <span class="badge-status ${r.es_empaque_primario ? 'status-operativo' : 'status-reparacion'}" style="font-size:10px;">
           ${r.es_empaque_primario ? 'OFICIAL' : 'ALTERNATIVO'}
         </span>
       </td>
-      <td style="text-align:center;">
-        <button class="btn btn-sm" onclick="eliminarParteDeEmpaque('${r.id}')" style="color:var(--danger); border:none;" title="Quitar"><i class="fas fa-trash"></i></button>
+      <td style="text-align:center; white-space:nowrap;">
+        ${canEditEmp ? `
+          ${!r.es_empaque_primario ? `<button class="btn btn-sm" onclick="hacerOficialEmpaque('${escEmp(r.id)}')" style="color:var(--success); border:none;" title="Marcar como Empaque Oficial"><i class="fas fa-check-circle"></i></button>` : ''}
+          <button class="btn btn-sm" onclick="editarStdPackRel('${escEmp(r.id)}')" style="color:var(--primary); border:none;" title="Editar Standard Pack"><i class="fas fa-pen"></i></button>
+          <button class="btn btn-sm" onclick="eliminarParteDeEmpaque('${escEmp(r.id)}')" style="color:var(--danger); border:none;" title="Quitar"><i class="fas fa-trash"></i></button>
+        ` : '<span style="color:var(--text-secondary); font-size:11px;">Solo lectura</span>'}
       </td>
     </tr>
   `).join('');
 }
 
+function editarStdPackRel(relId) {
+  const rel = allRelaciones.find(r => String(r.id) === String(relId));
+  if (!rel) return;
+  document.getElementById('asocPartInput').value = rel.part_number || '';
+  document.getElementById('asocStdPack').value = rel.standard_pack || '';
+  document.getElementById('asocPrincipal').value = rel.es_empaque_primario ? 'true' : 'false';
+  document.getElementById('asocStdPack').focus();
+}
+
+async function recargarRelacionesEmpaques() {
+  const rels = window.fetchAllRows
+    ? await window.fetchAllRows('empaques_partes', { orderBy: 'id' })
+    : ((await client.from('empaques_partes').select('*')).data || []);
+  allRelaciones = (rels || []).filter(r => r.active !== false);
+}
+
+async function hacerOficialEmpaque(relId) {
+  if (!canEditEmp) return alert('Sin permisos para editar Ingeniería.');
+  const rel = allRelaciones.find(r => String(r.id) === String(relId));
+  if (!rel) return;
+
+  if (rel.part_id) {
+    await client.from('empaques_partes')
+      .update({ es_empaque_primario: false })
+      .eq('part_id', rel.part_id)
+      .eq('es_empaque_primario', true)
+      .neq('id', rel.id);
+  }
+  const { error } = await client.from('empaques_partes')
+    .update({ es_empaque_primario: true, active: true })
+    .eq('id', rel.id);
+  if (error) return alert('Error al actualizar empaque oficial: ' + error.message);
+
+  await recargarRelacionesEmpaques();
+  renderPartesAsociadas();
+  filtrarEmpaques();
+}
+
 async function agregarParteAEmpaque() {
+  if (!canEditEmp) return alert('Sin permisos para editar Ingeniería.');
   const partNumber = document.getElementById('asocPartInput').value.trim().toUpperCase();
   const stdPack = parseInt(document.getElementById('asocStdPack').value, 10);
   const esPrincipal = document.getElementById('asocPrincipal').value === 'true';
@@ -915,24 +1011,33 @@ async function agregarParteAEmpaque() {
     return alert("Por favor escribe un Número de Parte válido y la cantidad de piezas estándar (mayor a 0).");
   }
 
-  const parteEncontrada = allPartes.find(p => p.part_number.toUpperCase() === partNumber);
-  const partId = parteEncontrada ? parteEncontrada.id : null;
-  const partName = parteEncontrada ? parteEncontrada.part_name : '';
+  const parteEncontrada = allPartes.find(p => (p.part_number || '').toUpperCase() === partNumber);
+  if (!parteEncontrada) {
+    return alert("El Número de Parte no existe en el catálogo canónico. Regístralo primero en Ingeniería.");
+  }
 
-  const { error } = await client.from('empaques_partes').insert([{
+  if (esPrincipal) {
+    await client.from('empaques_partes')
+      .update({ es_empaque_primario: false })
+      .eq('part_id', parteEncontrada.id)
+      .eq('es_empaque_primario', true)
+      .neq('empaque_id', currentEmpaqueIdParaPartes);
+  }
+
+  const { error } = await client.from('empaques_partes').upsert([{
     empaque_id: currentEmpaqueIdParaPartes,
-    part_id: partId,
-    part_number: partNumber,
-    part_name: partName,
+    part_id: parteEncontrada.id,
+    part_number: parteEncontrada.part_number,
+    part_name: parteEncontrada.part_name || '',
     standard_pack: stdPack,
-    es_empaque_primario: esPrincipal
-  }]);
+    es_empaque_primario: esPrincipal,
+    active: true
+  }], { onConflict: 'empaque_id,part_number' });
 
   if (error) {
     alert("Error al vincular: " + error.message);
   } else {
-    const { data: rels } = await client.from('empaques_partes').select('*');
-    allRelaciones = rels || [];
+    await recargarRelacionesEmpaques();
     renderPartesAsociadas();
     filtrarEmpaques();
     document.getElementById('asocPartInput').value = '';
@@ -941,12 +1046,15 @@ async function agregarParteAEmpaque() {
 }
 
 async function eliminarParteDeEmpaque(relId) {
+  if (!canEditEmp) return alert('Sin permisos para editar Ingeniería.');
   if (!confirm("¿Deseas desvincular este Número de Parte de este empaque?")) return;
-  const { error } = await client.from('empaques_partes').delete().eq('id', relId);
+  const { error } = await client.from('empaques_partes')
+    .update({ active: false, es_empaque_primario: false })
+    .eq('id', relId);
   if (error) {
     alert("Error: " + error.message);
   } else {
-    allRelaciones = allRelaciones.filter(r => r.id !== relId);
+    allRelaciones = allRelaciones.filter(r => String(r.id) !== String(relId));
     renderPartesAsociadas();
     filtrarEmpaques();
   }

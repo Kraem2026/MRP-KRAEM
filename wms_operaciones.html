@@ -790,10 +790,10 @@ async function cargarCatalogos() {
     });
   }
   
-  const pParts = window.fetchAllRows 
-    ? await window.fetchAllRows('parts', { client: _client, select: 'id, part_number', orderBy: 'part_number' })
-    : ((await _client.from('parts').select('id, part_number')).data || []);
-  if(pParts) parts = pParts;
+  const rawParts = window.fetchAllRows 
+    ? await window.fetchAllRows('parts', { client: _client, select: 'id, part_number, std_pack, is_archived_duplicate', orderBy: 'part_number' })
+    : ((await _client.from('parts').select('id, part_number, std_pack, is_archived_duplicate')).data || []);
+  if(rawParts) parts = rawParts.filter(p => !p.is_archived_duplicate);
   
   const {data:l} = await _client.from('locations').select('id, location_code, area_id, type, qr_code, status_operativo, motivo_estado');
   if(l) {
@@ -804,7 +804,7 @@ async function cargarCatalogos() {
   const epRels = window.fetchAllRows
     ? await window.fetchAllRows('empaques_partes', { client: _client, orderBy: 'id' })
     : ((await _client.from('empaques_partes').select('*')).data || []);
-  if(epRels) empaquesPartes = epRels;
+  if(epRels) empaquesPartes = epRels.filter(r => r.active !== false);
 
   setMode(mode);
 }
@@ -983,15 +983,18 @@ async function alSeleccionarParte(parte) {
   partSearch.value = parte.part_number;
   partResults.style.display = 'none';
 
-  const empaqueMatches = empaquesPartes.filter(r => r.part_number === parte.part_number);
+  const empaqueMatches = empaquesPartes.filter(r => r.active !== false && (Number(r.part_id) === Number(parte.id) || r.part_number === parte.part_number));
   const rel = empaqueMatches.find(r => r.es_empaque_primario) || empaqueMatches[0];
+  const stdPackVal = Number(rel?.standard_pack || parte.std_pack || 0);
   const banner = document.getElementById('stdPackBanner');
-  if (rel) {
+  if (stdPackVal > 0) {
     banner.style.display = 'flex';
-    document.getElementById('stdPackText').innerText = rel.es_empaque_primario ? `Empaque Estándar Oficial` : `Empaque Estándar Alternativo`;
-    document.getElementById('stdPackQty').innerText = `${rel.standard_pack} pzs / empaque`;
+    document.getElementById('stdPackText').innerText = rel
+      ? (rel.es_empaque_primario ? `Empaque Estándar Oficial` : `Empaque Estándar Alternativo`)
+      : `Empaque Estándar (Catálogo Partes)`;
+    document.getElementById('stdPackQty').innerText = `${stdPackVal} pzs / empaque`;
     if (mode === 'ENTRADA' && !document.getElementById('chkParcial').checked) {
-      qty.value = rel.standard_pack;
+      qty.value = stdPackVal;
     }
   } else {
     banner.style.display = 'none';

@@ -249,25 +249,25 @@ function fmtDT(ms){
 async function init(){
   baseDayMs = dayStartMs(todayStr(0));
   try {
-    const [partsData, rMach, rMolds, rPm, rMm, bomData, packsData, rStock] = await Promise.all([
+    const [partsData, rMach, moldsData, pmData, rMm, bomData, packsData, rStock] = await Promise.all([
       window.fetchAllRows ? window.fetchAllRows('parts', { filter: q => q.eq('obsolete', false), orderBy: 'part_number' }) : client.from('parts').select('*').eq('obsolete', false).order('part_number').then(r => r.data || []),
       client.from('mes_machines').select('*').eq('active', true).order('machine_code'),
-      client.from('molds').select('*').order('mold_code'),
-      client.from('part_molds').select('*').eq('active', true),
+      window.fetchAllRows ? window.fetchAllRows('molds', { orderBy: 'mold_code' }) : client.from('molds').select('*').order('mold_code').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('part_molds', { filter: q => q.eq('active', true), orderBy: 'id' }) : client.from('part_molds').select('*').eq('active', true).then(r => r.data || []),
       client.from('mold_machines').select('*'),
       window.fetchAllRows ? window.fetchAllRows('bom_structures', { filter: q => q.neq('is_active', false), orderBy: 'id' }) : client.from('bom_structures').select('*').neq('is_active', false).then(r => r.data || []),
-      window.fetchAllRows ? window.fetchAllRows('empaques_partes', { select: 'part_number, standard_pack, es_empaque_primario, empaques(codigo, tipo_empaque)', orderBy: 'id' }) : client.from('empaques_partes').select('part_number, standard_pack, es_empaque_primario, empaques(codigo, tipo_empaque)').then(r => r.data || []),
+      window.fetchAllRows ? window.fetchAllRows('empaques_partes', { select: 'id, part_id, part_number, standard_pack, es_empaque_primario, active, empaques(codigo, tipo_empaque)', filter: q => q.neq('active', false), orderBy: 'id' }) : client.from('empaques_partes').select('id, part_id, part_number, standard_pack, es_empaque_primario, active, empaques(codigo, tipo_empaque)').neq('active', false).then(r => r.data || []),
       client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0)
     ]);
 
-    allParts = Array.isArray(partsData) ? partsData : (partsData.data || []);
+    allParts = (Array.isArray(partsData) ? partsData : (partsData.data || [])).filter(p => !p.is_archived_duplicate);
     pts = allParts.filter(p => p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
     machines = rMach.data || [];
-    molds = rMolds.data || [];
-    partMolds = rPm.data || [];
+    molds = Array.isArray(moldsData) ? moldsData : (moldsData.data || []);
+    partMolds = Array.isArray(pmData) ? pmData : (pmData.data || []);
     moldMachines = rMm.data || [];
     boms = Array.isArray(bomData) ? bomData : (bomData.data || []);
-    packs = Array.isArray(packsData) ? packsData : (packsData.data || []);
+    packs = (Array.isArray(packsData) ? packsData : (packsData.data || [])).filter(x => x.active !== false);
     (rStock.data || []).forEach(s => { stockMap[s.part_id] = (stockMap[s.part_id] || 0) + (parseFloat(s.quantity) || 0); });
   } catch (e) { console.warn(e); }
 
@@ -319,8 +319,8 @@ async function init(){
 
 /* ==================== INTELIGENCIA / PROPUESTA AUTOMÁTICA APS ==================== */
 function getPartPackagingLimit(part){
-  const pk = packs.find(x => x.part_number === part.part_number && x.es_empaque_primario)
-          || packs.find(x => x.part_number === part.part_number);
+  const pk = packs.find(x => x.active !== false && (Number(x.part_id) === Number(part.id) || x.part_number === part.part_number) && x.es_empaque_primario)
+          || packs.find(x => x.active !== false && (Number(x.part_id) === Number(part.id) || x.part_number === part.part_number));
   const stdPack = Number(pk?.standard_pack || part.std_pack || 0);
   const tipo = pk?.empaques?.tipo_empaque || 'DESECHABLE_CARTON';
   const maxCont = Math.max(1, Number(document.getElementById('cfgMaxCont').value || 12));
@@ -774,9 +774,9 @@ async function publicarOrdenesAPiso() {
         folio: folio,
         part_id: w.part_id,
         machine_id: w.machine_id,
-        mold_id: w.mold_id || null,
+        mold_id: (w.mold_id && Number(w.mold_id) > 0) ? Number(w.mold_id) : null,
         quantity_planned: w.qty,
-        estimated_hours: Number((w.run_hrs || 8).toFixed(1)),
+        estimated_hours: Number((w.prod_hrs || w.total_hrs || 8).toFixed(1)),
         status: 'PROGRAMADA'
       };
 

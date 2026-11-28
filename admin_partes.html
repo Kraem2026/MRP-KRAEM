@@ -199,6 +199,7 @@
             </div>
             <div class="group"><label>Ubicación Default WMS</label><select id="e_loc"></select></div>
             <div class="group"><label>Standard Pack (Pzs/Cont.)</label><input id="e_std_pack" type="number" step="1" min="0"></div>
+            <div class="group"><label>Empaque Oficial (WMS)</label><select id="e_empaque_id"><option value="">-- Sin asignar --</option></select></div>
             <div class="group"><label>Stock de Seguridad</label><input id="e_ss" type="number" step="0.01" min="0"></div>
             <div class="group"><label>Lote Mínimo Compra/Prod.</label><input id="e_min" type="number" step="0.01" min="0"></div>
             <div class="group"><label>Múltiplo / Redondeo</label><input id="e_round" type="number" step="0.01" min="1"></div>
@@ -224,6 +225,9 @@
     let pageRows = [];
     let stockByPart = {};
     let locationsCache = [];
+    let empaquesCache = [];
+    let packByPartId = {};
+    let packByPartNumber = {};
     let editMrpId = null;
     let canEditIng = true;
     let supportsArchivedCol = true;
@@ -302,12 +306,42 @@
         renderTable(pageRows);
     });
 
+    async function loadPackagingCatalog() {
+        try {
+            const [rEmp, epData] = await Promise.all([
+                client.from('empaques').select('id, codigo, nombre, tipo_empaque, activo').order('codigo'),
+                window.fetchAllRows
+                    ? window.fetchAllRows('empaques_partes', { select: 'id, empaque_id, part_id, part_number, standard_pack, es_empaque_primario, active', filter: q => q.neq('active', false), orderBy: 'id' })
+                    : client.from('empaques_partes').select('id, empaque_id, part_id, part_number, standard_pack, es_empaque_primario, active').neq('active', false).then(r => r.data || [])
+            ]);
+            empaquesCache = (rEmp.data || []).filter(e => e.activo !== false);
+            const selEmp = document.getElementById('e_empaque_id');
+            if (selEmp) {
+                selEmp.innerHTML = `<option value="">-- Sin asignar --</option>` +
+                    empaquesCache.map(e => `<option value="${esc(e.id)}">${esc(e.codigo)} - ${esc(e.nombre || '')}</option>`).join('');
+            }
+            packByPartId = {};
+            packByPartNumber = {};
+            const sortedRels = [...(Array.isArray(epData) ? epData : (epData.data || []))]
+                .filter(r => r.active !== false)
+                .sort((a, b) => (b.es_empaque_primario ? 1 : 0) - (a.es_empaque_primario ? 1 : 0));
+            sortedRels.forEach(r => {
+                if (r.part_id && !packByPartId[r.part_id]) packByPartId[r.part_id] = r;
+                const upPn = String(r.part_number || '').trim().toUpperCase();
+                if (upPn && !packByPartNumber[upPn]) packByPartNumber[upPn] = r;
+            });
+        } catch (e) {
+            console.warn('Error cargando catálogo de empaques:', e);
+        }
+    }
+
     async function preloadCatalogs() {
         try {
             const [rLocs, rCli, rProv] = await Promise.all([
                 client.from('locations').select('id, location_code, location_name, type, active').eq('active', true).order('location_code'),
                 client.from('clientes').select('nombre, activo').order('nombre'),
-                client.from('proveedores').select('nombre_comercial, activo').order('nombre_comercial')
+                client.from('proveedores').select('nombre_comercial, activo').order('nombre_comercial'),
+                loadPackagingCatalog()
             ]);
             locationsCache = (rLocs.data || []).filter(l => l.type !== 'Móvil' && l.type !== 'Contenedor');
             const selLoc = document.getElementById('e_loc');
@@ -510,8 +544,11 @@
             const engSt = (p.engineering_status || (p.obsolete ? 'OBSOLETO' : 'ACTIVO')).toUpperCase();
             const isObs = p.obsolete === true || engSt === 'OBSOLETO';
 
+            const ep = packByPartId[p.id] || packByPartNumber[String(p.part_number || '').trim().toUpperCase()];
+            const empObj = ep ? empaquesCache.find(e => String(e.id) === String(ep.empaque_id)) : null;
+            const displayPack = ep?.standard_pack || p.std_pack || 0;
             const mrpLine1 = `SS: ${ss} · Min: ${p.min_lot_size || 0} · ×${p.lot_rounding || 1} · LT: ${p.lead_time_days || 0}d`;
-            const mrpLine2 = `Pack: ${p.std_pack || 0} · Scrap: ${p.scrap_pct || 0}% · ${loc ? esc(loc.location_code) : 'Sin ubic.'}`;
+            const mrpLine2 = `Pack: ${displayPack}${empObj ? ' (' + esc(empObj.codigo) + ')' : ''} · Scrap: ${p.scrap_pct || 0}% · ${loc ? esc(loc.location_code) : 'Sin ubic.'}`;
 
             return `
             <tr>
@@ -606,7 +643,10 @@
         document.getElementById('e_grade').value = p.resin_grade || '';
         document.getElementById('e_eng_status').value = p.engineering_status || (p.obsolete ? 'OBSOLETO' : 'ACTIVO');
         document.getElementById('e_loc').value = p.default_location_id || '';
-        document.getElementById('e_std_pack').value = p.std_pack ?? 0;
+        const ep = packByPartId[p.id] || packByPartNumber[String(p.part_number || '').trim().toUpperCase()];
+        document.getElementById('e_std_pack').value = p.std_pack || ep?.standard_pack || 0;
+        const empSel = document.getElementById('e_empaque_id');
+        if (empSel) empSel.value = ep?.empaque_id || '';
         document.getElementById('e_ss').value = p.safety_stock ?? 0;
         document.getElementById('e_min').value = p.min_lot_size ?? 0;
         document.getElementById('e_round').value = p.lot_rounding ?? 1;
@@ -625,6 +665,10 @@
         if (!canEditIng || !editMrpId) return alert('Sin permisos para editar Ingeniería.');
         const val = id => document.getElementById(id).value.trim();
         const engStatus = val('e_eng_status') || 'ACTIVO';
+        const stdPackNum = parseInt(document.getElementById('e_std_pack').value, 10) || 0;
+        const selectedEmpId = val('e_empaque_id');
+        const currentPart = pageRows.find(x => Number(x.id) === Number(editMrpId));
+
         const payload = {
             client: val('e_client') || null,
             supplier: val('e_sup') || null,
@@ -632,7 +676,7 @@
             engineering_status: engStatus,
             obsolete: engStatus === 'OBSOLETO',
             default_location_id: val('e_loc') ? Number(val('e_loc')) : null,
-            std_pack: parseInt(document.getElementById('e_std_pack').value, 10) || 0,
+            std_pack: stdPackNum,
             safety_stock: Number(document.getElementById('e_ss').value) || 0,
             min_lot_size: Number(document.getElementById('e_min').value) || 0,
             lot_rounding: Math.max(1, Number(document.getElementById('e_round').value) || 1),
@@ -645,8 +689,27 @@
             alert('Error guardando parámetros MRP:\n' + error.message);
             return;
         }
+        if (stdPackNum > 0 && selectedEmpId && currentPart) {
+            await client.from('empaques_partes')
+                .update({ es_empaque_primario: false })
+                .eq('part_id', editMrpId)
+                .eq('es_empaque_primario', true)
+                .neq('empaque_id', selectedEmpId);
+            const { error: epErr } = await client.from('empaques_partes').upsert([{
+                empaque_id: selectedEmpId,
+                part_id: editMrpId,
+                part_number: currentPart.part_number,
+                part_name: currentPart.part_name || '',
+                standard_pack: stdPackNum,
+                es_empaque_primario: true,
+                active: true
+            }], { onConflict: 'empaque_id,part_number' });
+            if (epErr) {
+                alert('Parámetros guardados, pero falló la asignación de empaque:\n' + epErr.message);
+            }
+        }
         cerrarModalMrp();
-        await Promise.all([loadGlobalKpis(), searchOnSupabase()]);
+        await Promise.all([loadGlobalKpis(), loadPackagingCatalog(), searchOnSupabase()]);
     }
 
     async function setLang(lang, skipThemeCheck) {

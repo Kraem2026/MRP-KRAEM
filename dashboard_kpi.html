@@ -727,7 +727,7 @@ async function cargarTodo() {
   const totDef = insp.reduce((s, r) => s + (Number(r.cant_defectuosa) || 0), 0);
   const calGlobal = totInsp > 0 ? ((totInsp - totDef) / totInsp) * 100 : null;
   const targetAvg = machs.length ? machs.reduce((s, m) => s + (Number(m.oee_target_pct) || cfgOeeTarget), 0) / machs.length : cfgOeeTarget;
-  const dispReal = runs.length && machs.length ? Math.min(100, Math.max(75, (machs.filter(m => m.status === 'Producción').length / machs.length) * 100 || cfgAvailFb)) : null;
+  const dispReal = runs.length && machs.length ? Math.min(100, Math.max(75, (machs.filter(m => m.status === 'RUNNING' || m.status === 'Producción').length / machs.length) * 100 || cfgAvailFb)) : null;
   const rendReal = runs.length ? cfgPerfDef : null;
   const oeeReal = (dispReal !== null && rendReal !== null && calGlobal !== null)
     ? (dispReal / 100) * (rendReal / 100) * (calGlobal / 100) * 100

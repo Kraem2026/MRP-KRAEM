@@ -208,7 +208,7 @@
             <div class="card">
                 <div class="card-title">
                     <span><i class="fas fa-cubes"></i> Moldes de Fabricación</span>
-                    <a href="catalogo_moldes.html" class="btn btn-sm"><i class="fas fa-shapes"></i> Maestro de Moldes</a>
+                    <a id="btnMoldsCatalogLink" href="catalogo_moldes.html" class="btn btn-sm"><i class="fas fa-shapes"></i> Maestro de Moldes</a>
                 </div>
                 <div style="overflow-x: auto;">
                     <table>
@@ -269,6 +269,8 @@
         // Renderizar Datos Generales
         const pType = (p.product_type || 'PT').toUpperCase();
         document.getElementById('valType').innerText = pType;
+        const moldsCatBtn = document.getElementById('btnMoldsCatalogLink');
+        if (moldsCatBtn) moldsCatBtn.href = `catalogo_moldes.html?part_id=${p.id}`;
         const bomHeaderBtn = document.getElementById('btnBomHeaderLink');
         const bomTreeBtn = document.getElementById('btnBomTreeLink');
         if (pType === 'PT' || pType === 'SUB-ENSAMBLE') {
@@ -381,10 +383,20 @@
 
     // Standard Pack oficial: el del catálogo de Empaques (empaque primario), que es el que usa el WMS.
     async function loadStandardPack(p) {
-        const { data } = await client
+        let { data } = await client
             .from('empaques_partes')
-            .select('standard_pack, es_empaque_primario, empaques(codigo)')
-            .eq('part_number', p.part_number);
+            .select('standard_pack, es_empaque_primario, active, empaques(codigo)')
+            .eq('part_id', p.id)
+            .neq('active', false);
+
+        if (!data || !data.length) {
+            const resPn = await client
+                .from('empaques_partes')
+                .select('standard_pack, es_empaque_primario, active, empaques(codigo)')
+                .eq('part_number', p.part_number)
+                .neq('active', false);
+            data = resPn.data || [];
+        }
 
         const rel = (data || []).find(r => r.es_empaque_primario) || (data || [])[0];
         const unit = p.unit_of_measure || 'PZA';
