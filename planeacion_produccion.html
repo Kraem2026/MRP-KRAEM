@@ -1,306 +1,32 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Planeación de Producción</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-  <script src="kraem_nav.js"></script>
-
+<title>KRAEM | Redirección a Tablero APS & Kitting</title>
 <style>
-body{
-  font-family:Arial, sans-serif;
-  background:#f4f6f8;
-  padding:15px;
-  color:#333;
-}
-.card{
-  background:#fff;
-  padding:20px;
-  border-radius:8px;
-  max-width:900px;
-  margin:auto;
-  margin-bottom:15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
-}
-h2{margin-top:0; color:#1e293b;}
-label{font-size:14px; font-weight:600; color:#475569; display:block; margin-bottom:4px;}
-input,select{
-  padding:8px 10px;
-  width:100%;
-  box-sizing:border-box;
-  margin-bottom:12px;
-  border:1px solid #cbd5e1;
-  border-radius:6px;
-  font-size:14px;
-}
-button{
-  padding:9px 16px;
-  cursor:pointer;
-  font-weight:600;
-  border-radius:6px;
-}
-.flex{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-}
-.back{
-  background:#64748b;
-  color:#fff;
-  border:none;
-  margin-bottom:12px;
-}
-.save{
-  background:#10b981;
-  color:#fff;
-  border:none;
-}
-.save:hover{ background:#059669; }
-.info{
-  background:#f1f5f9;
-  border-left: 4px solid #3b82f6;
-  padding:12px 16px;
-  border-radius:4px;
-  font-size:14px;
-  margin-bottom:16px;
-  line-height:1.6;
-}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0f172a;font-family:'Segoe UI',system-ui,sans-serif}
+[data-theme="dark"] body{background:#090d16;color:#f1f5f9}
+.box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px 28px;max-width:420px;text-align:center}
+[data-theme="dark"] .box{background:#111827;border-color:#1f2937}
+a{display:inline-block;margin-top:12px;background:#2563eb;color:#fff;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none}
+p{color:#64748b;font-size:13px;margin:6px 0 0}
 </style>
 </head>
-
 <body>
-
-<button class="back btn-back" onclick="KraemNav.back('planeacion_requerimientos.html')">
-⬅ Regresar
-</button>
-
-<div class="card">
-  <h2>🏭 Planeación de Producción</h2>
-
-  <div class="info" id="reqInfo">
-    Cargando requerimiento...
-  </div>
-
-  <div class="flex">
-    <div style="flex:1">
-      <label>Máquina</label>
-      <select id="machine"></select>
-    </div>
-
-    <div style="flex:1">
-      <label>Molde</label>
-      <select id="mold"></select>
-    </div>
-  </div>
-
-  <div class="flex">
-    <div style="flex:1">
-      <label>Cantidad a producir</label>
-      <input type="number" id="qty">
-    </div>
-
-    <div style="flex:1">
-      <label>Fecha producción</label>
-      <input type="date" id="prodDate">
-    </div>
-  </div>
-
-  <div class="flex">
-    <div style="flex:1">
-      <label>Horas estimadas</label>
-      <input id="hours" disabled>
-    </div>
-  </div>
-
-  <button class="save" onclick="savePlan()">💾 Guardar planeación</button>
+<div class="box">
+  <h3 style="margin:0">Pantalla retirada</h3>
+  <p>Esta pantalla fue unificada en el módulo oficial <strong>Tablero APS & Kitting</strong>.</p>
+  <a id="fallbackLink" href="planeacion_aps_tablero.html">Continuar al módulo oficial →</a>
 </div>
-
 <script>
-// client provisto por config.js
-
-let requerimiento = null;
-let cycleTime = 0;
-let cavities = 1;
-
-/* ================== CARGAR DATOS ================== */
-async function loadData(){
-  const reqId = localStorage.getItem('requerimiento_id');
-  if(!reqId){
-    alert('No hay requerimiento seleccionado');
-    location.href='planeacion_requerimientos.html';
-    return;
-  }
-
-  const {data, error} = await client
-    .from('v_requerimientos_detalle')
-    .select('*')
-    .eq('requerimiento_id', reqId)
-    .single();
-
-  if(error || !data) {
-    // Fallback directo a la tabla requerimientos si la vista tiene un filtro estricto
-    const { data: rawReq } = await client
-      .from('requerimientos')
-      .select('id, part_id, quantity, due_date, status, parts(part_number, description)')
-      .eq('id', reqId)
-      .single();
-
-    if(!rawReq) {
-      alert('No se pudo encontrar el requerimiento');
-      location.href = 'planeacion_requerimientos.html';
-      return;
-    }
-
-    requerimiento = {
-      requerimiento_id: rawReq.id,
-      part_id: rawReq.part_id,
-      part_number: rawReq.parts?.part_number || 'N/A',
-      required_qty: rawReq.quantity,
-      current_inventory: 0
-    };
-  } else {
-    requerimiento = data;
-  }
-
-  reqInfo.innerHTML = `
-    <b>Parte:</b> ${requerimiento.part_number}<br>
-    <b>Requerido:</b> ${Number(requerimiento.required_qty || 0).toLocaleString()} pzas<br>
-    <b>Inventario actual:</b> ${Number(requerimiento.current_inventory || 0).toLocaleString()} pzas
-  `;
-
-  qty.value = requerimiento.required_qty;
-  prodDate.value = new Date().toISOString().slice(0, 10);
-
-  loadMachines();
-  loadMolds(requerimiento.part_id);
-}
-
-/* ================== MÁQUINAS ================== */
-async function loadMachines(){
-  let { data } = await client
-    .from('mes_machines')
-    .select('id, machine_code, machine_name, status, maintenance_status, active')
-    .eq('active', true)
-    .order('machine_code');
-
-  if (!data || !data.length) {
-    const resLeg = await client
-      .from('machines')
-      .select('id, machine_code, machine_name, status')
-      .order('machine_name');
-    data = resLeg.data || [];
-  }
-
-  machine.innerHTML =
-    '<option value="">Selecciona máquina...</option>' +
-    (data || []).map(m => {
-      const label = m.machine_code ? `${m.machine_code} - ${m.machine_name || ''}` : (m.machine_name || `MAQ-${m.id}`);
-      const st = m.maintenance_status || m.status || 'Disponible';
-      return `<option value="${m.id}">${label} (${st})</option>`;
-    }).join('');
-}
-
-/* ================== MOLDES POR PARTE ================== */
-async function loadMolds(partId){
-  const {data} = await client
-    .from('part_molds')
-    .select(`
-      mold_id,
-      cycle_time_sec,
-      molds ( mold_name, cavities )
-    `)
-    .eq('part_id', partId)
-    .eq('active', true);
-
-  mold.innerHTML =
-    '<option value="">Selecciona molde...</option>' +
-    (data || []).map(pm => `
-      <option
-        value="${pm.mold_id}"
-        data-cycle="${pm.cycle_time_sec || 0}"
-        data-cav="${pm.molds?.cavities || 1}">
-        ${pm.molds?.mold_name || 'Molde #' + pm.mold_id}
-      </option>
-    `).join('');
-}
-
-/* ================== CALCULAR HORAS ================== */
-mold.onchange = ()=>{
-  const opt = mold.selectedOptions[0];
-  if(!opt) return;
-
-  cycleTime = Number(opt.dataset.cycle) || 0;
-  cavities = Number(opt.dataset.cav) || 1;
-  calcHours();
-};
-
-qty.oninput = calcHours;
-
-function calcHours(){
-  if(!cycleTime || !qty.value) return;
-  const shots = qty.value / (cavities || 1);
-  const seconds = shots * cycleTime;
-  const hoursCalc = (seconds / 3600).toFixed(2);
-  hours.value = hoursCalc;
-}
-
-/* ================== GUARDAR PLANEACIÓN ================== */
-async function savePlan(){
-  if(!machine.value || !mold.value || !prodDate.value || !qty.value){
-    alert('Completa todos los campos');
-    return;
-  }
-
-  const plannedQty = parseInt(qty.value) || 0;
-  const plannedHours = parseFloat(hours.value) || 0;
-  const machineId = parseInt(machine.value);
-  const moldId = parseInt(mold.value);
-
-  // 1. Guardar en production_plan con el esquema canónico
-  const { error: errPlan } = await client.from('production_plan').insert({
-    part_id: requerimiento.part_id,
-    machine_id: machineId,
-    planned_qty: plannedQty,
-    planned_hours: plannedHours,
-    plan_date: prodDate.value,
-    status: 'planned'
-  });
-  if(errPlan) {
-    console.warn('Advertencia production_plan:', errPlan);
-  }
-
-  // 2. Crear la Orden de Producción oficial (production_orders)
-  const { data: woData, error: errWO } = await client.from('production_orders').insert({
-    requerimiento_id: requerimiento.requerimiento_id,
-    part_id: requerimiento.part_id,
-    machine_id: machineId,
-    mold_id: moldId,
-    quantity_planned: plannedQty,
-    estimated_hours: plannedHours,
-    status: 'PROGRAMADA'
-  }).select();
-
-  if(errWO) {
-    console.error('Error al insertar production_orders:', errWO);
-  }
-
-  // 3. Cerrar ciclo de requerimiento a PLANEADO
-  await client.from('requerimientos')
-    .update({ status: 'PLANEADO' })
-    .eq('id', requerimiento.requerimiento_id);
-
-  localStorage.removeItem('requerimiento_id');
-
-  const woFolio = (woData && woData[0]) ? (' OP-' + woData[0].id) : '';
-  alert('Planeación guardada exitosamente y Orden de Producción generada' + woFolio);
-  location.href = 'planeacion_requerimientos.html';
-}
-
-loadData();
+(function(){
+  if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+  var TARGET_URL = 'planeacion_aps_tablero.html' + (window.location.search || '');
+  window.__REDIRECT_TARGET = TARGET_URL;
+  document.getElementById('fallbackLink').setAttribute('href', TARGET_URL);
+  if (!window.__KRAEM_TEST_NO_REDIRECT) window.location.replace(TARGET_URL);
+})();
 </script>
-
 </body>
 </html>
-

@@ -34,16 +34,16 @@
       'historial.html': { parent: 'wms_operaciones.html', title: 'Historial Maestro de Movimientos', group: '1.4 WMS' },
 
       // Planeación & MRP
-      'planeacion_hub.html': { parent: 'dashboard.html', title: 'Cockpit de Planeación & Control ERP', group: '1.2 Planeación' },
-      'planeacion_mrp_forecast.html': { parent: 'planeacion_hub.html', title: 'Forecast, Demanda & Explosión MRP', group: '1.2 Planeación' },
-      'planeacion_requerimientos.html': { parent: 'planeacion_hub.html', title: 'Requerimientos de Demanda', group: '1.2 Planeación' },
-      'planeacion_produccion.html': { parent: 'planeacion_requerimientos.html', title: 'Planeación de Producción', group: '1.2 Planeación' },
-      'planeacion_propuesta.html': { parent: 'planeacion_requerimientos.html', title: 'Propuesta de Producción (APS)', group: '1.2 Planeación' },
-      'planeacion_aps_tablero.html': { parent: 'planeacion_hub.html', title: 'Tablero APS de Inyección', group: '1.2 Planeación' },
-      'planeacion_montaje_moldes.html': { parent: 'planeacion_hub.html', title: 'SMED Montaje de Moldes', group: '1.2 Planeación' },
-      'planeacion_calendario_maquinas.html': { parent: 'planeacion_hub.html', title: 'Calendario de Máquinas', group: '1.2 Planeación' },
-      'planeacion_forecast.html': { parent: 'planeacion_hub.html', title: 'Forecast de Demanda', group: '2.1 Comercial' },
-      'Planeacion.html': { parent: 'planeacion_hub.html', title: 'Planeación Histórica', group: '1.2 Planeación' },
+      'planeacion_hub.html': { parent: 'dashboard.html', title: 'Cockpit de Planeación, MRP & APS', group: '1.2 Planeación' },
+      'planeacion_mrp_forecast.html': { parent: 'planeacion_hub.html', title: 'Demanda, Forecast & Explosión MRP', group: '1.2 Planeación' },
+      'planeacion_aps_tablero.html': { parent: 'planeacion_hub.html', title: 'Tablero APS & Kitting WMS', group: '1.2 Planeación' },
+      'planeacion_montaje_moldes.html': { parent: 'planeacion_hub.html', title: 'Montaje de Moldes (SMED)', group: '1.2 Planeación' },
+      'planeacion_forecast.html': { parent: 'planeacion_hub.html', title: 'Monitor Comercial & Cobertura PT', group: '2.1 Comercial' },
+      'Planeacion.html': { parent: 'planeacion_hub.html', title: 'Redirección Cockpit Planeación', group: '1.2 Planeación' },
+      'planeacion_requerimientos.html': { parent: 'planeacion_hub.html', title: 'Redirección Demanda & MRP', group: '1.2 Planeación' },
+      'planeacion_produccion.html': { parent: 'planeacion_hub.html', title: 'Redirección Tablero APS', group: '1.2 Planeación' },
+      'planeacion_propuesta.html': { parent: 'planeacion_hub.html', title: 'Redirección Tablero APS', group: '1.2 Planeación' },
+      'planeacion_calendario_maquinas.html': { parent: 'planeacion_hub.html', title: 'Redirección Tablero APS', group: '1.2 Planeación' },
 
       // Compras
       'compras_ordenes.html': { parent: 'dashboard.html', title: 'Órdenes de Compra (OCs)', group: '1.5 Compras' },

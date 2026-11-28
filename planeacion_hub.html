@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KRAEM ERP | Cockpit Planeación (Boceto PP/MRP/APS)</title>
+<title>KRAEM by APEX SYSTEM | Cockpit Planeación, MRP & APS</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="kraem_nav.js"></script>
@@ -12,181 +12,272 @@
 :root{
   --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
   --primary:#2563eb; --accent:#4f46e5; --success:#16a34a; --warning:#d97706; --danger:#dc2626;
+  --surface:#f1f5f9;
 }
 [data-theme="dark"]{
-  --bg:#020617; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8; --border:#334155;
+  --bg:#090d16; --card:#111827; --text:#f1f5f9; --muted:#94a3b8; --border:#1f2937;
+  --surface:#1e293b;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif}
-.container{max-width:1440px;margin:auto}
-.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:20px}
-.title-wrap{display:flex;align-items:center;gap:14px}
-.title-wrap h1{margin:0;font-size:24px}
-.title-wrap p{margin:3px 0 0;color:var(--muted);font-size:13px}
-.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:10px 15px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+body{margin:0;padding:18px;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;transition:.2s}
+.container{max-width:1520px;margin:auto}
+.header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.title-wrap{display:flex;align-items:center;gap:12px}
+.title-wrap h1{margin:0;font-size:21px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.title-wrap p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lang-btn{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:700;font-size:12px;cursor:pointer}
+.lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn{border:1px solid var(--border);background:var(--card);color:var(--text);padding:8px 13px;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
+.btn:hover{filter:brightness(1.06)}
 .btn-primary{background:var(--primary);color:#fff;border:none}
-.pill-boceto{background:rgba(79,70,229,0.14);color:#6366f1;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:22px}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:15px 18px;border-left:4px solid var(--primary)}
-.kpi .lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
-.kpi .val{font-size:24px;font-weight:800;margin-top:4px}
-.kpi .sub{font-size:11px;color:var(--muted);margin-top:3px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
-.card h2{margin:0 0 6px;font-size:17px}
-.card .desc{color:var(--muted);font-size:13px;margin:0 0 16px}
-.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;align-items:stretch}
-.step{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;position:relative;transition:.2s}
-.step:hover{border-color:var(--primary);transform:translateY(-2px)}
-.step-num{font-size:11px;font-weight:800;color:var(--primary);text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
-.step h3{margin:0 0 8px;font-size:16px;display:flex;align-items:center;gap:8px}
-.step p{margin:0 0 12px;font-size:12.5px;color:var(--muted);line-height:1.45}
-.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.tag{font-size:10.5px;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(37,99,235,0.1);color:var(--primary)}
-.matrix{width:100%;border-collapse:collapse;font-size:13px}
-.matrix th,.matrix td{padding:11px 12px;border-bottom:1px solid var(--border);text-align:left}
-.matrix th{font-size:11px;text-transform:uppercase;color:var(--muted)}
-.status-ok{color:var(--success);font-weight:700}
-.status-wip{color:var(--warning);font-weight:700}
+.btn-sm{padding:4px 8px;font-size:11px;border-radius:6px}
+.apex-tag{font-size:10px;font-weight:800;color:var(--primary);background:rgba(37,99,235,0.12);padding:2px 7px;border-radius:4px;letter-spacing:.5px}
+
+.badge{padding:3px 7px;border-radius:5px;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.b-ok{background:#dcfce7;color:#166534}
+.b-warn{background:#fef3c7;color:#92400e}
+.b-bad{background:#fee2e2;color:#991b1b}
+.b-info{background:#e0f2fe;color:#075985}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;border-left:4px solid var(--primary)}
+.kpi .lbl{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.kpi .val{font-size:21px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:14px}
+.card h2{margin:0 0 4px;font-size:15.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+.card .desc{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:10px;align-items:stretch}
+.step{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px;display:flex;flex-direction:column;justify-content:space-between;transition:border-color .15s}
+.step:hover{border-color:var(--primary)}
+.step-num{font-size:10.5px;font-weight:800;color:var(--primary);text-transform:uppercase;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.step h3{margin:0 0 6px;font-size:14.5px;display:flex;align-items:center;gap:7px}
+.step p{margin:0 0 10px;font-size:12px;color:var(--muted);line-height:1.4}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(37,99,235,0.1);color:var(--primary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+.exec-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1100px){.exec-grid{grid-template-columns:1fr}}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px 9px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+th{font-size:10.5px;text-transform:uppercase;color:var(--muted);background:var(--surface);position:sticky;top:0}
+tr:hover td{background:rgba(148,163,184,0.04)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.status-ok{color:var(--success);font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <div class="title-wrap">
-      <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> Dashboard</button>
+      <button class="btn btn-back" onclick="KraemNav.back('dashboard.html')"><i class="fas fa-arrow-left"></i> <span id="lblBack">Dashboard</span></button>
       <div>
-        <h1 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span><i class="fas fa-diagram-project" style="color:var(--primary)"></i> Cockpit de Planeación & Control ERP</span>
-          <span style="font-size:11px;font-weight:700;color:var(--primary);background:rgba(37,99,235,0.12);padding:3px 8px;border-radius:6px;letter-spacing:0.5px">by APEX SYSTEM</span>
-          <span class="pill-boceto">Boceto Base</span>
+        <h1>
+          <span><i class="fas fa-diagram-project" style="color:var(--primary)"></i> <span id="lblTitle">Cockpit de Planeación, MRP & Control APS</span></span>
+          <span class="apex-tag">by APEX SYSTEM</span>
+          <span id="hubDbBadge" class="badge b-info">Conectando BD...</span>
         </h1>
-        <p>Arquitectura SAP PP/MRP/APS conectada con Ingeniería, Moldes, WMS, Compras y Producción</p>
+        <p id="lblSub">Operación productiva unificada en tiempo real: Comercial → Demanda/MPS → MRP Compras → APS Kitting FIFO → SMED → Piso MES.</p>
       </div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center">
-      <a href="Planeacion.html" class="btn"><i class="fas fa-clock-rotate-left"></i> Prototipos Anteriores</a>
-      <button class="btn" onclick="toggleTheme()"><i id="themeIcon" class="fas fa-moon"></i></button>
+    <div class="controls">
+      <button class="lang-btn" id="langEs" onclick="setLang('es')">ES</button>
+      <button class="lang-btn" id="langKo" onclick="setLang('ko')">KO</button>
+      <button class="lang-btn" id="langEn" onclick="setLang('en')">EN</button>
+      <button class="btn" onclick="loadSummary()"><i class="fas fa-arrows-rotate"></i> <span id="lblRefresh">Actualizar</span></button>
+      <button class="btn" onclick="toggleTheme()" title="Tema"><i id="themeIcon" class="fas fa-moon"></i></button>
     </div>
   </div>
 
-  <!-- KPIs REALES DE INGENIERÍA / WMS PARA PLANEACIÓN -->
+  <!-- TIRA DE 6 KPIs OPERATIVOS EN VIVO -->
   <div class="kpi-grid">
-    <div class="kpi">
-      <div class="lbl">Productos Terminados / Sub</div>
-      <div class="val" id="kPt">-</div>
-      <div class="sub">Base para Demanda y Forecast</div>
-    </div>
-    <div class="kpi" style="border-left-color:var(--danger)">
-      <div class="lbl">Materiales Bajo Stock Seg.</div>
-      <div class="val" id="kLowMat">-</div>
-      <div class="sub">Resinas/Componentes vs WMS</div>
+    <div class="kpi" style="border-left-color:var(--primary)">
+      <div class="lbl" id="lblKOpenReqs">Requerimientos Abiertos</div>
+      <div class="val" id="kOpenReqs">-</div>
+      <div class="sub" id="kOpenReqsSub">Firmes y Forecast en BD</div>
     </div>
     <div class="kpi" style="border-left-color:var(--accent)">
-      <div class="lbl">Máquinas Configuradas</div>
-      <div class="val" id="kMach">-</div>
-      <div class="sub">Centros de trabajo (mes_machines)</div>
+      <div class="lbl" id="lblKActiveWos">WOs Activas en APS / MES</div>
+      <div class="val" id="kActiveWos">-</div>
+      <div class="sub" id="kActiveWosSub">Pendientes de Kitting WMS</div>
+    </div>
+    <div class="kpi" style="border-left-color:#0ea5e9">
+      <div class="lbl" id="lblKOpenPos">OCs en Tránsito (MRP)</div>
+      <div class="val" id="kOpenPos">-</div>
+      <div class="sub" id="kOpenPosSub">Partidas por recibir en WMS</div>
+    </div>
+    <div class="kpi" style="border-left-color:var(--danger)">
+      <div class="lbl" id="lblKLowMat">Materiales Bajo Stock Seg.</div>
+      <div class="val" id="kLowMat">-</div>
+      <div class="sub">Resinas / Componentes vs WMS</div>
     </div>
     <div class="kpi" style="border-left-color:var(--success)">
-      <div class="lbl">Moldes Registrados</div>
-      <div class="val" id="kMold">-</div>
-      <div class="sub">Disponibilidad y disparos PM</div>
+      <div class="lbl" id="lblKPt">N/P Canónicos PT / Sub</div>
+      <div class="val" id="kPt">-</div>
+      <div class="sub">Catálogo activo sin duplicados</div>
+    </div>
+    <div class="kpi" style="border-left-color:var(--warning)">
+      <div class="lbl" id="lblKMachMold">Prensas / Moldes Activos</div>
+      <div class="val"><span id="kMach">-</span> <span style="color:var(--muted);font-size:14px">/ <span id="kMold">-</span></span></div>
+      <div class="sub" id="kMachSub">Capacidad CR01 & Herramentales</div>
     </div>
   </div>
 
-  <!-- FLUJO END-TO-END DEL ERP -->
+  <!-- CADENA OPERATIVA OFICIAL DE 6 ESTACIONES CONECTADAS -->
   <div class="card">
-    <h2><i class="fas fa-route" style="color:var(--primary)"></i> Flujo Completo de Planeación en el ERP</h2>
-    <p class="desc">Cada bloque representa un módulo conectado en cadena. Entra a los 3 bocetos interactivos para validar la lógica antes de bajarlo a tablas finales de Supabase.</p>
+    <h2><i class="fas fa-route" style="color:var(--primary)"></i> <span id="lblFlowTitle">Cadena Operativa Oficial de Planeación ERP</span></h2>
+    <p class="desc" id="lblFlowDesc">Las 6 estaciones operan sobre tablas relacionales de Supabase sin capturas duplicadas ni datos simulados.</p>
 
     <div class="flow">
       <div class="step">
         <div>
-          <div class="step-num"><span>Paso 1 · Demanda</span><span class="tag">SAP MD61 / VA01</span></div>
-          <h3><i class="fas fa-chart-line" style="color:var(--primary)"></i> Forecast & Requerimientos</h3>
-          <p>Captura de demanda firme y pronóstico por Cliente + N° Parte PT. Compara contra Stock WMS y Stock de Seguridad para calcular Necesidad Neta.</p>
-          <div class="tags"><span class="tag">clientes</span><span class="tag">parts</span><span class="tag">v_inventory_by_location</span></div>
+          <div class="step-num"><span>Estación 0 · Comercial</span><span class="tag">Cobertura PT</span></div>
+          <h3><i class="fas fa-shield-halved" style="color:#0ea5e9"></i> Monitor Cobertura & Forecast</h3>
+          <p>Analiza días de cobertura de PT frente a consumo histórico y permite captura comercial directa en <code>requerimientos</code>.</p>
+          <div class="tags"><span class="tag">v_cobertura_demanda_pt</span><span class="tag">COMERCIAL</span></div>
         </div>
-        <a href="planeacion_mrp_forecast.html" class="btn btn-primary" style="justify-content:center"><i class="fas fa-play"></i> Abrir Boceto Forecast & MRP</a>
+        <a href="planeacion_forecast.html" class="btn btn-primary" style="justify-content:center;background:#0284c7"><i class="fas fa-chart-area"></i> Cobertura Comercial</a>
       </div>
 
       <div class="step">
         <div>
-          <div class="step-num"><span>Paso 2 · Abasto</span><span class="tag">SAP MD01 / MD04</span></div>
-          <h3><i class="fas fa-boxes-stacked" style="color:var(--warning)"></i> Explosión MRP de Materiales</h3>
-          <p>Explota el BOM multinivel con % de scrap, consolida kilos de resina e insertos, resta inventario WMS y genera alertas de compra según Lead Time y lote mínimo.</p>
-          <div class="tags"><span class="tag">bom_structures</span><span class="tag">explorar_bom_multinivel</span><span class="tag">safety_stock</span></div>
+          <div class="step-num"><span>Estación 1 · Demanda & MPS</span><span class="tag">SAP MD61 / MD04</span></div>
+          <h3><i class="fas fa-clipboard-list" style="color:var(--primary)"></i> Demanda Unificada & MPS</h3>
+          <p>Captura manual y carga Excel por <code>PEDIDO_FIRME</code> vs <code>FORECAST</code>. Calcula necesidad neta descontando WMS y WOs abiertas.</p>
+          <div class="tags"><span class="tag">requerimientos</span><span class="tag">v_planning_demand</span></div>
         </div>
-        <a href="planeacion_mrp_forecast.html#tab-mrp" class="btn" style="justify-content:center;border-color:var(--warning);color:var(--warning)"><i class="fas fa-calculator"></i> Simular Explosión MRP</a>
+        <a href="planeacion_mrp_forecast.html" class="btn btn-primary" style="justify-content:center"><i class="fas fa-play"></i> Abrir Demanda & MPS</a>
       </div>
 
       <div class="step">
         <div>
-          <div class="step-num"><span>Abasto Externo</span><span class="tag">SAP ME21N / MIGO</span></div>
-          <h3><i class="fas fa-file-invoice-dollar" style="color:#0ea5e9"></i> Compras, Proveedores & Recibo</h3>
-          <p>Emisión de Órdenes de Compra con notificación por correo al proveedor, recepción WMS con lote de proveedor para FIFO y etiquetado QR de tarimas.</p>
-          <div class="tags"><span class="tag">proveedores</span><span class="tag">compras_ordenes</span><span class="tag">recibo_fifo</span></div>
+          <div class="step-num"><span>Estación 2 · Explosión MRP</span><span class="tag">SAP MD01</span></div>
+          <h3><i class="fas fa-boxes-stacked" style="color:var(--warning)"></i> MRP Materiales & WIP Sub</h3>
+          <p>Explosión BOM multinivel para Sub-ensambles WIP, Resinas y Componentes; descuenta OCs en tránsito y exporta déficits.</p>
+          <div class="tags"><span class="tag">bom_structures</span><span class="tag">v_compras_pendientes</span></div>
         </div>
         <div style="display:flex;gap:6px">
-          <a href="compras_ordenes.html" class="btn btn-primary" style="flex:1;justify-content:center;background:#0ea5e9;font-size:12px"><i class="fas fa-cart-shopping"></i> Órdenes Compra</a>
-          <a href="compras_recibo.html" class="btn btn-secondary" style="flex:1;justify-content:center;font-size:12px"><i class="fas fa-truck-ramp-box"></i> Recibo WMS</a>
+          <a href="planeacion_mrp_forecast.html#tab-mrp" class="btn" style="flex:1;justify-content:center;border-color:var(--warning);color:var(--warning)"><i class="fas fa-calculator"></i> MRP</a>
+          <a href="planeacion_mrp_forecast.html#tab-sub" class="btn" style="flex:1;justify-content:center"><i class="fas fa-layer-group"></i> WIP Sub</a>
         </div>
       </div>
 
       <div class="step">
         <div>
-          <div class="step-num"><span>Paso 3 · Capacidad</span><span class="tag">SAP CM25 / CO01</span></div>
-          <h3><i class="fas fa-calendar-week" style="color:var(--accent)"></i> Tablero APS & Máquinas</h3>
-          <p>Convierte necesidades en Órdenes de Producción (WO). Asigna máquina + molde validando tonelaje, entre-barras, horas/turno y OEE meta en calendario.</p>
-          <div class="tags"><span class="tag">mes_machines CR01</span><span class="tag">part_molds</span><span class="tag">empaques_partes</span></div>
+          <div class="step-num"><span>Estación 3 · Abasto & WMS</span><span class="tag">SAP ME21N / MIGO</span></div>
+          <h3><i class="fas fa-file-invoice-dollar" style="color:#0284c7"></i> Compras OC & Recibo FIFO</h3>
+          <p>Agrupa déficits MRP por proveedor en <code>compras_ordenes</code> relacionales y registra recibo físico con lote FIFO y etiqueta Zebra.</p>
+          <div class="tags"><span class="tag">compras_ordenes</span><span class="tag">compras_recibos</span></div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <a href="compras_ordenes.html?import_mrp=1" class="btn btn-primary" style="flex:1;justify-content:center;background:#0ea5e9"><i class="fas fa-cart-plus"></i> Emitir OC</a>
+          <a href="compras_recibo.html" class="btn" style="flex:1;justify-content:center"><i class="fas fa-dolly"></i> Recibo</a>
+        </div>
+      </div>
+
+      <div class="step">
+        <div>
+          <div class="step-num"><span>Estación 4 · Tablero APS</span><span class="tag">SAP CM25 / CO01</span></div>
+          <h3><i class="fas fa-calendar-week" style="color:var(--accent)"></i> Gantt APS & Kitting FIFO</h3>
+          <p>Secuencia solo <code>PEDIDO_FIRME</code> por prensa y empaque retornable, publica WOs sin duplicar y surte Kits FIFO a <code>inventory_movements</code>.</p>
+          <div class="tags"><span class="tag">production_orders</span><span class="tag">v_aps_kitting_pendiente</span></div>
         </div>
         <a href="planeacion_aps_tablero.html" class="btn btn-primary" style="justify-content:center;background:var(--accent)"><i class="fas fa-sliders"></i> Abrir Tablero APS</a>
       </div>
 
       <div class="step">
         <div>
-          <div class="step-num"><span>Paso 4 · Piso</span><span class="tag">SMED / PRT</span></div>
-          <h3><i class="fas fa-wrench" style="color:var(--success)"></i> Montaje de Moldes SMED</h3>
-          <p>Cola de cambios de molde derivada del plan APS: valida estado PM de disparos, surtido de resina/insertos por WMS y checklist SMED para liberar arranque a Producción.</p>
-          <div class="tags"><span class="tag">molds</span><span class="tag">checklists</span><span class="tag">checklist_items</span></div>
+          <div class="step-num"><span>Estación 5 · SMED & Piso</span><span class="tag">MES Ejecución</span></div>
+          <h3><i class="fas fa-wrench" style="color:var(--success)"></i> Montaje SMED & Captura</h3>
+          <p>Valida compatibilidad CR01, PM de molde, Kitting Surtido OK y checklist SMED para liberar arranque en Terminal Piso MES.</p>
+          <div class="tags"><span class="tag">checklist_executions</span><span class="tag">produccion_captura</span></div>
         </div>
-        <a href="planeacion_montaje_moldes.html" class="btn btn-primary" style="justify-content:center;background:var(--success)"><i class="fas fa-clipboard-check"></i> Abrir Estación Montaje SMED</a>
+        <div style="display:flex;gap:6px">
+          <a href="planeacion_montaje_moldes.html" class="btn btn-primary" style="flex:1;justify-content:center;background:var(--success)"><i class="fas fa-wrench"></i> SMED</a>
+          <a href="produccion_captura.html" class="btn" style="flex:1;justify-content:center"><i class="fas fa-industry"></i> MES</a>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- MAPA DE INTEGRACIÓN CON EL RESTO DEL ERP -->
+  <!-- MONITOR EJECUTIVO EN VIVO -->
+  <div class="exec-grid">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0"><i class="fas fa-gears" style="color:var(--accent)"></i> <span id="lblWoTblTitle">Órdenes Activas en APS / Piso MES</span></h2>
+        <a href="planeacion_aps_tablero.html" class="btn btn-sm btn-primary">Ver en APS →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>WO</th><th>N° Parte</th><th>Máquina</th><th class="num">Meta</th><th>Setup SMED</th><th>Kitting WMS</th><th>Acción</th></tr>
+          </thead>
+          <tbody id="hubWoBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Cargando WOs activas...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0"><i class="fas fa-calendar-check" style="color:var(--primary)"></i> <span id="lblReqTblTitle">Próximos Pedidos Firmes por Programar</span></h2>
+        <a href="planeacion_mrp_forecast.html" class="btn btn-sm btn-primary">Gestionar Demanda →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Folio</th><th>Cliente / Proyecto</th><th>N° Parte</th><th>Fecha Req.</th><th class="num">Cantidad</th><th>Acción</th></tr>
+          </thead>
+          <tbody id="hubReqBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Cargando requerimientos firmes...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATRIZ DE INTEGRACIÓN INTER-MÓDULOS -->
   <div class="card">
-    <h2><i class="fas fa-link" style="color:var(--primary)"></i> Mapa de Conexión entre Módulos (Ingeniería ↔ Planeación ↔ WMS ↔ Producción)</h2>
-    <p class="desc">Resumen de qué consume Planeación de cada área y qué le entrega de regreso.</p>
-    <div style="overflow-x:auto">
-      <table class="matrix">
+    <h2><i class="fas fa-link" style="color:var(--primary)"></i> <span id="lblMatrixTitle">Matriz de Integración Inter-Módulos en Producción</span></h2>
+    <p class="desc">Flujo real de lectura y escritura entre módulos sobre PostgreSQL / Supabase.</p>
+    <div class="table-wrap">
+      <table>
         <thead>
-          <tr><th>Módulo Conectado</th><th>Qué lee Planeación de él</th><th>Qué le entrega Planeación</th><th>Estado Base</th></tr>
+          <tr><th>Módulo Conectado</th><th>Qué lee Planeación de él</th><th>Qué le entrega Planeación</th><th>Estado Actual</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Ingeniería</strong></td>
-            <td>`parts` (MRP/Lead Time/Scrap), `bom_structures`, `molds` / `part_molds`, `mes_machines` (CR01), `part_routings`, `empaques_partes`</td>
-            <td>Alertas de partes sin molde, sin BOM o sin ubicación default WMS</td>
-            <td class="status-ok"><i class="fas fa-check-circle"></i> Maestro listo (Fase 1 y 2)</td>
+            <td><strong>1.1 Ingeniería & BOM</strong></td>
+            <td class="mono" style="font-size:11.5px">parts (canónicas), bom_structures, molds, part_molds, mold_machines, mes_machines (CR01), part_routings, empaques_partes</td>
+            <td>Explosión multinivel, tiempo ciclo, restricción de carritos retornables y compatibilidad de prensa</td>
+            <td><span class="status-ok"><i class="fas fa-check-circle"></i> Producción BD Activa</span></td>
           </tr>
           <tr>
-            <td><strong>WMS (Almacén)</strong></td>
-            <td>`v_inventory_by_location` (Stock neto por ubicación/lote), ubicaciones fijas, capacidad de carritos</td>
-            <td>Lista de Surtido/Kitting por WO a pie de máquina y Requisiciones de compra de MP</td>
-            <td class="status-wip"><i class="fas fa-circle-half-stroke"></i> Lectura WMS lista · Kitting en Fase 3</td>
+            <td><strong>2.1 Comercial</strong></td>
+            <td class="mono" style="font-size:11.5px">v_cobertura_demanda_pt, clientes, requerimientos (origen = COMERCIAL)</td>
+            <td>Monitor de días de cobertura PT y conversión 1-clic de Forecast a Pedido Firme</td>
+            <td><span class="status-ok"><i class="fas fa-check-circle"></i> Producción BD Activa</span></td>
           </tr>
           <tr>
-            <td><strong>Montaje / Calidad</strong></td>
-            <td>Estatus PM de moldes (`current_shots`), `checklists` SMED y Primera Pieza</td>
-            <td>Secuencia de cambios de molde con fecha/hora objetivo y máquina destino</td>
-            <td class="status-wip"><i class="fas fa-circle-half-stroke"></i> Boceto listo en este módulo</td>
+            <td><strong>1.4 / 1.5 Compras & WMS</strong></td>
+            <td class="mono" style="font-size:11.5px">v_inventory_by_location, v_compras_pendientes, proveedores, compras_ordenes, compras_recibos</td>
+            <td>Déficits MRP agrupados por proveedor en OC relacionales y Kitting FIFO con salida negativa en inventory_movements</td>
+            <td><span class="status-ok"><i class="fas fa-check-circle"></i> Producción BD Activa</span></td>
           </tr>
           <tr>
-            <td><strong>Producción (Piso)</strong></td>
-            <td>Avance real de piezas buenas/scrap y paros (`produccion_captura.html`)</td>
-            <td>Órdenes de Producción (WO) liberadas con máquina, molde, meta/hora y estándar de empaque</td>
-            <td class="status-wip"><i class="fas fa-circle-half-stroke"></i> Pendiente unificar tabla máquinas</td>
+            <td><strong>1.2 / 1.6 Montaje SMED & Calidad</strong></td>
+            <td class="mono" style="font-size:11.5px">molds (disparos PM), checklists, checklist_items, checklist_executions</td>
+            <td>Cola SMED desde production_orders y confirmación automática de Gate #3 (v_aps_kitting_pendiente / kitting_status = SURTIDO)</td>
+            <td><span class="status-ok"><i class="fas fa-check-circle"></i> Producción BD Activa</span></td>
+          </tr>
+          <tr>
+            <td><strong>1.3 Producción Piso MES</strong></td>
+            <td class="mono" style="font-size:11.5px">production_orders (EN_PROCESO / CERRADA), produccion_registros</td>
+            <td>WOs publicadas sin duplicados con secuencia de máquina, molde, meta/hora y liberación pre-arranque</td>
+            <td><span class="status-ok"><i class="fas fa-check-circle"></i> Producción BD Activa</span></td>
           </tr>
         </tbody>
       </table>
@@ -195,32 +286,167 @@ body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:'S
 </div>
 
 <script>
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 1 });
+
+const HUB_I18N = {
+  es: { back:'Dashboard', title:'Cockpit de Planeación, MRP & Control APS', sub:'Operación productiva unificada en tiempo real: Comercial → Demanda/MPS → MRP Compras → APS Kitting FIFO → SMED → Piso MES.', ref:'Actualizar', kReqs:'Requerimientos Abiertos', kWos:'WOs Activas en APS / MES', kPos:'OCs en Tránsito (MRP)', kLow:'Materiales Bajo Stock Seg.', kPt:'N/P Canónicos PT / Sub', kMach:'Prensas / Moldes Activos', flow:'Cadena Operativa Oficial de Planeación ERP', woTbl:'Órdenes Activas en APS / Piso MES', reqTbl:'Próximos Pedidos Firmes por Programar', mat:'Matriz de Integración Inter-Módulos en Producción' },
+  ko: { back:'대시보드', title:'생산계획, MRP 및 APS 통합 조종실', sub:'실시간 통합 운영: 영업 → 수요/MPS → MRP 구매 → APS 키팅 FIFO → SMED → MES 현장.', ref:'새로고침', kReqs:'미결 소요량(수요)', kWos:'진행 중 작업지시(WO)', kPos:'입고 대기 발주(PO)', kLow:'안전재고 미달 자재', kPt:'정규 완제품/반제품(PT/Sub)', kMach:'가동 설비 / 금형', flow:'공식 ERP 생산계획 워크플로우', woTbl:'APS / MES 진행 작업지시', reqTbl:'미배정 확정 주문', mat:'모듈 간 실시간 DB 연동 현황' },
+  en: { back:'Dashboard', title:'Planning, MRP & APS Control Cockpit', sub:'Live unified operation: Commercial → Demand/MPS → MRP Purchasing → APS FIFO Kitting → SMED → MES Floor.', ref:'Refresh', kReqs:'Open Requirements', kWos:'Active WOs (APS / MES)', kPos:'In-Transit POs (MRP)', kLow:'Materials Below Safety Stock', kPt:'Canonical PT / Sub-Assy SKUs', kMach:'Active Presses / Molds', flow:'Official ERP Planning Operational Flow', woTbl:'Active Work Orders (APS / MES)', reqTbl:'Upcoming Firm Orders to Schedule', mat:'Live Inter-Module DB Integration Matrix' }
+};
+
+function setLang(lang) {
+  const l = HUB_I18N[lang] ? lang : 'es';
+  localStorage.setItem('lang', l);
+  localStorage.setItem('kraem_lang', l);
+  document.documentElement.setAttribute('lang', l);
+  const t = HUB_I18N[l];
+  document.getElementById('lblBack').textContent = t.back;
+  document.getElementById('lblTitle').textContent = t.title;
+  document.getElementById('lblSub').textContent = t.sub;
+  document.getElementById('lblRefresh').textContent = t.ref;
+  document.getElementById('lblKOpenReqs').textContent = t.kReqs;
+  document.getElementById('lblKActiveWos').textContent = t.kWos;
+  document.getElementById('lblKOpenPos').textContent = t.kPos;
+  document.getElementById('lblKLowMat').textContent = t.kLow;
+  document.getElementById('lblKPt').textContent = t.kPt;
+  document.getElementById('lblKMachMold').textContent = t.kMach;
+  document.getElementById('lblFlowTitle').textContent = t.flow;
+  document.getElementById('lblWoTblTitle').textContent = t.woTbl;
+  document.getElementById('lblReqTblTitle').textContent = t.reqTbl;
+  document.getElementById('lblMatrixTitle').textContent = t.mat;
+  ['Es','Ko','En'].forEach(k => document.getElementById('lang' + k)?.classList.toggle('active', k.toLowerCase() === l));
+}
+
+function applyTheme() {
+  const theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme();
+}
+
+async function cargarPartesCanonicas() {
+  const cols = 'id, part_number, part_name, product_type, safety_stock, obsolete, is_archived_duplicate';
+  if (window.fetchAllRows) {
+    try {
+      const data = await window.fetchAllRows('parts', {
+        select: cols,
+        filter: q => q.eq('obsolete', false).eq('is_archived_duplicate', false),
+        orderBy: 'id'
+      });
+      return Array.isArray(data) ? data : (data?.data || []);
+    } catch (_) {
+      const fb = await window.fetchAllRows('parts', {
+        select: 'id, part_number, part_name, product_type, safety_stock, obsolete',
+        filter: q => q.eq('obsolete', false),
+        orderBy: 'id'
+      });
+      return (Array.isArray(fb) ? fb : (fb?.data || [])).filter(p => !p.is_archived_duplicate);
+    }
+  }
+  const { data } = await client.from('parts').select(cols).eq('obsolete', false).order('id');
+  return (data || []).filter(p => !p.is_archived_duplicate);
+}
+
 async function loadSummary(){
-  try{
-    const [partsData, rStock, rMach, rMolds] = await Promise.all([
-      window.fetchAllRows ? window.fetchAllRows('parts', { select: 'id, product_type, safety_stock, obsolete', filter: q => q.eq('obsolete', false), orderBy: 'id' }) : client.from('parts').select('id, product_type, safety_stock, obsolete').eq('obsolete', false).then(r => r.data || []),
+  const badge = document.getElementById('hubDbBadge');
+  try {
+    const [parts, rStock, rMach, rMolds, rReqs, rWos, rPos] = await Promise.all([
+      cargarPartesCanonicas(),
       client.from('v_inventory_by_location').select('part_id, quantity').gt('quantity', 0),
-      client.from('mes_machines').select('id', {count:'exact', head:true}).eq('active', true),
-      client.from('molds').select('id', {count:'exact', head:true})
+      client.from('mes_machines').select('id, machine_code, machine_name, active').eq('active', true),
+      client.from('molds').select('id', { count:'exact', head:true }),
+      client.from('requerimientos').select('id, folio_demanda, part_id, quantity, due_date, status, tipo_demanda, cliente, proyecto').in('status', ['ABIERTO', 'open']).order('due_date', { ascending: true }),
+      client.from('production_orders').select('id, folio, part_id, machine_id, quantity_planned, status, setup_status, kitting_status, due_date').in('status', ['PROGRAMADA', 'planned', 'EN_PROCESO']).order('id', { ascending: false }),
+      client.from('v_compras_pendientes').select('folio, part_id, cantidad_pendiente').then(r => r, () => ({ data: [] }))
     ]);
 
-    const parts = Array.isArray(partsData) ? partsData : (partsData.data || []);
+    const partsById = new Map(parts.map(p => [Number(p.id), p]));
     const pts = parts.filter(p => p.product_type === 'PT' || p.product_type === 'SUB-ENSAMBLE');
     const mats = parts.filter(p => p.product_type === 'RESINA' || p.product_type === 'COMPONENTE');
 
     const stk = {};
-    (rStock.data || []).forEach(s => { stk[s.part_id] = (stk[s.part_id] || 0) + (parseFloat(s.quantity) || 0); });
-    const lowCount = mats.filter(m => Number(m.safety_stock || 0) > 0 && (stk[m.id] || 0) < Number(m.safety_stock)).length;
+    (rStock.data || []).forEach(s => { stk[Number(s.part_id)] = (stk[Number(s.part_id)] || 0) + (parseFloat(s.quantity) || 0); });
+    const lowCount = mats.filter(m => Number(m.safety_stock || 0) > 0 && (stk[Number(m.id)] || 0) < Number(m.safety_stock)).length;
 
-    document.getElementById('kPt').textContent = pts.length || '0';
+    const reqRows = rReqs.data || [];
+    const firmReqs = reqRows.filter(r => (r.tipo_demanda || 'PEDIDO_FIRME') === 'PEDIDO_FIRME');
+    const fcstReqs = reqRows.filter(r => r.tipo_demanda === 'FORECAST');
+
+    const woRows = rWos.data || [];
+    const pendingKitWos = woRows.filter(w => String(w.kitting_status || 'PENDIENTE').toUpperCase() !== 'SURTIDO').length;
+
+    const poRows = rPos.data || [];
+    const distinctPos = new Set(poRows.map(r => r.folio).filter(Boolean));
+
+    const machRows = rMach.data || [];
+    const machById = new Map(machRows.map(m => [Number(m.id), m]));
+
+    document.getElementById('kOpenReqs').textContent = reqRows.length;
+    document.getElementById('kOpenReqsSub').textContent = `${firmReqs.length} Firmes · ${fcstReqs.length} Forecast`;
+    document.getElementById('kActiveWos').textContent = woRows.length;
+    document.getElementById('kActiveWosSub').textContent = `${pendingKitWos} por surtir WMS`;
+    document.getElementById('kOpenPos').textContent = poRows.length;
+    document.getElementById('kOpenPosSub').textContent = `${distinctPos.size} OC(s) activas en tránsito`;
     document.getElementById('kLowMat').textContent = rStock.error ? 'N/D' : lowCount;
-    document.getElementById('kMach').textContent = rMach.error ? 'N/D' : (rMach.count ?? 0);
-    document.getElementById('kMold').textContent = rMolds.error ? 'SQL F1' : (rMolds.count ?? 0);
+    document.getElementById('kPt').textContent = pts.length;
+    document.getElementById('kMach').textContent = machRows.length;
+    document.getElementById('kMold').textContent = rMolds.error ? 'N/D' : (rMolds.count ?? 0);
+
+    // Tabla A: Órdenes de Producción Activas (hasta 10)
+    const woBody = document.getElementById('hubWoBody');
+    const topWos = woRows.slice(0, 10);
+    woBody.innerHTML = topWos.length ? topWos.map(w => {
+      const pt = partsById.get(Number(w.part_id)) || {};
+      const mq = machById.get(Number(w.machine_id)) || {};
+      const kitOk = String(w.kitting_status || '').toUpperCase() === 'SURTIDO';
+      const smedOk = String(w.setup_status || '').toUpperCase() === 'LIBERADO';
+      return `<tr>
+        <td class="mono"><strong>${esc(w.folio || ('WO-' + w.id))}</strong></td>
+        <td><strong>${esc(pt.part_number || ('PT-' + w.part_id))}</strong></td>
+        <td>${esc(mq.machine_code || mq.machine_name || ('MAQ-' + (w.machine_id || '-')))}</td>
+        <td class="num"><strong>${fmt(w.quantity_planned)}</strong></td>
+        <td><span class="badge ${smedOk ? 'b-ok' : 'b-warn'}">${esc(w.setup_status || 'PENDIENTE')}</span></td>
+        <td><span class="badge ${kitOk ? 'b-ok' : 'b-warn'}">${esc(w.kitting_status || 'PENDIENTE')}</span></td>
+        <td><a href="planeacion_aps_tablero.html" class="btn btn-sm btn-primary">Ver en APS →</a></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Sin órdenes activas en production_orders.</td></tr>';
+
+    // Tabla B: Próximos Pedidos Firmes Abiertos (hasta 10)
+    const reqBody = document.getElementById('hubReqBody');
+    const topReqs = firmReqs.slice(0, 10);
+    reqBody.innerHTML = topReqs.length ? topReqs.map(r => {
+      const pt = partsById.get(Number(r.part_id)) || {};
+      return `<tr>
+        <td class="mono"><strong>${esc(r.folio_demanda || ('DEM-' + String(r.id).padStart(5, '0')))}</strong></td>
+        <td><strong>${esc(r.cliente || '-')}</strong><div style="font-size:10.5px;color:var(--muted)">${esc(r.proyecto || '')}</div></td>
+        <td><strong>${esc(pt.part_number || ('PT-' + r.part_id))}</strong></td>
+        <td style="white-space:nowrap">${esc(r.due_date || '-')}</td>
+        <td class="num"><strong>${fmt(r.quantity)}</strong></td>
+        <td><a href="planeacion_aps_tablero.html" class="btn btn-sm btn-primary">Programar →</a></td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Sin pedidos firmes abiertos por programar.</td></tr>';
+
+    badge.textContent = 'EN PRODUCCIÓN BD';
+    badge.className = 'badge b-ok';
   } catch (e) {
-    console.warn('Resumen boceto:', e);
+    console.warn('Cockpit Planeación:', e);
+    badge.textContent = 'Error BD: ' + (e.message || e);
+    badge.className = 'badge b-bad';
   }
 }
-document.addEventListener('DOMContentLoaded', loadSummary);
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme();
+  setLang(localStorage.getItem('lang') || localStorage.getItem('kraem_lang') || 'es');
+  loadSummary();
+});
 </script>
 </body>
 </html>

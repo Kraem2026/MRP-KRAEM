@@ -1,128 +1,32 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Calendario de Máquinas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="kraem_nav.js"></script>
-
+<title>KRAEM | Redirección a Tablero APS & Kitting</title>
 <style>
-body{
-  font-family:Arial;
-  background:#f4f6f8;
-  padding:15px
-}
-.card{
-  background:#fff;
-  padding:20px;
-  border-radius:6px;
-  max-width:1400px;
-  margin:auto
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:15px
-}
-th,td{
-  padding:8px;
-  border-bottom:1px solid #ddd;
-  font-size:14px;
-  text-align:center
-}
-th{background:#f0f0f0}
-.ok{background:#d4edda}
-.warn{background:#fff3cd}
-.bad{background:#f8d7da}
-.back{background:#6c757d;color:#fff;border:none;padding:6px 12px}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0f172a;font-family:'Segoe UI',system-ui,sans-serif}
+[data-theme="dark"] body{background:#090d16;color:#f1f5f9}
+.box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px 28px;max-width:420px;text-align:center}
+[data-theme="dark"] .box{background:#111827;border-color:#1f2937}
+a{display:inline-block;margin-top:12px;background:#2563eb;color:#fff;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none}
+p{color:#64748b;font-size:13px;margin:6px 0 0}
 </style>
 </head>
-
 <body>
-
-<button class="back btn-back" onclick="KraemNav.back('planeacion_hub.html')">⬅ Regresar al Cockpit</button>
-
-
-
-<div class="card">
-  <h2>🗓️ Calendario de carga por máquina</h2>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Máquina</th>
-        <th>Fecha</th>
-        <th>Horas disponibles</th>
-        <th>Horas planeadas</th>
-        <th>Disponible</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
+<div class="box">
+  <h3 style="margin:0">Pantalla retirada</h3>
+  <p>Esta pantalla fue unificada en el módulo oficial <strong>Tablero APS & Kitting</strong>.</p>
+  <a id="fallbackLink" href="planeacion_aps_tablero.html">Continuar al módulo oficial →</a>
 </div>
-
 <script>
-// client provisto por config.js
-
-async function loadCalendar(){
-
-  const { data: capacity } = await client
-    .from('machine_capacity')
-    .select(`
-      machine_id,
-      date,
-      available_hour,
-      machines ( machine_name )
-    `)
-    .order('date');
-
-  const { data: plans } = await client
-    .from('production_plan')
-    .select('machine_id, production_date, estimated_hours')
-    .eq('status','planned');
-
-  rows.innerHTML='';
-
-  capacity.forEach(c=>{
-    const used = plans
-      .filter(p =>
-        p.machine_id === c.machine_id &&
-        p.production_date === c.date
-      )
-      .reduce((s,p)=>s + Number(p.estimated_hours),0);
-
-    const free = (c.available_hour - used).toFixed(2);
-
-    let cls = 'ok';
-    let status = 'OK';
-
-    if(free <= 0){
-      cls = 'bad';
-      status = 'SATURADA';
-    }else if(free < 2){
-      cls = 'warn';
-      status = 'CRÍTICA';
-    }
-
-    rows.innerHTML += `
-      <tr class="${cls}">
-        <td>${c.machines.machine_name}</td>
-        <td>${c.date}</td>
-        <td>${c.available_hour}</td>
-        <td>${used.toFixed(2)}</td>
-        <td>${free}</td>
-        <td>${status}</td>
-      </tr>
-    `;
-  });
-}
-
-loadCalendar();
+(function(){
+  if (localStorage.getItem('theme') === 'dark') document.documentElement.setAttribute('data-theme','dark');
+  var TARGET_URL = 'planeacion_aps_tablero.html' + (window.location.search || '');
+  window.__REDIRECT_TARGET = TARGET_URL;
+  document.getElementById('fallbackLink').setAttribute('href', TARGET_URL);
+  if (!window.__KRAEM_TEST_NO_REDIRECT) window.location.replace(TARGET_URL);
+})();
 </script>
-
 </body>
 </html>
-
